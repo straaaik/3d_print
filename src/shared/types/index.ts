@@ -49,6 +49,52 @@ export interface Settings {
   default_defect_percent: number;
 }
 
+export type OrderStatus = 
+  | 'Не в работе' 
+  | 'Моделирование' 
+  | 'Ждет печати' 
+  | 'Печать' 
+  | 'Ждет покраски' 
+  | 'Покраска' 
+  | 'Ждет отправки' 
+  | 'Отправлен' 
+  | 'Готово';
+
+export type ContactType = 
+  | 'phone' 
+  | 'telegram' 
+  | 'whatsapp' 
+  | 'avito' 
+  | 'vk' 
+  | 'instagram' 
+  | 'email' 
+  | 'other';
+
+export interface ContactItem {
+  type: ContactType;
+  value: string;
+  label?: string;
+}
+
+export interface Order {
+  id: string;
+  order_number?: number; // Автоматический уникальный номер заказа (1001, 1002...)
+  created_at?: string;
+  date: string;
+  type: 'income' | 'expense';
+  title: string;
+  amount: number;
+  cost: number;
+  payments?: number[]; // Список отдельных транзакций оплаты
+  payment: number; // Сумма всех транзакций оплаты
+  client: string;
+  contacts?: ContactItem[]; // Список контактов клиента (телефон, телеграм, whatsapp и др.)
+  contact: string; // Основной контакт для обратной совместимости
+  deadline: string;
+  status: OrderStatus;
+  notes: string;
+}
+
 // Конфигурация для Supabase API ключей, вводимых пользователем вручную
 export interface SupabaseConfig {
   url: string;

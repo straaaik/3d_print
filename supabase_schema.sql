@@ -1,5 +1,5 @@
 -- =========================================================================
--- SQL СКРИПТ ДЛЯ ИНИЦИАЛИЗАЦИИ БАЗЫ ДАННЫХ В SUPABASE
+-- SQL СКРИПТ ДЛЯ ИНИЦИАЛИЗАЦИИ И ОБНОВЛЕНИЯ БАЗЫ ДАННЫХ В SUPABASE
 -- Скопируйте этот код и вставьте его в SQL Editor вашего проекта Supabase
 -- =========================================================================
 
@@ -56,12 +56,34 @@ create table if not exists public.saved_calculations (
   labor_minutes integer              -- Время работы мастера
 );
 
+-- 5. Таблица заказов и финансов
+create table if not exists public.orders (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  date text not null,                -- Дата (например, "10.10")
+  type text not null,                -- Тип операции ("income" / "expense")
+  title text not null,               -- Наименование
+  amount numeric default 0,          -- Сумма
+  cost numeric default 0,            -- Расход на производство
+  payments jsonb default '[]'::jsonb,-- Список транзакций оплаты (массив чисел)
+  payment numeric default 0,         -- Сумма всех транзакций оплаты
+  client text default 'Авито',       -- Клиент / Канал ("Авито", "Телеграмм", "Ютуб", "Тикток", "Инстаграмм", "Другое")
+  contact text,                      -- Контакт
+  deadline text,                     -- Срок выполнения
+  status text default 'Готово',      -- Статус ("Не в работе", "Моделирование", "Ждет печати", "Печать", "Ждет покраски", "Покраска", "Ждет отправки", "Отправлен", "Готово")
+  notes text                         -- Примечание
+);
+
+-- Команды для обновления существующей таблицы в Supabase (если таблица уже была создана ранее):
+-- alter table public.orders drop column if exists prepayment;
+-- alter table public.orders drop column if exists extra_payment;
+-- alter table public.orders add column if exists payments jsonb default '[]'::jsonb;
+
 -- =========================================================================
 -- БЕЗОПАСНОСТЬ (RLS - Row Level Security)
--- Поскольку приложение локальное и работает без авторизации (через анонимные ключи),
--- мы отключаем RLS для таблиц, чтобы разрешить чтение/запись без политик.
 -- =========================================================================
 alter table public.printers disable row level security;
 alter table public.filaments disable row level security;
 alter table public.settings disable row level security;
 alter table public.saved_calculations disable row level security;
+alter table public.orders disable row level security;

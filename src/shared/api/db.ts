@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Filament, Printer, Settings, SupabaseConfig, SavedCalculation } from '../types';
+import { Filament, Printer, Settings, SupabaseConfig, SavedCalculation, Order } from '../types';
 
 const STORAGE_KEYS = {
   FILAMENTS: '3d_calc_filaments',
@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
   SETTINGS: '3d_calc_settings',
   SUPABASE_CONFIG: '3d_calc_supabase_config',
   SAVED_CALCULATIONS: '3d_calc_saved_calculations',
+  ORDERS: '3d_calc_orders',
 };
 
 const DEFAULT_SETTINGS: Settings = {
@@ -22,6 +23,178 @@ const DEFAULT_SETTINGS: Settings = {
 const DEFAULT_PRINTERS: Printer[] = [];
 const DEFAULT_FILAMENTS: Filament[] = [];
 const DEFAULT_SAVED_CALCULATIONS: SavedCalculation[] = [];
+const DEFAULT_ORDERS: Order[] = [
+  {
+    id: 'ord-1',
+    order_number: 1001,
+    date: '10.10',
+    type: 'income',
+    title: 'Котлы Колонки - 2 статуэтки',
+    amount: 5000,
+    cost: 1500,
+    payments: [2500, 2500, 200],
+    payment: 5200,
+    client: 'Авито',
+    contacts: [{ type: 'phone', value: '79188798043' }],
+    contact: '79188798043',
+    deadline: '10.10',
+    status: 'Готово',
+    notes: '',
+  },
+  {
+    id: 'ord-2',
+    order_number: 1002,
+    date: '12.10',
+    type: 'income',
+    title: '2 фигурки по фото с покраской',
+    amount: 21000,
+    cost: 500,
+    payments: [10500],
+    payment: 10500,
+    client: 'Авито',
+    contacts: [{ type: 'phone', value: '79064755254' }],
+    contact: '79064755254',
+    deadline: '',
+    status: 'Ждет покраски',
+    notes: 'Не забрали фигурки',
+  },
+  {
+    id: 'ord-3',
+    order_number: 1003,
+    date: '13.10',
+    type: 'income',
+    title: 'Китаец',
+    amount: 2500,
+    cost: 200,
+    payments: [2500],
+    payment: 2500,
+    client: 'Авито',
+    contacts: [{ type: 'telegram', value: '@Elephant_freedom' }],
+    contact: '@Elephant_freedom',
+    deadline: '',
+    status: 'Готово',
+    notes: '',
+  },
+  {
+    id: 'ord-4',
+    order_number: 1004,
+    date: '13.10',
+    type: 'income',
+    title: 'Девушка на стуле по фото с покраской',
+    amount: 12000,
+    cost: 5000,
+    payments: [6000, 6000],
+    payment: 12000,
+    client: 'Авито',
+    contacts: [],
+    contact: '',
+    deadline: '',
+    status: 'Готово',
+    notes: '',
+  },
+  {
+    id: 'ord-5',
+    order_number: 1005,
+    date: '14.10',
+    type: 'income',
+    title: 'Девушка у пруда по фото с покраской',
+    amount: 13000,
+    cost: 5000,
+    payments: [6500, 6500],
+    payment: 13000,
+    client: 'Авито',
+    contacts: [],
+    contact: '',
+    deadline: '',
+    status: 'Готово',
+    notes: '',
+  },
+  {
+    id: 'ord-6',
+    order_number: 1006,
+    date: '20.10',
+    type: 'income',
+    title: 'Девушка сидит',
+    amount: 2500,
+    cost: 1100,
+    payments: [1250, 1250],
+    payment: 2500,
+    client: 'Авито',
+    contacts: [],
+    contact: '',
+    deadline: '',
+    status: 'Готово',
+    notes: '',
+  },
+  {
+    id: 'ord-7',
+    order_number: 1007,
+    date: '11.10',
+    type: 'expense',
+    title: 'Авито',
+    amount: 367,
+    cost: 0,
+    payments: [367],
+    payment: 367,
+    client: 'Авито',
+    contacts: [],
+    contact: '',
+    deadline: '',
+    status: 'Готово',
+    notes: '',
+  },
+  {
+    id: 'ord-8',
+    order_number: 1008,
+    date: '11.10',
+    type: 'expense',
+    title: 'Авито',
+    amount: 367,
+    cost: 0,
+    payments: [367],
+    payment: 367,
+    client: 'Авито',
+    contacts: [],
+    contact: '',
+    deadline: '',
+    status: 'Готово',
+    notes: '',
+  },
+  {
+    id: 'ord-9',
+    order_number: 1009,
+    date: '12.10',
+    type: 'expense',
+    title: 'Авито',
+    amount: 94,
+    cost: 0,
+    payments: [94],
+    payment: 94,
+    client: 'Авито',
+    contacts: [],
+    contact: '',
+    deadline: '',
+    status: 'Готово',
+    notes: '',
+  },
+  {
+    id: 'ord-10',
+    order_number: 1010,
+    date: '12.10',
+    type: 'expense',
+    title: 'Авито',
+    amount: 94,
+    cost: 0,
+    payments: [94],
+    payment: 94,
+    client: 'Авито',
+    contacts: [],
+    contact: '',
+    deadline: '',
+    status: 'Готово',
+    notes: '',
+  },
+];
 
 // Функция для безопасного получения ключей Supabase
 export function getSupabaseConfig(): SupabaseConfig | null {
@@ -518,6 +691,129 @@ export async function deleteSavedCalculation(id: string): Promise<boolean> {
     const localList = await getSavedCalculations();
     const updatedList = localList.filter((item) => item.id !== id);
     localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(updatedList));
+    return true;
+  }
+  return false;
+}
+
+// ==========================================
+// ORDERS API
+// ==========================================
+
+export async function getOrders(): Promise<Order[]> {
+  const client = getSupabaseClient();
+  
+  if (client) {
+    try {
+      const { data, error } = await (client as any)
+        .from('orders')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data && data.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(data));
+        return data as Order[];
+      }
+      console.warn('Ошибка получения заказов из Supabase, используем кэш:', error);
+    } catch (e) {
+      console.error('Ошибка соединения с Supabase:', e);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    const local = localStorage.getItem(STORAGE_KEYS.ORDERS);
+    if (local) {
+      return JSON.parse(local);
+    }
+    localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(DEFAULT_ORDERS));
+    return DEFAULT_ORDERS;
+  }
+  return DEFAULT_ORDERS;
+}
+
+export async function saveOrder(order: Omit<Order, 'id'> & { id?: string }): Promise<Order> {
+  const client = getSupabaseClient();
+  const id = order.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9));
+
+  let order_number = order.order_number;
+  if (!order_number) {
+    const existingOrders = await getOrders();
+    const maxNum = existingOrders.reduce((max, o) => Math.max(max, o.order_number || 0), 1000);
+    order_number = maxNum + 1;
+  }
+
+  const newOrder: Order = { ...order, id, order_number } as Order;
+
+  if (client) {
+    try {
+      const { data, error } = await (client as any)
+        .from('orders')
+        .upsert(newOrder)
+        .select()
+        .single();
+
+      if (!error && data) {
+        const orders = await getOrders();
+        const updated = orders.map(o => o.id === id ? (data as Order) : o);
+        if (!orders.some(o => o.id === id)) updated.unshift(data as Order);
+        localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
+        return data as Order;
+      }
+      console.warn('Ошибка сохранения заказа в Supabase, сохраняем локально:', error);
+    } catch (e) {
+      console.error('Ошибка соединения с Supabase:', e);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    const local = localStorage.getItem(STORAGE_KEYS.ORDERS);
+    const orders: Order[] = local ? JSON.parse(local) : DEFAULT_ORDERS;
+    const index = orders.findIndex(o => o.id === id);
+
+    if (index >= 0) {
+      orders[index] = newOrder;
+    } else {
+      orders.unshift(newOrder);
+    }
+
+    localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+  }
+
+  return newOrder;
+}
+
+export async function deleteOrder(id: string): Promise<boolean> {
+  const client = getSupabaseClient();
+
+  if (client) {
+    try {
+      const { error } = await (client as any)
+        .from('orders')
+        .delete()
+        .eq('id', id);
+
+      if (!error) {
+        const local = localStorage.getItem(STORAGE_KEYS.ORDERS);
+        if (local) {
+          const orders: Order[] = JSON.parse(local);
+          const filtered = orders.filter(o => o.id !== id);
+          localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(filtered));
+        }
+        return true;
+      }
+      console.warn('Ошибка удаления заказа из Supabase, удаляем локально:', error);
+    } catch (e) {
+      console.error('Ошибка соединения с Supabase:', e);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    const local = localStorage.getItem(STORAGE_KEYS.ORDERS);
+    if (local) {
+      const orders: Order[] = JSON.parse(local);
+      const filtered = orders.filter(o => o.id !== id);
+      localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(filtered));
+    }
     return true;
   }
   return false;

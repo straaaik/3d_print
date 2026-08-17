@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Calculator } from 'lucide-react';
 
 interface HeaderProps {
   activeTab: string;
@@ -20,16 +21,8 @@ export function Header({ activeTab, setActiveTab }: HeaderProps) {
     <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5 select-none">
       {/* Логотип и Название */}
       <div className="flex items-center gap-3">
-        {/* SVG сопла 3D-принтера с выходящей нитью */}
-        <div className="w-8 h-8 flex items-center justify-center">
-          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-            {/* Сопло (верхняя часть) - голубой Primary #0CB4E0 */}
-            <path d="M16 4L6 20H26L16 4Z" fill="#0CB4E0" />
-            {/* Выходящий пластик (нижняя часть) - голубой Primary #0CB4E0 */}
-            <path d="M13 22H19V28C19 29.1 18.1 30 17 30H15C13.9 30 13 29.1 13 28V22Z" fill="#0CB4E0" />
-            {/* Тонкий акцент сопла */}
-            <path d="M16 4L11 12H21L16 4Z" fill="#0CB4E0" opacity="0.6" />
-          </svg>
+        <div className="w-12 h-12 rounded-xl bg-[#0CB4E0]/15 border border-[#0CB4E0]/30 flex items-center justify-center text-[#0CB4E0] shadow-md shadow-[#0CB4E0]/10 shrink-0">
+          <Calculator className="w-6 h-6" />
         </div>
         
         <div>
@@ -54,7 +47,6 @@ export function Header({ activeTab, setActiveTab }: HeaderProps) {
                 isActive ? 'text-white' : 'text-[#9ca3af] hover:text-white'
               }`}
             >
-              {/* Скользящий фон с использованием Framer Motion */}
               {isActive && (
                 <motion.div
                   layoutId="activeTabBackground"

@@ -10,7 +10,7 @@ export interface ModalProps {
   title: string;
   children: React.ReactNode;
   variant?: 'default' | 'error' | 'success' | 'warning' | 'info';
-  maxWidth?: 'sm' | 'md' | 'lg';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 }
 
 const variantStyles = {
@@ -40,6 +40,8 @@ const maxWidthClasses = {
   sm: 'max-w-sm',
   md: 'max-w-md',
   lg: 'max-w-lg',
+  xl: 'max-w-xl',
+  '2xl': 'max-w-2xl',
 };
 
 // Анимационные пресеты для вариантов
@@ -127,10 +129,10 @@ export function Modal({
             animate={animConfig.animate}
             exit={animConfig.exit}
             transition={animConfig.transition}
-            className={`relative w-full ${sizeClass} bg-[#16181d] border ${styleConfig.borderColor} rounded-xl shadow-2xl p-6 overflow-hidden z-10`}
+            className={`relative w-full ${sizeClass} bg-[#16181d] border ${styleConfig.borderColor} rounded-2xl shadow-2xl p-5 sm:p-6 z-10 max-h-[90vh] flex flex-col`}
           >
             {/* Шапка */}
-            <div className="flex items-center justify-between mb-5 pb-4 border-b border-[#242930] select-none">
+            <div className="flex items-center justify-between mb-4 pb-3.5 border-b border-[#242930] select-none shrink-0">
               <div className="flex items-center gap-2.5">
                 {styleConfig.icon}
                 <h3 className="text-white text-base sm:text-lg font-bold tracking-wide">
@@ -147,7 +149,7 @@ export function Modal({
             </div>
 
             {/* Контент */}
-            <div className="text-gray-300">
+            <div className="text-gray-300 overflow-y-auto pr-1 flex-1">
               {children}
             </div>
           </motion.div>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useData } from '../../entities/model/DataProvider';
 import { Card } from '../../shared/ui/Card';
 import { Select } from '../../shared/ui/Select';
@@ -15,11 +16,8 @@ import { AlertCircle, Plus, Star, Play, Trash2, Copy, Check } from 'lucide-react
 import { motion } from 'framer-motion';
 import { SavedCalculation } from '../../shared/types';
 
-interface CalculatorProps {
-  setActiveTab: (tab: string) => void;
-}
-
-export function Calculator({ setActiveTab }: CalculatorProps) {
+export function Calculator() {
+  const router = useRouter();
   const { 
     filaments, 
     printers, 
@@ -65,12 +63,13 @@ export function Calculator({ setActiveTab }: CalculatorProps) {
   }, [filaments, filamentId]);
 
   useEffect(() => {
+    if (printerId) return; // Уже выбран — не перезаписываем
     if (settings?.default_printer_id && printers.some(p => p.id === settings.default_printer_id)) {
       setPrinterId(settings.default_printer_id);
-    } else if (printers.length > 0 && !printerId) {
+    } else if (printers.length > 0) {
       setPrinterId(printers[0].id);
     }
-  }, [printers, settings, printerId]);
+  }, [printers, settings]); // Без printerId в зависимостях — не сбрасывает выбор пользователя
 
   // Синхронизация времени работы мастера с настройками по умолчанию
   useEffect(() => {
@@ -326,7 +325,7 @@ export function Calculator({ setActiveTab }: CalculatorProps) {
                   <p className="text-gray-400 text-xs">
                     Для проведения расчета необходимо добавить хотя бы один филамент.
                   </p>
-                  <Button size="sm" onClick={() => setActiveTab('filaments')} className="flex items-center gap-1">
+                  <Button size="sm" onClick={() => router.push('/filaments')} className="flex items-center gap-1">
                     <Plus size={14} /> Добавить филамент
                   </Button>
                 </div>
@@ -352,7 +351,7 @@ export function Calculator({ setActiveTab }: CalculatorProps) {
                   <p className="text-gray-400 text-xs">
                     Добавьте принтер для автоматического расчета электричества и амортизации.
                   </p>
-                  <Button size="sm" onClick={() => setActiveTab('printers')} className="flex items-center gap-1">
+                  <Button size="sm" onClick={() => router.push('/printers')} className="flex items-center gap-1">
                     <Plus size={14} /> Добавить принтер
                   </Button>
                 </div>
