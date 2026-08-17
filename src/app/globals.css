@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #0CB4E0;
+  --color-secondary: #537D8E;
+  --color-tertiary: #FEB63D;
+  --color-neutral-accent: #72787B;
+  
+  --font-sans: var(--font-inter), sans-serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
+}
+
+:root {
+  --background: #0d0e12;
+  --foreground: #f8fafc;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: center;
+  min-height: 100vh;
+}
+
+/* Стили для кастомных полей ввода и карточек */
+input, select, textarea {
+  color-scheme: dark;
+}
+
+/* Кастомный скроллбар */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0d0e12;
+}
+::-webkit-scrollbar-thumb {
+  background: #242930;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #537D8E;
+}
+
