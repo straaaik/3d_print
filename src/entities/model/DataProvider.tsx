@@ -47,7 +47,9 @@ interface DataContextType {
   
   // Saved Calculations actions
   addSavedCalculation: (calc: Omit<SavedCalculation, 'id' | 'created_at'>) => Promise<SavedCalculation>;
+  updateSavedCalculation: (calc: SavedCalculation) => Promise<SavedCalculation>;
   deleteSavedCalculation: (id: string) => Promise<void>;
+  clearAllSavedCalculations: () => Promise<void>;
   
   // Supabase configuration
   saveSupabaseConfig: (config: SupabaseConfig | null) => Promise<void>;
@@ -159,9 +161,20 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return created;
   };
 
+  const updateSavedCalculation = async (calcData: SavedCalculation) => {
+    const updated = await api.updateSavedCalculation(calcData);
+    setSavedCalculations(prev => prev.map(c => c.id === updated.id ? updated : c));
+    return updated;
+  };
+
   const deleteSavedCalculation = async (id: string) => {
     await api.deleteSavedCalculation(id);
     setSavedCalculations(prev => prev.filter(c => c.id !== id));
+  };
+
+  const clearAllSavedCalculations = async () => {
+    await api.clearAllSavedCalculations();
+    setSavedCalculations([]);
   };
 
   // Настройки
@@ -230,7 +243,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         deletePrinter: handleDeletePrinter,
         updateSettings,
         addSavedCalculation,
+        updateSavedCalculation,
         deleteSavedCalculation,
+        clearAllSavedCalculations,
         saveSupabaseConfig,
         refreshConnection,
       }}

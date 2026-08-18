@@ -19,6 +19,7 @@ import {
   RefreshCw, 
   Info 
 } from 'lucide-react';
+import { PageHeader } from '../../shared/ui/PageHeader';
 
 export function SettingsForm() {
   const { 
@@ -274,7 +275,26 @@ export function SettingsForm() {
   ];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <div className="space-y-6">
+      <PageHeader
+        icon={SettingsIcon}
+        title="Настройки приложения"
+        subtitle="Параметры стоимости, валюта, электричество и подключение облачной базы данных"
+        accentColor="#94a3b8"
+        badge={
+          isOnline ? (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+              <CheckCircle className="w-3 h-3" /> Supabase подключен
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-500/15 text-gray-400 border border-gray-500/30">
+              <Database className="w-3 h-3" /> Demo-режим (локально)
+            </span>
+          )
+        }
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* Левая панель - Общие настройки */}
       <div className="lg:col-span-7 flex flex-col gap-6">
         <Card title="Общие параметры расчета" stepNumber="⚙️">
@@ -463,5 +483,6 @@ export function SettingsForm() {
         </Card>
       </div>
     </div>
-  );
+  </div>
+);
 }

@@ -603,7 +603,12 @@ export async function getSavedCalculations(): Promise<SavedCalculation[]> {
         .order('created_at', { ascending: false });
 
       if (!error && data) {
-        localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(data));
+        const safeData = (data as SavedCalculation[]).map(({ stl_file_data, ...rest }) => rest);
+        try {
+          localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(safeData));
+        } catch (e) {
+          console.warn('localStorage setItem limit warning:', e);
+        }
         return data as SavedCalculation[];
       }
       console.warn('Ошибка получения расчетов из Supabase, используем кэш:', error);
@@ -615,7 +620,11 @@ export async function getSavedCalculations(): Promise<SavedCalculation[]> {
   if (typeof window !== 'undefined') {
     const local = localStorage.getItem(STORAGE_KEYS.SAVED_CALCULATIONS);
     if (local) {
-      return JSON.parse(local);
+      try {
+        return JSON.parse(local);
+      } catch (e) {
+        console.error('Ошибка чтения localStorage:', e);
+      }
     }
     localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(DEFAULT_SAVED_CALCULATIONS));
     return DEFAULT_SAVED_CALCULATIONS;
@@ -627,9 +636,10 @@ export async function addSavedCalculation(
   calc: Omit<SavedCalculation, 'id' | 'created_at'>
 ): Promise<SavedCalculation> {
   const client = getSupabaseClient();
+  const id = typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9);
   const newCalc: SavedCalculation = {
     ...calc,
-    id: typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+    id,
     created_at: new Date().toISOString(),
   };
 
@@ -643,10 +653,13 @@ export async function addSavedCalculation(
 
       if (!error && data) {
         const localList = await getSavedCalculations();
-        localStorage.setItem(
-          STORAGE_KEYS.SAVED_CALCULATIONS,
-          JSON.stringify([data, ...localList.filter(item => item.id !== data.id)])
-        );
+        const updatedList = [data as SavedCalculation, ...localList.filter(item => item.id !== data.id)];
+        const safeList = updatedList.map(({ stl_file_data, ...rest }) => rest);
+        try {
+          localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(safeList));
+        } catch (e) {
+          console.warn('localStorage warning:', e);
+        }
         return data as SavedCalculation;
       }
       console.warn('Ошибка сохранения расчета в Supabase, сохраняем локально:', error);
@@ -658,9 +671,57 @@ export async function addSavedCalculation(
   if (typeof window !== 'undefined') {
     const localList = await getSavedCalculations();
     const updatedList = [newCalc, ...localList];
-    localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(updatedList));
+    const safeList = updatedList.map(({ stl_file_data, ...rest }) => rest);
+    try {
+      localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(safeList));
+    } catch (e) {
+      console.warn('localStorage warning:', e);
+    }
   }
   return newCalc;
+}
+
+export async function updateSavedCalculation(
+  calc: SavedCalculation
+): Promise<SavedCalculation> {
+  const client = getSupabaseClient();
+
+  if (client) {
+    try {
+      const { data, error } = await (client as any)
+        .from('saved_calculations')
+        .upsert(calc)
+        .select()
+        .single();
+
+      if (!error && data) {
+        const localList = await getSavedCalculations();
+        const updatedList = localList.map(item => item.id === calc.id ? (data as SavedCalculation) : item);
+        const safeList = updatedList.map(({ stl_file_data, ...rest }) => rest);
+        try {
+          localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(safeList));
+        } catch (e) {
+          console.warn('localStorage warning:', e);
+        }
+        return data as SavedCalculation;
+      }
+      console.warn('Ошибка обновления расчета в Supabase, сохраняем локально:', error);
+    } catch (e) {
+      console.error('Ошибка соединения с Supabase:', e);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    const localList = await getSavedCalculations();
+    const updatedList = localList.map(item => item.id === calc.id ? calc : item);
+    const safeList = updatedList.map(({ stl_file_data, ...rest }) => rest);
+    try {
+      localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(safeList));
+    } catch (e) {
+      console.warn('localStorage warning:', e);
+    }
+  }
+  return calc;
 }
 
 export async function deleteSavedCalculation(id: string): Promise<boolean> {
@@ -675,10 +736,13 @@ export async function deleteSavedCalculation(id: string): Promise<boolean> {
 
       if (!error) {
         const localList = await getSavedCalculations();
-        localStorage.setItem(
-          STORAGE_KEYS.SAVED_CALCULATIONS,
-          JSON.stringify(localList.filter((item) => item.id !== id))
-        );
+        const filtered = localList.filter((item) => item.id !== id);
+        const safeList = filtered.map(({ stl_file_data, ...rest }) => rest);
+        try {
+          localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(safeList));
+        } catch (e) {
+          console.warn('localStorage warning:', e);
+        }
         return true;
       }
       console.warn('Ошибка удаления расчета из Supabase, удаляем локально:', error);
@@ -689,8 +753,40 @@ export async function deleteSavedCalculation(id: string): Promise<boolean> {
 
   if (typeof window !== 'undefined') {
     const localList = await getSavedCalculations();
-    const updatedList = localList.filter((item) => item.id !== id);
-    localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(updatedList));
+    const filtered = localList.filter((item) => item.id !== id);
+    const safeList = filtered.map(({ stl_file_data, ...rest }) => rest);
+    try {
+      localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(safeList));
+    } catch (e) {
+      console.warn('localStorage warning:', e);
+    }
+    return true;
+  }
+  return false;
+}
+
+export async function clearAllSavedCalculations(): Promise<boolean> {
+  const client = getSupabaseClient();
+
+  if (client) {
+    try {
+      const { error } = await (client as any)
+        .from('saved_calculations')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (!error) {
+        localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify([]));
+        return true;
+      }
+      console.warn('Ошибка очистки расчетов в Supabase, очищаем локально:', error);
+    } catch (e) {
+      console.error('Ошибка соединения с Supabase:', e);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify([]));
     return true;
   }
   return false;

@@ -22,6 +22,7 @@ interface TableProps<T> {
   className?: string;
   isSearchable?: boolean; // Добавляет панель поиска сверху таблицы
   pageSize?: number; // Количество строк на одной странице
+  renderSubRow?: (item: T) => React.ReactNode; // Функция отрисовки дочерней раскрывающейся строки
 }
 
 export function Table<T>({
@@ -32,6 +33,7 @@ export function Table<T>({
   className = '',
   isSearchable = false,
   pageSize,
+  renderSubRow,
 }: TableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
@@ -128,19 +130,29 @@ export function Table<T>({
     return sortDirection === 'desc' ? sorted.reverse() : sorted;
   }, [data, sortKey, sortDirection, columns]);
 
-  // 2. Фильтрация данных по поисковому запросу
+  // 2. Фильтрация данных по поисковому запросу (с поддержкой тегов #, категорий и массивов)
   const filteredAndSortedData = useMemo(() => {
     if (!searchQuery.trim()) return sortedData;
 
-    const query = searchQuery.toLowerCase().trim();
+    const query = searchQuery.toLowerCase().trim().replace(/^#/, '');
 
     return sortedData.filter((item) => {
-      // Ищем совпадения по всем свойствам объекта данных
       return Object.values(item as any).some((val) => {
         if (val === null || val === undefined) return false;
-        
-        // Для сложных объектов приводим к строке
-        return String(val).toLowerCase().includes(query);
+
+        if (Array.isArray(val)) {
+          return val.some((element) =>
+            element !== null &&
+            element !== undefined &&
+            String(element).toLowerCase().replace(/^#/, '').includes(query)
+          );
+        }
+
+        if (typeof val === 'object') {
+          return JSON.stringify(val).toLowerCase().includes(query);
+        }
+
+        return String(val).toLowerCase().replace(/^#/, '').includes(query);
       });
     });
   }, [sortedData, searchQuery]);
@@ -192,11 +204,11 @@ export function Table<T>({
         onMouseLeave={handleMouseLeaveOrUp}
         onMouseUp={handleMouseLeaveOrUp}
         onMouseMove={handleMouseMove}
-        className={`w-full overflow-x-auto min-h-[160px] transition-all duration-300 select-none ${
-          isMouseDown ? 'cursor-grabbing' : 'cursor-grab'
+        className={`w-full overflow-x-auto min-h-[160px] transition-all duration-300 ${
+          isMouseDown ? 'cursor-grabbing' : ''
         }`}
       >
-        <table className="w-full text-left font-sans text-xs sm:text-sm border-collapse min-w-[600px]">
+        <table className="w-full text-left font-sans text-xs sm:text-sm border-collapse min-w-[600px] select-text">
           <thead>
             <tr className="border-b border-[#242930] text-[#9ca3af] font-semibold select-none bg-[#111317]">
               {columns.map((col) => {
@@ -261,29 +273,31 @@ export function Table<T>({
               </tr>
             ) : (
               paginatedData.map((item) => (
-                <motion.tr
-                  layout
-                  key={keyExtractor(item)}
-                  transition={{ type: 'spring', stiffness: 220, damping: 26 }}
-                  className="text-gray-300 hover:text-white hover:bg-[#242930]/30 transition-colors"
-                >
-                  {columns.map((col) => {
-                    const alignClass = 
-                      col.align === 'right' 
-                        ? 'text-right' 
-                        : col.align === 'center' 
-                        ? 'text-center' 
-                        : 'text-left';
-                    return (
-                      <td
-                        key={col.key}
-                        className={`py-2.5 px-3 align-middle ${alignClass} ${col.className || ''}`}
-                      >
-                        {col.render ? col.render(item) : (item as any)[col.key]}
-                      </td>
-                    );
-                  })}
-                </motion.tr>
+                <React.Fragment key={keyExtractor(item)}>
+                  <motion.tr
+                    layout
+                    transition={{ type: 'spring', stiffness: 220, damping: 26 }}
+                    className="text-gray-300 hover:text-white hover:bg-[#242930]/30 transition-colors"
+                  >
+                    {columns.map((col) => {
+                      const alignClass = 
+                        col.align === 'right' 
+                          ? 'text-right' 
+                          : col.align === 'center' 
+                          ? 'text-center' 
+                          : 'text-left';
+                      return (
+                        <td
+                          key={col.key}
+                          className={`py-2.5 px-3 align-middle ${alignClass} ${col.className || ''}`}
+                        >
+                          {col.render ? col.render(item) : (item as any)[col.key]}
+                        </td>
+                      );
+                    })}
+                  </motion.tr>
+                  {renderSubRow && renderSubRow(item)}
+                </React.Fragment>
               ))
             )}
           </tbody>

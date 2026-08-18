@@ -63,8 +63,10 @@ create table if not exists public.orders (
   date text not null,                -- Дата (например, "10.10")
   type text not null,                -- Тип операции ("income" / "expense")
   title text not null,               -- Наименование
+  quantity numeric default 1,        -- Количество проданных штук (по умолчанию 1)
   amount numeric default 0,          -- Сумма
   cost numeric default 0,            -- Расход на производство
+  cost_items jsonb default '[]'::jsonb, -- Детализированный список пунктов расхода (массив объектов CostItem)
   payments jsonb default '[]'::jsonb,-- Список транзакций оплаты (массив чисел)
   payment numeric default 0,         -- Сумма всех транзакций оплаты
   client text default 'Авито',       -- Клиент / Канал ("Авито", "Телеграмм", "Ютуб", "Тикток", "Инстаграмм", "Другое")
@@ -78,6 +80,7 @@ create table if not exists public.orders (
 -- alter table public.orders drop column if exists prepayment;
 -- alter table public.orders drop column if exists extra_payment;
 -- alter table public.orders add column if exists payments jsonb default '[]'::jsonb;
+-- alter table public.orders add column if exists cost_items jsonb default '[]'::jsonb;
 
 -- =========================================================================
 -- БЕЗОПАСНОСТЬ (RLS - Row Level Security)

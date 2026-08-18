@@ -3,6 +3,8 @@
 import React from 'react';
 import { BarChart3, TrendingUp, DollarSign, Layers, Printer, Sparkles, ArrowRight } from 'lucide-react';
 
+import { PageHeader } from '../../shared/ui/PageHeader';
+
 interface StatsPlaceholderProps {
   onGoToCalculator: () => void;
 }
@@ -11,36 +13,26 @@ export function StatsPlaceholder({ onGoToCalculator }: StatsPlaceholderProps) {
   return (
     <div className="space-y-6 max-w-4xl mx-auto py-2">
       {/* Заголовок и статус */}
-      <div className="bg-[#16181d] border border-[#00e676]/20 rounded-2xl p-6 sm:p-8 relative overflow-hidden shadow-xl shadow-[#00e676]/5">
-        <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#00e676]/15 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-[#00e676]/15 border border-[#00e676]/30 flex items-center justify-center text-[#00e676] shrink-0 shadow-lg shadow-[#00e676]/20">
-              <BarChart3 className="w-7 h-7" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-2xl font-bold text-white tracking-tight">Аналитика и Статистика</h2>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#00e676]/15 text-[#00e676] border border-[#00e676]/30">
-                  <Sparkles className="w-3 h-3" /> В разработке
-                </span>
-              </div>
-              <p className="text-[#9ca3af] text-sm">
-                Финансовый учет, аналитика расхода филаментов и статистика работы оборудования
-              </p>
-            </div>
-          </div>
-
+      <PageHeader
+        icon={BarChart3}
+        title="Аналитика и Статистика"
+        badge={
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#00e676]/15 text-[#00e676] border border-[#00e676]/30">
+            <Sparkles className="w-3 h-3" /> В разработке
+          </span>
+        }
+        subtitle="Финансовый учет, аналитика расхода филаментов и статистика работы оборудования"
+        accentColor="#00e676"
+        actions={
           <button
             onClick={onGoToCalculator}
-            className="sm:self-center shrink-0 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#00e676] to-[#10b981] hover:from-[#10e576] hover:to-[#34d399] text-[#0d0e12] font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-1.5 shadow-lg shadow-[#00e676]/25 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#00e676] to-[#10b981] hover:from-[#10e576] hover:to-[#34d399] text-[#0d0e12] font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-1.5 shadow-lg shadow-[#00e676]/25 cursor-pointer"
           >
             Перейти к калькулятору
             <ArrowRight className="w-4 h-4" />
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Заглушки метрик аналитики */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

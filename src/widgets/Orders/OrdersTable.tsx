@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Order, OrderStatus, ContactItem, ContactType } from '../../shared/types';
+import { Order, OrderStatus, ContactItem, ContactType, CostItem } from '../../shared/types';
 import { getOrders, saveOrder, deleteOrder } from '../../shared/api/db';
 import { 
   Plus, Search, Trash2, Edit2, ShoppingBag, ArrowUpRight, ArrowDownRight, 
   DollarSign, Wallet, ChevronUp, ChevronDown, RotateCcw, CreditCard,
-  Phone, Send, MessageCircle, Share2, Camera, Mail, Globe, UserX, PhoneCall, ExternalLink, Copy, HelpCircle, CheckCircle2, Check, Info, NotebookPen,
-  Calendar, ChevronLeft, ChevronRight
+  Phone, Send, MessageCircle, Share2, Camera, Mail, Globe, UserX, PhoneCall, ExternalLink, Copy, HelpCircle, CheckCircle2, Check, Info, NotebookPen, AlertTriangle,
+  Calendar, CalendarX, ChevronLeft, ChevronRight, X,
+  AlertCircle, Cpu, Clock, Printer, Palette, Brush, Package, Truck, Play, Music, Wrench, Receipt, Tag, Layers, Coins, Calculator
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Modal } from '../../shared/ui/Modal';
@@ -17,6 +18,83 @@ import { Select, SelectOption } from '../../shared/ui/Select';
 import { DatePicker } from '../../shared/ui/DatePicker';
 import { CustomTooltip } from '../../shared/ui/Tooltip';
 import { EmptyCellPlaceholder } from '../../shared/ui/EmptyCellPlaceholder';
+import { PageHeader } from '../../shared/ui/PageHeader';
+import { NumberCounter } from '../../shared/ui/NumberCounter';
+
+export interface CostCategoryConfig {
+  id: string;
+  name: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+  badgeStyle: string;
+  description: string;
+}
+
+export const DEFAULT_COST_CATEGORIES: CostCategoryConfig[] = [
+  {
+    id: 'print',
+    name: 'Печать',
+    icon: Printer,
+    color: 'text-blue-400',
+    badgeStyle: 'bg-blue-950/80 text-blue-300 border-blue-500/40',
+    description: 'Материал, нить / смола, слайсинг',
+  },
+  {
+    id: 'package',
+    name: 'Упаковка',
+    icon: Package,
+    color: 'text-amber-400',
+    badgeStyle: 'bg-amber-950/80 text-amber-300 border-amber-500/40',
+    description: 'Коробки, стрейч, пупырчатая пленка, пакеты',
+  },
+  {
+    id: 'labor',
+    name: 'Работа руками',
+    icon: Wrench,
+    color: 'text-emerald-400',
+    badgeStyle: 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40',
+    description: 'Удаление поддержек, сборка, шлифовка',
+  },
+  {
+    id: 'painting',
+    name: 'Покраска',
+    icon: Palette,
+    color: 'text-purple-400',
+    badgeStyle: 'bg-purple-950/80 text-purple-300 border-purple-500/40',
+    description: 'Грунтовка, акриловые краски, аэрограф, лак',
+  },
+  {
+    id: 'delivery',
+    name: 'Доставка',
+    icon: Truck,
+    color: 'text-cyan-400',
+    badgeStyle: 'bg-cyan-950/80 text-cyan-300 border-cyan-500/40',
+    description: 'Курьер, СДЭК, Почта, упаковка отправлений',
+  },
+  {
+    id: 'defect',
+    name: 'Брак / Тесты',
+    icon: AlertTriangle,
+    color: 'text-rose-400',
+    badgeStyle: 'bg-rose-950/80 text-rose-300 border-rose-500/40',
+    description: 'Отбраковка, подбор настроек, тесты',
+  },
+];
+
+export function getCategoryConfig(categoryName: string): CostCategoryConfig {
+  const found = DEFAULT_COST_CATEGORIES.find(
+    c => c.name.toLowerCase() === categoryName.trim().toLowerCase()
+  );
+  if (found) return found;
+  return {
+    id: 'custom',
+    name: categoryName,
+    icon: Tag,
+    color: 'text-orange-400',
+    badgeStyle: 'bg-orange-950/80 text-orange-300 border-orange-500/40',
+    description: 'Пользовательский пункт расхода',
+  };
+}
 
 
 type SortField = keyof Order | 'net_profit';
@@ -26,53 +104,63 @@ export interface StatusBadgeConfig {
   value: OrderStatus;
   label: string;
   badgeStyle: string;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 export const STATUS_CONFIG: Record<OrderStatus, StatusBadgeConfig> = {
   'Не в работе': {
     value: 'Не в работе',
     label: 'Не в работе',
-    badgeStyle: 'bg-[#990000] text-white border border-red-700/60 shadow-sm shadow-red-950/40',
+    icon: AlertCircle,
+    badgeStyle: 'bg-rose-500/10 text-rose-400 border border-rose-500/30 font-semibold h-7 inline-flex items-center',
   },
   'Моделирование': {
     value: 'Моделирование',
     label: 'Моделирование',
-    badgeStyle: 'bg-[#e69138] text-slate-950 border border-amber-600/60',
+    icon: Cpu,
+    badgeStyle: 'bg-amber-500/10 text-amber-400 border border-amber-500/30 font-semibold h-7 inline-flex items-center',
   },
   'Ждет печати': {
     value: 'Ждет печати',
     label: 'Ждет печати',
-    badgeStyle: 'bg-[#c9daf8] text-[#1c4587] border border-blue-300/60',
+    icon: Clock,
+    badgeStyle: 'bg-sky-500/10 text-sky-400 border border-sky-500/30 font-semibold h-7 inline-flex items-center',
   },
   'Печать': {
     value: 'Печать',
     label: 'Печать',
-    badgeStyle: 'bg-[#1155cc] text-white border border-blue-600/60 shadow-sm shadow-blue-950/40',
+    icon: Printer,
+    badgeStyle: 'bg-blue-500/15 text-blue-400 border border-blue-500/40 font-semibold h-7 inline-flex items-center shadow-sm shadow-blue-950/40',
   },
   'Ждет покраски': {
     value: 'Ждет покраски',
     label: 'Ждет покраски',
-    badgeStyle: 'bg-[#fce5cd] text-[#783f04] border border-amber-200/60',
+    icon: Palette,
+    badgeStyle: 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 font-semibold h-7 inline-flex items-center',
   },
   'Покраска': {
     value: 'Покраска',
     label: 'Покраска',
-    badgeStyle: 'bg-[#783f04] text-white border border-amber-950/60',
+    icon: Brush,
+    badgeStyle: 'bg-purple-500/15 text-purple-400 border border-purple-500/40 font-semibold h-7 inline-flex items-center shadow-sm shadow-purple-950/40',
   },
   'Ждет отправки': {
     value: 'Ждет отправки',
     label: 'Ждет отправки',
-    badgeStyle: 'bg-[#e1d5e7] text-[#4c005c] border border-purple-300/60',
+    icon: Package,
+    badgeStyle: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 font-semibold h-7 inline-flex items-center',
   },
   'Отправлен': {
     value: 'Отправлен',
     label: 'Отправлен',
-    badgeStyle: 'bg-[#5e2b88] text-white border border-purple-700/60',
+    icon: Truck,
+    badgeStyle: 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/40 font-semibold h-7 inline-flex items-center shadow-sm shadow-cyan-950/40',
   },
   'Готово': {
     value: 'Готово',
     label: 'Готово',
-    badgeStyle: 'bg-[#0b6a3f] text-white border border-emerald-600/60 shadow-sm shadow-emerald-950/40',
+    icon: CheckCircle2,
+    badgeStyle: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 font-semibold h-7 inline-flex items-center shadow-sm shadow-emerald-950/40',
   },
 };
 
@@ -92,42 +180,80 @@ export interface ClientBadgeConfig {
   value: string;
   label: string;
   badgeStyle: string;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 export const CLIENT_CONFIG: Record<string, ClientBadgeConfig> = {
   'Авито': {
     value: 'Авито',
     label: 'Авито',
-    badgeStyle: 'bg-[#3b2d18] text-[#ffe599] border border-[#783f04]/60 shadow-sm',
+    icon: ShoppingBag,
+    badgeStyle: 'bg-amber-500/10 text-amber-300 border border-amber-500/30 font-semibold h-7 inline-flex items-center',
   },
-  'Телеграмм': {
-    value: 'Телеграмм',
-    label: 'Телеграмм',
-    badgeStyle: 'bg-[#0055b8] text-white border border-blue-600/60 shadow-sm',
+  'Telegram': {
+    value: 'Telegram',
+    label: 'Telegram',
+    icon: Send,
+    badgeStyle: 'bg-sky-500/10 text-sky-400 border border-sky-500/30 font-semibold h-7 inline-flex items-center',
   },
-  'Ютуб': {
-    value: 'Ютуб',
-    label: 'Ютуб',
-    badgeStyle: 'bg-[#cc0000] text-white border border-red-700/60 shadow-sm',
+  'YouTube': {
+    value: 'YouTube',
+    label: 'YouTube',
+    icon: Play,
+    badgeStyle: 'bg-red-500/10 text-red-400 border border-red-500/30 font-semibold h-7 inline-flex items-center',
   },
-  'Тикток': {
-    value: 'Тикток',
-    label: 'Тикток',
-    badgeStyle: 'bg-[#512da8] text-white border border-purple-700/60 shadow-sm',
+  'TikTok': {
+    value: 'TikTok',
+    label: 'TikTok',
+    icon: Music,
+    badgeStyle: 'bg-purple-500/10 text-purple-300 border border-purple-500/30 font-semibold h-7 inline-flex items-center',
   },
-  'Инстаграмм': {
-    value: 'Инстаграмм',
-    label: 'Инстаграмм',
-    badgeStyle: 'bg-[#ffe599] text-[#783f04] border border-amber-300/60',
+  'Instagram': {
+    value: 'Instagram',
+    label: 'Instagram',
+    icon: Camera,
+    badgeStyle: 'bg-pink-500/10 text-pink-400 border border-pink-500/30 font-semibold h-7 inline-flex items-center',
+  },
+  'ВКонтакте': {
+    value: 'ВКонтакте',
+    label: 'ВКонтакте',
+    icon: Share2,
+    badgeStyle: 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/30 font-semibold h-7 inline-flex items-center',
   },
   'Другое': {
     value: 'Другое',
     label: 'Другое',
-    badgeStyle: 'bg-[#ead1dc] text-[#4c005c] border border-purple-300/60',
+    icon: Globe,
+    badgeStyle: 'bg-gray-500/10 text-gray-300 border border-gray-500/30 font-semibold h-7 inline-flex items-center',
+  },
+  // Обратная совместимость с устаревшими наименованиями в БД
+  'Телеграмм': {
+    value: 'Telegram',
+    label: 'Telegram',
+    icon: Send,
+    badgeStyle: 'bg-sky-500/10 text-sky-400 border border-sky-500/30 font-semibold h-7 inline-flex items-center',
+  },
+  'Инстаграмм': {
+    value: 'Instagram',
+    label: 'Instagram',
+    icon: Camera,
+    badgeStyle: 'bg-pink-500/10 text-pink-400 border border-pink-500/30 font-semibold h-7 inline-flex items-center',
+  },
+  'Ютуб': {
+    value: 'YouTube',
+    label: 'YouTube',
+    icon: Play,
+    badgeStyle: 'bg-red-500/10 text-red-400 border border-red-500/30 font-semibold h-7 inline-flex items-center',
+  },
+  'Тикток': {
+    value: 'TikTok',
+    label: 'TikTok',
+    icon: Music,
+    badgeStyle: 'bg-purple-500/10 text-purple-300 border border-purple-500/30 font-semibold h-7 inline-flex items-center',
   },
 };
 
-export const ALL_CLIENTS = ['Авито', 'Телеграмм', 'Ютуб', 'Тикток', 'Инстаграмм', 'Другое'];
+export const ALL_CLIENTS = ['Авито', 'Telegram', 'YouTube', 'TikTok', 'Instagram', 'ВКонтакте', 'Другое'];
 
 export const CONTACT_TYPES_CONFIG: Record<ContactType, { label: string; icon: any; placeholder: string; badgeStyle: string }> = {
   phone: {
@@ -192,8 +318,18 @@ export function formatPluralDays(count: number): string {
 }
 
 // Функция для расчета остатка дней или просрочки
-export function getDeadlineInfo(deadlineStr: string | undefined | null) {
+export function getDeadlineInfo(deadlineStr: string | undefined | null, orderStatus?: OrderStatus | string) {
   if (!deadlineStr || !deadlineStr.trim()) return null;
+
+  // Если заказ в статусе "Готово", отсчет времени прекращается и выводится зеленый бейдж выполнения
+  if (orderStatus === 'Готово') {
+    return {
+      status: 'done',
+      label: 'Выполнено',
+      diffDays: 0,
+      badgeStyle: 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/40 font-semibold'
+    };
+  }
 
   const parts = deadlineStr.trim().split('.');
   if (parts.length < 2) return null;
@@ -300,53 +436,49 @@ export function OrdersTable() {
   const [filterType, setFilterType] = useState<'all' | 'income' | 'expense'>('all');
 
   // Выбранный месяц для переключателя раздельных таблиц по месяцам ('all' | 'YYYY-MM')
-  const [selectedMonthKey, setSelectedMonthKey] = useState<string>(getCurrentRealMonthKey());
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string>('all');
 
-  // Уникальный список доступных месяцев из всех зарегистрированных заказов (плюс текущий)
+  // Уникальный список доступных месяцев строго из тех заказов, которые реально существуют в базе
   const availableMonthKeys = useMemo(() => {
     const set = new Set<string>();
-    set.add(getCurrentRealMonthKey());
-    orders.forEach(o => {
+    orders.forEach((o: Order) => {
       const key = getOrderMonthKey(o);
       if (key) set.add(key);
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [orders]);
 
-  const handlePrevMonth = () => {
-    if (selectedMonthKey === 'all') {
-      if (availableMonthKeys.length > 0) {
+  // При первом запуске или изменении списка автоматически выбираем последний актуальный месяц с записями (или 'all')
+  useEffect(() => {
+    if (availableMonthKeys.length > 0) {
+      if (selectedMonthKey !== 'all' && !availableMonthKeys.includes(selectedMonthKey)) {
         setSelectedMonthKey(availableMonthKeys[availableMonthKeys.length - 1]);
       }
-      return;
-    }
-    const idx = availableMonthKeys.indexOf(selectedMonthKey);
-    if (idx > 0) {
-      setSelectedMonthKey(availableMonthKeys[idx - 1]);
     } else {
-      const [y, m] = selectedMonthKey.split('-').map(Number);
-      const prevDate = new Date(y, m - 2, 1);
-      const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
-      setSelectedMonthKey(prevKey);
+      setSelectedMonthKey('all');
     }
+  }, [availableMonthKeys]);
+
+  const handlePrevMonth = () => {
+    let currentKey = selectedMonthKey;
+    if (currentKey === 'all') {
+      currentKey = availableMonthKeys.length > 0 ? availableMonthKeys[availableMonthKeys.length - 1] : getCurrentRealMonthKey();
+    }
+    const [y, m] = currentKey.split('-').map(Number);
+    const prevDate = new Date(y, m - 2, 1);
+    const prevKey = `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
+    setSelectedMonthKey(prevKey);
   };
 
   const handleNextMonth = () => {
-    if (selectedMonthKey === 'all') {
-      if (availableMonthKeys.length > 0) {
-        setSelectedMonthKey(availableMonthKeys[0]);
-      }
-      return;
+    let currentKey = selectedMonthKey;
+    if (currentKey === 'all') {
+      currentKey = availableMonthKeys.length > 0 ? availableMonthKeys[0] : getCurrentRealMonthKey();
     }
-    const idx = availableMonthKeys.indexOf(selectedMonthKey);
-    if (idx !== -1 && idx < availableMonthKeys.length - 1) {
-      setSelectedMonthKey(availableMonthKeys[idx + 1]);
-    } else {
-      const [y, m] = selectedMonthKey.split('-').map(Number);
-      const nextDate = new Date(y, m, 1);
-      const nextKey = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}`;
-      setSelectedMonthKey(nextKey);
-    }
+    const [y, m] = currentKey.split('-').map(Number);
+    const nextDate = new Date(y, m, 1);
+    const nextKey = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}`;
+    setSelectedMonthKey(nextKey);
   };
 
   // Фильтрация заказов строго по выбранному месяцу
@@ -377,9 +509,29 @@ export function OrdersTable() {
   const [activeNotesOrder, setActiveNotesOrder] = useState<Order | null>(null);
   const [notesDraft, setNotesDraft] = useState<string>('');
 
+  // Окно управления детализированными пунктами расхода
+  const [activeCostOrder, setActiveCostOrder] = useState<Order | null>(null);
+  const [selectedCostCategory, setSelectedCostCategory] = useState<string>('Печать');
+  const [customCostCategory, setCustomCostCategory] = useState<string>('');
+  const [newCostAmount, setNewCostAmount] = useState<string>('');
+  const [newCostNote, setNewCostNote] = useState<string>('');
+  const [isCostBreakdownOpen, setIsCostBreakdownOpen] = useState(false);
+
+  // Валидация формы создания/редактирования (подсветка + 1 сек тряска)
+  const [formErrors, setFormErrors] = useState<Record<string, boolean>>({});
+  const [shakingFields, setShakingFields] = useState<Record<string, boolean>>({});
+  const [isAddingCustomCost, setIsAddingCustomCost] = useState(false);
+  const [customCostCategoryName, setCustomCostCategoryName] = useState('');
+
   // Кастомное контекстное меню по правой кнопке мыши
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; order: Order } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+
+  // Состояние модального окна подтверждения удаления одной записи
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+
+  // Состояние модального окна полной очистки выбранного месяца
+  const [isClearMonthModalOpen, setIsClearMonthModalOpen] = useState(false);
 
   // Стек истории изменений для отмены Alt+Z / Ctrl+Z
   const [historyStack, setHistoryStack] = useState<Order[][]>([]);
@@ -403,6 +555,59 @@ export function OrdersTable() {
 
   useEffect(() => {
     loadOrders();
+  }, []);
+
+  // Проверка переданного черновика из каталога товаров (В заказ с предзаполнением и +2 дня к изготовлению)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const rawDraft = localStorage.getItem('draft_order_from_product');
+    if (rawDraft) {
+      try {
+        const draft = JSON.parse(rawDraft);
+        localStorage.removeItem('draft_order_from_product');
+
+        const today = new Date();
+        const formattedDate = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}`;
+
+        // Расчет изготовления = сегодня + 2 дня
+        const inTwoDays = new Date();
+        inTwoDays.setDate(inTwoDays.getDate() + 2);
+        const deadlineStr = `${String(inTwoDays.getDate()).padStart(2, '0')}.${String(inTwoDays.getMonth() + 1).padStart(2, '0')}.${inTwoDays.getFullYear()}`;
+
+        setEditingOrder({
+          date: formattedDate,
+          type: 'income',
+          title: draft.title || '',
+          quantity: draft.quantity || 1,
+          amount: draft.amount || 0,
+          cost: draft.cost || 0,
+          cost_items: draft.cost ? [{ category: 'Печать', amount: draft.cost }] : [],
+          payments: [draft.amount || 0],
+          payment: draft.amount || 0,
+          client: 'Авито',
+          contacts: [],
+          contact: '',
+          deadline: draft.deadline || deadlineStr,
+          status: 'Ждет печати',
+          notes: draft.notes || '',
+        });
+
+        setFormErrors({});
+        setShakingFields({});
+        setIsAddingCustomCost(false);
+        setCustomCostCategoryName('');
+        setIsCostBreakdownOpen(Boolean(draft.cost && draft.cost > 0));
+        setIsModalOpen(true);
+        if (draft.isFromStock) {
+          setToastMessage(`📦 Товар «${draft.title}» взят из наличия на складе (-${draft.deductedQty || 1} шт)! Срок изготовления: СЕГОДНЯ!`);
+        } else {
+          setToastMessage(`📦 Товар «${draft.title}» загружен в новый заказ (остаток на складе уменьшен)!`);
+        }
+        setTimeout(() => setToastMessage(null), 3500);
+      } catch (err) {
+        console.error('Ошибка загрузки черновика заказа из товара:', err);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -531,8 +736,8 @@ export function OrdersTable() {
     const { field } = inlineCell;
     let newValue: any = inlineValue;
 
-    if (['amount', 'cost', 'payment'].includes(field)) {
-      newValue = Number(inlineValue) || 0;
+    if (['amount', 'cost', 'payment', 'quantity'].includes(field)) {
+      newValue = field === 'quantity' ? Math.max(1, parseInt(inlineValue, 10) || 1) : (Number(inlineValue) || 0);
     }
 
     const updatedOrder: Order = {
@@ -632,6 +837,83 @@ export function OrdersTable() {
     await saveOrder(updatedOrder);
   };
 
+  // Добавление нового детализированного пункта расхода
+  const handleAddCostItem = async (order: Order, categoryName: string, amountNum: number, note?: string) => {
+    if (!categoryName || !categoryName.trim() || isNaN(amountNum) || amountNum <= 0) return;
+    pushToHistory(orders);
+
+    const existingItems: CostItem[] = order.cost_items && order.cost_items.length > 0 
+      ? order.cost_items 
+      : (order.cost ? [{ id: 'init-1', category: 'Печать (общий)', amount: order.cost }] : []);
+
+    const newItem: CostItem = {
+      id: typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
+      category: categoryName.trim(),
+      amount: amountNum,
+      note: note ? note.trim() : undefined,
+    };
+
+    const updatedItems = [...existingItems, newItem];
+    const newTotalCost = updatedItems.reduce((acc, item) => acc + (item.amount || 0), 0);
+
+    const updatedOrder: Order = {
+      ...order,
+      cost_items: updatedItems,
+      cost: newTotalCost,
+    };
+
+    setOrders(prev => prev.map(o => (o.id === order.id ? updatedOrder : o)));
+    setActiveCostOrder(updatedOrder);
+    setNewCostAmount('');
+    setNewCostNote('');
+    setCustomCostCategory('');
+    await saveOrder(updatedOrder);
+  };
+
+  // Удаление пункта расхода из заказа
+  const handleDeleteCostItem = async (order: Order, indexToDelete: number) => {
+    pushToHistory(orders);
+
+    const existingItems: CostItem[] = order.cost_items && order.cost_items.length > 0 ? order.cost_items : [];
+    const updatedItems = existingItems.filter((_, idx) => idx !== indexToDelete);
+    const newTotalCost = updatedItems.reduce((acc, item) => acc + (item.amount || 0), 0);
+
+    const updatedOrder: Order = {
+      ...order,
+      cost_items: updatedItems,
+      cost: newTotalCost,
+    };
+
+    setOrders(prev => prev.map(o => (o.id === order.id ? updatedOrder : o)));
+    setActiveCostOrder(updatedOrder);
+    await saveOrder(updatedOrder);
+  };
+
+  // Обновление поля отдельного пункта расхода в реальном времени
+  const handleUpdateCostItem = async (order: Order, indexToUpdate: number, field: keyof CostItem, value: any) => {
+    pushToHistory(orders);
+
+    const existingItems: CostItem[] = order.cost_items && order.cost_items.length > 0 ? order.cost_items : [];
+    const updatedItems = existingItems.map((item, idx) => {
+      if (idx === indexToUpdate) {
+        return { ...item, [field]: value };
+      }
+      return item;
+    });
+
+    const newTotalCost = updatedItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+
+    const updatedOrder: Order = {
+      ...order,
+      cost_items: updatedItems,
+      cost: newTotalCost,
+    };
+
+    setOrders(prev => prev.map(o => (o.id === order.id ? updatedOrder : o)));
+    setActiveCostOrder(updatedOrder);
+    await saveOrder(updatedOrder);
+  };
+
   // Открытие и сохранение примечания через Модальное окно
   const handleOpenNotesModal = (order: Order) => {
     setActiveNotesOrder(order);
@@ -712,8 +994,10 @@ export function OrdersTable() {
       date: formattedDate,
       type: 'income',
       title: '',
+      quantity: 1,
       amount: 0,
       cost: 0,
+      cost_items: [],
       payments: [0],
       payment: 0,
       client: 'Авито',
@@ -723,27 +1007,113 @@ export function OrdersTable() {
       status: 'Готово',
       notes: '',
     });
+    setFormErrors({});
+    setShakingFields({});
+    setIsAddingCustomCost(false);
+    setCustomCostCategoryName('');
+    setIsCostBreakdownOpen(false);
     setIsModalOpen(true);
   };
 
   const handleOpenEditModal = (order: Order) => {
     setEditingOrder(order);
+    setFormErrors({});
+    setShakingFields({});
+    setIsAddingCustomCost(false);
+    setCustomCostCategoryName('');
+    setIsCostBreakdownOpen(!!(order.cost_items && order.cost_items.length > 0));
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Вы уверены, что хотите удалить эту запись?')) {
-      pushToHistory(orders);
-      await deleteOrder(id);
-      setOrders(prev => prev.filter(o => o.id !== id));
-      setToastMessage('Запись удалена (нажмите Alt+Z для отмены)');
-      setTimeout(() => setToastMessage(null), 3000);
+  const handleAddCustomCostCategoryInModal = () => {
+    if (!customCostCategoryName || !customCostCategoryName.trim() || !editingOrder) return;
+    const name = customCostCategoryName.trim();
+    const currentItems = editingOrder.cost_items || [];
+    
+    // Проверяем, существует ли уже такая категория
+    const existingIndex = currentItems.findIndex(i => i.category.toLowerCase() === name.toLowerCase());
+    let newItems: CostItem[] = [];
+
+    if (existingIndex >= 0) {
+      // Игнорируем или оставляем как есть
+      newItems = [...currentItems];
+    } else {
+      newItems = [
+        ...currentItems,
+        {
+          id: typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Math.random()),
+          category: name,
+          amount: 0
+        }
+      ];
     }
+
+    setEditingOrder({
+      ...editingOrder,
+      cost_items: newItems
+    });
+    setCustomCostCategoryName('');
+    setIsAddingCustomCost(false);
+  };
+
+  const handleRequestDelete = (order: Order) => {
+    setOrderToDelete(order);
+    setContextMenu(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!orderToDelete) return;
+    pushToHistory(orders);
+    await deleteOrder(orderToDelete.id);
+    setOrders(prev => prev.filter(o => o.id !== orderToDelete.id));
+    setToastMessage(`Запись #${orderToDelete.order_number || ''} удалена (нажмите Alt+Z для отмены)`);
+    setTimeout(() => setToastMessage(null), 3000);
+    setOrderToDelete(null);
+  };
+
+  // Очистка всех записей выбранного месяца
+  const handleClearSelectedMonth = async () => {
+    if (selectedMonthKey === 'all') return;
+    const idsToDelete = monthFilteredOrders.map(o => o.id);
+    if (idsToDelete.length === 0) return;
+
+    pushToHistory(orders);
+    for (const id of idsToDelete) {
+      await deleteOrder(id);
+    }
+    setOrders(prev => prev.filter(o => getOrderMonthKey(o) !== selectedMonthKey));
+    setToastMessage(`Все записи за ${formatMonthKeyLabel(selectedMonthKey)} очищены (Alt+Z для отмены)`);
+    setTimeout(() => setToastMessage(null), 3000);
+    setIsClearMonthModalOpen(false);
   };
 
   const handleSaveModal = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingOrder || !editingOrder.title) return;
+    if (!editingOrder) return;
+
+    const errors: Record<string, boolean> = {};
+
+    if (!editingOrder.title || !editingOrder.title.trim()) {
+      errors.title = true;
+    }
+
+    if (editingOrder.amount === undefined || editingOrder.amount === null || isNaN(editingOrder.amount) || editingOrder.amount <= 0) {
+      errors.amount = true;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
+      setShakingFields(errors);
+
+      setTimeout(() => {
+        setShakingFields({});
+      }, 1000);
+
+      return;
+    }
+
+    setFormErrors({});
+    setShakingFields({});
 
     pushToHistory(orders);
     const saved = await saveOrder(editingOrder as Order);
@@ -815,12 +1185,14 @@ export function OrdersTable() {
     value: st,
     label: st,
     badgeStyle: STATUS_CONFIG[st]?.badgeStyle,
+    icon: STATUS_CONFIG[st]?.icon,
   }));
 
   const clientSelectOptions: SelectOption[] = ALL_CLIENTS.map(cl => ({
     value: cl,
     label: cl,
     badgeStyle: CLIENT_CONFIG[cl]?.badgeStyle,
+    icon: CLIENT_CONFIG[cl]?.icon,
   }));
 
   const contactTypeSelectOptions: SelectOption[] = (Object.keys(CONTACT_TYPES_CONFIG) as ContactType[]).map(typeKey => ({
@@ -868,36 +1240,34 @@ export function OrdersTable() {
   return (
     <div className="space-y-5 select-none relative">
       {/* Шапка раздела с акцентным неоново-оранжевым стилем */}
-      <div className="bg-[#16181d] border border-[#FF6B00]/20 rounded-2xl p-5 sm:p-6 shadow-xl relative z-10">
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#FF6B00]/10 rounded-full blur-3xl pointer-events-none -z-10" />
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-[#FF6B00]/15 border border-[#FF6B00]/30 flex items-center justify-center text-[#FF8800] shadow-md shadow-[#FF6B00]/10">
-              <ShoppingBag className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-                Заказы и Финансы
-              </h2>
-              <p className="text-[#9ca3af] text-xs sm:text-sm">
-                Уникальный номер заказа № • Кликните ПКМ по строке для меню действий • <kbd className="px-1.5 py-0.5 rounded bg-[#242930] text-gray-200 text-xs font-mono border border-gray-700">Alt+Z</kbd> для отмены
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 self-start sm:self-center">
-            {/* Кнопка отмены последнего действия (Undo) */}
+      <PageHeader
+        icon={ShoppingBag}
+        title="Заказы и Финансы"
+        subtitle={
+          <>
+            Уникальный номер заказа № • Кликните ПКМ по строке для меню действий •{' '}
+            <kbd className="px-1.5 py-0.5 rounded bg-[#242930] text-gray-200 text-xs font-mono border border-gray-700">
+              Alt+Z
+            </kbd>{' '}
+            для отмены
+          </>
+        }
+        accentColor="#FF6B00"
+        actions={
+          <>
             <Button
               onClick={handleUndo}
               disabled={historyStack.length === 0}
               variant="outline"
               size="md"
-              className="text-xs sm:text-sm flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
-              title="Отменить последнее изменение (Alt+Z)"
+              className={`p-2.5 rounded-xl transition-all flex items-center justify-center shrink-0 ${
+                historyStack.length > 0
+                  ? 'border-[#FF6B00]/50 text-[#FF8800] hover:bg-[#FF6B00]/10 cursor-pointer shadow-sm animate-scale-in'
+                  : 'border-[#242930] text-gray-600 opacity-40 cursor-not-allowed'
+              }`}
+              title={historyStack.length > 0 ? "Отменить последнее изменение (Alt+Z / Ctrl+Z)" : "Нет действий для отмены"}
             >
-              <RotateCcw className="w-4 h-4" />
-              Отменить <span className="hidden sm:inline text-[11px] text-[#9ca3af]">(Alt+Z)</span>
+              <RotateCcw className={`w-4 h-4 ${historyStack.length > 0 ? 'text-[#FF8800]' : 'text-gray-600'}`} />
             </Button>
 
             <Button
@@ -909,9 +1279,9 @@ export function OrdersTable() {
               <Plus className="w-4 h-4 mr-1.5" />
               Добавить запись
             </Button>
-          </div>
-        </div>
-
+          </>
+        }
+      >
         {/* Переключатель таблиц по месяцам */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-5 pt-4 border-t border-[#242930]/80">
           <div className="flex flex-wrap items-center gap-2">
@@ -971,16 +1341,32 @@ export function OrdersTable() {
             </div>
           </div>
 
-          {/* Быстрый переход на текущий календарный месяц */}
-          {selectedMonthKey !== getCurrentRealMonthKey() && (
-            <button
-              type="button"
-              onClick={() => setSelectedMonthKey(getCurrentRealMonthKey())}
-              className="text-xs text-[#FF8800] hover:underline font-semibold flex items-center gap-1 cursor-pointer self-start sm:self-auto"
-            >
-              <RotateCcw className="w-3 h-3" /> Текущий месяц ({formatMonthKeyLabel(getCurrentRealMonthKey())})
-            </button>
-          )}
+          {/* Правый блок действий месяца */}
+          <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+            {/* Кнопка полной очистки выбранного месяца */}
+            {selectedMonthKey !== 'all' && monthFilteredOrders.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsClearMonthModalOpen(true)}
+                className="text-xs text-rose-400 hover:text-rose-300 bg-rose-950/30 hover:bg-rose-950/60 border border-rose-900/40 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer font-semibold shadow-sm"
+                title={`Очистить все ${monthFilteredOrders.length} записей за ${formatMonthKeyLabel(selectedMonthKey)}`}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Очистить месяц ({monthFilteredOrders.length})</span>
+              </button>
+            )}
+
+            {/* Быстрый переход на текущий календарный месяц (только если в нем есть записи) */}
+            {availableMonthKeys.includes(getCurrentRealMonthKey()) && selectedMonthKey !== getCurrentRealMonthKey() && (
+              <button
+                type="button"
+                onClick={() => setSelectedMonthKey(getCurrentRealMonthKey())}
+                className="text-xs text-[#FF8800] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+              >
+                <RotateCcw className="w-3 h-3" /> Текущий месяц ({formatMonthKeyLabel(getCurrentRealMonthKey())})
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Сводные показатели с кастомными всплывающими подсказками только на знак вопроса */}
@@ -1081,7 +1467,7 @@ export function OrdersTable() {
             </div>
           </div>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Панель фильтров и поиска с использованием компонента Input */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#16181d] border border-[#242930] p-3 rounded-xl">
@@ -1144,6 +1530,9 @@ export function OrdersTable() {
                 <th onClick={() => handleSort('title')} className="py-3 px-2.5 whitespace-nowrap select-none group cursor-pointer hover:text-white transition-colors min-w-[150px]">
                   Наименование {renderSortIndicator('title')}
                 </th>
+                <th onClick={() => handleSort('quantity')} className="py-3 px-2.5 text-center whitespace-nowrap select-none group cursor-pointer hover:text-white transition-colors min-w-[80px]">
+                  Кол-во {renderSortIndicator('quantity')}
+                </th>
                 <th onClick={() => handleSort('amount')} className="py-3 px-2.5 text-right whitespace-nowrap select-none group cursor-pointer hover:text-white transition-colors">
                   Сумма {renderSortIndicator('amount')}
                 </th>
@@ -1153,7 +1542,7 @@ export function OrdersTable() {
                 <th onClick={() => handleSort('payment')} className="py-3 px-2.5 text-right whitespace-nowrap select-none group cursor-pointer hover:text-white transition-colors">
                   Оплата {renderSortIndicator('payment')}
                 </th>
-                <th onClick={() => handleSort('client')} className="py-3 px-2.5 whitespace-nowrap select-none group cursor-pointer hover:text-white transition-colors">
+                <th onClick={() => handleSort('client')} className="py-3 px-2.5 whitespace-nowrap select-none group cursor-pointer hover:text-white transition-colors min-w-[140px] w-[140px]">
                   Клиент {renderSortIndicator('client')}
                 </th>
                 <th onClick={() => handleSort('contact')} className="py-3 px-2.5 whitespace-nowrap select-none group cursor-pointer hover:text-white transition-colors">
@@ -1162,7 +1551,7 @@ export function OrdersTable() {
                 <th onClick={() => handleSort('deadline')} className="py-3 px-2.5 whitespace-nowrap select-none group cursor-pointer hover:text-white transition-colors">
                   Срок (ДО) {renderSortIndicator('deadline')}
                 </th>
-                <th onClick={() => handleSort('status')} className="py-3 px-2.5 whitespace-nowrap select-none group cursor-pointer hover:text-white transition-colors">
+                <th onClick={() => handleSort('status')} className="py-3 px-2.5 whitespace-nowrap select-none group cursor-pointer hover:text-white transition-colors min-w-[170px] w-[170px]">
                   Статус {renderSortIndicator('status')}
                 </th>
                 <th onClick={() => handleSort('net_profit')} className="py-3 px-2.5 text-right whitespace-nowrap select-none group cursor-pointer hover:text-white transition-colors">
@@ -1176,8 +1565,59 @@ export function OrdersTable() {
             <tbody className="divide-y divide-[#242930]/60">
               {sortedOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={13} className="text-center py-10 text-[#6b7280]">
-                    {isLoading ? 'Загрузка записей...' : 'Записи не найдены'}
+                  <td colSpan={14} className="py-16 px-4 text-center">
+                    {isLoading ? (
+                      <div className="flex flex-col items-center justify-center gap-2 text-[#9ca3af]">
+                        <div className="w-6 h-6 border-2 border-[#FF6B00] border-t-transparent rounded-full animate-spin" />
+                        <span className="text-xs">Загрузка списка заказов...</span>
+                      </div>
+                    ) : selectedMonthKey !== 'all' ? (
+                      <div className="flex flex-col items-center justify-center gap-3 select-none">
+                        <div className="w-14 h-14 rounded-2xl bg-[#0d0e12] border border-[#242930] flex items-center justify-center text-gray-500 shadow-inner">
+                          <CalendarX className="w-7 h-7 text-[#FF8800]/80" />
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="text-white text-base font-bold">В этом месяце у вас не было заказов</h4>
+                          <p className="text-gray-400 text-xs max-w-sm mx-auto leading-relaxed">
+                            Записи за <strong className="text-gray-200">{formatMonthKeyLabel(selectedMonthKey)}</strong> отсутствуют. Вы можете добавить новый заказ или переключиться с помощью стрелок.
+                          </p>
+                        </div>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={handleOpenAddModal}
+                          className="mt-2 bg-gradient-to-r from-[#FF5500] to-[#FF8800] hover:from-[#FF6600] hover:to-[#FF9900] text-white border-none shadow-lg shadow-[#FF6B00]/25 font-bold px-4 py-2 cursor-pointer"
+                        >
+                          <Plus className="w-4 h-4 mr-1.5" />
+                          Добавить заказ в этот месяц
+                        </Button>
+                      </div>
+                    ) : searchQuery || filterType !== 'all' ? (
+                      <div className="flex flex-col items-center justify-center gap-2 select-none">
+                        <Search className="w-8 h-8 text-gray-500 mb-1" />
+                        <h4 className="text-white text-sm font-bold">Ничего не найдено</h4>
+                        <p className="text-gray-400 text-xs">Попробуйте изменить параметры поиска или сбросить фильтры</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-3 select-none">
+                        <div className="w-14 h-14 rounded-2xl bg-[#0d0e12] border border-[#242930] flex items-center justify-center text-gray-500 shadow-inner">
+                          <ShoppingBag className="w-7 h-7 text-gray-500" />
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="text-white text-base font-bold">Список заказов пуст</h4>
+                          <p className="text-gray-400 text-xs">Добавьте ваш первый заказ или операционный расход</p>
+                        </div>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={handleOpenAddModal}
+                          className="mt-2 bg-gradient-to-r from-[#FF5500] to-[#FF8800] hover:from-[#FF6600] hover:to-[#FF9900] text-white border-none shadow-lg shadow-[#FF6B00]/25 font-bold px-4 py-2 cursor-pointer"
+                        >
+                          <Plus className="w-4 h-4 mr-1.5" />
+                          Добавить запись
+                        </Button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -1196,15 +1636,15 @@ export function OrdersTable() {
                     : (row.contact && row.contact.trim() !== '' ? [{ type: 'phone', value: row.contact }] : []);
                   const hasContact = contactsList.length > 0;
 
-                  // Инфо по сроку
-                  const deadlineInfo = getDeadlineInfo(row.deadline);
+                  // Инфо по сроку (отсчет останавливается если статус "Готово")
+                  const deadlineInfo = getDeadlineInfo(row.deadline, row.status);
                   const isSelectedForMenu = contextMenu?.order.id === row.id;
 
                   return (
                     <tr 
                       key={row.id} 
                       onContextMenu={(e) => handleRowContextMenu(e, row)}
-                      className={`transition-colors duration-150 cursor-context-menu border-b border-[#242930]/40 ${
+                      className={`h-[46px] transition-colors duration-150 cursor-context-menu border-b border-[#242930]/40 ${
                         isSelectedForMenu
                           ? 'bg-[#2a303d] shadow-sm'
                           : 'hover:bg-[#1a1e27]'
@@ -1263,6 +1703,31 @@ export function OrdersTable() {
                         )}
                       </td>
 
+                      {/* Количество (шт) */}
+                      <td 
+                        onClick={() => handleStartInlineEdit(row, 'quantity', row.quantity || 1)} 
+                        className="py-2.5 px-2.5 text-center font-mono font-bold text-gray-200 whitespace-nowrap cursor-pointer hover:text-[#FF8800] transition-colors"
+                        title="Кликните для редактирования количества"
+                      >
+                        {isEditing('quantity') ? (
+                          <input
+                            ref={inputRef}
+                            type="number"
+                            min="1"
+                            value={inlineValue}
+                            onChange={e => setInlineValue(e.target.value)}
+                            onBlur={() => handleSaveInlineEdit(row)}
+                            onKeyDown={e => e.key === 'Enter' && handleSaveInlineEdit(row)}
+                            className="w-14 bg-[#0d0e12] border border-[#FF6B00] rounded px-1 py-0.5 text-xs text-center text-white focus:outline-none font-bold"
+                          />
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#0d0e12] border border-[#242930] text-xs font-bold text-gray-300">
+                            <span className="text-[#FF8800] font-mono">{row.quantity || 1}</span>
+                            <span className="text-[10px] text-gray-500 font-sans">шт</span>
+                          </span>
+                        )}
+                      </td>
+
                       {/* Сумма */}
                       <td 
                         onClick={() => handleStartInlineEdit(row, 'amount', row.amount)} 
@@ -1284,28 +1749,23 @@ export function OrdersTable() {
                         )}
                       </td>
 
-                      {/* Расход на производство (только для Дохода) */}
-                      <td 
-                        onClick={() => isIncome && handleStartInlineEdit(row, 'cost', row.cost)} 
-                        className={`py-2.5 px-2.5 text-right font-mono whitespace-nowrap ${
-                          isIncome ? 'text-gray-300 cursor-pointer hover:text-[#FF8800] transition-colors' : ''
-                        }`}
-                        title={isIncome ? "Кликните для редактирования" : "Неприменимо для Расхода"}
-                      >
+                      {/* Расход на производство с поддержкой детализации по пунктам (только для Дохода) */}
+                      <td className="py-2.5 px-2.5 text-right font-mono text-gray-300 whitespace-nowrap">
                         {isIncome ? (
-                          isEditing('cost') ? (
-                            <input
-                              ref={inputRef}
-                              type="number"
-                              value={inlineValue}
-                              onChange={e => setInlineValue(e.target.value)}
-                              onBlur={() => handleSaveInlineEdit(row)}
-                              onKeyDown={e => e.key === 'Enter' && handleSaveInlineEdit(row)}
-                              className="w-16 bg-[#0d0e12] border border-[#FF6B00] rounded px-1.5 py-0.5 text-xs text-right text-white focus:outline-none"
-                            />
-                          ) : (
-                            row.cost ? `${row.cost.toLocaleString()}` : '0'
-                          )
+                          <button
+                            type="button"
+                            onClick={() => setActiveCostOrder(row)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border transition-all text-xs font-bold cursor-pointer bg-[#0d0e12] text-gray-200 border-[#242930] hover:border-[#FF6B00]/50 hover:text-white shadow-sm active:scale-95 group"
+                            title="Кликните для детализированного учета расходов по пунктам (печать, упаковка, работа руками и т.д.)"
+                          >
+                            <Receipt className="w-3.5 h-3.5 text-[#FF8800] group-hover:scale-110 transition-transform" />
+                            <span>{(row.cost || 0).toLocaleString()} ₽</span>
+                            {row.cost_items && row.cost_items.length > 0 && (
+                              <span className="px-1.5 py-0.2 bg-[#FF6B00]/20 text-[#FF8800] text-[10px] rounded-full border border-[#FF6B00]/30 font-semibold" title={`Пунктов расхода: ${row.cost_items.length}`}>
+                                {row.cost_items.length}
+                              </span>
+                            )}
+                          </button>
                         ) : (
                           <EmptyCellPlaceholder align="right" />
                         )}
@@ -1338,13 +1798,13 @@ export function OrdersTable() {
                       </td>
 
                       {/* Клиент (только для Дохода) */}
-                      <td className="py-2.5 px-2.5 text-left whitespace-nowrap min-w-[130px]">
+                      <td className="py-2.5 px-2.5 text-left whitespace-nowrap min-w-[140px] w-[140px]">
                         {isIncome ? (
                           <Select
                             options={clientSelectOptions}
-                            value={row.client || 'Авито'}
+                            value={CLIENT_CONFIG[row.client]?.value || row.client || 'Авито'}
                             onChange={newVal => handleSelectClient(row, newVal)}
-                            className="w-auto"
+                            className="w-full"
                             buttonClassName="bg-transparent border-none p-0 hover:bg-transparent"
                           />
                         ) : (
@@ -1412,13 +1872,13 @@ export function OrdersTable() {
                       </td>
 
                       {/* Статус (только для Дохода) */}
-                      <td className="py-2.5 px-2.5 text-left whitespace-nowrap min-w-[140px]">
+                      <td className="py-2.5 px-2.5 text-left whitespace-nowrap min-w-[170px] w-[170px]">
                         {isIncome ? (
                           <Select
                             options={statusSelectOptions}
                             value={row.status || 'Готово'}
                             onChange={newVal => handleSelectStatus(row, newVal as OrderStatus)}
-                            className="w-auto"
+                            className="w-full"
                             buttonClassName="bg-transparent border-none p-0 hover:bg-transparent"
                             dropdownPosition={idx >= sortedOrders.length - 2 ? 'top' : 'auto'}
                           />
@@ -1550,10 +2010,7 @@ export function OrdersTable() {
 
               <button
                 type="button"
-                onClick={() => {
-                  handleDelete(contextMenu.order.id);
-                  setContextMenu(null);
-                }}
+                onClick={() => handleRequestDelete(contextMenu.order)}
                 className="w-full flex items-center gap-2.5 px-3 py-2 text-rose-300 hover:text-rose-200 hover:bg-rose-950/60 rounded-lg transition-colors cursor-pointer text-left font-semibold"
               >
                 <Trash2 className="w-4 h-4 text-rose-400" />
@@ -1914,6 +2371,280 @@ export function OrdersTable() {
         )}
       </Modal>
 
+      {/* Модальное окно управления детализированными пунктами расхода */}
+      <Modal
+        isOpen={!!activeCostOrder}
+        onClose={() => setActiveCostOrder(null)}
+        title="Детализация расходов по заказу"
+        maxWidth="2xl"
+      >
+        {activeCostOrder && (() => {
+          const orderAmount = activeCostOrder.amount || 0;
+          const totalCost = activeCostOrder.cost || 0;
+          const netProfit = orderAmount - totalCost;
+          const costItemsList: CostItem[] = (activeCostOrder.cost_items && activeCostOrder.cost_items.length > 0)
+            ? activeCostOrder.cost_items
+            : (activeCostOrder.cost ? [{ id: 'init-1', category: 'Печать (общий)', amount: activeCostOrder.cost }] : []);
+
+          return (
+            <div className="space-y-5 text-sm">
+              {/* Верхняя финансовая панель заказа */}
+              <div className="bg-[#0d0e12] border border-[#242930] rounded-2xl p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#242930]/80 pb-3">
+                  <div>
+                    <span className="text-[#FF8800] text-xs font-mono font-bold">
+                      #ord-{activeCostOrder.order_number || activeCostOrder.id.slice(0, 4)}
+                    </span>
+                    <h3 className="text-white font-bold text-base truncate mt-0.5">
+                      {activeCostOrder.title}
+                    </h3>
+                  </div>
+                  <div className="inline-flex items-center px-3 py-1.5 rounded-xl bg-[#16181d] border border-[#242930] text-gray-300 font-mono text-xs shrink-0 self-start sm:self-center">
+                    Сумма заказа: <strong className="text-white ml-1.5 font-bold">{orderAmount.toLocaleString()} ₽</strong>
+                  </div>
+                </div>
+
+                {/* 3 выровненных плашки статистики */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-0.5">
+                  <div className="bg-[#16181d] border border-[#242930] p-3 rounded-xl flex flex-col justify-between">
+                    <span className="text-gray-400 text-xs font-semibold flex items-center gap-1.5">
+                      <ShoppingBag className="w-3.5 h-3.5 text-emerald-400" /> Выручка
+                    </span>
+                    <span className="text-emerald-400 font-mono font-bold text-lg mt-1">
+                      {orderAmount.toLocaleString()} ₽
+                    </span>
+                  </div>
+
+                  <div className="bg-[#16181d] border border-rose-500/20 p-3 rounded-xl flex flex-col justify-between">
+                    <span className="text-gray-400 text-xs font-semibold flex items-center gap-1.5">
+                      <Receipt className="w-3.5 h-3.5 text-rose-400" /> Итого расход
+                    </span>
+                    <span className="text-rose-400 font-mono font-bold text-lg mt-1">
+                      {totalCost.toLocaleString()} ₽
+                    </span>
+                  </div>
+
+                  <div className={`border p-3 rounded-xl flex flex-col justify-between ${
+                    netProfit >= 0 ? 'bg-[#16181d] border-emerald-500/20' : 'bg-[#16181d] border-rose-500/20'
+                  }`}>
+                    <span className="text-gray-400 text-xs font-semibold flex items-center gap-1.5">
+                      <DollarSign className={`w-3.5 h-3.5 ${netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`} /> Чистая прибыль
+                    </span>
+                    <span className={`font-mono font-bold text-lg mt-1 ${netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {netProfit > 0 ? `+${netProfit.toLocaleString()}` : `${netProfit.toLocaleString()}`} ₽
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Раздел 1: Выбор категории расхода */}
+              <div className="space-y-2.5">
+                <label className="text-gray-200 text-xs font-bold uppercase tracking-wider block">
+                  1. Выберите категорию или укажите свой пункт:
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {DEFAULT_COST_CATEGORIES.map(cat => {
+                    const IconComp = cat.icon;
+                    const isSelected = selectedCostCategory === cat.name;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedCostCategory(cat.name);
+                          setCustomCostCategory('');
+                        }}
+                        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left ${
+                          isSelected
+                            ? 'bg-[#FF6B00]/15 text-[#FF8800] border-[#FF6B00] shadow-md shadow-[#FF6B00]/10 font-bold'
+                            : 'bg-[#12141a] text-gray-300 border-[#242930] hover:border-gray-600 hover:text-white'
+                        }`}
+                        title={cat.description}
+                      >
+                        <div className={`p-1.5 rounded-lg ${cat.badgeStyle} shrink-0`}>
+                          <IconComp className={`w-3.5 h-3.5 ${cat.color}`} />
+                        </div>
+                        <span className="truncate">{cat.name}</span>
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCostCategory('custom');
+                    }}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer text-left ${
+                      selectedCostCategory === 'custom'
+                        ? 'bg-[#FF6B00]/15 text-[#FF8800] border-[#FF6B00] shadow-md shadow-[#FF6B00]/10 font-bold'
+                        : 'bg-[#12141a] text-gray-300 border-[#242930] hover:border-gray-600 hover:text-white'
+                    }`}
+                    title="Вписать свой собственный пункт расхода"
+                  >
+                    <div className="p-1.5 rounded-lg bg-orange-950/80 text-orange-300 border border-orange-500/40 shrink-0">
+                      <Plus className="w-3.5 h-3.5 text-orange-400" />
+                    </div>
+                    <span className="truncate">+ Свой пункт</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Раздел 2: Форма добавления суммы и примечания */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const categoryToSave = selectedCostCategory === 'custom' ? customCostCategory : selectedCostCategory;
+                  handleAddCostItem(
+                    activeCostOrder,
+                    categoryToSave,
+                    Number(newCostAmount),
+                    newCostNote
+                  );
+                }}
+                className="bg-[#16181d] border border-[#242930] p-4 rounded-2xl space-y-3"
+              >
+                <div className="flex items-center justify-between text-xs font-bold text-gray-300 border-b border-[#242930] pb-2">
+                  <span>2. Заполните параметры расхода:</span>
+                  <span className="text-[#FF8800] font-mono">
+                    Пункт: <strong className="text-white">{selectedCostCategory === 'custom' ? (customCostCategory || 'Свой пункт') : selectedCostCategory}</strong>
+                  </span>
+                </div>
+
+                {selectedCostCategory === 'custom' && (
+                  <div>
+                    <Input
+                      label="Наименование вашего пункта расхода *"
+                      placeholder="Например: Упаковка, Наклейки, Магниты 5х2, Фурнитура..."
+                      value={customCostCategory}
+                      onChange={e => setCustomCostCategory(e.target.value)}
+                      required
+                    />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                  <div className="sm:col-span-5">
+                    <Input
+                      label="Сумма расхода (₽) *"
+                      type="number"
+                      min="1"
+                      placeholder="Например: 350"
+                      value={newCostAmount}
+                      onChange={e => setNewCostAmount(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  <div className="sm:col-span-4">
+                    <Input
+                      label="Примечание"
+                      placeholder="Детали (например: 2 шт)..."
+                      value={newCostNote}
+                      onChange={e => setNewCostNote(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="sm:col-span-3">
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      size="md"
+                      className="w-full h-[42px] bg-gradient-to-r from-[#FF5500] to-[#FF8800] hover:from-[#FF6600] hover:to-[#FF9900] text-white border-none shadow-md shadow-[#FF6B00]/25 font-bold cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4 mr-1.5" /> Добавить
+                    </Button>
+                  </div>
+                </div>
+              </form>
+
+              {/* Раздел 3: Список добавленных пунктов расходов */}
+              <div className="space-y-3 pt-1">
+                <div className="flex items-center justify-between text-xs font-bold text-gray-300 uppercase tracking-wider">
+                  <span className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-[#FF8800]" />
+                    Список пунктов расходов ({costItemsList.length})
+                  </span>
+                  <span className="text-gray-500 font-mono text-[11px] normal-case">Изменяйте сумму прямо в таблице</span>
+                </div>
+
+                {costItemsList.length === 0 ? (
+                  <div className="text-center py-8 border border-dashed border-[#242930] rounded-2xl text-gray-500 text-xs space-y-1">
+                    <p className="font-semibold text-gray-400">Пока нет добавленных пунктов расхода</p>
+                    <p>Выберите категорию выше и введите сумму, чтобы добавить расход к заказу.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1.5 custom-scrollbar">
+                    {costItemsList.map((item, idx) => {
+                      const cfg = getCategoryConfig(item.category);
+                      const IconComp = cfg.icon;
+
+                      return (
+                        <div
+                          key={item.id || idx}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between bg-[#12141a] border border-[#242930] p-3 rounded-xl gap-3 hover:border-[#FF6B00]/40 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className={`p-2.5 rounded-xl ${cfg.badgeStyle} shrink-0`}>
+                              <IconComp className={`w-4 h-4 ${cfg.color}`} />
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-white font-bold text-sm truncate">{item.category}</span>
+                              </div>
+                              {item.note && (
+                                <p className="text-gray-400 text-xs truncate mt-0.5">{item.note}</p>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+                            <div className="flex items-center gap-1.5 bg-[#0d0e12] border border-[#242930] focus-within:border-[#FF6B00] rounded-xl px-2.5 py-1">
+                              <input
+                                type="number"
+                                min="0"
+                                value={item.amount || ''}
+                                onChange={e => handleUpdateCostItem(activeCostOrder, idx, 'amount', Number(e.target.value))}
+                                className="w-24 bg-transparent text-right text-sm text-white font-bold font-mono focus:outline-none"
+                              />
+                              <span className="text-gray-400 text-xs font-bold font-mono">₽</span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCostItem(activeCostOrder, idx)}
+                              className="p-2 rounded-xl text-gray-400 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer border border-transparent hover:border-rose-500/30"
+                              title="Удалить этот пункт расхода"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Раздел 4: Подвал модального окна */}
+              <div className="flex justify-between items-center pt-4 border-t border-[#242930]">
+                <div className="text-gray-300 text-xs font-mono">
+                  Всего расхода:{' '}
+                  <strong className="text-rose-400 font-bold text-base ml-1">{totalCost.toLocaleString()} ₽</strong>
+                </div>
+                <Button
+                  variant="outline"
+                  size="md"
+                  onClick={() => setActiveCostOrder(null)}
+                  className="px-5 font-bold cursor-pointer"
+                >
+                  Готово
+                </Button>
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
+
       {/* Уведомление тост об отмене изменений Alt+Z */}
       <AnimatePresence>
         {toastMessage && (
@@ -1937,29 +2668,29 @@ export function OrdersTable() {
             ? (editingOrder.type === 'expense' ? `Редактирование расхода #${editingOrder.order_number || ''}` : `Редактирование заказа #${editingOrder.order_number || ''}`) 
             : (editingOrder?.type === 'expense' ? 'Новый операционный расход' : 'Новый заказ на 3D-печать')
         }
-        maxWidth="2xl"
+        maxWidth="3xl"
       >
         {editingOrder && (
-          <form onSubmit={handleSaveModal} className="space-y-4 text-xs sm:text-sm">
+          <form onSubmit={handleSaveModal} noValidate className="space-y-5 text-xs sm:text-sm">
             {/* Переключатель типа операции: Доход vs Расход */}
-            <div className="flex items-center p-1 bg-[#0d0e12] border border-[#242930] rounded-xl select-none">
+            <div className="flex items-center p-1.5 bg-[#0d0e12] border border-[#242930] rounded-2xl select-none">
               <button
                 type="button"
                 onClick={() => setEditingOrder({ ...editingOrder, type: 'income' })}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                className={`flex-1 flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   editingOrder.type === 'income'
                     ? 'bg-gradient-to-r from-emerald-600/30 to-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm'
                     : 'text-gray-400 hover:text-gray-200 hover:bg-[#1a1d24]'
                 }`}
               >
                 <ArrowUpRight className={`w-4 h-4 ${editingOrder.type === 'income' ? 'text-emerald-400' : 'text-gray-400'}`} />
-                <span>Доход (Заказ)</span>
+                <span>Доход (Заказ на печать)</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setEditingOrder({ ...editingOrder, type: 'expense' })}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                className={`flex-1 flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   editingOrder.type === 'expense'
                     ? 'bg-gradient-to-r from-rose-600/30 to-rose-500/20 text-rose-400 border border-rose-500/40 shadow-sm'
                     : 'text-gray-400 hover:text-gray-200 hover:bg-[#1a1d24]'
@@ -1970,88 +2701,165 @@ export function OrdersTable() {
               </button>
             </div>
 
-            {/* Блок 1: Основные данные */}
-            <div className="bg-[#12141a] border border-[#242930] rounded-xl p-3.5 sm:p-4 space-y-3">
-              <div className="text-gray-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 border-b border-[#242930]/60 pb-2">
-                <ShoppingBag className="w-3.5 h-3.5 text-[#FF8800]" /> Основные данные
+            {/* Карточка 1: Основные данные */}
+            <div className="bg-[#12141a] border border-[#242930] rounded-2xl p-4 sm:p-5 space-y-4">
+              <div className="text-gray-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-b border-[#242930]/80 pb-2.5">
+                <ShoppingBag className="w-4 h-4 text-[#FF8800]" /> Основные данные заказа
               </div>
 
-              <div className="space-y-3">
-                <Input
-                  label="Наименование *"
-                  required
-                  placeholder={
-                    editingOrder.type === 'expense'
-                      ? "Например: Закупка PETG пластика 5 кг (FDplast)"
-                      : "Например: Фигурка Ведьмака 25см + покраска"
-                  }
-                  value={editingOrder.title || ''}
-                  onChange={e => setEditingOrder({ ...editingOrder, title: e.target.value })}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-start">
+                <div className={editingOrder.type === 'income' ? "sm:col-span-4" : "sm:col-span-6"}>
+                  <motion.div
+                    animate={shakingFields.title ? {
+                      x: [0, -12, 10, -8, 8, -5, 5, -2, 2, 0],
+                    } : { x: 0 }}
+                    transition={{ duration: 1, ease: "easeInOut" }}
+                  >
+                    <Input
+                      label="Наименование *"
+                      placeholder={
+                        editingOrder.type === 'expense'
+                          ? "Закупка PETG пластика 5 кг (FDplast)"
+                          : "Фигурка Ведьмака 25см + покраска"
+                      }
+                      value={editingOrder.title || ''}
+                      onChange={e => {
+                        setEditingOrder({ ...editingOrder, title: e.target.value });
+                        if (formErrors.title) {
+                          setFormErrors(prev => ({ ...prev, title: false }));
+                        }
+                      }}
+                      error={formErrors.title ? "Обязательное поле: введите наименование" : undefined}
+                      className={formErrors.title ? "border-red-500 ring-2 ring-red-500/30 text-rose-200 placeholder-rose-400/60 bg-rose-950/20" : ""}
+                    />
+                  </motion.div>
+                </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="sm:col-span-3">
+                  <NumberCounter
+                    label="Кол-во (шт)"
+                    value={editingOrder.quantity || 1}
+                    onChange={q => setEditingOrder({ ...editingOrder, quantity: q })}
+                    min={1}
+                    max={9999}
+                  />
+                </div>
+
+                <div className={editingOrder.type === 'income' ? "sm:col-span-2" : "sm:col-span-3"}>
                   <DatePicker
                     label="Дата записи"
                     value={editingOrder.date || ''}
                     onChange={newDate => setEditingOrder({ ...editingOrder, date: newDate })}
                     format="DD.MM"
                   />
+                </div>
 
-                  {editingOrder.type === 'income' ? (
+                {editingOrder.type === 'income' ? (
+                  <div className="sm:col-span-3">
                     <Select
-                      label="Статус выполнения"
+                      label="Статус"
                       options={statusSelectOptions}
                       value={editingOrder.status || 'Готово'}
                       onChange={val => setEditingOrder({ ...editingOrder, status: val as any })}
                     />
-                  ) : (
-                    <div className="flex items-center p-2.5 rounded-lg bg-[#0d0e12] border border-[#242930] text-gray-400 text-xs gap-2 h-[38px] mt-auto">
-                      <Info className="w-4 h-4 text-amber-400 shrink-0" />
-                      <span className="truncate">Учитывается в финансовой статистике</span>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <div className="sm:col-span-1 hidden sm:block" />
+                )}
               </div>
             </div>
 
-            {/* Блок 2: Финансовые показатели */}
-            <div className="bg-[#12141a] border border-[#242930] rounded-xl p-3.5 sm:p-4 space-y-3">
-              <div className="text-gray-400 text-xs font-bold uppercase tracking-wider flex items-center justify-between border-b border-[#242930]/60 pb-2">
-                <div className="flex items-center gap-1.5">
-                  <DollarSign className="w-3.5 h-3.5 text-emerald-400" /> Финансовые показатели
-                </div>
-                <span className="text-[11px] text-gray-500 font-mono">Все суммы в рублях (₽)</span>
+            {/* Карточка 2: Финансовые показатели со встроенной детализацией себестоимости */}
+            <div className="bg-[#12141a] border border-[#242930] rounded-2xl p-4 sm:p-5 space-y-4">
+              <div className="text-gray-400 text-xs font-bold uppercase tracking-wider flex items-center justify-between border-b border-[#242930]/80 pb-2.5">
+                <span className="flex items-center gap-2 text-gray-300">
+                  <DollarSign className="w-4 h-4 text-emerald-400" /> Финансовые показатели (₽)
+                </span>
+                {editingOrder.type === 'income' && (
+                  <div className="flex items-center gap-4 text-xs font-mono">
+                    <span className="text-gray-400">
+                      Прибыль:{' '}
+                      <strong className={`font-bold ${((editingOrder.amount || 0) - (editingOrder.cost || 0)) >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        +{((editingOrder.amount || 0) - (editingOrder.cost || 0)).toLocaleString()} ₽
+                      </strong>
+                    </span>
+                    <span className="text-gray-400">
+                      Остаток:{' '}
+                      <strong className={`font-bold ${((editingOrder.amount || 0) - (editingOrder.payment || 0)) <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        {((editingOrder.amount || 0) - (editingOrder.payment || 0)) <= 0 ? '0 ₽ (Оплачен)' : `${((editingOrder.amount || 0) - (editingOrder.payment || 0)).toLocaleString()} ₽`}
+                      </strong>
+                    </span>
+                  </div>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Input
-                  label={editingOrder.type === 'expense' ? "Сумма расхода (₽) *" : "Стоимость заказа (₽) *"}
-                  type="number"
-                  min="0"
-                  required
-                  placeholder="0"
-                  value={editingOrder.amount || ''}
-                  onChange={e => setEditingOrder({ ...editingOrder, amount: Number(e.target.value) })}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
+                <motion.div
+                  animate={shakingFields.amount ? {
+                    x: [0, -12, 10, -8, 8, -5, 5, -2, 2, 0],
+                  } : { x: 0 }}
+                  transition={{ duration: 1, ease: "easeInOut" }}
+                >
+                  <Input
+                    label={editingOrder.type === 'expense' ? "Сумма расхода (₽) *" : "Стоимость заказа (₽) *"}
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={editingOrder.amount || ''}
+                    onChange={e => {
+                      const val = Number(e.target.value);
+                      setEditingOrder({ ...editingOrder, amount: val });
+                      if (formErrors.amount && val > 0) {
+                        setFormErrors(prev => ({ ...prev, amount: false }));
+                      }
+                    }}
+                    error={formErrors.amount ? "Обязательное поле: укажите сумму больше 0" : undefined}
+                    className={formErrors.amount ? "border-red-500 ring-2 ring-red-500/30 text-rose-200 placeholder-rose-400/60 bg-rose-950/20" : ""}
+                  />
+                </motion.div>
 
                 {editingOrder.type === 'income' && (
                   <>
-                    <Input
-                      label="Себестоимость (₽)"
-                      type="number"
-                      min="0"
-                      placeholder="0"
-                      hint="Пластик, э/э, брак"
-                      value={editingOrder.cost || ''}
-                      onChange={e => setEditingOrder({ ...editingOrder, cost: Number(e.target.value) })}
-                    />
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-gray-300 text-sm font-medium">
+                        Себестоимость (₽)
+                      </span>
+
+                      <div className="relative flex items-center">
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          value={editingOrder.cost || ''}
+                          onChange={e => {
+                            const num = Number(e.target.value);
+                            setEditingOrder({ 
+                              ...editingOrder, 
+                              cost: num,
+                              cost_items: (editingOrder.cost_items && editingOrder.cost_items.length > 0)
+                                ? editingOrder.cost_items
+                                : (num > 0 ? [{ id: 'init-1', category: 'Печать (общий)', amount: num }] : [])
+                            });
+                          }}
+                          className="w-full bg-[#1a1d24] border border-[#242930] hover:border-secondary focus:border-primary focus:outline-none rounded-lg pl-3 pr-24 py-1.5 text-white text-sm font-sans font-mono transition-colors placeholder-neutral-accent"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setIsCostBreakdownOpen(!isCostBreakdownOpen)}
+                          className="absolute right-1 text-xs text-[#FF8800] hover:text-white font-semibold inline-flex items-center gap-1 cursor-pointer transition-colors bg-[#FF6B00]/15 hover:bg-[#FF6B00] px-2 py-0.5 rounded-md border border-[#FF6B00]/30 select-none"
+                          title="Кликните для выбора категорий себестоимости (печать, упаковка, работа руками...)"
+                        >
+                          <Receipt className="w-3.5 h-3.5" />
+                          <span>{isCostBreakdownOpen ? 'Скрыть' : 'Детали'}</span>
+                        </button>
+                      </div>
+                    </div>
 
                     <Input
                       label="Внесенная оплата (₽)"
                       type="number"
                       min="0"
                       placeholder="0"
-                      hint="Предоплата / Оплата"
                       value={editingOrder.payment || ''}
                       onChange={e => {
                         const num = Number(e.target.value);
@@ -2066,46 +2874,170 @@ export function OrdersTable() {
                 )}
               </div>
 
-              {/* Живой виджет-расчет прибыли и остатка */}
-              {editingOrder.type === 'income' && (
-                <div className="mt-2 p-3 rounded-xl bg-[#0d0e12] border border-[#242930] grid grid-cols-2 gap-3 text-xs">
-                  <div className="flex flex-col">
-                    <span className="text-gray-400 text-[11px]">Расчетная чистая прибыль:</span>
-                    <span className={`text-sm font-bold font-mono ${
-                      ((editingOrder.amount || 0) - (editingOrder.cost || 0)) >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                    }`}>
-                      +{((editingOrder.amount || 0) - (editingOrder.cost || 0)).toLocaleString()} ₽
-                    </span>
+              {/* Расширяемая детализация по категориям себестоимости */}
+              {editingOrder.type === 'income' && (isCostBreakdownOpen || (editingOrder.cost_items && editingOrder.cost_items.length > 0)) && (
+                <div className="mt-3 pt-3 border-t border-[#242930]/80 space-y-3">
+                  <div className="flex items-center justify-between text-xs text-gray-400 font-semibold">
+                    <span>Быстрый выбор категорий себестоимости:</span>
+                    <span className="text-[#FF8800] font-mono font-bold">Итого себестоимость: {(editingOrder.cost || 0).toLocaleString()} ₽</span>
                   </div>
 
-                  <div className="flex flex-col">
-                    <span className="text-gray-400 text-[11px]">Статус оплаты:</span>
-                    {((editingOrder.amount || 0) - (editingOrder.payment || 0)) <= 0 ? (
-                      <span className="text-xs font-bold text-emerald-400 flex items-center gap-1 mt-0.5">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Оплачен полностью
-                      </span>
+                  {/* Быстрые кнопки категорий расхода + свой пункт */}
+                  <div className="flex flex-wrap gap-2 items-center">
+                    {DEFAULT_COST_CATEGORIES.map(cat => {
+                      const IconComp = cat.icon;
+                      const existingItem = (editingOrder.cost_items || []).find(i => i.category.toLowerCase() === cat.name.toLowerCase());
+
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => {
+                            const currentItems = editingOrder.cost_items || [];
+                            if (existingItem) return;
+                            const newItems = [...currentItems, { id: typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Math.random()), category: cat.name, amount: 0 }];
+                            setEditingOrder({ ...editingOrder, cost_items: newItems });
+                          }}
+                          className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer ${
+                            existingItem
+                              ? `${cat.badgeStyle} ring-1 ring-[#FF6B00]/60 shadow-sm`
+                              : 'bg-[#16181d] text-gray-300 border-[#242930] hover:text-white hover:border-gray-500'
+                          }`}
+                          title={cat.description}
+                        >
+                          <IconComp className={`w-3.5 h-3.5 ${cat.color}`} />
+                          <span>{cat.name}</span>
+                          {existingItem && <span className="font-mono text-white font-bold ml-1 bg-black/40 px-1.5 py-0.5 rounded-md">{existingItem.amount}₽</span>}
+                        </button>
+                      );
+                    })}
+
+                    {/* Добавление собственного пункта себестоимости */}
+                    {!isAddingCustomCost ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingCustomCost(true)}
+                        className="px-3 py-1.5 rounded-xl border border-dashed border-[#FF6B00]/60 text-xs font-semibold text-[#FF8800] hover:bg-[#FF6B00]/10 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer select-none"
+                        title="Добавить свой пункт себестоимости (например: Смола, Моделирование, Фурнитура...)"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Свой пункт</span>
+                      </button>
                     ) : (
-                      <span className="text-sm font-bold font-mono text-amber-400">
-                        Остаток: {((editingOrder.amount || 0) - (editingOrder.payment || 0)).toLocaleString()} ₽
-                      </span>
+                      <div className="flex items-center gap-1.5 bg-[#16181d] border border-[#FF6B00] rounded-xl px-2 py-1 shadow-md shadow-[#FF6B00]/10">
+                        <input
+                          type="text"
+                          autoFocus
+                          placeholder="Название пункта..."
+                          value={customCostCategoryName}
+                          onChange={e => setCustomCostCategoryName(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddCustomCostCategoryInModal();
+                            }
+                            if (e.key === 'Escape') {
+                              setIsAddingCustomCost(false);
+                            }
+                          }}
+                          className="w-32 sm:w-40 bg-transparent text-xs text-white placeholder-gray-500 focus:outline-none font-medium"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddCustomCostCategoryInModal}
+                          className="p-1 bg-[#FF6B00] hover:bg-[#FF8800] text-white rounded-lg transition-colors cursor-pointer"
+                          title="Добавить категорию"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingCustomCost(false)}
+                          className="p-1 text-gray-400 hover:text-white transition-colors cursor-pointer"
+                          title="Отмена"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     )}
                   </div>
+
+                  {/* Список добавленных категорий в 2 колонки */}
+                  {editingOrder.cost_items && editingOrder.cost_items.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1.5">
+                      {editingOrder.cost_items.map((item, idx) => {
+                        const cfg = getCategoryConfig(item.category);
+                        const IconComp = cfg.icon;
+
+                        return (
+                          <div key={item.id || idx} className="flex items-center justify-between bg-[#16181d] border border-[#242930] p-2.5 rounded-xl text-xs gap-3 hover:border-[#FF6B00]/40 transition-colors">
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <div className={`p-1.5 rounded-lg ${cfg.badgeStyle} shrink-0`}>
+                                <IconComp className={`w-3.5 h-3.5 ${cfg.color}`} />
+                              </div>
+                              <span className="text-white font-bold truncate">{item.category}</span>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <div className="flex items-center gap-1 bg-[#0d0e12] border border-[#242930] focus-within:border-[#FF6B00] rounded-xl px-2.5 py-1">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  placeholder="0"
+                                  value={item.amount || ''}
+                                  onChange={e => {
+                                    const val = Number(e.target.value);
+                                    const updatedItems = (editingOrder.cost_items || []).map((it, i) => i === idx ? { ...it, amount: val } : it);
+                                    const newCostSum = updatedItems.reduce((acc, it) => acc + (it.amount || 0), 0);
+                                    setEditingOrder({
+                                      ...editingOrder,
+                                      cost_items: updatedItems,
+                                      cost: newCostSum
+                                    });
+                                  }}
+                                  className="w-20 bg-transparent text-right text-xs text-white font-bold font-mono focus:outline-none"
+                                />
+                                <span className="text-gray-400 text-xs font-mono">₽</span>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updatedItems = (editingOrder.cost_items || []).filter((_, i) => i !== idx);
+                                  const newCostSum = updatedItems.reduce((acc, it) => acc + (it.amount || 0), 0);
+                                  setEditingOrder({
+                                    ...editingOrder,
+                                    cost_items: updatedItems,
+                                    cost: newCostSum
+                                  });
+                                }}
+                                className="p-1.5 text-gray-400 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer"
+                                title="Удалить категорию расхода"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Блок 3: Информация о клиенте и дедлайн (только для доходов) */}
+            {/* Карточка 3: Клиент и сроки (только для доходов) */}
             {editingOrder.type === 'income' && (
-              <div className="bg-[#12141a] border border-[#242930] rounded-xl p-3.5 sm:p-4 space-y-3">
-                <div className="text-gray-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 border-b border-[#242930]/60 pb-2">
-                  <PhoneCall className="w-3.5 h-3.5 text-sky-400" /> Клиент и сроки
+              <div className="bg-[#12141a] border border-[#242930] rounded-2xl p-4 sm:p-5 space-y-4">
+                <div className="text-gray-400 text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-b border-[#242930]/80 pb-2.5">
+                  <PhoneCall className="w-4 h-4 text-sky-400" /> Клиент и сроки сдачи
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
                   <Select
                     label="Канал продаж"
                     options={clientSelectOptions}
-                    value={editingOrder.client || 'Авито'}
+                    value={CLIENT_CONFIG[editingOrder.client || 'Авито']?.value || editingOrder.client || 'Авито'}
                     onChange={val => setEditingOrder({ ...editingOrder, client: val })}
                   />
 
@@ -2117,7 +3049,7 @@ export function OrdersTable() {
                   />
 
                   <DatePicker
-                    label="Срок сдачи (Дедлайн)"
+                    label="Дедлайн (Срок)"
                     value={editingOrder.deadline || ''}
                     onChange={newDeadline => setEditingOrder({ ...editingOrder, deadline: newDeadline })}
                     format="DD.MM"
@@ -2126,49 +3058,129 @@ export function OrdersTable() {
               </div>
             )}
 
-            {/* Блок 4: Заметки и примечание */}
-            <div className="bg-[#12141a] border border-[#242930] rounded-xl p-3.5 sm:p-4 space-y-2">
-              <div className="flex items-center justify-between text-xs text-gray-400 font-bold uppercase tracking-wider">
-                <span className="flex items-center gap-1.5">
-                  <NotebookPen className="w-3.5 h-3.5 text-[#FF8800]" /> Заметки и примечания
+            {/* Карточка 4: Примечания и заметки */}
+            <div className="bg-[#12141a] border border-[#242930] rounded-2xl p-4 sm:p-5 space-y-3">
+              <div className="flex items-center justify-between text-xs text-gray-400 font-bold uppercase tracking-wider border-b border-[#242930]/80 pb-2.5">
+                <span className="flex items-center gap-2">
+                  <NotebookPen className="w-4 h-4 text-[#FF8800]" /> Примечание / Заметки к заказу
                 </span>
-                <span className="text-[11px] font-normal text-gray-500 font-mono">
-                  {(editingOrder.notes || '').length} символов
-                </span>
+                <span className="text-[11px] text-gray-500 font-mono normal-case">{(editingOrder.notes || '').length} символов</span>
               </div>
-
               <textarea
-                rows={2}
-                placeholder="Укажите цвет пластика, сопло/слой печати, адрес доставки или трек-номер..."
+                rows={3}
+                placeholder="Укажите цвет пластика, сопло/слой печати, адрес доставки или трек-номер отправки..."
                 value={editingOrder.notes || ''}
                 onChange={e => setEditingOrder({ ...editingOrder, notes: e.target.value })}
-                className="w-full bg-[#1a1d24] border border-[#242930] hover:border-[#FF6B00]/50 focus:border-[#FF6B00] focus:outline-none rounded-xl px-3 py-2 text-white text-xs sm:text-sm font-sans transition-all placeholder-neutral-accent leading-relaxed resize-y"
+                className="w-full bg-[#1a1d24] border border-[#242930] hover:border-[#FF6B00]/50 focus:border-[#FF6B00] focus:outline-none rounded-xl p-3.5 text-white text-xs sm:text-sm font-sans transition-all placeholder-neutral-accent resize-none leading-relaxed"
               />
             </div>
 
             {/* Подвал формы с кнопками действий */}
-            <div className="flex items-center justify-between pt-3 border-t border-[#242930] mt-4">
+            <div className="flex items-center justify-between pt-4 border-t border-[#242930] mt-4">
               <span className="text-gray-500 text-xs hidden sm:inline select-none">
                 * Обязательные поля для заполнения
               </span>
 
-              <div className="flex items-center gap-2.5 ml-auto">
-                <Button variant="outline" size="sm" type="button" onClick={() => setIsModalOpen(false)}>
+              <div className="flex items-center gap-3 ml-auto">
+                <Button variant="outline" size="md" type="button" onClick={() => setIsModalOpen(false)} className="px-5 cursor-pointer">
                   Отмена
                 </Button>
                 <Button
                   variant="primary"
-                  size="sm"
+                  size="md"
                   type="submit"
-                  className="bg-gradient-to-r from-[#FF5500] to-[#FF8800] hover:from-[#FF6600] hover:to-[#FF9900] text-white border-none shadow-lg shadow-[#FF6B00]/25 font-bold px-5 py-2 cursor-pointer"
+                  className="bg-gradient-to-r from-[#FF5500] to-[#FF8800] hover:from-[#FF6600] hover:to-[#FF9900] text-white border-none shadow-lg shadow-[#FF6B00]/25 font-bold px-6 py-2.5 cursor-pointer"
                 >
-                  <Check className="w-4 h-4 mr-1.5" />
+                  <Check className="w-4.5 h-4.5 mr-2" />
                   {editingOrder?.id ? 'Сохранить изменения' : 'Создать запись'}
                 </Button>
               </div>
             </div>
           </form>
         )}
+      </Modal>
+
+      {/* Модальное окно подтверждения удаления записи */}
+      <Modal
+        isOpen={!!orderToDelete}
+        onClose={() => setOrderToDelete(null)}
+        title="Подтверждение удаления"
+        variant="error"
+        maxWidth="sm"
+      >
+        {orderToDelete && (
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 p-3.5 bg-rose-500/10 border border-rose-500/25 rounded-xl">
+              <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+              <div className="text-xs sm:text-sm text-gray-300 leading-relaxed">
+                Вы действительно хотите удалить {orderToDelete.type === 'expense' ? 'операционный расход' : 'заказ'}{' '}
+                <strong className="text-white">#{orderToDelete.order_number || ''} «{orderToDelete.title}»</strong> на сумму{' '}
+                <span className="font-mono font-bold text-rose-400">{(orderToDelete.amount || 0).toLocaleString()} ₽</span>?
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-400 select-none">
+              Это действие можно будет отменить нажатием сочетания клавиш <kbd className="px-1.5 py-0.5 bg-[#242930] rounded text-gray-300 font-mono">Alt + Z</kbd>.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#242930]">
+              <Button variant="outline" size="sm" type="button" onClick={() => setOrderToDelete(null)}>
+                Отмена
+              </Button>
+
+              <Button
+                variant="primary"
+                size="sm"
+                type="button"
+                onClick={handleConfirmDelete}
+                className="bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white border-none shadow-lg shadow-rose-950/50 font-bold px-4 py-2 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4 mr-1.5" />
+                Удалить запись
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Модальное окно подтверждения полной очистки месяца */}
+      <Modal
+        isOpen={isClearMonthModalOpen}
+        onClose={() => setIsClearMonthModalOpen(false)}
+        title={`Очистка месяца ${selectedMonthKey !== 'all' ? formatMonthKeyLabel(selectedMonthKey) : ''}`}
+        variant="error"
+        maxWidth="sm"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-3.5 bg-rose-500/10 border border-rose-500/25 rounded-xl">
+            <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+            <div className="text-xs sm:text-sm text-gray-300 leading-relaxed">
+              Вы действительно хотите удалить все <strong className="text-white font-bold">{monthFilteredOrders.length} записей</strong> за{' '}
+              <strong className="text-white font-bold">{formatMonthKeyLabel(selectedMonthKey)}</strong>?
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-400 leading-relaxed select-none">
+            Все заказы и расходы за этот месяц будут удалены, а месяц автоматически скроется из вкладок быстрого доступа. Это действие можно будет отменить клавишами <kbd className="px-1.5 py-0.5 bg-[#242930] rounded text-gray-300 font-mono">Alt + Z</kbd>.
+          </p>
+
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#242930]">
+            <Button variant="outline" size="sm" type="button" onClick={() => setIsClearMonthModalOpen(false)}>
+              Отмена
+            </Button>
+
+            <Button
+              variant="primary"
+              size="sm"
+              type="button"
+              onClick={handleClearSelectedMonth}
+              className="bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white border-none shadow-lg shadow-rose-950/50 font-bold px-4 py-2 cursor-pointer"
+            >
+              <Trash2 className="w-4 h-4 mr-1.5" />
+              Очистить {monthFilteredOrders.length} {monthFilteredOrders.length === 1 ? 'запись' : monthFilteredOrders.length < 5 ? 'записи' : 'записей'}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

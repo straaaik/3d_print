@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { ShoppingBag, BarChart3, Calculator, Layers, Cpu, Settings } from 'lucide-react';
+import { ShoppingBag, BarChart3, Calculator, Package, Layers, Cpu, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export interface MainNavbarProps {
@@ -36,6 +36,14 @@ const NAV_ITEMS = [
     icon: Calculator,
     activeGradient: 'from-[#0993b8] to-[#0CB4E0]',
     activeShadow: 'shadow-primary/30',
+  },
+  {
+    id: 'products',
+    label: 'Товары',
+    href: '/products',
+    icon: Package,
+    activeGradient: 'from-amber-600 to-amber-500',
+    activeShadow: 'shadow-amber-500/30',
   },
   {
     id: 'filaments',

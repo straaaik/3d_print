@@ -12,6 +12,7 @@ import { ColorPicker } from '../../shared/ui/ColorPicker';
 import { formatCurrency } from '../../shared/lib/format';
 import { Edit2, Trash2, Plus, Cpu, Settings as SettingsIcon, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PageHeader } from '../../shared/ui/PageHeader';
 
 export function PrinterList() {
   const { printers, settings, addPrinter, updatePrinter, deletePrinter } = useData();
@@ -110,15 +111,23 @@ export function PrinterList() {
   return (
     <div className="flex flex-col gap-6">
       {/* Заголовок и кнопка */}
-      <div className="flex justify-between items-center select-none">
-        <div>
-          <h2 className="text-white text-lg font-bold">Мои 3D-принтеры</h2>
-          <p className="text-neutral-accent text-xs">Добавляйте ваши принтеры для расчета амортизации и электроэнергии</p>
-        </div>
-        <Button onClick={handleOpenAdd} className="flex items-center gap-1.5 sm:px-4">
-          <Plus size={16} /> <span className="hidden sm:inline">Добавить принтер</span>
-        </Button>
-      </div>
+      <PageHeader
+        icon={Cpu}
+        title="Мои 3D-принтеры"
+        subtitle="Оборудование для печати, расчет энергопотребления и амортизации"
+        accentColor="#38bdf8"
+        actions={
+          <Button
+            onClick={handleOpenAdd}
+            variant="primary"
+            size="md"
+            className="bg-gradient-to-r from-sky-600 to-sky-400 hover:from-sky-500 hover:to-sky-300 text-white border-none shadow-lg shadow-sky-400/25 cursor-pointer flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Добавить принтер</span>
+          </Button>
+        }
+      />
 
       {/* Список принтеров */}
       {printers.length === 0 ? (

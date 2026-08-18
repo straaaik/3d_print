@@ -17,10 +17,39 @@ export interface Filament {
   color?: string;
 }
 
+export interface AssemblyPrintedPart {
+  id?: string;
+  product_id?: string;
+  name: string;
+  weight_g: number;
+  hours: number;
+  minutes: number;
+  quantity: number;
+  filament_id?: string;
+  filament_name?: string;
+  filament_color?: string;
+  printer_id?: string;
+  printer_name?: string;
+  base_cost: number;
+  final_price: number;
+  stl_url?: string;
+  stl_file_name?: string;
+  stl_file_data?: string;
+}
+
+export interface AssemblyHardwareItem {
+  id: string;
+  name: string;
+  quantity: number;
+  cost_per_unit: number;
+  price_per_unit: number;
+}
+
 export interface SavedCalculation {
   id: string;
   created_at?: string;
   name: string;
+  type?: 'single' | 'assembly';
   filament_name: string;
   filament_color?: string;
   printer_name: string;
@@ -31,10 +60,28 @@ export interface SavedCalculation {
   base_cost: number;
   final_price: number;
   
+  // Состав сборки (для type === 'assembly')
+  assembly_parts?: AssemblyPrintedPart[];
+  assembly_hardware?: AssemblyHardwareItem[];
+  assembly_labor_minutes?: number;
+  assembly_labor_cost?: number;
+
   // Поля для повторной загрузки в калькулятор
   filament_id?: string;
   printer_id?: string;
   labor_minutes?: number;
+
+  // Поля для категорий и тегов
+  category?: string;
+  tags?: string[];
+
+  // Учет наличия готовой продукции на складе
+  stock_quantity?: number;
+
+  // Поля для STL файла и ссылки
+  stl_url?: string;
+  stl_file_name?: string;
+  stl_file_data?: string;
 }
 
 export interface Settings {
@@ -76,6 +123,13 @@ export interface ContactItem {
   label?: string;
 }
 
+export interface CostItem {
+  id?: string;
+  category: string; // Наименование расхода (печать, упаковка, работа руками, покраска, доставка, брак/тесты или пользовательский пункт)
+  amount: number;   // Сумма расхода в ₽
+  note?: string;    // Дополнительное примечание
+}
+
 export interface Order {
   id: string;
   order_number?: number; // Автоматический уникальный номер заказа (1001, 1002...)
@@ -83,8 +137,10 @@ export interface Order {
   date: string;
   type: 'income' | 'expense';
   title: string;
+  quantity?: number; // Количество проданных штук (по умолчанию 1)
   amount: number;
   cost: number;
+  cost_items?: CostItem[]; // Детализированный список пунктов расхода
   payments?: number[]; // Список отдельных транзакций оплаты
   payment: number; // Сумма всех транзакций оплаты
   client: string;
@@ -93,6 +149,7 @@ export interface Order {
   deadline: string;
   status: OrderStatus;
   notes: string;
+  product_id?: string; // Связь с ID товара из каталога для автосписания при сохранении заказа
 }
 
 // Конфигурация для Supabase API ключей, вводимых пользователем вручную

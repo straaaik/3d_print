@@ -9,8 +9,9 @@ export interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  footer?: React.ReactNode; // Зафиксированный нижний футер с кнопками
   variant?: 'default' | 'error' | 'success' | 'warning' | 'info';
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
 }
 
 const variantStyles = {
@@ -42,6 +43,9 @@ const maxWidthClasses = {
   lg: 'max-w-lg',
   xl: 'max-w-xl',
   '2xl': 'max-w-2xl',
+  '3xl': 'max-w-3xl',
+  '4xl': 'max-w-4xl',
+  '5xl': 'max-w-5xl',
 };
 
 // Анимационные пресеты для вариантов
@@ -89,6 +93,7 @@ export function Modal({
   onClose, 
   title, 
   children,
+  footer,
   variant = 'default',
   maxWidth = 'md',
 }: ModalProps) {
@@ -113,14 +118,14 @@ export function Modal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5">
           {/* Фон */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
           />
 
           {/* Контейнер модального окна */}
@@ -129,7 +134,7 @@ export function Modal({
             animate={animConfig.animate}
             exit={animConfig.exit}
             transition={animConfig.transition}
-            className={`relative w-full ${sizeClass} bg-[#16181d] border ${styleConfig.borderColor} rounded-2xl shadow-2xl p-5 sm:p-6 z-10 max-h-[90vh] flex flex-col`}
+            className={`relative w-full ${sizeClass} bg-[#16181d] border ${styleConfig.borderColor} rounded-2xl shadow-2xl p-4 sm:p-6 z-10 max-h-[90vh] flex flex-col`}
           >
             {/* Шапка */}
             <div className="flex items-center justify-between mb-4 pb-3.5 border-b border-[#242930] select-none shrink-0">
@@ -148,10 +153,17 @@ export function Modal({
               </button>
             </div>
 
-            {/* Контент */}
-            <div className="text-gray-300 overflow-y-auto pr-1 flex-1">
+            {/* Прокручиваемый контент */}
+            <div className="text-gray-300 overflow-y-auto pr-1 flex-1 min-h-0">
               {children}
             </div>
+
+            {/* Фиксированный нижний футер кнопок */}
+            {footer && (
+              <div className="mt-4 pt-3 border-t border-[#242930] shrink-0 bg-[#16181d]">
+                {footer}
+              </div>
+            )}
           </motion.div>
         </div>
       )}

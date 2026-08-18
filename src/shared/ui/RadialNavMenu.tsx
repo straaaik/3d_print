@@ -2,13 +2,13 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { ShoppingBag, BarChart3, Calculator, ChevronDown, Check, Compass, Layers } from 'lucide-react';
+import { ShoppingBag, BarChart3, Calculator, Package, ChevronDown, Check, Compass, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export interface RadialNavMenuProps {
-  currentMainTab?: 'orders' | 'stats' | 'calculator';
+  currentMainTab?: 'orders' | 'stats' | 'calculator' | 'products';
   currentSubTab?: string;
-  onNavigate?: (mainTab: 'orders' | 'stats' | 'calculator', subTab?: string) => void;
+  onNavigate?: (mainTab: any, subTab?: string) => void;
   className?: string;
 }
 
@@ -17,7 +17,7 @@ interface MenuItem {
   title: string;
   description: string;
   href: string;
-  mainTab: 'orders' | 'stats' | 'calculator';
+  mainTab: any;
   subTab?: string;
   icon: any;
   iconColor: string;
@@ -56,6 +56,16 @@ const MENU_ITEMS: MenuItem[] = [
     iconColor: 'text-blue-400',
     badgeStyle: 'bg-blue-500/20 text-blue-300 border-blue-500/40',
   },
+  {
+    id: 'products',
+    title: 'Товары',
+    description: 'Каталог сохраненных изделий',
+    href: '/products',
+    mainTab: 'products',
+    icon: Package,
+    iconColor: 'text-amber-400',
+    badgeStyle: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+  },
 ];
 
 export function RadialNavMenu({
@@ -91,6 +101,7 @@ export function RadialNavMenu({
   const getActiveTab = () => {
     if (pathname?.startsWith('/stats') || currentMainTab === 'stats') return 'stats';
     if (pathname?.startsWith('/calculator') || currentMainTab === 'calculator') return 'calculator';
+    if (pathname?.startsWith('/products') || currentMainTab === 'products') return 'products';
     return 'orders';
   };
 
@@ -99,6 +110,7 @@ export function RadialNavMenu({
   const getCurrentIcon = () => {
     if (activeTab === 'stats') return BarChart3;
     if (activeTab === 'calculator') return Calculator;
+    if (activeTab === 'products') return Package;
     return ShoppingBag;
   };
 
@@ -130,7 +142,7 @@ export function RadialNavMenu({
         </div>
 
         <span className="hidden sm:inline text-xs font-bold text-white tracking-wide">
-          {activeTab === 'orders' ? 'Заказы' : activeTab === 'stats' ? 'Статистика' : 'Калькулятор'}
+          {activeTab === 'orders' ? 'Заказы' : activeTab === 'stats' ? 'Статистика' : activeTab === 'calculator' ? 'Калькулятор' : 'Товары'}
         </span>
 
         <motion.div

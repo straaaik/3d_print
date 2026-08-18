@@ -11,8 +11,9 @@ import { Modal } from '../../shared/ui/Modal';
 import { Table } from '../../shared/ui/Table';
 import { ColorPicker } from '../../shared/ui/ColorPicker';
 import { formatCurrency } from '../../shared/lib/format';
-import { Edit2, Trash2, Plus, Sparkles } from 'lucide-react';
+import { Edit2, Trash2, Plus, Sparkles, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PageHeader } from '../../shared/ui/PageHeader';
 
 export function FilamentList() {
   const { filaments, settings, addFilament, updateFilament, deleteFilament } = useData();
@@ -179,15 +180,23 @@ export function FilamentList() {
   return (
     <div className="flex flex-col gap-6">
       {/* Заголовок и кнопка */}
-      <div className="flex justify-between items-center select-none">
-        <div>
-          <h2 className="text-white text-lg font-bold">Управление филаментами</h2>
-          <p className="text-neutral-accent text-xs">Добавляйте пластик и указывайте его фактическую стоимость</p>
-        </div>
-        <Button onClick={handleOpenAdd} className="flex items-center gap-1.5 sm:px-4">
-          <Plus size={16} /> <span className="hidden sm:inline">Добавить филамент</span>
-        </Button>
-      </div>
+      <PageHeader
+        icon={Layers}
+        title="Управление филаментами"
+        subtitle="Каталог пластика с указанием стоимости катушек, веса и цвета"
+        accentColor="#8b5cf6"
+        actions={
+          <Button
+            onClick={handleOpenAdd}
+            variant="primary"
+            size="md"
+            className="bg-gradient-to-r from-violet-600 to-violet-500 hover:from-violet-500 hover:to-violet-400 text-white border-none shadow-lg shadow-violet-500/25 cursor-pointer flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Добавить филамент</span>
+          </Button>
+        }
+      />
 
       {/* Список филаментов */}
       <Card>
