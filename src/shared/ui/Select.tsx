@@ -16,7 +16,7 @@ export interface SelectOption {
 }
 
 export interface CustomSelectProps {
-  label?: string;
+  label?: React.ReactNode;
   options: SelectOption[];
   value: string;
   onChange: (value: string) => void;
@@ -34,6 +34,7 @@ export interface CustomSelectProps {
   align?: 'left' | 'right'; // Выравнивание меню относительно кнопки
   showChevron?: boolean;
   disabled?: boolean;
+  isModified?: boolean;
 }
 
 export function Select({
@@ -55,6 +56,7 @@ export function Select({
   align = 'left',
   showChevron = true,
   disabled = false,
+  isModified = false,
 }: CustomSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -215,6 +217,8 @@ export function Select({
             if (!disabled) setIsOpen(!isOpen);
           }}
           className={`w-full flex items-center justify-between gap-1.5 focus:outline-none transition-all cursor-pointer select-none ${getSizeStyles()} ${getVariantButtonStyles()} ${
+            isModified ? '!border-amber-500/70 shadow-[0_0_10px_rgba(245,158,11,0.15)] bg-amber-500/[0.03]' : ''
+          } ${
             error ? 'border-rose-500' : ''
           } ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${buttonClassName}`}
         >

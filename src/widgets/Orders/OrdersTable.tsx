@@ -23,6 +23,9 @@ import {
   OrdersSummary 
 } from './components/OrdersSummary';
 import { 
+  OrdersMonthlyGoal 
+} from './components/OrdersMonthlyGoal';
+import { 
   OrdersFilterBar, 
   OrderTypeFilter, 
   PaymentFilter 
@@ -832,6 +835,14 @@ export function OrdersTable() {
             </Button>
           </div>
         }
+      />
+
+      {/* Компактный блок «Цель на месяц» с прогресс-баром */}
+      <OrdersMonthlyGoal
+        selectedMonthKey={selectedMonthKey}
+        totalIncome={totalIncome}
+        netProfitTotal={netProfitTotal}
+        incomeOrdersCount={incomeOrdersCount}
       />
 
       {/* KPI Сводка за выбранный месяц */}

@@ -7,3 +7,12 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+# Правила для AI-агентов (AI Agent Guidelines)
+
+## ⚠️ Обязательное уведомление об изменениях в Supabase:
+Если любая задача, новая фича или доработка требует изменений в базе данных **Supabase** (создание новых таблиц, добавление/изменение колонок, индексов, триггеров или политик RLS):
+1. **Всегда сразу и явно предупреждать пользователя в ответе** о том, что требуется выполнить SQL-скрипт в Supabase.
+2. **Предоставлять готовый, чистый SQL-скрипт миграции** прямо в сообщении, который пользователь сможет скопировать и выполнить в **Supabase Dashboard -> SQL Editor**.
+3. **Обязательно обновлять центральный файл схемы `supabase_schema.sql`** в корне репозитория, поддерживая его в актуальном состоянии.
+4. **Всегда реализовывать безопасный fallback** (на `localStorage` / кэш), чтобы приложение не падало с ошибками у пользователя даже до применения миграции в Supabase.

@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   SAVED_CALCULATIONS: '3d_calc_saved_calculations',
   ORDERS: '3d_calc_orders',
   COLLECTIONS: '3d_calc_collections',
+  MONTHLY_GOALS: '3d_calc_monthly_goals',
 };
 
 const DEFAULT_SETTINGS: Settings = {
@@ -297,8 +298,16 @@ export async function getSettings(): Promise<Settings> {
         .limit(1);
 
       if (!error && data && data.length > 0) {
-        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(data[0]));
-        return data[0] as Settings;
+        const fullSettings: Settings = {
+          ...DEFAULT_SETTINGS,
+          ...data[0],
+          material_multipliers: {
+            ...DEFAULT_SETTINGS.material_multipliers,
+            ...(data[0].material_multipliers || {}),
+          },
+        };
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(fullSettings));
+        return fullSettings;
       }
       
       // Если таблицы настроек нет или она пуста в Supabase
@@ -316,7 +325,19 @@ export async function getSettings(): Promise<Settings> {
   if (typeof window !== 'undefined') {
     const local = localStorage.getItem(STORAGE_KEYS.SETTINGS);
     if (local) {
-      return JSON.parse(local);
+      try {
+        const parsed = JSON.parse(local);
+        return {
+          ...DEFAULT_SETTINGS,
+          ...parsed,
+          material_multipliers: {
+            ...DEFAULT_SETTINGS.material_multipliers,
+            ...(parsed.material_multipliers || {}),
+          },
+        };
+      } catch {
+        // Игнорируем
+      }
     }
     // Если в LocalStorage тоже пусто, сохраняем дефолт
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
@@ -976,6 +997,7 @@ export async function clearAllDatabaseTables(): Promise<void> {
   if (client) {
     try {
       // Удаляем из всех таблиц с учетом foreign keys (сначала зависимые)
+      await (client as any).from('monthly_goals').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await (client as any).from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await (client as any).from('saved_calculations').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await (client as any).from('collections').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -994,6 +1016,7 @@ export async function clearAllDatabaseTables(): Promise<void> {
     localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify([]));
     localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify([]));
     localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.MONTHLY_GOALS, JSON.stringify(DEFAULT_MONTHLY_GOALS_CONFIG));
   }
 }
 
@@ -1049,4 +1072,170 @@ export async function resetAndSeedDatabase(customSeed?: SeedDataResult): Promise
 
 export const clearAllData = clearAllDatabaseTables;
 export const seedRandomData = resetAndSeedDatabase;
+
+// ==========================================
+// MONTHLY GOALS API
+// ==========================================
+
+export type GoalTargetType = 'profit' | 'income';
+
+export interface MonthlyGoalsConfig {
+  defaultGoal: number;
+  targetType: GoalTargetType;
+  monthlyGoals: Record<string, number>;
+}
+
+export const DEFAULT_MONTHLY_GOALS_CONFIG: MonthlyGoalsConfig = {
+  defaultGoal: 0,
+  targetType: 'profit',
+  monthlyGoals: {},
+};
+
+export async function getMonthlyGoalsConfig(): Promise<MonthlyGoalsConfig> {
+  const client = getSupabaseClient();
+  if (client) {
+    try {
+      const { data, error } = await (client as any)
+        .from('monthly_goals')
+        .select('*');
+
+      if (!error && data) {
+        let defaultGoal = 0;
+        const monthlyGoals: Record<string, number> = {};
+
+        data.forEach((row: any) => {
+          const amt = Number(row.target_amount) || 0;
+          if (row.month_key === 'default') {
+            defaultGoal = amt;
+          } else if (row.month_key) {
+            monthlyGoals[row.month_key] = amt;
+          }
+        });
+
+        const config: MonthlyGoalsConfig = {
+          defaultGoal,
+          targetType: 'profit',
+          monthlyGoals,
+        };
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEYS.MONTHLY_GOALS, JSON.stringify(config));
+        }
+        return config;
+      }
+      console.warn('Ошибка получения целей из Supabase, используем кэш:', error);
+    } catch (e) {
+      console.error('Ошибка соединения с Supabase при получении целей:', e);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.MONTHLY_GOALS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return {
+          defaultGoal: typeof parsed.defaultGoal === 'number' && parsed.defaultGoal >= 0 ? parsed.defaultGoal : 0,
+          targetType: 'profit',
+          monthlyGoals: parsed.monthlyGoals && typeof parsed.monthlyGoals === 'object' ? parsed.monthlyGoals : {},
+        };
+      }
+    } catch (err) {
+      console.error('Ошибка чтения целей из localStorage:', err);
+    }
+  }
+  return DEFAULT_MONTHLY_GOALS_CONFIG;
+}
+
+export function getCachedMonthlyGoalsConfig(): MonthlyGoalsConfig {
+  if (typeof window === 'undefined') return DEFAULT_MONTHLY_GOALS_CONFIG;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.MONTHLY_GOALS);
+    if (!raw) return DEFAULT_MONTHLY_GOALS_CONFIG;
+    const parsed = JSON.parse(raw);
+    return {
+      defaultGoal: typeof parsed.defaultGoal === 'number' && parsed.defaultGoal >= 0 ? parsed.defaultGoal : 0,
+      targetType: 'profit',
+      monthlyGoals: parsed.monthlyGoals && typeof parsed.monthlyGoals === 'object' ? parsed.monthlyGoals : {},
+    };
+  } catch {
+    return DEFAULT_MONTHLY_GOALS_CONFIG;
+  }
+}
+
+export async function saveMonthlyGoal(monthKey: string, targetAmount: number): Promise<void> {
+  const cleanAmount = Math.max(0, Number(targetAmount) || 0);
+  const client = getSupabaseClient();
+
+  if (client) {
+    try {
+      await (client as any)
+        .from('monthly_goals')
+        .upsert(
+          {
+            month_key: monthKey,
+            target_amount: cleanAmount,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id,month_key' }
+        );
+    } catch (e) {
+      console.error('Ошибка сохранения цели в Supabase:', e);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.MONTHLY_GOALS);
+      const current = raw ? JSON.parse(raw) : { defaultGoal: 0, targetType: 'profit', monthlyGoals: {} };
+      if (monthKey === 'default') {
+        current.defaultGoal = cleanAmount;
+      } else {
+        current.monthlyGoals = current.monthlyGoals || {};
+        current.monthlyGoals[monthKey] = cleanAmount;
+      }
+      localStorage.setItem(STORAGE_KEYS.MONTHLY_GOALS, JSON.stringify(current));
+      window.dispatchEvent(new Event('monthly_goals_updated'));
+    } catch (err) {
+      console.error('Ошибка сохранения цели в localStorage:', err);
+    }
+  }
+}
+
+export async function saveMonthlyGoalsConfig(config: MonthlyGoalsConfig): Promise<void> {
+  const client = getSupabaseClient();
+
+  if (client) {
+    try {
+      const rows = [
+        {
+          month_key: 'default',
+          target_amount: config.defaultGoal,
+          updated_at: new Date().toISOString(),
+        },
+        ...Object.entries(config.monthlyGoals || {}).map(([mKey, amt]) => ({
+          month_key: mKey,
+          target_amount: amt,
+          updated_at: new Date().toISOString(),
+        })),
+      ];
+
+      await (client as any)
+        .from('monthly_goals')
+        .upsert(rows, { onConflict: 'user_id,month_key' });
+    } catch (e) {
+      console.error('Ошибка сохранения конфигурации целей в Supabase:', e);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(STORAGE_KEYS.MONTHLY_GOALS, JSON.stringify(config));
+      window.dispatchEvent(new Event('monthly_goals_updated'));
+    } catch (err) {
+      console.error('Ошибка сохранения целей в localStorage:', err);
+    }
+  }
+}
+
 

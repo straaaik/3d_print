@@ -159,6 +159,17 @@ create table if not exists public.orders (
   product_id uuid
 );
 
+-- 9. Таблица целей по прибыли (индивидуальная для каждого пользователя и каждого месяца + общая 'default')
+create table if not exists public.monthly_goals (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid default auth.uid() references auth.users(id) on delete cascade,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  month_key text not null, -- 'default' для общей цели или 'YYYY-MM' (например '2026-08') для конкретного месяца
+  target_amount numeric not null default 0,
+  unique (user_id, month_key)
+);
+
 -- =========================================================================
 -- КОМАНДЫ МИГРАЦИИ ДЛЯ СУЩЕСТВУЮЩИХ ТАБЛИЦ (если таблицы создавались ранее)
 -- =========================================================================
@@ -168,6 +179,7 @@ alter table public.settings add column if not exists user_id uuid default auth.u
 alter table public.collections add column if not exists user_id uuid default auth.uid() references auth.users(id) on delete cascade;
 alter table public.saved_calculations add column if not exists user_id uuid default auth.uid() references auth.users(id) on delete cascade;
 alter table public.orders add column if not exists user_id uuid default auth.uid() references auth.users(id) on delete cascade;
+alter table public.monthly_goals add column if not exists user_id uuid default auth.uid() references auth.users(id) on delete cascade;
 
 -- Индексы для быстрой фильтрации по пользователю
 create index if not exists idx_profiles_email on public.profiles(email);
@@ -179,6 +191,8 @@ create index if not exists idx_settings_user on public.settings(user_id);
 create index if not exists idx_collections_user on public.collections(user_id);
 create index if not exists idx_saved_calc_user on public.saved_calculations(user_id);
 create index if not exists idx_orders_user on public.orders(user_id);
+create index if not exists idx_monthly_goals_user on public.monthly_goals(user_id);
+create index if not exists idx_monthly_goals_user_month on public.monthly_goals(user_id, month_key);
 
 -- =========================================================================
 -- БЕЗОПАСНОСТЬ (RLS - Row Level Security)
@@ -191,6 +205,7 @@ alter table public.settings enable row level security;
 alter table public.collections enable row level security;
 alter table public.saved_calculations enable row level security;
 alter table public.orders enable row level security;
+alter table public.monthly_goals enable row level security;
 
 -- Очистка старых политик (если были)
 drop policy if exists "Allow full access to printers" on public.printers;
@@ -199,6 +214,7 @@ drop policy if exists "Allow full access to settings" on public.settings;
 drop policy if exists "Allow full access to collections" on public.collections;
 drop policy if exists "Allow full access to saved_calculations" on public.saved_calculations;
 drop policy if exists "Allow full access to orders" on public.orders;
+drop policy if exists "Allow full access to monthly_goals" on public.monthly_goals;
 
 drop policy if exists "Users own printers" on public.printers;
 drop policy if exists "Users own filaments" on public.filaments;
@@ -206,6 +222,7 @@ drop policy if exists "Users own settings" on public.settings;
 drop policy if exists "Users own collections" on public.collections;
 drop policy if exists "Users own calculations" on public.saved_calculations;
 drop policy if exists "Users own orders" on public.orders;
+drop policy if exists "Users own monthly goals" on public.monthly_goals;
 
 -- Политики изоляции данных (Каждый пользователь имеет доступ только к своим данным)
 create policy "Users own printers" on public.printers
@@ -224,6 +241,9 @@ create policy "Users own calculations" on public.saved_calculations
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 create policy "Users own orders" on public.orders
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create policy "Users own monthly goals" on public.monthly_goals
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- Политики для профилей

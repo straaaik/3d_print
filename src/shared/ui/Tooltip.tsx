@@ -10,7 +10,7 @@ export interface CustomTooltipProps {
   description: string;
   formula: string;
   children: React.ReactNode;
-  accentColor?: 'emerald' | 'rose' | 'orange' | 'amber' | 'cyan' | 'primary' | 'gray' | 'neutral';
+  accentColor?: 'emerald' | 'rose' | 'orange' | 'amber' | 'cyan' | 'purple' | 'primary' | 'gray' | 'neutral';
   position?: 'top' | 'bottom' | 'auto';
   align?: 'left' | 'center' | 'right';
 }
@@ -126,6 +126,13 @@ export function CustomTooltip({
           bgGlow: 'bg-rose-500/10',
           titleColor: 'text-rose-400',
           formulaBg: 'bg-rose-950/80 text-rose-300 border-rose-500/30',
+        };
+      case 'purple':
+        return {
+          border: 'border-purple-500/50 shadow-purple-500/10',
+          bgGlow: 'bg-purple-500/10',
+          titleColor: 'text-purple-400',
+          formulaBg: 'bg-purple-950/80 text-purple-300 border-purple-500/30',
         };
       case 'amber':
         return {

@@ -1,16 +1,17 @@
 import React, { InputHTMLAttributes } from 'react';
 import { motion } from 'framer-motion';
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
+interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'label'> {
+  label?: React.ReactNode;
   error?: string;
   hint?: string;
   requiredStar?: boolean;
   isShaking?: boolean;
+  isModified?: boolean;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, hint, requiredStar, isShaking, className = '', onFocus, ...props }, ref) => {
+  ({ label, error, hint, requiredStar, isShaking, isModified, className = '', onFocus, ...props }, ref) => {
     return (
       <div className="w-full flex flex-col gap-1.5">
         {label && (
@@ -36,6 +37,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               }
             }}
             className={`w-full h-9 min-h-[36px] bg-[#14161d] border border-[#242930] hover:border-secondary focus:border-primary focus:outline-none rounded-xl px-3 text-white text-xs sm:text-sm font-sans transition-colors placeholder-neutral-accent disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-[#101217] disabled:border-[#1e222b] disabled:hover:border-[#1e222b] ${
+              isModified ? '!border-amber-500/70 shadow-[0_0_10px_rgba(245,158,11,0.15)] bg-amber-500/[0.03]' : ''
+            } ${
               error || isShaking ? 'border-red-500/80 focus:border-red-500 shadow-sm shadow-red-500/20' : ''
             } ${className}`}
             {...props}

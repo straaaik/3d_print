@@ -5,7 +5,7 @@ import { Minus, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface NumberCounterProps {
-  label?: string;
+  label?: React.ReactNode;
   value: number;
   onChange: (value: number) => void;
   min?: number;
@@ -13,6 +13,7 @@ interface NumberCounterProps {
   step?: number;
   disabled?: boolean;
   className?: string;
+  isModified?: boolean;
 }
 
 // Вспомогательный компонент для плавной анимации разряда числа
@@ -28,7 +29,7 @@ function Digit({ value, direction }: { value: string; direction: 'up' | 'down' }
           transition={{ 
             type: 'spring', 
             stiffness: 300, 
-            damping: 25,
+            damping: 25, 
             mass: 0.8
           }}
           className="absolute inset-0 flex items-center justify-center font-mono text-sm text-white font-bold"
@@ -49,6 +50,7 @@ export function NumberCounter({
   step = 1,
   disabled = false,
   className = '',
+  isModified = false,
 }: NumberCounterProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [inputValue, setInputValue] = useState(value.toString());
@@ -130,6 +132,8 @@ export function NumberCounter({
       <div className={`flex items-center rounded-xl h-9 min-h-[36px] overflow-hidden transition-colors select-none ${
         disabled 
           ? 'bg-[#101217] border border-[#1e222b] opacity-60 cursor-not-allowed' 
+          : isModified
+          ? 'bg-[#14161d] border border-amber-500/70 shadow-[0_0_10px_rgba(245,158,11,0.15)] focus-within:border-[#FF6B00]'
           : 'bg-[#14161d] border border-[#242930] focus-within:border-[#FF6B00]'
       }`}>
         {/* Кнопка минус */}
