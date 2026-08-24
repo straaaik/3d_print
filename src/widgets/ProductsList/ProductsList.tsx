@@ -1,37 +1,70 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useData } from '../../entities/model/DataProvider';
 import { useToast } from '../../entities/model/ToastProvider';
-import { SavedCalculation, AssemblyPrintedPart, AssemblyHardwareItem } from '../../shared/types';
-import { Card } from '../../shared/ui/Card';
-import { Table } from '../../shared/ui/Table';
-import { Button } from '../../shared/ui/Button';
-import { Modal } from '../../shared/ui/Modal';
-import { Input } from '../../shared/ui/Input';
-import { Select } from '../../shared/ui/Select';
-import { NumberCounter } from '../../shared/ui/NumberCounter';
-import { formatCurrency, formatDate } from '../../shared/lib/format';
 import { 
-  Package, Play, Trash2, Calculator, FileCode, ExternalLink, Download, 
-  Edit2, Upload, ChevronRight, ChevronDown, Layers, Plus, Wrench, Box, Sparkles, X, AlertTriangle, RotateCcw, Check, ShoppingCart, Tag, Folder, Search
-} from 'lucide-react';
+  SavedCalculation, 
+  ProductCollection, 
+  AssemblyPrintedPart, 
+  Order 
+} from '../../shared/types';
+import { getOrders, restoreAllCollections } from '../../shared/api/db';
 import { PageHeader } from '../../shared/ui/PageHeader';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '../../shared/ui/Button';
+import { productsTheme } from '../../shared/theme';
+import { 
+  getStoredCategories, 
+  saveNewCategory, 
+  ProductCategory, 
+  getCategoryLucideIcon 
+} from '../../shared/lib/categories';
+import { recalculateAllProducts } from '../../features/calculate-cost/model/calculate';
+import { 
+  Package, 
+  Layers, 
+  FolderPlus, 
+  RefreshCw, 
+  RotateCcw, 
+  Plus 
+} from 'lucide-react';
 
-import { getStoredCategories, saveNewCategory, ProductCategory } from '../../shared/lib/categories';
+import { CatalogTableRow, ProductFilter, SortField, SortOrder } from './types';
+import { getWarehouseMetrics, getSalesStats, prepareDraftOrderFromProduct, round2 } from './helpers';
+import { ProductsSummary } from './components/ProductsSummary';
+import { ProductsFilterBar } from './components/ProductsFilterBar';
+import { ProductsTableModern } from './components/ProductsTableModern';
+import { ProductDrawer } from './components/ProductDrawer';
+
+// Модальные окна
+import { CollectionModal } from './components/modals/CollectionModal';
+import { DeleteCollectionModal } from './components/modals/DeleteCollectionModal';
+import { AddVariantModal } from './components/modals/AddVariantModal';
+import { AssemblyModal } from './components/modals/AssemblyModal';
+import { MoveProductModal } from './components/modals/MoveProductModal';
+import { RecalculateModal } from './components/modals/RecalculateModal';
+import { EditStlModal } from './components/modals/EditStlModal';
+import { CategoryModal } from './components/modals/CategoryModal';
+import { DeleteProductModal } from './components/modals/DeleteProductModal';
+import { ClearCatalogModal } from './components/modals/ClearCatalogModal';
+import { QuickEditProductModal } from './components/modals/QuickEditProductModal';
 
 export function ProductsList() {
   const router = useRouter();
   const { showWarning, showSuccess } = useToast();
-  const { 
+  const {
     isOnline,
-    savedCalculations, 
+    savedCalculations,
+    collections,
+    addCollection,
+    updateCollection,
+    deleteCollection,
     addSavedCalculation,
     updateSavedCalculation,
     deleteSavedCalculation,
     clearAllSavedCalculations,
+    restoreAllSavedCalculations,
     filaments,
     printers,
     settings,
@@ -41,289 +74,150 @@ export function ProductsList() {
     setCalcHours,
     setCalcMinutes,
     setCalcQuantity,
+    setCalcLaborMinutes,
+    setCalcLaborRate,
+    setCalcMarkup,
+    setCalcDefect,
+    setCalcIsOwnerLabor,
+    setCalcIsLaborPerUnit,
+    setCalcDiscountType,
+    setCalcDiscountValue,
+    setCalcUrgencyType,
+    setCalcUrgencyValue,
+    setCalcCustomCostItems,
   } = useData();
 
-  // Категории и теги
+  const currencySymbol = settings?.currency ?? '₽';
+  const laborRate = settings?.labor_rate_per_hour ?? 600;
+
+  // 1. Категории и теги
   const [categoriesList, setCategoriesList] = useState<ProductCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [editingCategoryItem, setEditingCategoryItem] = useState<SavedCalculation | null>(null);
-  const [categoryDraft, setCategoryDraft] = useState<string>('Разное');
-  const [tagsInputDraft, setTagsInputDraft] = useState<string>('');
-
-  // Состояние создания новой категории
-  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [newCategoryIcon, setNewCategoryIcon] = useState('📦');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
     setCategoriesList(getStoredCategories());
   }, []);
 
-  const handleConfirmCreateCategory = () => {
-    if (!newCategoryName.trim()) {
-      showWarning('Введите название новой категории', 'Заполните название');
-      return;
-    }
-    const updated = saveNewCategory(newCategoryName.trim(), newCategoryIcon);
+  const handleCreateCategory = (name: string, icon = 'tag') => {
+    const updated = saveNewCategory(name, icon);
     setCategoriesList(updated);
-    setCategoryDraft(newCategoryName.trim());
-    setNewCategoryName('');
-    setIsCreatingCategory(false);
-    showSuccess(`Новая категория «${newCategoryName.trim()}» создана!`, 'Категория добавлена');
+    showSuccess(`Категория «${name}» создана!`, 'Категория добавлена');
   };
 
-  const handleOpenCategoryEditModal = (item: SavedCalculation) => {
-    setEditingCategoryItem(item);
-    setCategoryDraft(item.category || 'Разное');
-    setTagsInputDraft(item.tags ? item.tags.join(', ') : '');
-  };
+  const categoryFilterOptions = useMemo(() => {
+    const allOpt = { value: 'all', label: 'Все категории', icon: Package };
+    const catOpts = categoriesList.map((cat) => ({
+      value: cat.id,
+      label: cat.label,
+      icon: getCategoryLucideIcon(cat.id),
+      badgeStyle: cat.color || 'bg-gray-800 text-gray-300 border-gray-700',
+    }));
+    return [allOpt, ...catOpts];
+  }, [categoriesList]);
 
-  const handleSaveCategoryAndTags = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingCategoryItem) return;
-
-    const parsedTags = tagsInputDraft
-      .split(',')
-      .map(t => t.trim().replace(/^#/, ''))
-      .filter(Boolean);
-
-    try {
-      setHistoryStack(prev => [...prev, [...savedCalculations]]);
-      await updateSavedCalculation({
-        ...editingCategoryItem,
-        category: categoryDraft,
-        tags: parsedTags,
-      });
-      showSuccess(`Категория и теги товара «${editingCategoryItem.name}» обновлены!`, 'Категория изменена');
-    } catch (err) {
-      console.error('Ошибка изменения категории:', err);
-    } finally {
-      setEditingCategoryItem(null);
-    }
-  };
-
-  const currencySymbol = settings?.currency ?? '₽';
-  const laborRate = settings?.labor_rate_per_hour ?? 600;
-
-  // Состояние развернутых строк для составных товаров
-  const [expandedAssemblyIds, setExpandedAssemblyIds] = useState<Record<string, boolean>>({});
-
-  const toggleExpandAssembly = (id: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setExpandedAssemblyIds(prev => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  // Состояние модального окна выбора действий (когда есть и ссылка, и файл)
-  const [activeStlChoiceItem, setActiveStlChoiceItem] = useState<SavedCalculation | null>(null);
-
-  // Состояние модального окна редактирования / управления STL у товара
-  const [editingStlItem, setEditingStlItem] = useState<SavedCalculation | null>(null);
-  const [editStlUrl, setEditStlUrl] = useState('');
-  const [editStlFileName, setEditStlFileName] = useState('');
-  const [editStlFileData, setEditStlFileData] = useState('');
-
-  // Состояние модального окна СОЗДАНИЯ / РЕДАКТИРОВАНИЯ СБОРКИ (Составного товара)
-  const [isAssemblyModalOpen, setIsAssemblyModalOpen] = useState(false);
-  const [editingAssemblyId, setEditingAssemblyId] = useState<string | null>(null);
-  const [assemblyName, setAssemblyName] = useState('');
-  const [assemblyLaborMinutes, setAssemblyLaborMinutes] = useState('15');
-  const [assemblyParts, setAssemblyParts] = useState<AssemblyPrintedPart[]>([]);
-  const [assemblyHardware, setAssemblyHardware] = useState<AssemblyHardwareItem[]>([]);
-
-  // Временное состояние для выпадающего списка добавления детали из существующих товаров
-  const [selectedProductId, setSelectedProductId] = useState('');
-
-  const handleLoadCalculation = (calc: SavedCalculation) => {
-    if (calc.filament_id && filaments.some(f => f.id === calc.filament_id)) {
-      setCalcFilamentId(calc.filament_id);
-    }
-    if (calc.printer_id && printers.some(p => p.id === calc.printer_id)) {
-      setCalcPrinterId(calc.printer_id);
-    }
-    setCalcWeight(calc.weight_g.toString());
-    setCalcHours(calc.hours.toString());
-    setCalcMinutes(calc.minutes.toString());
-    setCalcQuantity(calc.quantity.toString());
-
-    router.push('/calculator');
-  };
-
-  // Состояние встроенного переименования товара / сборки по клику на название
-  const [editingNameId, setEditingNameId] = useState<string | null>(null);
-  const [editingNameValue, setEditingNameValue] = useState<string>('');
-  const [isInlineNameShaking, setIsInlineNameShaking] = useState(false);
-  const nameInputRef = useRef<HTMLInputElement>(null);
+  // 2. История заказов (для статистики продаж без мутации исторических данных)
+  const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
-    if (editingNameId && nameInputRef.current) {
-      nameInputRef.current.focus();
-      nameInputRef.current.select();
-    }
-  }, [editingNameId]);
-
-  const handleStartRename = (item: SavedCalculation, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingNameId(item.id);
-    setEditingNameValue(item.name);
-    setIsInlineNameShaking(false);
-  };
-
-  const handleSaveRename = async (item: SavedCalculation) => {
-    if (editingNameId !== item.id) return;
-
-    const trimmed = editingNameValue.trim();
-    if (!trimmed) {
-      setIsInlineNameShaking(true);
-      showWarning('Наименование не может быть пустым!', 'Ошибка');
-      setTimeout(() => setIsInlineNameShaking(false), 800);
-      return;
-    }
-
-    if (trimmed === item.name) {
-      setEditingNameId(null);
-      return;
-    }
-
-    try {
-      setHistoryStack(prev => [...prev, [...savedCalculations]]);
-      await updateSavedCalculation({
-        ...item,
-        name: trimmed
-      });
-      showSuccess(`Наименование изменено на «${trimmed}»`, 'Переименовано');
-    } catch (err) {
-      console.error('Ошибка переименования:', err);
-    } finally {
-      setEditingNameId(null);
-    }
-  };
-
-  // Корректировка остатка на складе готовой продукции через компонент NumberCounter
-  const handleSetStock = async (item: SavedCalculation, newStock: number) => {
-    try {
-      setHistoryStack(prev => [...prev, [...savedCalculations]]);
-      await updateSavedCalculation({
-        ...item,
-        stock_quantity: Math.max(0, newStock),
-      });
-      showSuccess(`Остаток товара «${item.name}»: ${newStock} шт`, 'Склад обновлен');
-    } catch (err) {
-      console.error('Ошибка изменения остатка:', err);
-    }
-  };
-
-  // Создание заказа на основе выбранного товара / сборки (переход в Заказы с автосписанием со склада)
-  const handleCreateOrderFromProduct = async (item: SavedCalculation) => {
-    let amount = 0;
-    let cost = 0;
-    let notes = '';
-    let totalPrintHours = 0;
-    const currentStock = item.stock_quantity || 0;
-    const orderQty = item.quantity || 1;
-    const isFromStock = currentStock >= orderQty;
-    const deductedQty = Math.min(currentStock, orderQty);
-    const newStock = Math.max(0, currentStock - orderQty);
-
-    // Списание количества со склада при добавлении в заказ
-    try {
-      setHistoryStack(prev => [...prev, [...savedCalculations]]);
-      await updateSavedCalculation({
-        ...item,
-        stock_quantity: newStock,
-      });
-    } catch (err) {
-      console.error('Ошибка списания со склада:', err);
-    }
-
-    if (item.type === 'assembly') {
-      const parts = item.assembly_parts || [];
-      const hardware = item.assembly_hardware || [];
-
-      const partsCost = parts.reduce((acc, p) => acc + (p.final_price || 0) * (p.quantity || 1), 0);
-      const hwCost = hardware.reduce((acc, h) => acc + (h.cost_per_unit || 0) * (h.quantity || 1), 0);
-      const hwPrice = hardware.reduce((acc, h) => acc + (h.price_per_unit || 0) * (h.quantity || 1), 0);
-      const laborCost = item.assembly_labor_cost || 0;
-
-      // Часы печати всех деталей сборки с учетом количества каждой
-      totalPrintHours = parts.reduce((acc, p) => {
-        const partHours = (p.hours || 0) + ((p.minutes || 0) / 60);
-        return acc + (partHours * (p.quantity || 1));
-      }, 0);
-
-      cost = Math.round((partsCost + hwCost + laborCost) * 100) / 100;
-      amount = Math.round((partsCost + hwPrice + laborCost) * 100) / 100;
-      notes = `Составная сборка: ${item.name} (${parts.length} дет, ${hardware.length} мет)`;
-    } else {
-      totalPrintHours = ((item.hours || 0) + ((item.minutes || 0) / 60)) * orderQty;
-      cost = item.base_cost || 0;
-      amount = item.final_price || item.base_cost || 0;
-      notes = `3D Печать: ${item.name} (${item.filament_name || 'Пластик'}, ${item.weight_g || 0}г)`;
-    }
-
-    // Если всё взято из наличия на складе — печать не требуется! Срок = 0 дней (сегодня)!
-    let totalAddDays = 0;
-    let printDays = 0;
-
-    if (!isFromStock) {
-      printDays = totalPrintHours > 0 ? Math.ceil(totalPrintHours / 24) : 0;
-      totalAddDays = 2 + printDays;
-    }
-
-    const inDays = new Date();
-    inDays.setDate(inDays.getDate() + totalAddDays);
-    const deadlineStr = `${String(inDays.getDate()).padStart(2, '0')}.${String(inDays.getMonth() + 1).padStart(2, '0')}.${inDays.getFullYear()}`;
-
-    if (currentStock > 0) {
-      notes += ` • 📦 Списано со склада: ${deductedQty} шт (Остаток: ${newStock} шт)`;
-    }
-
-    const draftOrderData = {
-      title: item.name,
-      amount,
-      cost,
-      deadline: deadlineStr,
-      notes,
-      printDays,
-      totalAddDays,
-      totalPrintHours: Math.round(totalPrintHours * 10) / 10,
-      isFromStock,
-      deductedQty,
+    const loadOrdersData = async () => {
+      try {
+        const data = await getOrders();
+        setOrders(data);
+      } catch (err) {
+        console.error('Ошибка загрузки заказов:', err);
+      }
     };
+    loadOrdersData();
 
-    localStorage.setItem('draft_order_from_product', JSON.stringify(draftOrderData));
-    showSuccess(
-      isFromStock 
-        ? `Товар «${item.name}» взят из наличия (-${orderQty} шт)! Срок изготовления: СЕГОДНЯ!`
-        : `Товар «${item.name}» перенесен в заказы (остаток на складе: ${newStock} шт, +${totalAddDays} дн. изготовления)!`, 
-      'Переход в Заказы'
-    );
-    router.push('/orders');
+    const handleRefresh = () => loadOrdersData();
+    window.addEventListener('saved_calculations_updated', handleRefresh);
+    window.addEventListener('storage', handleRefresh);
+    return () => {
+      window.removeEventListener('saved_calculations_updated', handleRefresh);
+      window.removeEventListener('storage', handleRefresh);
+    };
+  }, []);
+
+  const { map: salesStatsMap } = useMemo(() => {
+    return getSalesStats(orders, savedCalculations);
+  }, [orders, savedCalculations]);
+
+  // 3. Складские метрики
+  const warehouseMetrics = useMemo(() => {
+    return getWarehouseMetrics(savedCalculations);
+  }, [savedCalculations]);
+
+  // 4. Фильтры и сортировка
+  const [productFilter, setProductFilter] = useState<ProductFilter>('all');
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
   };
 
-  // Стек истории изменений для отмены операций (Ctrl+Z)
-  const [historyStack, setHistoryStack] = useState<SavedCalculation[][]>([]);
+  // 5. Развернутые строки (ТОЛЬКО для коллекций и сборок)
+  const [expandedItemIds, setExpandedItemIds] = useState<Record<string, boolean>>({});
 
-  const handleUndo = async () => {
+  const handleToggleExpand = (id: string) => {
+    setExpandedItemIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  // 6. Выбор чекбоксами
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
+  };
+
+  const handleToggleSelectAll = () => {
+    const allIds = savedCalculations.map((c) => c.id);
+    if (selectedIds.length === allIds.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(allIds);
+    }
+  };
+
+  // 7. Стек отмены (Ctrl+Z)
+  const [historyStack, setHistoryStack] = useState<
+    Array<{ calculations: SavedCalculation[]; collections: ProductCollection[] }>
+  >([]);
+
+  const pushHistory = () => {
+    setHistoryStack((prev) => [
+      ...prev.slice(-25),
+      { calculations: [...savedCalculations], collections: [...collections] },
+    ]);
+  };
+
+  const handleUndo = useCallback(async () => {
     if (historyStack.length === 0) {
       showWarning('Нет доступных действий для отмены', 'Отмена (Ctrl+Z)');
       return;
     }
 
     const previousState = historyStack[historyStack.length - 1];
-    setHistoryStack(prev => prev.slice(0, -1));
+    setHistoryStack((prev) => prev.slice(0, -1));
 
     try {
-      await clearAllSavedCalculations();
-      for (const item of previousState) {
-        await addSavedCalculation(item);
-      }
+      await Promise.all([
+        restoreAllSavedCalculations(previousState.calculations),
+        restoreAllCollections(previousState.collections),
+      ]);
       showSuccess('Изменения успешно отменены (Ctrl+Z)!', 'Откат назад');
     } catch (err) {
-      console.error('Ошибка при откате изменений (Ctrl+Z):', err);
+      console.error('Ошибка отката изменений:', err);
     }
-  };
+  }, [historyStack, restoreAllSavedCalculations, showWarning, showSuccess]);
 
-  // Глобальный слушатель горячих клавиш Ctrl+Z / Cmd+Z
+  // Глобальный слушатель Ctrl+Z
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
@@ -345,208 +239,143 @@ export function ProductsList() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [historyStack, savedCalculations]);
+  }, [handleUndo]);
 
-  // Состояние модального окна подтверждения удаления
-  const [deletingItem, setDeletingItem] = useState<{ id: string; name: string; type?: string } | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  // 8. Переименование на месте
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  const [editingNameValue, setEditingNameValue] = useState<string>('');
+  const [isInlineNameShaking, setIsInlineNameShaking] = useState(false);
+  const editingTargetRef = useRef<SavedCalculation | ProductCollection | null>(null);
 
-  const handleDelete = (id: string, name: string, type?: string) => {
-    setDeletingItem({ id, name, type });
+  const handleStartRename = (target: SavedCalculation | ProductCollection) => {
+    editingTargetRef.current = target;
+    setEditingNameId(target.id);
+    setEditingNameValue(target.name);
   };
 
-  const confirmDelete = async () => {
-    if (!deletingItem) return;
-    setIsDeleting(true);
+  const handleSaveRename = async () => {
+    if (!editingTargetRef.current || !editingNameValue.trim()) {
+      setEditingNameId(null);
+      return;
+    }
+
+    const trimmed = editingNameValue.trim();
+    const target = editingTargetRef.current;
+
     try {
-      setHistoryStack(prev => [...prev, [...savedCalculations]]);
-      await deleteSavedCalculation(deletingItem.id);
-      showSuccess(`Объект «${deletingItem.name}» удален. Нажмите Ctrl+Z для отмены.`, 'Удалено');
-      setDeletingItem(null);
+      pushHistory();
+      if ('filament_name' in target || 'type' in target) {
+        // Товар
+        await updateSavedCalculation({
+          ...(target as SavedCalculation),
+          name: trimmed,
+        });
+      } else {
+        // Коллекция
+        await updateCollection({
+          ...(target as ProductCollection),
+          name: trimmed,
+        });
+        const childs = savedCalculations.filter((c) => c.collection_id === target.id);
+        for (const child of childs) {
+          await updateSavedCalculation({
+            ...child,
+            collection_name: trimmed,
+          });
+        }
+      }
+      showSuccess(`Переименовано в «${trimmed}»`, 'Готово');
     } catch (err) {
-      console.error('Ошибка при удалении объекта:', err);
+      console.error('Ошибка переименования:', err);
     } finally {
-      setIsDeleting(false);
+      setEditingNameId(null);
+      editingTargetRef.current = null;
     }
   };
 
-  // Состояние модального окна массового удаления всех товаров
-  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
-  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
-
-  const handleConfirmBulkDelete = async () => {
-    setIsBulkDeleting(true);
+  // 9. Корректировка остатка
+  const handleSetStock = async (item: SavedCalculation, newStock: number) => {
     try {
-      setHistoryStack(prev => [...prev, [...savedCalculations]]);
-      await clearAllSavedCalculations();
-      showSuccess('Каталог товаров очищен. Нажмите Ctrl+Z для отмены.', 'Все товары удалены');
-      setIsBulkDeleteModalOpen(false);
+      pushHistory();
+      await updateSavedCalculation({
+        ...item,
+        stock_quantity: Math.max(0, newStock),
+      });
+      showSuccess(`Остаток товара «${item.name}»: ${newStock} шт`, 'Склад обновлен');
     } catch (err) {
-      console.error('Ошибка массового удаления:', err);
-    } finally {
-      setIsBulkDeleting(false);
+      console.error('Ошибка изменения остатка:', err);
     }
   };
 
-  // Быстрый выбор существующих товаров для добавления в сборку
-  const handleAddSelectedProductToAssembly = () => {
-    if (!selectedProductId) return;
-    const prod = savedCalculations.find(p => p.id === selectedProductId);
-    if (!prod) return;
-
-    const round2 = (num: number) => Math.round((num || 0) * 100) / 100;
-
-    const newPart: AssemblyPrintedPart = {
-      id: Math.random().toString(36).substring(2, 9),
-      product_id: prod.id,
-      name: prod.name,
-      weight_g: round2(prod.weight_g),
-      hours: prod.hours,
-      minutes: prod.minutes,
-      quantity: 1,
-      filament_id: prod.filament_id,
-      filament_name: prod.filament_name,
-      filament_color: prod.filament_color,
-      printer_id: prod.printer_id,
-      printer_name: prod.printer_name,
-      base_cost: round2(prod.base_cost),
-      final_price: round2(prod.final_price),
-      stl_url: prod.stl_url,
-      stl_file_name: prod.stl_file_name,
-      stl_file_data: prod.stl_file_data,
-    };
-
-    setAssemblyParts(prev => [...prev, newPart]);
-    setSelectedProductId('');
+  // 10. Переход в Заказы с предзаполнением
+  const handleCreateOrder = (item: SavedCalculation) => {
+    const draftData = prepareDraftOrderFromProduct(item);
+    localStorage.setItem('draft_order_from_product', JSON.stringify(draftData));
+    showSuccess(`Товар «${item.name}» перенесен в Заказы!`, 'Переход в Заказы');
+    router.push('/orders');
   };
 
-  // Добавление произвольной детали вручную
-  const handleAddCustomPartToAssembly = () => {
-    const defaultFilament = filaments[0];
-    const defaultPrinter = printers[0];
+  // 11. Загрузка в калькулятор
+  const handleLoadIntoCalculator = (calc: SavedCalculation) => {
+    if (calc.filament_id && filaments.some((f) => f.id === calc.filament_id)) {
+      setCalcFilamentId(calc.filament_id);
+    }
+    if (calc.printer_id && printers.some((p) => p.id === calc.printer_id)) {
+      setCalcPrinterId(calc.printer_id);
+    }
+    setCalcWeight(calc.weight_g.toString());
+    setCalcHours(calc.hours.toString());
+    setCalcMinutes(calc.minutes.toString());
+    setCalcQuantity(calc.quantity.toString());
 
-    const newPart: AssemblyPrintedPart = {
-      id: Math.random().toString(36).substring(2, 9),
-      name: `Деталь #${assemblyParts.length + 1}`,
-      weight_g: 50,
-      hours: 2,
-      minutes: 0,
-      quantity: 1,
-      filament_id: defaultFilament?.id,
-      filament_name: defaultFilament?.name || 'PLA (Стандарт)',
-      filament_color: defaultFilament?.color || '#3b82f6',
-      printer_id: defaultPrinter?.id,
-      printer_name: defaultPrinter?.name || '3D Принтер',
-      base_cost: 120,
-      final_price: 250,
-    };
+    if (calc.labor_minutes !== undefined) setCalcLaborMinutes(calc.labor_minutes.toString());
+    if (calc.labor_rate_per_hour !== undefined) setCalcLaborRate(calc.labor_rate_per_hour.toString());
+    if (calc.markup_percent !== undefined) setCalcMarkup(calc.markup_percent.toString());
+    if (calc.defect_percent !== undefined) setCalcDefect(calc.defect_percent.toString());
+    if (calc.is_owner_labor !== undefined) setCalcIsOwnerLabor(Boolean(calc.is_owner_labor));
+    if (calc.is_labor_per_unit !== undefined) setCalcIsLaborPerUnit(Boolean(calc.is_labor_per_unit));
 
-    setAssemblyParts(prev => [...prev, newPart]);
+    if (calc.discount_percent && calc.discount_percent > 0) {
+      setCalcDiscountType('percent');
+      setCalcDiscountValue(calc.discount_percent.toString());
+    } else if (calc.discount_amount && calc.discount_amount > 0) {
+      setCalcDiscountType('fixed');
+      setCalcDiscountValue(calc.discount_amount.toString());
+    } else {
+      setCalcDiscountValue('');
+    }
+
+    if (calc.urgency_percent && calc.urgency_percent > 0) {
+      setCalcUrgencyType('percent');
+      setCalcUrgencyValue(calc.urgency_percent.toString());
+    } else if (calc.urgency_amount && calc.urgency_amount > 0) {
+      setCalcUrgencyType('fixed');
+      setCalcUrgencyValue(calc.urgency_amount.toString());
+    } else {
+      setCalcUrgencyValue('');
+    }
+
+    if (calc.custom_cost_items && Array.isArray(calc.custom_cost_items)) {
+      setCalcCustomCostItems(calc.custom_cost_items);
+    } else {
+      setCalcCustomCostItems([]);
+    }
+
+    router.push('/calculator');
   };
 
-  // Добавление покупной фурнитуры / метизов
-  const handleAddHardwareToAssembly = () => {
-    const newHw: AssemblyHardwareItem = {
-      id: Math.random().toString(36).substring(2, 9),
-      name: 'Винты M3x10',
-      quantity: 4,
-      cost_per_unit: 3,
-      price_per_unit: 5,
-    };
-    setAssemblyHardware(prev => [...prev, newHw]);
-  };
-
-  // Расчет агрегированных значений для сборки в режиме реального времени
-  const calcAssemblyTotals = () => {
-    const round2 = (num: number) => Math.round((num || 0) * 100) / 100;
-    let totalWeight = 0;
-    let totalMinutesTotal = 0;
-    let partsBaseCost = 0;
-    let partsFinalPrice = 0;
-
-    assemblyParts.forEach(p => {
-      totalWeight += (p.weight_g || 0) * (p.quantity || 1);
-      totalMinutesTotal += ((p.hours || 0) * 60 + (p.minutes || 0)) * (p.quantity || 1);
-      partsBaseCost += (p.base_cost || 0) * (p.quantity || 1);
-      partsFinalPrice += (p.final_price || 0) * (p.quantity || 1);
-    });
-
-    let hwBaseCost = 0;
-    let hwFinalPrice = 0;
-
-    assemblyHardware.forEach(h => {
-      hwBaseCost += (h.cost_per_unit || 0) * (h.quantity || 1);
-      hwFinalPrice += (h.price_per_unit || 0) * (h.quantity || 1);
-    });
-
-    const laborMins = parseInt(assemblyLaborMinutes, 10) || 0;
-    const laborCost = Math.round((laborMins / 60) * laborRate);
-
-    const totalHours = Math.floor(totalMinutesTotal / 60);
-    const totalMins = totalMinutesTotal % 60;
-
-    const grandBaseCost = round2(partsBaseCost + hwBaseCost + laborCost);
-    const grandFinalPrice = round2(partsFinalPrice + hwFinalPrice + laborCost);
-
-    return {
-      totalWeight: round2(totalWeight),
-      totalHours,
-      totalMins,
-      partsBaseCost: round2(partsBaseCost),
-      partsFinalPrice: round2(partsFinalPrice),
-      hwBaseCost: round2(hwBaseCost),
-      hwFinalPrice: round2(hwFinalPrice),
-      laborCost,
-      grandBaseCost,
-      grandFinalPrice,
-    };
-  };
-
-  // Фильтр отображения в таблице: Все / Только товары / Только сборки / Заканчиваются + Категории и Теги
-  type ProductFilter = 'all' | 'single' | 'assembly' | 'low_stock';
-  const [productFilter, setProductFilter] = useState<ProductFilter>('all');
-
-  const allCount = savedCalculations.length;
-  const singleCount = savedCalculations.filter(c => c.type !== 'assembly').length;
-  const assemblyCount = savedCalculations.filter(c => c.type === 'assembly').length;
-  const lowStockCount = savedCalculations.filter(c => (c.stock_quantity || 0) <= 2).length;
-
-  const filteredCalculations = savedCalculations.filter((calc) => {
-    if (productFilter === 'single' && calc.type === 'assembly') return false;
-    if (productFilter === 'assembly' && calc.type !== 'assembly') return false;
-    if (productFilter === 'low_stock' && (calc.stock_quantity || 0) > 2) return false;
-    if (selectedCategory !== 'all' && (calc.category || 'Разное') !== selectedCategory) return false;
-
-    return true;
-  });
-
-  // Буфер товаров, отложенных в будущую сборку из таблицы (без мгновенного открытия модального окна)
+  // 12. Буфер деталей сборки
   const [stagedAssemblyParts, setStagedAssemblyParts] = useState<AssemblyPrintedPart[]>([]);
 
-  const handleOpenNewAssemblyModal = () => {
-    setEditingAssemblyId(null);
-    setAssemblyName('');
-    setAssemblyLaborMinutes('15');
-    // Переносим отложенные детали из буфера в форму редактирования
-    setAssemblyParts(stagedAssemblyParts.length > 0 ? [...stagedAssemblyParts] : []);
-    setAssemblyHardware([]);
-    setIsAssemblyModalOpen(true);
-  };
-
-  const handleStageProductForAssembly = (prod: SavedCalculation) => {
-    const round2 = (num: number) => Math.round((num || 0) * 100) / 100;
-    
-    // Проверяем, есть ли уже этот товар в черновике
-    const existingIndex = stagedAssemblyParts.findIndex(p => p.product_id === prod.id);
+  const handleStageForAssembly = (prod: SavedCalculation) => {
+    const existingIndex = stagedAssemblyParts.findIndex((p) => p.product_id === prod.id);
 
     if (existingIndex >= 0) {
-      // Если уже есть — увеличиваем количество на +1
-      setStagedAssemblyParts(prev => 
-        prev.map((p, i) => i === existingIndex ? { ...p, quantity: p.quantity + 1 } : p)
+      setStagedAssemblyParts((prev) =>
+        prev.map((p, i) => (i === existingIndex ? { ...p, quantity: p.quantity + 1 } : p))
       );
-      showSuccess(`Количество товара «${prod.name}» в сборке увеличено!`, 'Черновик сборки');
+      showSuccess(`Количество «${prod.name}» в сборке увеличено!`, 'Черновик сборки');
     } else {
-      // Добавляем новую деталь в черновик
       const newPart: AssemblyPrintedPart = {
         id: Math.random().toString(36).substring(2, 9),
         product_id: prod.id,
@@ -567,665 +396,515 @@ export function ProductsList() {
         stl_file_data: prod.stl_file_data,
       };
 
-      setStagedAssemblyParts(prev => [...prev, newPart]);
-      showSuccess(`Товар «${prod.name}» добавлен в будущую сборку!`, 'Добавлено в сборку');
+      setStagedAssemblyParts((prev) => [...prev, newPart]);
+      showSuccess(`Товар «${prod.name}» добавлен в черновик сборки!`, 'Добавлено');
     }
   };
 
-  const handleEditAssembly = (item: SavedCalculation) => {
-    setEditingAssemblyId(item.id);
-    setAssemblyName(item.name);
-    setAssemblyLaborMinutes((item.assembly_labor_minutes || 15).toString());
-    setAssemblyParts(item.assembly_parts ? [...item.assembly_parts] : []);
-    setAssemblyHardware(item.assembly_hardware ? [...item.assembly_hardware] : []);
-    setStagedAssemblyParts([]);
-    setIsAssemblyModalOpen(true);
-  };
+  // 13. Состояния модальных окон
+  const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
+  const [editingCollection, setEditingCollection] = useState<ProductCollection | null>(null);
+  const [deletingCollection, setDeletingCollection] = useState<ProductCollection | null>(null);
+  const [activeAddVariantCollection, setActiveAddVariantCollection] = useState<ProductCollection | null>(null);
 
-  // Анимация тряски для невалидного названия сборки
-  const [isNameShaking, setIsNameShaking] = useState(false);
+  const [isAssemblyModalOpen, setIsAssemblyModalOpen] = useState(false);
+  const [editingAssembly, setEditingAssembly] = useState<SavedCalculation | null>(null);
 
-  const handleSaveAssembly = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!assemblyName.trim()) {
-      setIsNameShaking(true);
-      setTimeout(() => setIsNameShaking(false), 500);
-      showWarning('Пожалуйста, введите название сборного изделия', 'Заполните название');
-      return;
-    }
+  const [movingProduct, setMovingProduct] = useState<SavedCalculation | null>(null);
+  const [isBatchMoveOpen, setIsBatchMoveOpen] = useState(false);
 
-    if (assemblyParts.length === 0 && assemblyHardware.length === 0) {
-      showWarning('Добавьте хотя бы одну деталь или фурнитуру в сборку', 'Пустая сборка');
-      return;
-    }
+  const [isRecalcModalOpen, setIsRecalcModalOpen] = useState(false);
+  const [isRecalculating, setIsRecalculating] = useState(false);
 
-    const totals = calcAssemblyTotals();
-    const primaryFilament = assemblyParts[0]?.filament_name || 'Несколько материалов';
-    const primaryPrinter = assemblyParts[0]?.printer_name || 'Разные принтеры';
+  const [editingStlItem, setEditingStlItem] = useState<SavedCalculation | null>(null);
+  const [editingCategoryItem, setEditingCategoryItem] = useState<SavedCalculation | null>(null);
+  const [deletingProductItem, setDeletingProductItem] = useState<{ id: string; name: string; type?: string } | null>(null);
+  const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
 
-    const assemblyData: SavedCalculation = {
-      id: editingAssemblyId || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9)),
-      name: assemblyName.trim(),
-      type: 'assembly',
-      filament_name: primaryFilament,
-      printer_name: primaryPrinter,
-      weight_g: totals.totalWeight,
-      hours: totals.totalHours,
-      minutes: totals.totalMins,
-      quantity: 1,
-      base_cost: totals.grandBaseCost,
-      final_price: totals.grandFinalPrice,
-      assembly_parts: assemblyParts,
-      assembly_hardware: assemblyHardware,
-      assembly_labor_minutes: parseInt(assemblyLaborMinutes, 10) || 0,
-      assembly_labor_cost: totals.laborCost,
-      created_at: new Date().toISOString(),
-    };
+  const [quickEditProductItem, setQuickEditProductItem] = useState<SavedCalculation | null>(null);
+  const [activeDrawerItem, setActiveDrawerItem] = useState<SavedCalculation | null>(null);
 
-    if (editingAssemblyId) {
-      await updateSavedCalculation(assemblyData);
-      showSuccess(`Сборка «${assemblyName}» успешно обновлена!`, 'Сборка обновлена');
-    } else {
-      await addSavedCalculation(assemblyData);
-      showSuccess(`Составной товар «${assemblyName}» успешно создан!`, 'Товар создан');
-    }
+  // 14. Обработчики сохранения
+  const handleSaveCollection = async (data: {
+    name: string;
+    category: string;
+    tags: string[];
+    description?: string;
+    productIds: string[];
+  }) => {
+    pushHistory();
+    let colId = editingCollection?.id;
 
-    setStagedAssemblyParts([]);
-    setIsAssemblyModalOpen(false);
-  };
-
-  // Обработчик клика по STL
-  const handleStlClick = (item: SavedCalculation) => {
-    const hasUrl = Boolean(item.stl_url && item.stl_url.trim());
-    const hasFile = Boolean(item.stl_file_data);
-
-    if (hasUrl && hasFile) {
-      setActiveStlChoiceItem(item);
-    } else if (hasUrl) {
-      window.open(item.stl_url, '_blank');
-    } else if (hasFile) {
-      downloadStlFile(item);
-    } else {
-      handleOpenEditStl(item);
-    }
-  };
-
-  const downloadStlFile = (item: SavedCalculation) => {
-    if (!item.stl_file_data) return;
-    const a = document.createElement('a');
-    a.href = item.stl_file_data;
-    a.download = item.stl_file_name || `${item.name}.stl`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-
-  const handleOpenEditStl = (item: SavedCalculation) => {
-    setEditingStlItem(item);
-    setEditStlUrl(item.stl_url || '');
-    setEditStlFileName(item.stl_file_name || '');
-    setEditStlFileData(item.stl_file_data || '');
-  };
-
-  const handleSaveStlEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingStlItem) return;
-
-    try {
-      await updateSavedCalculation({
-        ...editingStlItem,
-        stl_url: editStlUrl.trim() || undefined,
-        stl_file_name: editStlFileName || undefined,
-        stl_file_data: editStlFileData || undefined,
+    if (editingCollection) {
+      await updateCollection({
+        ...editingCollection,
+        name: data.name,
+        category: data.category,
+        tags: data.tags,
+        description: data.description,
       });
-      setEditingStlItem(null);
-      showSuccess('Данные 3D-модели обновлены');
-    } catch (err) {
-      console.error('Ошибка сохранения STL:', err);
+      showSuccess(`Коллекция «${data.name}» обновлена!`, 'Сохранено');
+    } else {
+      const created = await addCollection({
+        name: data.name,
+        category: data.category,
+        tags: data.tags,
+        description: data.description,
+      });
+      colId = created.id;
+      showSuccess(`Коллекция «${data.name}» создана!`, 'Создано');
+    }
+
+    if (colId) {
+      for (const item of savedCalculations) {
+        const shouldBeIn = data.productIds.includes(item.id);
+        const isCurrentlyIn = item.collection_id === colId;
+
+        if (shouldBeIn && !isCurrentlyIn) {
+          await updateSavedCalculation({
+            ...item,
+            collection_id: colId,
+            collection_name: data.name,
+          });
+        } else if (!shouldBeIn && isCurrentlyIn) {
+          await updateSavedCalculation({
+            ...item,
+            collection_id: undefined,
+            collection_name: undefined,
+          });
+        }
+      }
     }
   };
 
-  const columns = [
-    {
-      key: 'name',
-      header: 'Название товара / Сборки',
-      sortable: true,
-      render: (item: SavedCalculation) => {
-        const isAssembly = item.type === 'assembly';
-        const isExpanded = Boolean(expandedAssemblyIds[item.id]);
-
-        const catObj = categoriesList.find(c => c.label === item.category || c.id === item.category);
-        const catLabel = catObj?.label || item.category || 'Разное';
-        const catIcon = catObj?.icon || '🏷️';
-        const catBadgeStyle = catObj?.color || 'bg-gray-800 text-gray-400 border-gray-700';
-
-        return (
-          <div className="flex flex-col gap-1 py-1 max-w-[280px] sm:max-w-[360px] xl:max-w-[460px]">
-            <div className="flex items-center gap-2">
-              {isAssembly ? (
-                <button
-                  type="button"
-                  onClick={(e) => toggleExpandAssembly(item.id, e)}
-                  className="p-1 rounded-lg bg-[#242930] hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 transition-colors shrink-0 cursor-pointer"
-                  title={isExpanded ? 'Свернуть детализацию' : 'Раскрыть состав сборки'}
-                >
-                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                </button>
-              ) : (
-                <div className="w-5 shrink-0" />
-              )}
-
-              {editingNameId === item.id ? (
-                <motion.div
-                  animate={isInlineNameShaking ? { x: [-10, 10, -8, 8, -4, 4, 0] } : {}}
-                  transition={{ duration: 0.5 }}
-                  className="w-full min-w-0 flex-1"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <input
-                    ref={nameInputRef}
-                    type="text"
-                    value={editingNameValue}
-                    onChange={(e) => {
-                      setEditingNameValue(e.target.value);
-                      if (isInlineNameShaking) setIsInlineNameShaking(false);
-                    }}
-                    onBlur={() => handleSaveRename(item)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSaveRename(item);
-                      if (e.key === 'Escape') setEditingNameId(null);
-                    }}
-                    className={`w-full bg-[#0d0e12] border rounded-lg px-2.5 py-1 text-xs text-white font-sans focus:outline-none shadow-sm transition-colors ${
-                      isInlineNameShaking ? 'border-red-500 focus:ring-1 focus:ring-red-500' : 'border-amber-500 focus:ring-1 focus:ring-amber-500'
-                    }`}
-                  />
-                </motion.div>
-              ) : (
-                <div 
-                  className="flex items-center gap-2 min-w-0 flex-1 cursor-pointer"
-                  onClick={(e) => handleStartRename(item, e)}
-                >
-                  {isAssembly && (
-                    <span className="px-2 py-0.5 bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[10px] font-bold uppercase tracking-wider rounded-md shrink-0 flex items-center gap-1">
-                      <Box size={11} /> Сборка
-                    </span>
-                  )}
-
-                  <span 
-                    className={`font-semibold truncate block transition-colors ${
-                      isAssembly ? 'text-amber-200 hover:text-amber-400' : 'text-white hover:text-amber-400'
-                    }`}
-                  >
-                    {item.name}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Категория и Теги прямо под названием */}
-            <div className="flex flex-wrap items-center gap-1.5 pl-7">
-              <span 
-                onClick={(e) => { e.stopPropagation(); handleOpenCategoryEditModal(item); }}
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold border ${catBadgeStyle} cursor-pointer hover:border-amber-500/50 transition-all select-none`}
-                title="Нажмите, чтобы изменить категорию и теги"
-              >
-                <span>{catIcon}</span>
-                <span>{catLabel}</span>
-                <Tag size={9} className="text-amber-400 ml-0.5 opacity-70 hover:opacity-100" />
-              </span>
-
-              {item.tags && item.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 items-center">
-                  {item.tags.map((tag, idx) => (
-                    <span key={idx} className="px-1.5 py-0.2 bg-[#1a1d26] border border-[#262a36] text-gray-400 text-[10px] rounded font-sans">
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      },
-    },
-    {
-      key: 'stl',
-      header: '3D-Модель',
-      align: 'center' as const,
-      render: (item: SavedCalculation) => {
-        if (item.type === 'assembly') {
-          const partsCount = item.assembly_parts?.length || 0;
-          const hwCount = item.assembly_hardware?.length || 0;
-          return (
-            <span className="px-2.5 py-1 bg-[#1a1d24] border border-[#242930] text-gray-400 rounded-lg text-xs font-mono select-none">
-              {partsCount} дет • {hwCount} мет
-            </span>
-          );
-        }
-
-        const hasUrl = Boolean(item.stl_url && item.stl_url.trim());
-        const hasFile = Boolean(item.stl_file_data);
-        const hasStl = hasUrl || hasFile;
-
-        return (
-          <div className="flex items-center justify-center gap-1.5 select-none">
-            <button
-              onClick={() => handleStlClick(item)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border select-none ${
-                hasStl
-                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/30 shadow-md shadow-emerald-500/10'
-                  : 'bg-[#242930]/40 text-gray-400 border-[#242930] hover:text-white hover:bg-[#242930]'
-              }`}
-            >
-              <FileCode size={14} className={hasStl ? 'text-emerald-400 animate-pulse' : 'text-gray-400'} />
-              <span>
-                {hasStl 
-                  ? (hasUrl && hasFile ? 'STL + Ссылка' : hasUrl ? 'Ссылка' : 'Файл STL') 
-                  : '+ STL'}
-              </span>
-            </button>
-
-            {hasStl && (
-              <button
-                onClick={() => handleOpenEditStl(item)}
-                className="p-1 text-neutral-accent hover:text-white rounded hover:bg-[#242930] transition-colors cursor-pointer"
-                title="Редактировать STL"
-              >
-                <Edit2 size={13} />
-              </button>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      key: 'filament_name',
-      header: 'Материал',
-      sortable: true,
-      render: (item: SavedCalculation) => {
-        if (item.type === 'assembly') {
-          return <span className="text-gray-400 text-xs italic">Составной набор</span>;
-        }
-
-        const liveFilament = item.filament_id ? filaments.find(f => f.id === item.filament_id) : null;
-        const displayName = liveFilament?.name ?? item.filament_name;
-        const displayColor = liveFilament?.color ?? item.filament_color;
-        return (
-          <div className="flex items-center gap-1.5 max-w-[180px] sm:max-w-[240px]">
-            {displayColor && (
-              <div 
-                className="w-3 h-3 rounded-full border border-black/20 shrink-0 shadow-inner" 
-                style={{ backgroundColor: displayColor }}
-              />
-            )}
-            <span className="truncate font-medium block" title={displayName}>
-              {displayName}
-            </span>
-          </div>
-        );
-      },
-    },
-    {
-      key: 'printer_name',
-      header: 'Принтер',
-      sortable: true,
-      render: (item: SavedCalculation) => {
-        if (item.type === 'assembly') {
-          return <span className="text-gray-400 text-xs italic">Разные принтеры</span>;
-        }
-
-        const livePrinter = item.printer_id ? printers.find(p => p.id === item.printer_id) : null;
-        const displayName = livePrinter?.name ?? item.printer_name;
-        return (
-          <span className="truncate max-w-[140px] sm:max-w-[180px] block" title={displayName}>
-            {displayName}
-          </span>
-        );
-      },
-    },
-    {
-      key: 'created_at',
-      header: 'Добавлено',
-      sortable: true,
-      render: (item: SavedCalculation) => (
-        <span className="text-gray-400 text-xs font-mono select-none" title={item.created_at}>
-          {formatDate(item.created_at)}
-        </span>
-      ),
-    },
-    {
-      key: 'params',
-      header: 'Параметры печати',
-      sortable: true,
-      sortValue: (item: SavedCalculation) => item.weight_g,
-      render: (item: SavedCalculation) => (
-        <span className="font-mono text-xs text-neutral-accent">
-          {item.weight_g}г • {item.hours}ч {item.minutes}м {item.quantity > 1 ? `• ${item.quantity}шт` : ''}
-        </span>
-      ),
-    },
-    {
-      key: 'stock',
-      header: 'В наличии',
-      align: 'center' as const,
-      sortable: true,
-      sortValue: (item: SavedCalculation) => item.stock_quantity || 0,
-      render: (item: SavedCalculation) => {
-        const stock = item.stock_quantity || 0;
-        const isOutOfStock = stock === 0;
-        const isLowStock = stock > 0 && stock <= 2;
-
-        return (
-          <div onClick={(e) => e.stopPropagation()} className="flex flex-col items-center justify-center gap-1 my-0.5">
-            <NumberCounter
-              value={stock}
-              min={0}
-              onChange={(val) => handleSetStock(item, val)}
-            />
-
-            {/* Подсветка статуса наличия */}
-            {isOutOfStock && (
-              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-red-500/15 border border-red-500/30 text-red-400 font-sans flex items-center gap-0.5 select-none">
-                ❌ Нет на складе
-              </span>
-            )}
-
-            {isLowStock && (
-              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-500/20 border border-amber-500/40 text-amber-300 font-sans flex items-center gap-0.5 animate-pulse select-none">
-                ⚠️ Заканчивается
-              </span>
-            )}
-          </div>
-        );
-      },
-    },
-    {
-      key: 'prices',
-      header: 'Стоимость',
-      align: 'right' as const,
-      sortable: true,
-      sortValue: (item: SavedCalculation) => item.final_price,
-      render: (item: SavedCalculation) => (
-        <div className="flex flex-col items-end font-mono">
-          <span className="text-primary font-bold text-sm">{formatCurrency(item.final_price, currencySymbol)}</span>
-          <span className="text-gray-500 text-[10px]">себ: {formatCurrency(item.base_cost, currencySymbol)}</span>
-        </div>
-      ),
-    },
-    {
-      key: 'profit',
-      header: 'Прибыль',
-      align: 'center' as const,
-      sortable: true,
-      sortValue: (item: SavedCalculation) => (item.final_price || 0) - (item.base_cost || 0),
-      render: (item: SavedCalculation) => {
-        const profit = Math.round(((item.final_price || 0) - (item.base_cost || 0)) * 100) / 100;
-        const marginPercent = item.final_price && item.final_price > 0 
-          ? Math.round((profit / item.final_price) * 1000) / 10 
-          : 0;
-
-        const isPositive = profit >= 0;
-
-        return (
-          <div className="flex flex-col items-center justify-center gap-0.5 select-none font-mono leading-tight py-0.5 whitespace-nowrap min-w-[90px] mx-auto">
-            <span className={`font-extrabold text-xs sm:text-sm ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
-              {isPositive ? '+' : ''}{formatCurrency(profit, currencySymbol)}
-            </span>
-            
-            <span className={`text-xs font-bold ${isPositive ? 'text-emerald-400/90' : 'text-red-400/90'}`}>
-              {isPositive ? '▲' : '▼'}{marginPercent}%
-            </span>
-          </div>
-        );
-      },
-    },
-    {
-      key: 'actions',
-      header: 'Действия',
-      align: 'center' as const,
-      render: (item: SavedCalculation) => (
-        <div className="flex items-center justify-center gap-1.5">
-          {item.type !== 'assembly' && (
-            <>
-              <button
-                onClick={() => handleLoadCalculation(item)}
-                className="p-1.5 text-primary hover:text-white rounded hover:bg-primary/10 transition-colors cursor-pointer"
-                title="Загрузить в калькулятор"
-              >
-                <Play size={14} fill="currentColor" />
-              </button>
-              {(() => {
-                const stagedItem = stagedAssemblyParts.find(p => p.product_id === item.id);
-                return (
-                  <button
-                    onClick={() => handleStageProductForAssembly(item)}
-                    className={`p-1.5 text-amber-400 hover:text-amber-300 rounded hover:bg-amber-500/10 transition-colors cursor-pointer relative ${
-                      stagedItem ? 'bg-amber-500/15' : ''
-                    }`}
-                    title="Добавить товар в черновик сборки"
-                  >
-                    <Layers size={14} />
-                    {stagedItem && (
-                      <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-amber-500 text-black text-[9px] font-mono font-extrabold rounded-full flex items-center justify-center border border-[#16181d] shadow-sm animate-scale-in">
-                        {stagedItem.quantity}
-                      </span>
-                    )}
-                  </button>
-                );
-              })()}
-            </>
-          )}
-
-          <button
-            onClick={() => handleCreateOrderFromProduct(item)}
-            className="p-1.5 text-emerald-400 hover:text-emerald-300 rounded hover:bg-emerald-500/10 transition-colors cursor-pointer"
-            title="Создать новый заказ на основе этого товара (Изготовление +2 дня)"
-          >
-            <ShoppingCart size={14} />
-          </button>
-
-          {item.type === 'assembly' && (
-            <>
-              <button
-                onClick={() => handleEditAssembly(item)}
-                className="p-1.5 text-amber-400 hover:text-amber-300 rounded hover:bg-amber-500/10 transition-colors cursor-pointer"
-                title="Редактировать состав сборки"
-              >
-                <Edit2 size={14} />
-              </button>
-              <button
-                onClick={(e) => toggleExpandAssembly(item.id, e)}
-                className="p-1.5 text-gray-400 hover:text-white rounded hover:bg-white/10 transition-colors cursor-pointer"
-                title="Развернуть/Свернуть состав сборки"
-              >
-                <Box size={14} />
-              </button>
-            </>
-          )}
-
-          <button
-            onClick={() => handleDelete(item.id, item.name, item.type)}
-            className="p-1.5 text-red-500/70 hover:text-red-400 rounded hover:bg-red-500/10 transition-colors cursor-pointer"
-            title="Удалить товар"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
-      ),
-    },
-  ];
-
-  // Функция отрисовки раскрывающейся строки для составного товара (в виде вложенной таблицы)
-  const renderSubRow = (item: SavedCalculation) => {
-    if (item.type !== 'assembly' || !expandedAssemblyIds[item.id]) return null;
-
-    const parts = item.assembly_parts || [];
-    const hardware = item.assembly_hardware || [];
-    const laborMins = item.assembly_labor_minutes || 0;
-    const laborCost = item.assembly_labor_cost || Math.round(((laborMins || 0) / 60) * laborRate);
-
-    return (
-      <tr className="bg-[#101217] border-b border-[#242930]">
-        <td colSpan={columns.length} className="p-0">
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25 }}
-            className="p-4 pl-6 sm:pl-8 border-l-4 border-amber-500/60 bg-gradient-to-r from-amber-500/5 via-transparent to-transparent space-y-3"
-          >
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Box size={16} className="text-amber-400" />
-                <h4 className="text-xs font-bold text-amber-300 uppercase tracking-wider">
-                  Состав сборки: «{item.name}»
-                </h4>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="text-[11px] text-gray-400 font-mono hidden sm:inline">
-                  {parts.length} печатных деталей • {hardware.length} метизов • {laborMins} мин сборки
-                </span>
-
-                {(() => {
-                  const subProfit = Math.round(((item.final_price || 0) - (item.base_cost || 0)) * 100) / 100;
-                  const subMargin = item.final_price && item.final_price > 0 
-                    ? Math.round((subProfit / item.final_price) * 1000) / 10 
-                    : 0;
-
-                  return (
-                    <span className="px-2 py-0.5 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-bold rounded-lg font-mono">
-                      Прибыль: +{formatCurrency(subProfit, currencySymbol)} (▲ {subMargin}% маржа)
-                    </span>
-                  );
-                })()}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleEditAssembly(item)}
-                  className="text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10 flex items-center gap-1.5 py-1 px-2.5 cursor-pointer"
-                >
-                  <Edit2 size={12} />
-                  <span>Изменить сборку</span>
-                </Button>
-              </div>
-            </div>
-
-            {/* Вложенная таблица состава сборки */}
-            <div className="overflow-x-auto rounded-xl border border-[#242930] bg-[#14171f]/90 shadow-inner">
-              <table className="w-full text-left font-sans text-xs border-collapse select-text">
-                <thead>
-                  <tr className="border-b border-[#242930] text-gray-400 font-semibold text-[10px] uppercase tracking-wider bg-[#1a1d26]">
-                    <th className="py-2.5 px-3">Составляющий элемент</th>
-                    <th className="py-2.5 px-3">Тип / Материал</th>
-                    <th className="py-2.5 px-3 text-center">Кол-во</th>
-                    <th className="py-2.5 px-3">Параметры</th>
-                    <th className="py-2.5 px-3 text-right">Себестоимость</th>
-                    <th className="py-2.5 px-3 text-right">Цена продажи</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#242930]/60 text-gray-300 font-mono text-xs">
-                  {/* 1. 3D-Печатные детали */}
-                  {parts.map((part, idx) => (
-                    <tr key={part.id || idx} className="hover:bg-[#1f2430]/60 transition-colors">
-                      <td className="py-2.5 px-3 font-sans font-semibold text-white">
-                        <span className="flex items-center gap-1.5">
-                          <Box size={13} className="text-amber-400 shrink-0" />
-                          {part.name}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-amber-300/90 font-sans text-[11px]">
-                        {part.filament_name || '3D-деталь'}
-                      </td>
-                      <td className="py-2.5 px-3 text-center font-bold text-white">
-                        {part.quantity} шт
-                      </td>
-                      <td className="py-2.5 px-3 text-gray-400 text-[11px]">
-                        {Math.round((part.weight_g || 0) * (part.quantity || 1) * 100) / 100}г
-                        {part.hours || part.minutes ? ` • ${part.hours || 0}ч ${part.minutes || 0}м` : ''}
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-gray-400">
-                        {formatCurrency(Math.round(((part.base_cost || 0) * (part.quantity || 1)) * 100) / 100, currencySymbol)}
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-emerald-400 font-bold">
-                        {formatCurrency(Math.round(((part.final_price || 0) * (part.quantity || 1)) * 100) / 100, currencySymbol)}
-                      </td>
-                    </tr>
-                  ))}
-
-                  {/* 2. Покупная фурнитура и метизы */}
-                  {hardware.map((hw, idx) => (
-                    <tr key={hw.id || idx} className="hover:bg-[#1f2430]/60 transition-colors">
-                      <td className="py-2.5 px-3 font-sans font-semibold text-white">
-                        <span className="flex items-center gap-1.5">
-                          <Wrench size={13} className="text-blue-400 shrink-0" />
-                          {hw.name}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-blue-400/90 font-sans text-[11px]">
-                        Фурнитура / Метиз
-                      </td>
-                      <td className="py-2.5 px-3 text-center font-bold text-white">
-                        {hw.quantity} шт
-                      </td>
-                      <td className="py-2.5 px-3 text-gray-500 italic text-[11px] font-sans">
-                        —
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-gray-400">
-                        {formatCurrency((hw.cost_per_unit || 0) * (hw.quantity || 1), currencySymbol)}
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-emerald-400 font-bold">
-                        {formatCurrency((hw.price_per_unit || 0) * (hw.quantity || 1), currencySymbol)}
-                      </td>
-                    </tr>
-                  ))}
-
-                  {/* 3. Работа мастера по сборке */}
-                  {laborMins > 0 && (
-                    <tr className="hover:bg-[#1f2430]/60 transition-colors bg-amber-500/5">
-                      <td className="py-2.5 px-3 font-sans font-semibold text-amber-200">
-                        <span className="flex items-center gap-1.5">
-                          <Wrench size={13} className="text-amber-400 shrink-0" />
-                          Работа мастера по сборке
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-amber-300/80 font-sans text-[11px]">
-                        Свободная сборка
-                      </td>
-                      <td className="py-2.5 px-3 text-center font-bold text-amber-300">
-                        {laborMins} мин
-                      </td>
-                      <td className="py-2.5 px-3 text-gray-400 text-[11px] font-sans">
-                        Ставка {laborRate} {currencySymbol}/час
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-gray-400">
-                        {formatCurrency(laborCost, currencySymbol)}
-                      </td>
-                      <td className="py-2.5 px-3 text-right text-amber-400 font-bold">
-                        +{formatCurrency(laborCost, currencySymbol)}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </motion.div>
-        </td>
-      </tr>
+  const handleConfirmDeleteCollection = async (colId: string, deleteWithProducts: boolean) => {
+    pushHistory();
+    await deleteCollection(colId, deleteWithProducts);
+    showSuccess(
+      deleteWithProducts ? 'Коллекция и вложенные товары удалены' : 'Коллекция расформирована',
+      'Удаление'
     );
   };
 
-  const totals = calcAssemblyTotals();
+  const handleSaveAssembly = async (assemblyData: Partial<SavedCalculation>) => {
+    pushHistory();
+    if (editingAssembly) {
+      await updateSavedCalculation({
+        ...editingAssembly,
+        ...assemblyData,
+      } as SavedCalculation);
+      showSuccess(`Сборка «${assemblyData.name}» обновлена!`, 'Обновлено');
+    } else {
+      await addSavedCalculation({
+        ...assemblyData,
+        created_at: new Date().toISOString(),
+      } as SavedCalculation);
+      showSuccess(`Сборка «${assemblyData.name}» создана!`, 'Создано');
+      setStagedAssemblyParts([]);
+    }
+  };
+
+  const handleSaveAddVariant = async (data: {
+    name: string;
+    filamentId: string;
+    weightG: number;
+    sourceCalculation?: SavedCalculation;
+  }) => {
+    if (!activeAddVariantCollection) return;
+    pushHistory();
+
+    const chosenFilament = filaments.find((f) => f.id === data.filamentId) || filaments[0];
+    const source = data.sourceCalculation;
+
+    if (source) {
+      const filCost = chosenFilament
+        ? (chosenFilament.price / chosenFilament.weight_g) * data.weightG
+        : source.base_cost;
+      const newBaseCost = Math.round(filCost * 1.3);
+      const newFinalPrice = Math.round(newBaseCost * 2);
+      const { id, created_at, ...restSource } = source;
+
+      await addSavedCalculation({
+        ...restSource,
+        name: data.name,
+        filament_id: chosenFilament?.id,
+        filament_name: chosenFilament?.name || source.filament_name,
+        filament_color: chosenFilament?.color || source.filament_color,
+        weight_g: data.weightG,
+        base_cost: newBaseCost > 0 ? newBaseCost : source.base_cost,
+        final_price: newFinalPrice > 0 ? newFinalPrice : source.final_price,
+        collection_id: activeAddVariantCollection.id,
+        collection_name: activeAddVariantCollection.name,
+      });
+    } else {
+      await addSavedCalculation({
+        name: data.name,
+        type: 'single',
+        filament_id: chosenFilament?.id,
+        filament_name: chosenFilament?.name || 'PLA',
+        filament_color: chosenFilament?.color || '#3b82f6',
+        printer_name: printers[0]?.name || '3D Принтер',
+        weight_g: data.weightG,
+        hours: 2,
+        minutes: 0,
+        quantity: 1,
+        base_cost: 150,
+        final_price: 450,
+        category: activeAddVariantCollection.category || 'Разное',
+        collection_id: activeAddVariantCollection.id,
+        collection_name: activeAddVariantCollection.name,
+        stock_quantity: 0,
+      });
+    }
+
+    showSuccess(`Вариант «${data.name}» добавлен в коллекцию!`, 'Вариант создан');
+  };
+
+  const handleSaveProductMoveSingle = async (prod: SavedCalculation, targetColId: string) => {
+    pushHistory();
+    if (targetColId === 'none') {
+      await updateSavedCalculation({
+        ...prod,
+        collection_id: undefined,
+        collection_name: undefined,
+      });
+      showSuccess(`Товар «${prod.name}» извлечен из коллекции`, 'Каталог');
+    } else {
+      const dest = collections.find((c) => c.id === targetColId);
+      await updateSavedCalculation({
+        ...prod,
+        collection_id: targetColId,
+        collection_name: dest?.name,
+      });
+      showSuccess(`Товар «${prod.name}» перемещен в «${dest?.name}»`, 'Коллекция');
+    }
+  };
+
+  const handleSaveProductMoveBatch = async (ids: string[], targetColId: string) => {
+    pushHistory();
+    const dest = collections.find((c) => c.id === targetColId);
+    const selectedItems = savedCalculations.filter((c) => ids.includes(c.id));
+
+    for (const item of selectedItems) {
+      if (targetColId === 'none') {
+        await updateSavedCalculation({
+          ...item,
+          collection_id: undefined,
+          collection_name: undefined,
+        });
+      } else {
+        await updateSavedCalculation({
+          ...item,
+          collection_id: targetColId,
+          collection_name: dest?.name,
+        });
+      }
+    }
+
+    showSuccess(
+      targetColId === 'none'
+        ? `${ids.length} товаров извлечено из коллекций`
+        : `${ids.length} товаров перенесено в «${dest?.name}»`,
+      'Группировка'
+    );
+    setSelectedIds([]);
+  };
+
+  const handleConfirmRecalculate = async (scope: 'selected' | 'all') => {
+    setIsRecalculating(true);
+    try {
+      pushHistory();
+      const targetIds = scope === 'selected' && selectedIds.length > 0 ? selectedIds : undefined;
+      const fullyUpdated = recalculateAllProducts(savedCalculations, filaments, printers, settings, targetIds);
+      await restoreAllSavedCalculations(fullyUpdated);
+      const count = targetIds ? targetIds.length : fullyUpdated.length;
+      showSuccess(`Себестоимость ${count} товаров успешно пересчитана!`, 'Цены обновлены');
+      setIsRecalcModalOpen(false);
+      setSelectedIds([]);
+    } catch (err) {
+      console.error('Ошибка пересчета:', err);
+    } finally {
+      setIsRecalculating(false);
+    }
+  };
+
+  const handleSaveStl = async (
+    item: SavedCalculation,
+    stlUrl?: string,
+    stlFileName?: string,
+    stlFileData?: string
+  ) => {
+    pushHistory();
+    await updateSavedCalculation({
+      ...item,
+      stl_url: stlUrl,
+      stl_file_name: stlFileName,
+      stl_file_data: stlFileData,
+    });
+    showSuccess('Данные 3D-модели сохранены!', '3D-Модель');
+  };
+
+  const handleSaveCategory = async (item: SavedCalculation, category: string, tags: string[]) => {
+    pushHistory();
+    await updateSavedCalculation({
+      ...item,
+      category,
+      tags,
+    });
+    showSuccess(`Категория товара «${item.name}» обновлена!`, 'Сохранено');
+  };
+
+  const handleConfirmDeleteProduct = async (id: string) => {
+    pushHistory();
+    await deleteSavedCalculation(id);
+    showSuccess('Позиция удалена. Нажмите Ctrl+Z для отмены.', 'Удалено');
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    pushHistory();
+    await clearAllSavedCalculations();
+    showSuccess('Каталог товаров очищен. Нажмите Ctrl+Z для отмены.', 'Каталог очищен');
+  };
+
+  const handleSaveQuickEdit = async (updated: SavedCalculation) => {
+    pushHistory();
+    await updateSavedCalculation(updated);
+    showSuccess(`Товар «${updated.name}» успешно обновлен!`, 'Сохранено');
+    if (activeDrawerItem?.id === updated.id) {
+      setActiveDrawerItem(updated);
+    }
+  };
+
+  // 15. Формирование строк таблицы с фильтрацией и сортировкой
+  const tableData = useMemo<CatalogTableRow[]>(() => {
+    const rows: CatalogTableRow[] = [];
+    const query = searchQuery.toLowerCase().trim();
+
+    // 1. Коллекции
+    collections.forEach((col) => {
+      let childs = savedCalculations.filter(
+        (c) => c.collection_id === col.id || (Boolean(col.name) && Boolean(c.collection_name) && c.collection_name === col.name)
+      );
+
+      // Фильтр по типу
+      if (productFilter === 'single') childs = childs.filter((c) => c.type !== 'assembly');
+      if (productFilter === 'assembly') childs = childs.filter((c) => c.type === 'assembly');
+      if (productFilter === 'low_stock') childs = childs.filter((c) => (c.stock_quantity || 0) <= 2);
+      if (productFilter === 'bestsellers') {
+        childs = childs.filter((c) => {
+          const st = salesStatsMap.get(c.id);
+          return st && st.soldQty > 0;
+        });
+      }
+
+      // Фильтр по категории
+      if (selectedCategory !== 'all' && (col.category || 'Разное') !== selectedCategory) {
+        const hasMatchingChild = childs.some((c) => (c.category || 'Разное') === selectedCategory);
+        if (!hasMatchingChild) return;
+      }
+
+      // Фильтр по поисковому запросу
+      if (query) {
+        const matchCol =
+          col.name.toLowerCase().includes(query) ||
+          (col.tags || []).some((t) => t.toLowerCase().includes(query));
+        const matchedChilds = childs.filter(
+          (c) =>
+            c.name.toLowerCase().includes(query) ||
+            (c.filament_name || '').toLowerCase().includes(query) ||
+            (c.tags || []).some((t) => t.toLowerCase().includes(query))
+        );
+        if (!matchCol && matchedChilds.length === 0) return;
+        if (!matchCol && matchedChilds.length > 0) childs = matchedChilds;
+      }
+
+      if (
+        (productFilter === 'single' ||
+          productFilter === 'assembly' ||
+          productFilter === 'low_stock' ||
+          productFilter === 'bestsellers') &&
+        childs.length === 0
+      ) {
+        return;
+      }
+
+      const prices = childs.map((c) => c.final_price || c.base_cost || 0);
+      const costs = childs.map((c) => c.base_cost || 0);
+      const weights = childs.map((c) => c.weight_g || 0);
+      const minutesTotal = childs.map((c) => (c.hours || 0) * 60 + (c.minutes || 0));
+
+      const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+      const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+      const minCost = costs.length > 0 ? Math.min(...costs) : 0;
+      const maxCost = costs.length > 0 ? Math.max(...costs) : 0;
+
+      const minWeight = weights.length > 0 ? Math.min(...weights) : 0;
+      const maxWeight = weights.length > 0 ? Math.max(...weights) : 0;
+
+      const minTimeMins = minutesTotal.length > 0 ? Math.min(...minutesTotal) : 0;
+      const maxTimeMins = minutesTotal.length > 0 ? Math.max(...minutesTotal) : 0;
+
+      const totalStock = childs.reduce((sum, c) => sum + (c.stock_quantity || 0), 0);
+      const totalProfit = childs.reduce(
+        (sum, c) => sum + ((c.final_price || 0) - (c.base_cost || 0)) * (c.stock_quantity || 1),
+        0
+      );
+
+      const matNames = Array.from(new Set(childs.map((c) => c.filament_name).filter(Boolean)));
+      const matColors = Array.from(
+        new Set(childs.map((c) => c.filament_color).filter(Boolean))
+      ) as string[];
+      const stlCount = childs.filter((c) => c.stl_url || c.stl_file_data).length;
+
+      const colRow: CatalogTableRow = {
+        rowKind: 'collection',
+        id: col.id,
+        collection: col,
+        childItems: childs,
+        name: col.name,
+        category: col.category || 'Разное',
+        tags: col.tags || [],
+        itemsCount: childs.length,
+        singleCount: childs.filter((c) => c.type !== 'assembly').length,
+        assemblyCount: childs.filter((c) => c.type === 'assembly').length,
+        totalStock,
+        minPrice,
+        maxPrice,
+        minCost,
+        maxCost,
+        totalProfit,
+        materialsList: matNames,
+        materialsColors: matColors,
+        minWeight,
+        maxWeight,
+        minHours: Math.floor(minTimeMins / 60),
+        maxHours: Math.floor(maxTimeMins / 60),
+        minMins: minTimeMins % 60,
+        maxMins: maxTimeMins % 60,
+        stlCount,
+        final_price: minPrice,
+        base_cost: minCost,
+        stock_quantity: totalStock,
+        weight_g: minWeight,
+        hours: Math.floor(minTimeMins / 60),
+        minutes: minTimeMins % 60,
+        created_at: col.created_at,
+      };
+
+      rows.push(colRow);
+    });
+
+    // 2. Самостоятельные товары (не входящие в коллекции)
+    if (productFilter !== 'collections') {
+      const standalone = savedCalculations.filter((c) => {
+        const hasColId = Boolean(c.collection_id && collections.some((col) => col.id === c.collection_id));
+        const hasColName = Boolean(c.collection_name && collections.some((col) => col.name === c.collection_name));
+        return !hasColId && !hasColName;
+      });
+
+      const filtered = standalone.filter((calc) => {
+        if (productFilter === 'single' && calc.type === 'assembly') return false;
+        if (productFilter === 'assembly' && calc.type !== 'assembly') return false;
+        if (productFilter === 'low_stock' && (calc.stock_quantity || 0) > 2) return false;
+        if (productFilter === 'bestsellers') {
+          const st = salesStatsMap.get(calc.id);
+          if (!st || st.soldQty <= 0) return false;
+        }
+        if (selectedCategory !== 'all' && (calc.category || 'Разное') !== selectedCategory) return false;
+
+        if (query) {
+          const matchName = calc.name.toLowerCase().includes(query);
+          const matchFil = (calc.filament_name || '').toLowerCase().includes(query);
+          const matchTag = (calc.tags || []).some((t) => t.toLowerCase().includes(query));
+          if (!matchName && !matchFil && !matchTag) return false;
+        }
+
+        return true;
+      });
+
+      filtered.forEach((item) => {
+        rows.push({
+          rowKind: 'product',
+          id: item.id,
+          item,
+          name: item.name,
+          category: item.category || 'Разное',
+          final_price: item.final_price,
+          base_cost: item.base_cost,
+          stock_quantity: item.stock_quantity || 0,
+          weight_g: item.weight_g,
+          hours: item.hours,
+          minutes: item.minutes,
+          created_at: item.created_at,
+        });
+      });
+    }
+
+    // Сортировка строк (на верхнем уровне)
+    rows.sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'name') {
+        cmp = a.name.localeCompare(b.name, 'ru');
+      } else if (sortField === 'date') {
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        cmp = timeA - timeB;
+      } else if (sortField === 'id') {
+        cmp = a.id.localeCompare(b.id);
+      } else if (sortField === 'price') {
+        cmp = a.final_price - b.final_price;
+      } else if (sortField === 'cost') {
+        cmp = a.base_cost - b.base_cost;
+      } else if (sortField === 'stock') {
+        cmp = a.stock_quantity - b.stock_quantity;
+      } else if (sortField === 'params') {
+        cmp = a.weight_g - b.weight_g;
+      } else if (sortField === 'profit') {
+        const pA = a.final_price - a.base_cost;
+        const pB = b.final_price - b.base_cost;
+        cmp = pA - pB;
+      }
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+
+    return rows;
+  }, [
+    collections,
+    savedCalculations,
+    expandedItemIds,
+    productFilter,
+    selectedCategory,
+    searchQuery,
+    salesStatsMap,
+    sortField,
+    sortOrder,
+  ]);
+
+  // Счетчики для вкладок
+  const counts = useMemo(() => {
+    return {
+      all: savedCalculations.length,
+      single: savedCalculations.filter((c) => c.type !== 'assembly').length,
+      assembly: savedCalculations.filter((c) => c.type === 'assembly').length,
+      collections: collections.length,
+      lowStock: savedCalculations.filter((c) => (c.stock_quantity || 0) <= 2).length,
+      bestsellers: savedCalculations.filter((c) => (salesStatsMap.get(c.id)?.soldQty || 0) > 0).length,
+      displayed: tableData.length,
+    };
+  }, [savedCalculations, collections, salesStatsMap, tableData.length]);
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Заголовок и кнопки создания товаров / сборок */}
+    <div className="flex flex-col gap-5">
+      {/* Шапка страницы */}
       <PageHeader
         icon={Package}
         title="Каталог товаров"
-        subtitle="Сохраненные изделия, 3D-модели и составные сборки"
-        accentColor="#f59e0b"
+        subtitle="Хранилище моделей, 3D-файлов, коллекций и составных сборок"
+        accentColor={productsTheme.accentHex}
+        className="p-4 sm:p-5"
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Отмена последнего действия */}
             <Button
               onClick={handleUndo}
               disabled={historyStack.length === 0}
@@ -1233,962 +912,279 @@ export function ProductsList() {
               size="md"
               className={`p-2.5 rounded-xl transition-all flex items-center justify-center shrink-0 ${
                 historyStack.length > 0
-                  ? 'border-amber-500/40 text-amber-400 hover:bg-amber-500/10 cursor-pointer shadow-sm animate-scale-in'
+                  ? 'border-amber-500/40 text-amber-400 hover:bg-amber-500/10 cursor-pointer shadow-sm'
                   : 'border-[#242930] text-gray-600 opacity-40 cursor-not-allowed'
               }`}
-              title={historyStack.length > 0 ? "Отменить последнее действие (Ctrl+Z)" : "Нет действий для отмены"}
+              title={historyStack.length > 0 ? 'Отменить последнее действие (Ctrl+Z)' : 'Нет действий для отмены'}
             >
               <RotateCcw className={`w-4 h-4 ${historyStack.length > 0 ? 'text-amber-400' : 'text-gray-600'}`} />
             </Button>
 
+            {/* Пересчет цен */}
             <Button
-              onClick={handleOpenNewAssemblyModal}
+              onClick={() => setIsRecalcModalOpen(true)}
               variant="outline"
               size="md"
-              className={`border-amber-500/40 text-amber-400 hover:bg-amber-500/10 cursor-pointer flex items-center gap-2 relative transition-all ${
-                stagedAssemblyParts.length > 0 ? 'bg-amber-500/20 border-amber-500 shadow-md shadow-amber-500/20 text-white font-bold' : ''
+              disabled={savedCalculations.length === 0 || isRecalculating}
+              className={`border-amber-500/50 text-amber-300 hover:bg-amber-500/15 cursor-pointer flex items-center gap-2 transition-all shrink-0 ${
+                selectedIds.length > 0 ? 'bg-amber-500/20 text-white font-bold shadow-md' : ''
               }`}
             >
-              <Layers className="w-4 h-4 text-amber-400" />
-              <span>+ Создать сборку</span>
+              <RefreshCw className={`w-4 h-4 text-amber-400 ${isRecalculating ? 'animate-spin' : ''}`} />
+              <span>{selectedIds.length > 0 ? `Пересчитать (${selectedIds.length})` : 'Пересчитать цены'}</span>
+            </Button>
+
+            {/* Создать коллекцию */}
+            <Button
+              onClick={() => {
+                setEditingCollection(null);
+                setIsCollectionModalOpen(true);
+              }}
+              variant="outline"
+              size="md"
+              className="border-purple-500/50 text-purple-300 hover:bg-purple-500/15 hover:border-purple-400 cursor-pointer flex items-center gap-2 transition-all shadow-sm rounded-xl font-bold"
+            >
+              <FolderPlus className="w-4 h-4 text-purple-400" />
+              <span>+ Коллекция</span>
+            </Button>
+
+            {/* Создать сборку */}
+            <Button
+              onClick={() => {
+                setEditingAssembly(null);
+                setIsAssemblyModalOpen(true);
+              }}
+              variant="outline"
+              size="md"
+              className={`border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/15 hover:border-cyan-400 cursor-pointer flex items-center gap-2 relative transition-all rounded-xl font-bold ${
+                stagedAssemblyParts.length > 0 ? 'bg-cyan-500/20 shadow-md border-cyan-400' : ''
+              }`}
+            >
+              <Layers className="w-4 h-4 text-cyan-400" />
+              <span>+ Сборка</span>
               {stagedAssemblyParts.length > 0 && (
-                <span className="ml-1 px-2 py-0.5 rounded-full bg-amber-500 text-black text-xs font-mono font-extrabold shadow-sm animate-pulse">
+                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-cyan-500 text-black text-xs font-mono font-extrabold shadow-sm">
                   {stagedAssemblyParts.reduce((acc, p) => acc + p.quantity, 0)}
                 </span>
               )}
             </Button>
           </div>
         }
+      >
+        {/* KPI Сводка в шапке */}
+        <div className="mt-3 pt-3 border-t border-[#242930]/80">
+          <ProductsSummary
+            metrics={warehouseMetrics}
+            totalProductsCount={savedCalculations.length}
+            currencySymbol={currencySymbol}
+          />
+        </div>
+      </PageHeader>
+
+      {/* Панель фильтров, поиска и категорий */}
+      {(savedCalculations.length > 0 || collections.length > 0) && (
+        <ProductsFilterBar
+          productFilter={productFilter}
+          setProductFilter={setProductFilter}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          categoryFilterOptions={categoryFilterOptions}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          counts={counts}
+          selectedIds={selectedIds}
+          totalSavedCalculationsCount={savedCalculations.length}
+          onClearSelection={() => setSelectedIds([])}
+          onOpenBatchMove={() => setIsBatchMoveOpen(true)}
+          onOpenRecalcModal={() => setIsRecalcModalOpen(true)}
+          isRecalculating={isRecalculating}
+          canUndo={historyStack.length > 0}
+          onUndo={handleUndo}
+          onOpenBulkDelete={() => setIsBulkDeleteOpen(true)}
+        />
+      )}
+
+      {/* Современная оптимизированная таблица товаров */}
+      <ProductsTableModern
+        rows={tableData}
+        selectedIds={selectedIds}
+        onToggleSelectAll={handleToggleSelectAll}
+        onToggleSelect={handleToggleSelect}
+        expandedItemIds={expandedItemIds}
+        onToggleExpand={handleToggleExpand}
+        sortField={sortField}
+        sortOrder={sortOrder}
+        onSort={handleSort}
+        editingNameId={editingNameId}
+        editingNameValue={editingNameValue}
+        setEditingNameValue={setEditingNameValue}
+        onSaveRename={handleSaveRename}
+        onCancelRename={() => setEditingNameId(null)}
+        isInlineNameShaking={isInlineNameShaking}
+        onStartRename={handleStartRename}
+        onSelectForDrawer={(item) => setActiveDrawerItem(item)}
+        onSetStock={handleSetStock}
+        onOpenCategoryModal={(item) => setEditingCategoryItem(item)}
+        onOpenQuickEditModal={(item) => setQuickEditProductItem(item)}
+        onCreateOrder={handleCreateOrder}
+        onLoadIntoCalculator={handleLoadIntoCalculator}
+        onStageForAssembly={handleStageForAssembly}
+        stagedAssemblyParts={stagedAssemblyParts}
+        onOpenMoveProduct={(item) => setMovingProduct(item)}
+        onOpenStlModal={(item) => setEditingStlItem(item)}
+        onDelete={(id, name, type) => setDeletingProductItem({ id, name, type })}
+        onOpenEditCollection={(col) => {
+          setEditingCollection(col);
+          setIsCollectionModalOpen(true);
+        }}
+        onOpenAddVariantModal={(col) => setActiveAddVariantCollection(col)}
+        onOpenDeleteCollection={(col) => setDeletingCollection(col)}
+        salesStatsMap={salesStatsMap}
+        currencySymbol={currencySymbol}
+        categoriesList={categoriesList}
+        filaments={filaments}
+        printers={printers}
+        canUndo={historyStack.length > 0}
+        onUndo={handleUndo}
+        onOpenCreateCollection={() => {
+          setEditingCollection(null);
+          setIsCollectionModalOpen(true);
+        }}
+        onOpenNewAssemblyModal={() => {
+          setEditingAssembly(null);
+          setIsAssemblyModalOpen(true);
+        }}
+        onNavigateToCalculator={() => router.push('/calculator')}
       />
 
-      {/* Кнопки переключения фильтров списка: Все / Только товары / Только сборки */}
-      {savedCalculations.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-[#14171f] p-2 rounded-2xl border border-[#242930] select-none">
-          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
-            <button
-              onClick={() => setProductFilter('all')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 ${
-                productFilter === 'all'
-                  ? 'bg-amber-500/20 text-white border border-amber-500/50 shadow-sm'
-                  : 'text-gray-400 hover:text-white hover:bg-[#1f2430]'
-              }`}
-            >
-              <Package size={14} className={productFilter === 'all' ? 'text-amber-400' : 'text-gray-400'} />
-              <span>Все позиции</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                productFilter === 'all' ? 'bg-amber-500 text-black font-extrabold' : 'bg-gray-800 text-gray-400'
-              }`}>
-                {allCount}
-              </span>
-            </button>
+      {/* Боковая панель деталей товара (ProductDrawer) */}
+      <ProductDrawer
+        item={activeDrawerItem}
+        onClose={() => setActiveDrawerItem(null)}
+        onSetStock={handleSetStock}
+        onCreateOrder={handleCreateOrder}
+        onLoadIntoCalculator={handleLoadIntoCalculator}
+        onOpenQuickEdit={(item) => setQuickEditProductItem(item)}
+        onOpenMoveProduct={(item) => setMovingProduct(item)}
+        onOpenStlModal={(item) => setEditingStlItem(item)}
+        onDelete={(id, name, type) => setDeletingProductItem({ id, name, type })}
+        salesStat={activeDrawerItem ? salesStatsMap.get(activeDrawerItem.id) : undefined}
+        currencySymbol={currencySymbol}
+        categoriesList={categoriesList}
+        filaments={filaments}
+        printers={printers}
+        settings={settings}
+      />
 
-            <button
-              onClick={() => setProductFilter('single')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 ${
-                productFilter === 'single'
-                  ? 'bg-primary/20 text-white border border-primary/50 shadow-sm'
-                  : 'text-gray-400 hover:text-white hover:bg-[#1f2430]'
-              }`}
-            >
-              <Box size={14} className={productFilter === 'single' ? 'text-primary' : 'text-gray-400'} />
-              <span>Только товары</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                productFilter === 'single' ? 'bg-primary text-black font-extrabold' : 'bg-gray-800 text-gray-400'
-              }`}>
-                {singleCount}
-              </span>
-            </button>
+      {/* -------------------- МОДАЛЬНЫЕ ОКНА -------------------- */}
 
-            <button
-              onClick={() => setProductFilter('assembly')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 ${
-                productFilter === 'assembly'
-                  ? 'bg-amber-500/20 text-white border border-amber-500/50 shadow-sm'
-                  : 'text-gray-400 hover:text-white hover:bg-[#1f2430]'
-              }`}
-            >
-              <Layers size={14} className={productFilter === 'assembly' ? 'text-amber-400' : 'text-gray-400'} />
-              <span>Только сборки</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                productFilter === 'assembly' ? 'bg-amber-500 text-black font-extrabold' : 'bg-gray-800 text-gray-400'
-              }`}>
-                {assemblyCount}
-              </span>
-            </button>
+      {/* 1. Коллекция */}
+      <CollectionModal
+        isOpen={isCollectionModalOpen}
+        onClose={() => setIsCollectionModalOpen(false)}
+        editingCollection={editingCollection}
+        categoryOptions={categoryFilterOptions}
+        savedCalculations={savedCalculations}
+        currencySymbol={currencySymbol}
+        onSave={handleSaveCollection}
+      />
 
-            {lowStockCount > 0 && (
-              <button
-                onClick={() => setProductFilter(productFilter === 'low_stock' ? 'all' : 'low_stock')}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-2 ${
-                  productFilter === 'low_stock'
-                    ? 'bg-amber-500/30 text-amber-200 border border-amber-500/60 shadow-sm animate-pulse'
-                    : 'text-amber-400 hover:bg-amber-500/10 border border-amber-500/30'
-                }`}
-                title="Показать только позиции с малым остатком или отсутствующие"
-              >
-                <AlertTriangle size={14} className="text-amber-400" />
-                <span>Заканчиваются</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-mono bg-amber-500 text-black font-extrabold">
-                  {lowStockCount}
-                </span>
-              </button>
-            )}
+      {/* 2. Удаление коллекции */}
+      <DeleteCollectionModal
+        collection={deletingCollection}
+        onClose={() => setDeletingCollection(null)}
+        onConfirm={handleConfirmDeleteCollection}
+      />
 
-            <div className="flex items-center gap-1.5 pl-2 border-l border-[#242930] ml-1">
-              <Folder size={13} className="text-amber-400 hidden sm:inline" />
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="bg-[#0d0e12] border border-[#242930] text-xs text-gray-300 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-amber-500 cursor-pointer font-sans"
-              >
-                <option value="all">📦 Все категории</option>
-                {categoriesList.map(cat => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.icon} {cat.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+      {/* 3. Добавить вариант в коллекцию */}
+      <AddVariantModal
+        collection={activeAddVariantCollection}
+        onClose={() => setActiveAddVariantCollection(null)}
+        savedCalculations={savedCalculations}
+        filaments={filaments}
+        printers={printers}
+        onConfirm={handleSaveAddVariant}
+        onNavigateToCalculator={() => router.push('/calculator')}
+      />
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="text-xs text-gray-400 font-mono hidden md:block">
-              Отображено: <strong className="text-white">{filteredCalculations.length}</strong> из {allCount}
-            </div>
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleUndo}
-              disabled={historyStack.length === 0}
-              className={`p-2 rounded-xl transition-all flex items-center justify-center shrink-0 ${
-                historyStack.length > 0
-                  ? 'border-amber-500/40 text-amber-400 hover:bg-amber-500/10 cursor-pointer shadow-sm animate-scale-in'
-                  : 'border-[#242930] text-gray-600 opacity-40 cursor-not-allowed'
-              }`}
-              title={historyStack.length > 0 ? "Отменить последнее действие (Ctrl+Z)" : "Нет действий для отмены"}
-            >
-              <RotateCcw size={14} className={historyStack.length > 0 ? 'text-amber-400' : 'text-gray-600'} />
-            </Button>
-
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsBulkDeleteModalOpen(true)}
-              className="border-red-500/30 text-red-400 hover:bg-red-500/10 flex items-center gap-1.5 py-1 px-2.5 cursor-pointer text-xs transition-colors shrink-0"
-              title="Удалить все товары и сборки из каталога"
-            >
-              <Trash2 size={13} />
-              <span>Удалить всё</span>
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Единая Таблица товаров и сборок */}
-      <Card>
-        {savedCalculations.length === 0 ? (
-          <div className="py-16 text-center flex flex-col items-center justify-center gap-4 select-none">
-            <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center text-amber-500">
-              <Package size={24} />
-            </div>
-            <div className="max-w-sm">
-              <h3 className="text-white font-semibold text-base mb-1">Список товаров пуст</h3>
-              <p className="text-neutral-accent text-xs">
-                Сохраняйте расчеты из калькулятора или создавайте составные сборки изделий с фурнитурой.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              {historyStack.length > 0 && (
-                <Button size="sm" onClick={handleUndo} variant="outline" className="flex items-center gap-1.5 border-amber-500/50 text-amber-400 bg-amber-500/10 cursor-pointer">
-                  <RotateCcw size={14} /> Отменить удаление (Ctrl+Z)
-                </Button>
-              )}
-              <Button size="sm" onClick={handleOpenNewAssemblyModal} variant="outline" className="flex items-center gap-1.5 border-amber-500/40 text-amber-400">
-                <Layers size={14} /> Создать сборку
-              </Button>
-              <Button size="sm" onClick={() => router.push('/calculator')} className="flex items-center gap-1.5">
-                <Calculator size={14} /> В калькулятор
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <Table
-            columns={columns}
-            data={filteredCalculations}
-            keyExtractor={(item) => item.id}
-            isSearchable={true}
-            pageSize={15}
-            renderSubRow={renderSubRow}
-          />
-        )}
-      </Card>
-
-      {/* Модальное окно создания / редактирования Составного товара (Сборки) */}
-      <Modal
+      {/* 4. Конструктор сборки */}
+      <AssemblyModal
         isOpen={isAssemblyModalOpen}
         onClose={() => setIsAssemblyModalOpen(false)}
-        title="Конструктор сборного изделия (Составной товар)"
-        maxWidth="3xl"
-        footer={
-          savedCalculations.filter(c => c.type !== 'assembly').length === 0 ? (
-            <div className="flex justify-end select-none">
-              <Button type="button" variant="outline" onClick={() => setIsAssemblyModalOpen(false)}>
-                Закрыть
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between gap-3 select-none">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-400">Итог продажи:</span>
-                <span className="font-mono text-amber-400 font-bold text-sm">
-                  {formatCurrency(totals.grandFinalPrice, currencySymbol)}
-                </span>
-                <span className="text-xs text-gray-500 font-mono">({totals.totalWeight}г • {totals.totalHours}ч {totals.totalMins}м)</span>
-              </div>
+        editingAssembly={editingAssembly}
+        stagedParts={stagedAssemblyParts}
+        savedCalculations={savedCalculations}
+        filaments={filaments}
+        printers={printers}
+        laborRate={laborRate}
+        currencySymbol={currencySymbol}
+        onSave={handleSaveAssembly}
+      />
 
-              <div className="flex items-center gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsAssemblyModalOpen(false)}>
-                  Отмена
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="primary" 
-                  onClick={() => {
-                    const form = document.getElementById('assemblyForm') as HTMLFormElement;
-                    if (form) form.requestSubmit();
-                  }} 
-                  className="bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white border-none shadow-lg shadow-amber-500/25 cursor-pointer"
-                >
-                  Сохранить сборку
-                </Button>
-              </div>
-            </div>
-          )
-        }
-      >
-        {savedCalculations.filter(c => c.type !== 'assembly').length === 0 ? (
-          <div className="p-6 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex flex-col items-center justify-center gap-3 text-center select-none my-4">
-            <div className="p-3.5 rounded-2xl bg-amber-500/20 text-amber-400">
-              <AlertTriangle size={32} />
-            </div>
-            <div className="space-y-1">
-              <h4 className="text-base font-bold text-white">
-                В каталоге пока нет сохраненных 3D-деталей
-              </h4>
-              <p className="text-xs text-gray-300 max-w-md leading-relaxed">
-                Чтобы создать сборное изделие, сначала рассчитайте и сохраните хотя бы одну деталь в Калькуляторе.
-              </p>
-            </div>
-            <Button
-              type="button"
-              size="md"
-              onClick={() => {
-                setIsAssemblyModalOpen(false);
-                router.push('/calculator');
-              }}
-              className="mt-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-bold text-xs flex items-center gap-2 border-none shadow-lg shadow-amber-500/25 cursor-pointer"
-            >
-              <Calculator size={16} />
-              <span>Перейти в Калькулятор</span>
-            </Button>
-          </div>
-        ) : (
-          <form id="assemblyForm" onSubmit={handleSaveAssembly} className="flex flex-col gap-5 select-none pr-1">
-            {/* Пометка об отложенных товарах из таблицы */}
-            {stagedAssemblyParts.length > 0 && (
-              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between gap-2 text-xs">
-                <div className="flex items-center gap-2 text-amber-300 font-medium">
-                  <Sparkles size={16} className="text-amber-400 shrink-0" />
-                  <span>Из таблицы предварительно добавлено: <strong className="text-white">{stagedAssemblyParts.reduce((acc, p) => acc + p.quantity, 0)} шт. деталей</strong></span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStagedAssemblyParts([]);
-                    setAssemblyParts([]);
-                  }}
-                  className="px-2 py-0.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-[10px] font-mono font-bold rounded-md cursor-pointer transition-colors"
-                >
-                  Очистить черновик
-                </button>
-              </div>
-            )}
+      {/* 5. Перемещение в коллекцию */}
+      <MoveProductModal
+        movingProduct={movingProduct}
+        selectedIds={selectedIds}
+        isBatchMoveOpen={isBatchMoveOpen}
+        collections={collections}
+        savedCalculations={savedCalculations}
+        onClose={() => {
+          setMovingProduct(null);
+          setIsBatchMoveOpen(false);
+        }}
+        onSaveSingle={handleSaveProductMoveSingle}
+        onSaveBatch={handleSaveProductMoveBatch}
+      />
 
-            {/* Название сборки */}
-            <Input
-              label="Название сборного изделия"
-              placeholder="напр. Корпус квадрокоптера Mark-4 v2"
-              value={assemblyName}
-              onChange={(e) => {
-                setAssemblyName(e.target.value);
-                if (isNameShaking) setIsNameShaking(false);
-              }}
-              requiredStar={true}
-              isShaking={isNameShaking}
-              autoFocus
-            />
+      {/* 6. Пересчет цен */}
+      <RecalculateModal
+        isOpen={isRecalcModalOpen}
+        onClose={() => setIsRecalcModalOpen(false)}
+        selectedCount={selectedIds.length}
+        totalCount={savedCalculations.length}
+        isRecalculating={isRecalculating}
+        onConfirm={handleConfirmRecalculate}
+      />
 
-            {/* Раздел 1: 3D-Печатные детали */}
-            <div className="flex flex-col gap-2.5 p-4 bg-[#14171f] border border-[#242930] rounded-2xl">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Box size={16} className="text-amber-400" />
-                  <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-                    1. 3D-Печатные детали ({assemblyParts.length})
-                  </h4>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleAddCustomPartToAssembly}
-                  className="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1 cursor-pointer"
-                >
-                  <Plus size={14} /> Своя деталь
-                </button>
-              </div>
-
-              {/* Выбор детали из существующих товаров */}
-              <div className="flex items-center gap-2 mt-1">
-                <Select
-                  value={selectedProductId}
-                  onChange={(val) => setSelectedProductId(val)}
-                  isSearchable={true}
-                  placeholder="-- Поиск или выбор детали из каталога --"
-                  options={[
-                    { value: '', label: '-- Поиск / Выбор детали из каталога товаров --' },
-                    ...savedCalculations
-                      .filter(c => c.type !== 'assembly')
-                      .map(c => ({
-                        value: c.id,
-                        label: `${c.name} (${c.weight_g}г, ${c.hours}ч ${c.minutes}м, ${c.filament_name})`
-                      }))
-                  ]}
-                  className="flex-1 text-xs"
-                />
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={handleAddSelectedProductToAssembly}
-                  disabled={!selectedProductId}
-                  className="shrink-0 text-xs border-amber-500/30 text-amber-400"
-                >
-                  Добавить
-                </Button>
-              </div>
-
-            {/* Список добавленных печатных деталей */}
-            {assemblyParts.length === 0 ? (
-              <div className="p-4 text-center border border-dashed border-[#242930] rounded-xl text-gray-500 text-xs">
-                Нет добавленных 3D-деталей. Выберите из каталога или нажмите «Своя деталь».
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2.5 mt-2">
-                {assemblyParts.map((part, idx) => (
-                  <div key={part.id || idx} className="p-3 bg-[#1c202a] border border-[#242930] rounded-xl flex flex-col gap-3">
-                    <div className="flex items-center justify-between gap-3 border-b border-[#242930]/60 pb-2">
-                      <span className="text-sm sm:text-base font-bold text-white tracking-wide truncate min-w-0 flex-1" title={part.name}>
-                        {part.name}
-                      </span>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        {part.filament_name && (
-                          <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-mono font-semibold rounded-md">
-                            {part.filament_name}
-                          </span>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() => setAssemblyParts(prev => prev.filter((_, i) => i !== idx))}
-                          className="p-1 text-gray-400 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer"
-                          title="Удалить деталь"
-                        >
-                          <X size={15} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Кастомный каунтер количества + нередактируемые авто-расчитанные индикаторы */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 bg-[#14171f] p-2.5 rounded-lg border border-[#242930]/60">
-                      <div className="shrink-0">
-                        <NumberCounter
-                          label="КОЛИЧЕСТВО (ШТ)"
-                          value={part.quantity}
-                          min={1}
-                          max={99}
-                          onChange={(newQty) => {
-                            setAssemblyParts(prev => prev.map((p, i) => i === idx ? { ...p, quantity: newQty } : p));
-                          }}
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-4 font-mono text-xs text-right ml-auto">
-                        <div>
-                          <span className="text-[10px] text-gray-400 uppercase tracking-wider block font-sans">Сумм. Вес</span>
-                          <span className="text-neutral-accent font-bold">
-                            {Math.round((part.weight_g || 0) * part.quantity * 100) / 100}г
-                          </span>
-                        </div>
-
-                        <div>
-                          <span className="text-[10px] text-gray-400 uppercase tracking-wider block font-sans">Себестоимость</span>
-                          <span className="text-gray-400 font-bold">
-                            {formatCurrency(Math.round(((part.base_cost || 0) * part.quantity) * 100) / 100, currencySymbol)}
-                          </span>
-                        </div>
-
-                        <div>
-                          <span className="text-[10px] text-gray-400 uppercase tracking-wider block font-sans">Цена продажи</span>
-                          <span className="text-emerald-400 font-bold">
-                            {formatCurrency(Math.round(((part.final_price || 0) * part.quantity) * 100) / 100, currencySymbol)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Раздел 2: Покупная фурнитура и метизы */}
-          <div className="flex flex-col gap-2.5 p-4 bg-[#14171f] border border-[#242930] rounded-2xl">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Wrench size={16} className="text-amber-400" />
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-                  2. Фурнитура и Метизы ({assemblyHardware.length})
-                </h4>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleAddHardwareToAssembly}
-                className="text-xs text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1 cursor-pointer"
-              >
-                <Plus size={14} /> Метиз/Фурнитура
-              </button>
-            </div>
-
-            {assemblyHardware.length === 0 ? (
-              <div className="p-3 text-center border border-dashed border-[#242930] rounded-xl text-gray-500 text-xs">
-                Фурнитура и метизы не добавлены (нажмите «+ Метиз/Фурнитура» для добавления винтов, магнитов, втулок).
-              </div>
-            ) : (
-              <div className="flex flex-col gap-2 mt-1">
-                {assemblyHardware.map((hw, idx) => (
-                  <div key={hw.id || idx} className="p-3 bg-[#1c202a] border border-[#242930] rounded-xl flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
-                    <Input
-                      placeholder="Название (напр. Винты M3x10)"
-                      value={hw.name}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setAssemblyHardware(prev => prev.map((h, i) => i === idx ? { ...h, name: val } : h));
-                      }}
-                      className="flex-1 text-xs font-semibold"
-                    />
-
-                    <div className="shrink-0">
-                      <NumberCounter
-                        value={hw.quantity}
-                        min={1}
-                        max={999}
-                        onChange={(newQty) => {
-                          setAssemblyHardware(prev => prev.map((h, i) => i === idx ? { ...h, quantity: newQty } : h));
-                        }}
-                      />
-                    </div>
-
-                    <div className="w-24 sm:w-28 shrink-0">
-                      <Input
-                        type="number"
-                        min="0"
-                        placeholder="Закуп. (₽)"
-                        value={hw.cost_per_unit}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setAssemblyHardware(prev => prev.map((h, i) => i === idx ? { ...h, cost_per_unit: val } : h));
-                        }}
-                        className="text-xs text-center"
-                      />
-                    </div>
-
-                    <div className="w-24 sm:w-28 shrink-0">
-                      <Input
-                        type="number"
-                        min="0"
-                        placeholder="Продажа (₽)"
-                        value={hw.price_per_unit}
-                        onChange={(e) => {
-                          const val = parseFloat(e.target.value) || 0;
-                          setAssemblyHardware(prev => prev.map((h, i) => i === idx ? { ...h, price_per_unit: val } : h));
-                        }}
-                        className="text-xs text-center"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setAssemblyHardware(prev => prev.filter((_, i) => i !== idx))}
-                      className="p-1.5 text-gray-400 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer shrink-0"
-                      title="Удалить фурнитуру"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Раздел 3: Работа мастера по сборке */}
-          <div className="p-4 bg-[#14171f] border border-[#242930] rounded-2xl flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">
-                <Wrench size={18} />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-                  3. Время работы мастера на сборку
-                </h4>
-                <p className="text-[11px] text-gray-400 font-mono mt-0.5">
-                  Ставка: {laborRate} {currencySymbol}/час • Работа: {totals.laborCost} {currencySymbol}
-                </p>
-              </div>
-            </div>
-
-            <div className="shrink-0">
-              <NumberCounter
-                label="ВРЕМЯ (МИНУТ)"
-                value={parseInt(assemblyLaborMinutes, 10) || 0}
-                min={0}
-                max={600}
-                step={5}
-                onChange={(newMins) => setAssemblyLaborMinutes(newMins.toString())}
-              />
-            </div>
-          </div>
-
-          {/* Итоговая экономика сборки */}
-          <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex flex-col gap-2">
-            <div className="flex items-center justify-between text-xs font-semibold text-amber-200">
-              <span>Сводка по сборному изделию:</span>
-              <span className="font-mono">{totals.totalWeight}г • {totals.totalHours}ч {totals.totalMins}м</span>
-            </div>
-            
-            <div className="flex items-center justify-between pt-2 border-t border-amber-500/20 text-xs">
-              <span className="text-gray-300">Себестоимость сборки:</span>
-              <span className="font-mono text-gray-400 font-bold">{formatCurrency(totals.grandBaseCost, currencySymbol)}</span>
-            </div>
-
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-white font-bold">Рекомендуемая цена продажи:</span>
-              <span className="font-mono text-amber-400 font-extrabold text-base">{formatCurrency(totals.grandFinalPrice, currencySymbol)}</span>
-            </div>
-          </div>
-        </form>
-      )}
-      </Modal>
-
-      {/* Модальное окно выбора когда есть и файл, и ссылка */}
-      <Modal
-        isOpen={Boolean(activeStlChoiceItem)}
-        onClose={() => setActiveStlChoiceItem(null)}
-        title="Выберите действие для 3D-модели"
-      >
-        {activeStlChoiceItem && (
-          <div className="flex flex-col gap-4">
-            <p className="text-gray-300 text-sm">
-              Для товара <strong className="text-white">{activeStlChoiceItem.name}</strong> доступны и ссылка, и сохраненный файл:
-            </p>
-
-            <div className="flex flex-col gap-2.5">
-              {activeStlChoiceItem.stl_url && (
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    window.open(activeStlChoiceItem.stl_url, '_blank');
-                    setActiveStlChoiceItem(null);
-                  }}
-                  className="flex items-center justify-center gap-2"
-                >
-                  <ExternalLink size={16} /> Открыть ссылку ({activeStlChoiceItem.stl_url})
-                </Button>
-              )}
-
-              {activeStlChoiceItem.stl_file_data && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    downloadStlFile(activeStlChoiceItem);
-                    setActiveStlChoiceItem(null);
-                  }}
-                  className="flex items-center justify-center gap-2"
-                >
-                  <Download size={16} /> Скачать файл ({activeStlChoiceItem.stl_file_name || 'модель.stl'})
-                </Button>
-              )}
-            </div>
-
-            <div className="flex justify-between border-t border-[#242930]/40 pt-4 mt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const item = activeStlChoiceItem;
-                  setActiveStlChoiceItem(null);
-                  handleOpenEditStl(item);
-                }}
-                className="text-neutral-accent hover:text-white text-xs flex items-center gap-1 cursor-pointer"
-              >
-                <Edit2 size={13} /> Настройки STL
-              </button>
-
-              <Button variant="outline" size="sm" onClick={() => setActiveStlChoiceItem(null)}>
-                Закрыть
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      {/* Модальное окно управления STL у товара */}
-      <Modal
-        isOpen={Boolean(editingStlItem)}
+      {/* 7. Редактирование STL */}
+      <EditStlModal
+        item={editingStlItem}
         onClose={() => setEditingStlItem(null)}
-        title={`Управление 3D-моделью: ${editingStlItem?.name}`}
-      >
-        {editingStlItem && (
-          <form onSubmit={handleSaveStlEdit} className="flex flex-col gap-4 select-none">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-[#9ca3af]">
-                Ссылка на 3D-модель (Thingiverse, Printables, Облако)
-              </label>
-              <div className="flex items-center gap-2">
-                <Input
-                  placeholder="https://..."
-                  value={editStlUrl}
-                  onChange={(e) => setEditStlUrl(e.target.value)}
-                  className="flex-1"
-                />
+        onSave={handleSaveStl}
+      />
 
-                <div className="flex items-center gap-1 shrink-0">
-                  {editStlUrl && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => window.open(editStlUrl, '_blank')}
-                        className="w-9 h-9 bg-[#242930] hover:bg-emerald-500/20 text-emerald-400 border border-[#242930] rounded-xl flex items-center justify-center transition-colors cursor-pointer"
-                        title="Проверить ссылку"
-                      >
-                        <ExternalLink size={15} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditStlUrl('')}
-                        className="w-9 h-9 bg-[#242930] hover:bg-red-500/20 text-gray-400 hover:text-red-400 border border-[#242930] rounded-xl flex items-center justify-center transition-colors cursor-pointer"
-                        title="Удалить ссылку"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
+      {/* 8. Категория и теги */}
+      <CategoryModal
+        item={editingCategoryItem}
+        categoryOptions={categoryFilterOptions}
+        onClose={() => setEditingCategoryItem(null)}
+        onSave={handleSaveCategory}
+        onCreateCategory={handleCreateCategory}
+      />
 
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-[#9ca3af]">
-                Файл STL / 3MF (для скачивания)
-              </label>
-              
-              <div className="flex items-center justify-between gap-3 p-3 bg-[#1a1d24] border border-[#242930] rounded-xl">
-                <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border ${
-                    editStlFileName ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-[#242930] text-gray-500 border-[#242930]'
-                  }`}>
-                    <FileCode size={16} />
-                  </div>
-                  
-                  <div className="min-w-0 flex-1">
-                    {editStlFileName ? (
-                      <span className="text-xs font-semibold text-emerald-400 font-mono truncate block" title={editStlFileName}>
-                        {editStlFileName}
-                      </span>
-                    ) : (
-                      <span className="text-gray-500 text-xs truncate block select-none">Файл не загружен</span>
-                    )}
-                  </div>
-                </div>
+      {/* 9. Удаление одного товара */}
+      <DeleteProductModal
+        item={deletingProductItem}
+        onClose={() => setDeletingProductItem(null)}
+        onConfirm={handleConfirmDeleteProduct}
+      />
 
-                <div className="flex items-center gap-1 shrink-0">
-                  <label className="w-9 h-9 bg-[#242930] hover:bg-primary/20 text-gray-300 hover:text-white border border-[#242930] rounded-xl flex items-center justify-center transition-colors cursor-pointer" title={editStlFileName ? 'Заменить файл' : 'Загрузить файл'}>
-                    <Upload size={15} />
-                    <input
-                      type="file"
-                      accept=".stl,.3mf,.obj,.zip"
-                      onChange={(e) => {
-                        if (!isOnline) {
-                          showWarning(
-                            'Загрузка локальных файлов STL доступна только при подключенном Supabase (облачном хранилище). Используйте ссылку на 3D-модель или подключите Supabase в Настройках.',
-                            'Требуется Supabase'
-                          );
-                          e.target.value = '';
-                          return;
-                        }
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        setEditStlFileName(file.name);
-                        const reader = new FileReader();
-                        reader.onload = (evt) => {
-                          setEditStlFileData(evt.target?.result as string);
-                        };
-                        reader.readAsDataURL(file);
-                      }}
-                      className="hidden"
-                    />
-                  </label>
+      {/* 10. Очистка каталога */}
+      <ClearCatalogModal
+        isOpen={isBulkDeleteOpen}
+        onClose={() => setIsBulkDeleteOpen(false)}
+        onConfirm={handleConfirmBulkDelete}
+      />
 
-                  {editStlFileData && (
-                    <button
-                      type="button"
-                      onClick={() => downloadStlFile({ ...editingStlItem, stl_file_data: editStlFileData, stl_file_name: editStlFileName })}
-                      className="w-9 h-9 bg-[#242930] hover:bg-emerald-500/20 text-emerald-400 border border-[#242930] rounded-xl flex items-center justify-center transition-colors cursor-pointer"
-                      title="Скачать файл"
-                    >
-                      <Download size={15} />
-                    </button>
-                  )}
-
-                  {editStlFileName && (
-                    <button
-                      type="button"
-                      onClick={() => { setEditStlFileName(''); setEditStlFileData(''); }}
-                      className="w-9 h-9 bg-[#242930] hover:bg-red-500/20 text-gray-400 hover:text-red-400 border border-[#242930] rounded-xl flex items-center justify-center transition-colors cursor-pointer"
-                      title="Удалить файл"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between border-t border-[#242930]/40 pt-4 mt-2">
-              <div />
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={() => setEditingStlItem(null)}>
-                  Отмена
-                </Button>
-                <Button type="submit">
-                  Сохранить
-                </Button>
-              </div>
-            </div>
-          </form>
-        )}
-      </Modal>
-
-      {/* Модальное окно подтверждения удаления товара / сборки */}
-      <Modal
-        isOpen={Boolean(deletingItem)}
-        onClose={() => setDeletingItem(null)}
-        title="Подтверждение удаления"
-        maxWidth="md"
-        footer={
-          <div className="flex items-center justify-end gap-2.5">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setDeletingItem(null)}
-              disabled={isDeleting}
-            >
-              Отмена
-            </Button>
-            <Button
-              type="button"
-              onClick={confirmDelete}
-              disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-500 text-white border-none shadow-lg shadow-red-600/30 cursor-pointer flex items-center gap-1.5"
-            >
-              <Trash2 size={15} />
-              <span>{isDeleting ? 'Удаление...' : 'Да, удалить'}</span>
-            </Button>
-          </div>
-        }
-      >
-        <div className="flex flex-col gap-4 py-1 select-none">
-          <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-start gap-3.5">
-            <div className="p-2.5 rounded-xl bg-red-500/20 text-red-400 shrink-0 mt-0.5">
-              <AlertTriangle size={22} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-bold text-red-200 mb-1">
-                Вы действительно хотите удалить {deletingItem?.type === 'assembly' ? 'сборку' : 'товар'}?
-              </h4>
-              <p className="text-xs text-gray-300 leading-relaxed font-medium">
-                Наименование: <strong className="text-white">«{deletingItem?.name}»</strong>
-              </p>
-              <p className="text-[11px] text-gray-400 mt-2">
-                ⚠️ Это действие нельзя будет отменить. Данный объект будет навсегда удален из вашего каталога.
-              </p>
-            </div>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Модальное окно массового удаления всех товаров */}
-      <Modal
-        isOpen={isBulkDeleteModalOpen}
-        onClose={() => setIsBulkDeleteModalOpen(false)}
-        title="Очистка всего каталога"
-        maxWidth="md"
-        footer={
-          <div className="flex items-center justify-end gap-2.5 select-none">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsBulkDeleteModalOpen(false)}
-              disabled={isBulkDeleting}
-            >
-              Отмена
-            </Button>
-            <Button
-              type="button"
-              onClick={handleConfirmBulkDelete}
-              disabled={isBulkDeleting}
-              className="bg-red-600 hover:bg-red-500 text-white border-none shadow-lg shadow-red-600/30 cursor-pointer flex items-center gap-1.5"
-            >
-              <Trash2 size={15} />
-              <span>{isBulkDeleting ? 'Очистка...' : 'Да, удалить всё'}</span>
-            </Button>
-          </div>
-        }
-      >
-        <div className="flex flex-col gap-4 py-1 select-none">
-          <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-start gap-3.5">
-            <div className="p-2.5 rounded-xl bg-red-500/20 text-red-400 shrink-0 mt-0.5">
-              <AlertTriangle size={24} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-bold text-red-200 mb-1">
-                Вы действительно хотите полностью очистить весь каталог?
-              </h4>
-              <p className="text-xs text-gray-300 leading-relaxed font-medium">
-                Будет безвозвратно удалено <strong className="text-white font-mono">{savedCalculations.length} позиций</strong> (все сохраненные 3D-детали и составные сборки).
-              </p>
-              <p className="text-[11px] text-gray-400 mt-2 font-mono">
-                ⚠️ Внимание: Это действие нельзя отменить!
-              </p>
-            </div>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Модальное окно быстрой смены Категории и Тегов товара */}
-      <Modal
-        isOpen={Boolean(editingCategoryItem)}
-        onClose={() => { setEditingCategoryItem(null); setIsCreatingCategory(false); }}
-        title={`Категория и теги: ${editingCategoryItem?.name || ''}`}
-        maxWidth="md"
-      >
-        <form onSubmit={handleSaveCategoryAndTags} className="space-y-4 pt-1">
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center gap-1.5">
-              <Folder size={14} className="text-amber-400" />
-              Категория товара
-            </label>
-
-            {!isCreatingCategory ? (
-              <select
-                value={categoryDraft}
-                onChange={(e) => {
-                  if (e.target.value === '__new__') {
-                    setIsCreatingCategory(true);
-                  } else {
-                    setCategoryDraft(e.target.value);
-                  }
-                }}
-                className="w-full bg-[#1a1d26] border border-[#262a36] text-sm text-white rounded-xl px-3 py-2 focus:outline-none focus:border-amber-500 cursor-pointer font-sans"
-              >
-                {categoriesList.map(cat => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.icon} {cat.label}
-                  </option>
-                ))}
-                <option value="__new__">➕ Создать новую категорию...</option>
-              </select>
-            ) : (
-              <div className="p-3 bg-[#14171f] border border-amber-500/40 rounded-xl space-y-3 animate-scale-in">
-                <div className="text-xs font-bold text-amber-400 flex items-center gap-1">
-                  <Folder size={13} /> Создание новой категории
-                </div>
-                <div className="flex items-center gap-2">
-                  <select
-                    value={newCategoryIcon}
-                    onChange={(e) => setNewCategoryIcon(e.target.value)}
-                    className="bg-[#1a1d26] border border-[#262a36] text-base rounded-xl p-2 focus:outline-none focus:border-amber-500 cursor-pointer shrink-0"
-                  >
-                    <option value="📦">📦</option>
-                    <option value="🚗">🚗</option>
-                    <option value="🏠">🏠</option>
-                    <option value="⚙️">⚙️</option>
-                    <option value="🎮">🎮</option>
-                    <option value="🔧">🔧</option>
-                    <option value="🏷️">🏷️</option>
-                    <option value="💡">💡</option>
-                    <option value="🚀">🚀</option>
-                    <option value="🎁">🎁</option>
-                    <option value="🧸">🧸</option>
-                    <option value="🛠️">🛠️</option>
-                  </select>
-
-                  <Input
-                    placeholder="Название (напр. Медицина, Модели)"
-                    value={newCategoryName}
-                    onChange={(e) => setNewCategoryName(e.target.value)}
-                    autoFocus
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 pt-1">
-                  <Button type="button" variant="outline" size="sm" onClick={() => setIsCreatingCategory(false)}>
-                    Отмена
-                  </Button>
-                  <Button type="button" size="sm" onClick={handleConfirmCreateCategory} className="bg-amber-500 hover:bg-amber-600 text-black font-bold border-none">
-                    Создать
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center gap-1.5">
-              <Tag size={14} className="text-amber-400" />
-              Теги товара (через запятую)
-            </label>
-            <Input
-              placeholder="например: PLA, Срочно, Популярное, Авито"
-              value={tagsInputDraft}
-              onChange={(e) => setTagsInputDraft(e.target.value)}
-            />
-            <p className="text-[11px] text-gray-500 mt-1">
-              Указывайте любые ключевые слова через запятую. Они отобразятся в виде бэйджей #тег под товаром.
-            </p>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-3 border-t border-[#242930]">
-            <Button type="button" variant="outline" size="sm" onClick={() => setEditingCategoryItem(null)}>
-              Отмена
-            </Button>
-            <Button type="submit" size="sm" className="bg-amber-500 hover:bg-amber-600 text-black font-bold border-none">
-              Сохранить
-            </Button>
-          </div>
-        </form>
-      </Modal>
+      {/* 11. Быстрое полное редактирование параметров товара */}
+      <QuickEditProductModal
+        item={quickEditProductItem}
+        filaments={filaments}
+        printers={printers}
+        categoryOptions={categoryFilterOptions}
+        onClose={() => setQuickEditProductItem(null)}
+        onSave={handleSaveQuickEdit}
+      />
     </div>
   );
 }

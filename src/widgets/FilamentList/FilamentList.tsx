@@ -21,6 +21,7 @@ export function FilamentList() {
   // Состояния для модального окна формы
   const [isOpen, setIsOpen] = useState(false);
   const [editingFilament, setEditingFilament] = useState<Filament | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Состояния полей формы
   const [name, setName] = useState('');
@@ -95,8 +96,13 @@ export function FilamentList() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (confirm(`Вы уверены, что хотите удалить филамент "${name}"?`)) {
-      await deleteFilament(id);
+    setDeleteTarget({ id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (deleteTarget) {
+      await deleteFilament(deleteTarget.id);
+      setDeleteTarget(null);
     }
   };
 
@@ -221,7 +227,8 @@ export function FilamentList() {
             data={filaments}
             keyExtractor={(item) => item.id}
             isSearchable={true}
-            pageSize={15}
+            infiniteScroll={true}
+            batchSize={25}
           />
         )}
       </Card>
@@ -283,6 +290,25 @@ export function FilamentList() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Модальное окно подтверждения удаления */}
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Удалить филамент?"
+        variant="warning"
+        maxWidth="sm"
+        footer={
+          <div className="flex gap-3 justify-end">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Отмена</Button>
+            <Button variant="danger" onClick={confirmDelete}>Удалить</Button>
+          </div>
+        }
+      >
+        <p className="text-sm text-gray-300">
+          Вы уверены, что хотите удалить филамент <strong className="text-white">«{deleteTarget?.name}»</strong>? Это действие нельзя отменить.
+        </p>
       </Modal>
     </div>
   );

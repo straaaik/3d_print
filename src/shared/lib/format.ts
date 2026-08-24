@@ -3,7 +3,7 @@
  * Пример: 1250.5 -> "1 250,50 ₽"
  */
 export function formatCurrency(amount: number, currency: string = '₽'): string {
-  if (isNaN(amount) || amount === null || amount === undefined) {
+  if (isNaN(amount) || amount === null || amount === undefined || !isFinite(amount)) {
     amount = 0;
   }
 

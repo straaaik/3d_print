@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { Filament, Printer, Settings, SupabaseConfig, SavedCalculation } from '../../shared/types';
+import { Filament, Printer, Settings, SavedCalculation, CustomCostItem, ProductCollection } from '../../shared/types';
 import * as api from '../../shared/api/db';
 
 interface DataContextType {
@@ -9,6 +9,7 @@ interface DataContextType {
   printers: Printer[];
   settings: Settings | null;
   savedCalculations: SavedCalculation[];
+  collections: ProductCollection[];
   isLoading: boolean;
   isOnline: boolean;
   
@@ -30,6 +31,28 @@ interface DataContextType {
   setCalcFilamentId: (val: string) => void;
   calcPrinterId: string;
   setCalcPrinterId: (val: string) => void;
+  calcLaborMinutes: string;
+  setCalcLaborMinutes: (val: string) => void;
+  calcLaborRate: string;
+  setCalcLaborRate: (val: string) => void;
+  calcMarkup: string;
+  setCalcMarkup: (val: string) => void;
+  calcDefect: string;
+  setCalcDefect: (val: string) => void;
+  calcIsOwnerLabor: boolean;
+  setCalcIsOwnerLabor: (val: boolean) => void;
+  calcIsLaborPerUnit: boolean;
+  setCalcIsLaborPerUnit: (val: boolean) => void;
+  calcDiscountType: 'percent' | 'fixed';
+  setCalcDiscountType: (val: 'percent' | 'fixed') => void;
+  calcDiscountValue: string;
+  setCalcDiscountValue: (val: string) => void;
+  calcUrgencyType: 'percent' | 'fixed';
+  setCalcUrgencyType: (val: 'percent' | 'fixed') => void;
+  calcUrgencyValue: string;
+  setCalcUrgencyValue: (val: string) => void;
+  calcCustomCostItems: CustomCostItem[];
+  setCalcCustomCostItems: React.Dispatch<React.SetStateAction<CustomCostItem[]>>;
   resetCalculator: () => void;
   
   // Filaments actions
@@ -50,10 +73,22 @@ interface DataContextType {
   updateSavedCalculation: (calc: SavedCalculation) => Promise<SavedCalculation>;
   deleteSavedCalculation: (id: string) => Promise<void>;
   clearAllSavedCalculations: () => Promise<void>;
+  restoreAllSavedCalculations: (calculations: SavedCalculation[]) => Promise<void>;
+  setSavedCalculations: React.Dispatch<React.SetStateAction<SavedCalculation[]>>;
+
+  // Collections actions
+  addCollection: (collection: Omit<ProductCollection, 'id' | 'created_at'> & { id?: string }) => Promise<ProductCollection>;
+  updateCollection: (collection: ProductCollection) => Promise<ProductCollection>;
+  deleteCollection: (id: string, deleteContainedProducts?: boolean) => Promise<void>;
+  setCollections: React.Dispatch<React.SetStateAction<ProductCollection[]>>;
   
-  // Supabase configuration
-  saveSupabaseConfig: (config: SupabaseConfig | null) => Promise<void>;
+  // Supabase connection
   refreshConnection: () => Promise<boolean>;
+
+  // Data management & Random Seed
+  seedRandomData: () => Promise<void>;
+  clearAllData: () => Promise<void>;
+  refreshAllData: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -63,6 +98,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [printers, setPrinters] = useState<Printer[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [savedCalculations, setSavedCalculations] = useState<SavedCalculation[]>([]);
+  const [collections, setCollections] = useState<ProductCollection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(false);
   const [isSettingsDirty, setIsSettingsDirty] = useState(false);
@@ -75,12 +111,34 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [calcQuantity, setCalcQuantity] = useState('1');
   const [calcFilamentId, setCalcFilamentId] = useState('');
   const [calcPrinterId, setCalcPrinterId] = useState('');
+  const [calcLaborMinutes, setCalcLaborMinutes] = useState('15');
+  const [calcLaborRate, setCalcLaborRate] = useState('');
+  const [calcMarkup, setCalcMarkup] = useState('');
+  const [calcDefect, setCalcDefect] = useState('');
+  const [calcIsOwnerLabor, setCalcIsOwnerLabor] = useState(false);
+  const [calcIsLaborPerUnit, setCalcIsLaborPerUnit] = useState(false);
+  const [calcDiscountType, setCalcDiscountType] = useState<'percent' | 'fixed'>('percent');
+  const [calcDiscountValue, setCalcDiscountValue] = useState('');
+  const [calcUrgencyType, setCalcUrgencyType] = useState<'percent' | 'fixed'>('percent');
+  const [calcUrgencyValue, setCalcUrgencyValue] = useState('');
+  const [calcCustomCostItems, setCalcCustomCostItems] = useState<CustomCostItem[]>([]);
 
   const resetCalculator = () => {
     setCalcWeight('');
     setCalcHours('');
     setCalcMinutes('');
     setCalcQuantity('1');
+    setCalcLaborMinutes(settings ? settings.labor_time_minutes.toString() : '15');
+    setCalcLaborRate(settings ? settings.labor_rate_per_hour.toString() : '0');
+    setCalcIsOwnerLabor(settings?.is_owner_labor_default ?? false);
+    setCalcIsLaborPerUnit(settings?.is_labor_per_unit_default ?? false);
+    setCalcDiscountType('percent');
+    setCalcDiscountValue('');
+    setCalcUrgencyType('percent');
+    setCalcUrgencyValue('');
+    setCalcMarkup('');
+    setCalcDefect('');
+    setCalcCustomCostItems([]);
   };
 
   // Инициализация данных
@@ -92,17 +150,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setIsOnline(onlineStatus);
 
       // 2. Параллельно загружаем все данные
-      const [loadedSettings, loadedFilaments, loadedPrinters, loadedSavedCalculations] = await Promise.all([
+      const [loadedSettings, loadedFilaments, loadedPrinters, loadedSavedCalculations, loadedCollections] = await Promise.all([
         api.getSettings(),
         api.getFilaments(),
         api.getPrinters(),
         api.getSavedCalculations(),
+        api.getCollections(),
       ]);
 
       setSettings(loadedSettings);
       setFilaments(loadedFilaments);
       setPrinters(loadedPrinters);
       setSavedCalculations(loadedSavedCalculations);
+      setCollections(loadedCollections);
     } catch (error) {
       console.error('Ошибка инициализации данных:', error);
     } finally {
@@ -112,6 +172,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     loadData();
+
+    const handleRefreshCalcs = async () => {
+      try {
+        const [calcs, cols] = await Promise.all([
+          api.getSavedCalculations(),
+          api.getCollections(),
+        ]);
+        setSavedCalculations(calcs);
+        setCollections(cols);
+      } catch (err) {
+        console.error('Ошибка обновления расчетов в DataProvider:', err);
+      }
+    };
+
+    window.addEventListener('saved_calculations_updated', handleRefreshCalcs);
+    window.addEventListener('storage', handleRefreshCalcs);
+    return () => {
+      window.removeEventListener('saved_calculations_updated', handleRefreshCalcs);
+      window.removeEventListener('storage', handleRefreshCalcs);
+    };
   }, []);
 
   // Филаменты
@@ -130,6 +210,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const handleDeleteFilament = async (id: string) => {
     await api.deleteFilament(id);
     setFilaments(prev => prev.filter(f => f.id !== id));
+    // Если удалили принтер по умолчанию, сбрасываем его в настройках
+    if (settings && settings.default_printer_id === id) {
+      await updateSettings({ ...settings, default_printer_id: null });
+    }
   };
 
   // Принтеры
@@ -177,6 +261,34 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSavedCalculations([]);
   };
 
+  const restoreAllSavedCalculations = async (calculations: SavedCalculation[]) => {
+    await api.restoreAllSavedCalculations(calculations);
+    setSavedCalculations(calculations);
+  };
+
+  // Коллекции
+  const addCollection = async (collectionData: Omit<ProductCollection, 'id' | 'created_at'> & { id?: string }) => {
+    const created = await api.saveCollection(collectionData);
+    setCollections(prev => [created, ...prev.filter(c => c.id !== created.id)]);
+    return created;
+  };
+
+  const updateCollection = async (collectionData: ProductCollection) => {
+    const updated = await api.updateCollection(collectionData);
+    setCollections(prev => prev.map(c => c.id === updated.id ? updated : c));
+    return updated;
+  };
+
+  const handleDeleteCollection = async (id: string, deleteContainedProducts = false) => {
+    await api.deleteCollection(id, deleteContainedProducts);
+    setCollections(prev => prev.filter(c => c.id !== id));
+    if (deleteContainedProducts) {
+      setSavedCalculations(prev => prev.filter(c => c.collection_id !== id));
+    } else {
+      setSavedCalculations(prev => prev.map(c => c.collection_id === id ? { ...c, collection_id: undefined, collection_name: undefined } : c));
+    }
+  };
+
   // Настройки
   const updateSettings = async (settingsData: Settings) => {
     const updated = await api.saveSettings(settingsData);
@@ -184,30 +296,60 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return updated;
   };
 
-  // Настройки Supabase
-  const saveSupabaseConfig = async (config: SupabaseConfig | null) => {
-    api.saveSupabaseConfig(config);
-    // После изменения конфигурации полностью перезагружаем данные
-    await loadData();
-  };
-
   const refreshConnection = async () => {
     const onlineStatus = await api.checkSupabaseConnection();
     setIsOnline(onlineStatus);
     if (onlineStatus) {
       // Если подключились, перезагружаем данные из облака
-      const [loadedSettings, loadedFilaments, loadedPrinters, loadedSavedCalculations] = await Promise.all([
+      const [loadedSettings, loadedFilaments, loadedPrinters, loadedSavedCalculations, loadedCollections] = await Promise.all([
         api.getSettings(),
         api.getFilaments(),
         api.getPrinters(),
         api.getSavedCalculations(),
+        api.getCollections(),
       ]);
       setSettings(loadedSettings);
       setFilaments(loadedFilaments);
       setPrinters(loadedPrinters);
       setSavedCalculations(loadedSavedCalculations);
+      setCollections(loadedCollections);
     }
     return onlineStatus;
+  };
+
+  const refreshAllData = async () => {
+    await loadData();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('refresh-orders-data'));
+    }
+  };
+
+  const seedRandomData = async () => {
+    setIsLoading(true);
+    try {
+      const result = await api.seedRandomData();
+      setFilaments(result.filaments);
+      setPrinters(result.printers);
+      setSavedCalculations(result.savedCalculations);
+      setCollections(result.collections);
+      if (result.settings) setSettings(result.settings);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const clearAllData = async () => {
+    setIsLoading(true);
+    try {
+      await api.clearAllData();
+      setFilaments([]);
+      setPrinters([]);
+      setSavedCalculations([]);
+      setCollections([]);
+      setSettings(null);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -217,6 +359,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         printers,
         settings,
         savedCalculations,
+        collections,
         isLoading,
         isOnline,
         isSettingsDirty,
@@ -234,6 +377,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setCalcFilamentId,
         calcPrinterId,
         setCalcPrinterId,
+        calcLaborMinutes,
+        setCalcLaborMinutes,
+        calcLaborRate,
+        setCalcLaborRate,
+        calcMarkup,
+        setCalcMarkup,
+        calcDefect,
+        setCalcDefect,
+        calcIsOwnerLabor,
+        setCalcIsOwnerLabor,
+        calcIsLaborPerUnit,
+        setCalcIsLaborPerUnit,
+        calcDiscountType,
+        setCalcDiscountType,
+        calcDiscountValue,
+        setCalcDiscountValue,
+        calcUrgencyType,
+        setCalcUrgencyType,
+        calcUrgencyValue,
+        setCalcUrgencyValue,
+        calcCustomCostItems,
+        setCalcCustomCostItems,
         resetCalculator,
         addFilament,
         updateFilament,
@@ -246,8 +411,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         updateSavedCalculation,
         deleteSavedCalculation,
         clearAllSavedCalculations,
-        saveSupabaseConfig,
+        restoreAllSavedCalculations,
+        setSavedCalculations,
+        addCollection,
+        updateCollection,
+        deleteCollection: handleDeleteCollection,
+        setCollections,
         refreshConnection,
+        seedRandomData,
+        clearAllData,
+        refreshAllData,
       }}
     >
       {children}

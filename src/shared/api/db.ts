@@ -1,13 +1,14 @@
-import { createClient } from '@supabase/supabase-js';
-import { Filament, Printer, Settings, SupabaseConfig, SavedCalculation, Order } from '../types';
+import { Filament, Printer, Settings, SavedCalculation, Order, ProductCollection } from '../types';
+import { generateRandomSeedData, SeedDataResult } from '../lib/seedGenerator';
+import { createClient } from '@/lib/supabase/client';
 
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
   FILAMENTS: '3d_calc_filaments',
   PRINTERS: '3d_calc_printers',
   SETTINGS: '3d_calc_settings',
-  SUPABASE_CONFIG: '3d_calc_supabase_config',
   SAVED_CALCULATIONS: '3d_calc_saved_calculations',
   ORDERS: '3d_calc_orders',
+  COLLECTIONS: '3d_calc_collections',
 };
 
 const DEFAULT_SETTINGS: Settings = {
@@ -16,232 +17,30 @@ const DEFAULT_SETTINGS: Settings = {
   default_printer_id: null,
   labor_rate_per_hour: 0,
   labor_time_minutes: 15,
+  is_owner_labor_default: true,
+  is_labor_per_unit_default: false,
+  min_order_price: 300,
+  enable_material_difficulty: true,
+  material_multipliers: {
+    pla_petg: 100,
+    abs_asa: 120,
+    tpu_flex: 140,
+    nylon_cf: 170,
+  },
   default_markup_percent: 100,
   default_defect_percent: 5,
+  default_urgency_percent: 25,
 };
 
 const DEFAULT_PRINTERS: Printer[] = [];
 const DEFAULT_FILAMENTS: Filament[] = [];
 const DEFAULT_SAVED_CALCULATIONS: SavedCalculation[] = [];
-const DEFAULT_ORDERS: Order[] = [
-  {
-    id: 'ord-1',
-    order_number: 1001,
-    date: '10.10',
-    type: 'income',
-    title: 'Котлы Колонки - 2 статуэтки',
-    amount: 5000,
-    cost: 1500,
-    payments: [2500, 2500, 200],
-    payment: 5200,
-    client: 'Авито',
-    contacts: [{ type: 'phone', value: '79188798043' }],
-    contact: '79188798043',
-    deadline: '10.10',
-    status: 'Готово',
-    notes: '',
-  },
-  {
-    id: 'ord-2',
-    order_number: 1002,
-    date: '12.10',
-    type: 'income',
-    title: '2 фигурки по фото с покраской',
-    amount: 21000,
-    cost: 500,
-    payments: [10500],
-    payment: 10500,
-    client: 'Авито',
-    contacts: [{ type: 'phone', value: '79064755254' }],
-    contact: '79064755254',
-    deadline: '',
-    status: 'Ждет покраски',
-    notes: 'Не забрали фигурки',
-  },
-  {
-    id: 'ord-3',
-    order_number: 1003,
-    date: '13.10',
-    type: 'income',
-    title: 'Китаец',
-    amount: 2500,
-    cost: 200,
-    payments: [2500],
-    payment: 2500,
-    client: 'Авито',
-    contacts: [{ type: 'telegram', value: '@Elephant_freedom' }],
-    contact: '@Elephant_freedom',
-    deadline: '',
-    status: 'Готово',
-    notes: '',
-  },
-  {
-    id: 'ord-4',
-    order_number: 1004,
-    date: '13.10',
-    type: 'income',
-    title: 'Девушка на стуле по фото с покраской',
-    amount: 12000,
-    cost: 5000,
-    payments: [6000, 6000],
-    payment: 12000,
-    client: 'Авито',
-    contacts: [],
-    contact: '',
-    deadline: '',
-    status: 'Готово',
-    notes: '',
-  },
-  {
-    id: 'ord-5',
-    order_number: 1005,
-    date: '14.10',
-    type: 'income',
-    title: 'Девушка у пруда по фото с покраской',
-    amount: 13000,
-    cost: 5000,
-    payments: [6500, 6500],
-    payment: 13000,
-    client: 'Авито',
-    contacts: [],
-    contact: '',
-    deadline: '',
-    status: 'Готово',
-    notes: '',
-  },
-  {
-    id: 'ord-6',
-    order_number: 1006,
-    date: '20.10',
-    type: 'income',
-    title: 'Девушка сидит',
-    amount: 2500,
-    cost: 1100,
-    payments: [1250, 1250],
-    payment: 2500,
-    client: 'Авито',
-    contacts: [],
-    contact: '',
-    deadline: '',
-    status: 'Готово',
-    notes: '',
-  },
-  {
-    id: 'ord-7',
-    order_number: 1007,
-    date: '11.10',
-    type: 'expense',
-    title: 'Авито',
-    amount: 367,
-    cost: 0,
-    payments: [367],
-    payment: 367,
-    client: 'Авито',
-    contacts: [],
-    contact: '',
-    deadline: '',
-    status: 'Готово',
-    notes: '',
-  },
-  {
-    id: 'ord-8',
-    order_number: 1008,
-    date: '11.10',
-    type: 'expense',
-    title: 'Авито',
-    amount: 367,
-    cost: 0,
-    payments: [367],
-    payment: 367,
-    client: 'Авито',
-    contacts: [],
-    contact: '',
-    deadline: '',
-    status: 'Готово',
-    notes: '',
-  },
-  {
-    id: 'ord-9',
-    order_number: 1009,
-    date: '12.10',
-    type: 'expense',
-    title: 'Авито',
-    amount: 94,
-    cost: 0,
-    payments: [94],
-    payment: 94,
-    client: 'Авито',
-    contacts: [],
-    contact: '',
-    deadline: '',
-    status: 'Готово',
-    notes: '',
-  },
-  {
-    id: 'ord-10',
-    order_number: 1010,
-    date: '12.10',
-    type: 'expense',
-    title: 'Авито',
-    amount: 94,
-    cost: 0,
-    payments: [94],
-    payment: 94,
-    client: 'Авито',
-    contacts: [],
-    contact: '',
-    deadline: '',
-    status: 'Готово',
-    notes: '',
-  },
-];
-
-// Функция для безопасного получения ключей Supabase
-export function getSupabaseConfig(): SupabaseConfig | null {
-  if (typeof window === 'undefined') return null;
-
-  // 1. Проверяем переменные окружения Next.js
-  const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const envKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (envUrl && envKey && envUrl !== 'your-project-url' && envKey !== 'your-anon-key') {
-    return { url: envUrl, anonKey: envKey };
-  }
-
-  // 2. Проверяем localStorage (вручную введенные пользователем ключи)
-  const localConfig = localStorage.getItem(STORAGE_KEYS.SUPABASE_CONFIG);
-  if (localConfig) {
-    try {
-      const parsed = JSON.parse(localConfig);
-      if (parsed.url && parsed.anonKey) {
-        return parsed;
-      }
-    } catch {
-      // Игнорируем ошибки парсинга
-    }
-  }
-
-  return null;
-}
+const DEFAULT_ORDERS: Order[] = [];
+const DEFAULT_COLLECTIONS: ProductCollection[] = [];
 
 // Инициализация клиента Supabase
-let supabaseInstance: ReturnType<typeof createClient> | null = null;
-
-function getSupabaseClient() {
-  if (supabaseInstance) return supabaseInstance;
-
-  const config = getSupabaseConfig();
-  if (!config) return null;
-
-  try {
-    supabaseInstance = createClient(config.url, config.anonKey, {
-      auth: { persistSession: false },
-    });
-    return supabaseInstance;
-  } catch (error) {
-    console.error('Ошибка инициализации Supabase клиента:', error);
-    return null;
-  }
+export function getSupabaseClient() {
+  return createClient();
 }
 
 // Проверка доступности Supabase
@@ -250,8 +49,7 @@ export async function checkSupabaseConnection(): Promise<boolean> {
   if (!client) return false;
 
   try {
-    // Делаем легкий запрос к таблице настроек
-    const { error } = await (client as any).from('settings').select('id').limit(1);
+    const { error } = await (client as any).from('profiles').select('id').limit(1);
     return !error;
   } catch {
     return false;
@@ -263,16 +61,6 @@ export async function checkSupabaseConnection(): Promise<boolean> {
 // ==========================================
 
 export async function getFilaments(): Promise<Filament[]> {
-  // Принудительно очищаем демонстрационные тестовые данные при обновлении на чистую версию
-  if (typeof window !== 'undefined' && !localStorage.getItem('3d_calc_data_cleaned_mock_30')) {
-    localStorage.setItem(STORAGE_KEYS.FILAMENTS, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEYS.PRINTERS, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify([]));
-    localStorage.setItem('3d_calc_data_cleaned_mock_30', 'true');
-    // Удаляем старый seed флаг
-    localStorage.removeItem('3d_calc_data_seeded_30');
-  }
-
   const client = getSupabaseClient();
   
   if (client) {
@@ -319,10 +107,11 @@ export async function saveFilament(filament: Omit<Filament, 'id'> & { id?: strin
         .single();
 
       if (!error && data) {
-        // Обновляем локальный кэш
-        const filaments = await getFilaments();
-        const updated = filaments.map(f => f.id === id ? (data as Filament) : f);
-        if (!filaments.some(f => f.id === id)) updated.unshift(data as Filament);
+        // Обновляем локальный кэш без повторного запроса к БД
+        const local = localStorage.getItem(STORAGE_KEYS.FILAMENTS);
+        const cached: Filament[] = local ? JSON.parse(local) : [];
+        const updated = cached.map(f => f.id === id ? (data as Filament) : f);
+        if (!cached.some(f => f.id === id)) updated.unshift(data as Filament);
         localStorage.setItem(STORAGE_KEYS.FILAMENTS, JSON.stringify(updated));
         return data as Filament;
       }
@@ -431,9 +220,11 @@ export async function savePrinter(printer: Omit<Printer, 'id'> & { id?: string }
         .single();
 
       if (!error && data) {
-        const printers = await getPrinters();
-        const updated = printers.map(p => p.id === id ? (data as Printer) : p);
-        if (!printers.some(p => p.id === id)) updated.unshift(data as Printer);
+        // Обновляем локальный кэш без повторного запроса к БД
+        const local = localStorage.getItem(STORAGE_KEYS.PRINTERS);
+        const cached: Printer[] = local ? JSON.parse(local) : [];
+        const updated = cached.map(p => p.id === id ? (data as Printer) : p);
+        if (!cached.some(p => p.id === id)) updated.unshift(data as Printer);
         localStorage.setItem(STORAGE_KEYS.PRINTERS, JSON.stringify(updated));
         return data as Printer;
       }
@@ -573,19 +364,6 @@ export async function saveSettings(settings: Settings): Promise<Settings> {
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
   }
   return settings;
-}
-
-// Сохранение кастомных ключей Supabase от пользователя
-export function saveSupabaseConfig(config: SupabaseConfig | null): void {
-  if (typeof window === 'undefined') return;
-
-  if (config) {
-    localStorage.setItem(STORAGE_KEYS.SUPABASE_CONFIG, JSON.stringify(config));
-  } else {
-    localStorage.removeItem(STORAGE_KEYS.SUPABASE_CONFIG);
-  }
-  // Сбрасываем инстанс для переинициализации
-  supabaseInstance = null;
 }
 
 // ==========================================
@@ -792,6 +570,272 @@ export async function clearAllSavedCalculations(): Promise<boolean> {
   return false;
 }
 
+/**
+ * Атомарно восстанавливает весь список сохранённых расчётов (для Undo).
+ * Заменяет clearAll + addOne-by-one на единую операцию.
+ */
+export async function restoreAllSavedCalculations(calculations: SavedCalculation[]): Promise<void> {
+  const client = getSupabaseClient();
+
+  // Обновляем localStorage атомарно
+  const safeList = calculations.map(({ stl_file_data, ...rest }) => rest);
+  try {
+    localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(safeList));
+  } catch (e) {
+    console.warn('localStorage warning:', e);
+  }
+
+  if (client) {
+    try {
+      // Удаляем всё и вставляем заново одной операцией
+      await (client as any)
+        .from('saved_calculations')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      
+      if (calculations.length > 0) {
+        await (client as any)
+          .from('saved_calculations')
+          .insert(calculations);
+      }
+    } catch (e) {
+      console.error('Ошибка восстановления расчётов в Supabase:', e);
+    }
+  }
+}
+
+// ==========================================
+// COLLECTIONS API
+// ==========================================
+
+export async function getCollections(): Promise<ProductCollection[]> {
+  const client = getSupabaseClient();
+  
+  if (client) {
+    try {
+      const { data, error } = await (client as any)
+        .from('collections')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(data));
+        return data as ProductCollection[];
+      }
+      console.warn('Ошибка получения коллекций из Supabase, используем кэш:', error);
+    } catch (e) {
+      console.error('Ошибка соединения с Supabase:', e);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    const local = localStorage.getItem(STORAGE_KEYS.COLLECTIONS);
+    if (local) {
+      try {
+        return JSON.parse(local);
+      } catch (e) {
+        console.error('Ошибка чтения localStorage:', e);
+      }
+    }
+    localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(DEFAULT_COLLECTIONS));
+    return DEFAULT_COLLECTIONS;
+  }
+  return [];
+}
+
+export async function saveCollection(
+  col: Omit<ProductCollection, 'id' | 'created_at'> & { id?: string }
+): Promise<ProductCollection> {
+  const client = getSupabaseClient();
+  const id = col.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9));
+  const newCol: ProductCollection = {
+    ...col,
+    id,
+    created_at: new Date().toISOString(),
+  };
+
+  if (client) {
+    try {
+      const { data, error } = await (client as any)
+        .from('collections')
+        .upsert(newCol)
+        .select()
+        .single();
+
+      if (!error && data) {
+        const localList = await getCollections();
+        const updatedList = [data as ProductCollection, ...localList.filter(item => item.id !== data.id)];
+        localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(updatedList));
+        return data as ProductCollection;
+      }
+      console.warn('Ошибка сохранения коллекции в Supabase, сохраняем локально:', error);
+    } catch (e) {
+      console.error('Ошибка соединения с Supabase:', e);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    const local = localStorage.getItem(STORAGE_KEYS.COLLECTIONS);
+    const list: ProductCollection[] = local ? JSON.parse(local) : DEFAULT_COLLECTIONS;
+    const index = list.findIndex(c => c.id === id);
+    if (index >= 0) {
+      list[index] = newCol;
+    } else {
+      list.unshift(newCol);
+    }
+    localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(list));
+  }
+  return newCol;
+}
+
+export async function updateCollection(col: ProductCollection): Promise<ProductCollection> {
+  const client = getSupabaseClient();
+
+  if (client) {
+    try {
+      const { data, error } = await (client as any)
+        .from('collections')
+        .upsert(col)
+        .select()
+        .single();
+
+      if (!error && data) {
+        const localList = await getCollections();
+        const updatedList = localList.map(item => item.id === col.id ? (data as ProductCollection) : item);
+        localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(updatedList));
+        return data as ProductCollection;
+      }
+      console.warn('Ошибка обновления коллекции в Supabase, сохраняем локально:', error);
+    } catch (e) {
+      console.error('Ошибка соединения с Supabase:', e);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    const local = localStorage.getItem(STORAGE_KEYS.COLLECTIONS);
+    const list: ProductCollection[] = local ? JSON.parse(local) : DEFAULT_COLLECTIONS;
+    const updatedList = list.map(item => item.id === col.id ? col : item);
+    localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(updatedList));
+  }
+  return col;
+}
+
+export async function deleteCollection(id: string, deleteContainedProducts = false): Promise<boolean> {
+  const client = getSupabaseClient();
+
+  if (deleteContainedProducts) {
+    const calculations = await getSavedCalculations();
+    const filteredCalcs = calculations.filter(c => c.collection_id !== id);
+    await restoreAllSavedCalculations(filteredCalcs);
+  } else {
+    const calculations = await getSavedCalculations();
+    const updatedCalcs = calculations.map(c => c.collection_id === id ? { ...c, collection_id: undefined, collection_name: undefined } : c);
+    await restoreAllSavedCalculations(updatedCalcs);
+  }
+
+  if (client) {
+    try {
+      const { error } = await (client as any)
+        .from('collections')
+        .delete()
+        .eq('id', id);
+
+      if (!error) {
+        const local = localStorage.getItem(STORAGE_KEYS.COLLECTIONS);
+        if (local) {
+          const list: ProductCollection[] = JSON.parse(local);
+          const filtered = list.filter(item => item.id !== id);
+          localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(filtered));
+        }
+        return true;
+      }
+      console.warn('Ошибка удаления коллекции из Supabase, удаляем локально:', error);
+    } catch (e) {
+      console.error('Ошибка соединения с Supabase:', e);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    const local = localStorage.getItem(STORAGE_KEYS.COLLECTIONS);
+    if (local) {
+      const list: ProductCollection[] = JSON.parse(local);
+      const filtered = list.filter(item => item.id !== id);
+      localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(filtered));
+    }
+    return true;
+  }
+  return false;
+}
+
+export async function clearAllCollections(): Promise<boolean> {
+  const client = getSupabaseClient();
+
+  if (client) {
+    try {
+      const { error } = await (client as any)
+        .from('collections')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+
+      if (!error) {
+        localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify([]));
+        return true;
+      }
+      console.warn('Ошибка очистки коллекций в Supabase:', error);
+    } catch (e) {
+      console.error('Ошибка соединения с Supabase:', e);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify([]));
+    return true;
+  }
+  return false;
+}
+
+export async function restoreAllCollections(collections: ProductCollection[]): Promise<void> {
+  localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(collections));
+
+  const client = getSupabaseClient();
+  if (client) {
+    try {
+      await (client as any)
+        .from('collections')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      
+      if (collections.length > 0) {
+        await (client as any)
+          .from('collections')
+          .insert(collections);
+      }
+    } catch (e) {
+      console.error('Ошибка восстановления коллекций в Supabase:', e);
+    }
+  }
+}
+
+/**
+ * Атомарно восстанавливает весь список заказов (для Undo).
+ * Вместо N последовательных saveOrder вызовов — один batch upsert.
+ */
+export async function restoreAllOrders(orders: Order[]): Promise<void> {
+  // Обновляем localStorage атомарно
+  localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+
+  const client = getSupabaseClient();
+  if (client && orders.length > 0) {
+    try {
+      await (client as any)
+        .from('orders')
+        .upsert(orders);
+    } catch (e) {
+      console.error('Ошибка восстановления заказов в Supabase:', e);
+    }
+  }
+}
+
 // ==========================================
 // ORDERS API
 // ==========================================
@@ -806,7 +850,8 @@ export async function getOrders(): Promise<Order[]> {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data && data.length > 0) {
+      if (!error && data) {
+        // Пустой массив — валидный ответ (нет заказов)
         localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(data));
         return data as Order[];
       }
@@ -849,9 +894,11 @@ export async function saveOrder(order: Omit<Order, 'id'> & { id?: string }): Pro
         .single();
 
       if (!error && data) {
-        const orders = await getOrders();
-        const updated = orders.map(o => o.id === id ? (data as Order) : o);
-        if (!orders.some(o => o.id === id)) updated.unshift(data as Order);
+        // Обновляем локальный кэш без повторного запроса к БД
+        const local = localStorage.getItem(STORAGE_KEYS.ORDERS);
+        const cached: Order[] = local ? JSON.parse(local) : [];
+        const updated = cached.map(o => o.id === id ? (data as Order) : o);
+        if (!cached.some(o => o.id === id)) updated.unshift(data as Order);
         localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
         return data as Order;
       }
@@ -914,3 +961,92 @@ export async function deleteOrder(id: string): Promise<boolean> {
   }
   return false;
 }
+
+// ==========================================
+// DATABASE CLEANUP & RANDOM SEED API
+// ==========================================
+
+/**
+ * Полностью удаляет все данные из всех таблиц (orders, saved_calculations, settings, filaments, printers)
+ * как в Supabase (если подключен), так и в LocalStorage.
+ */
+export async function clearAllDatabaseTables(): Promise<void> {
+  const client = getSupabaseClient();
+
+  if (client) {
+    try {
+      // Удаляем из всех таблиц с учетом foreign keys (сначала зависимые)
+      await (client as any).from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await (client as any).from('saved_calculations').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await (client as any).from('collections').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await (client as any).from('settings').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await (client as any).from('filaments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      await (client as any).from('printers').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    } catch (e) {
+      console.error('Ошибка при очистке таблиц Supabase:', e);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(STORAGE_KEYS.FILAMENTS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.PRINTERS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
+    localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify([]));
+  }
+}
+
+/**
+ * Очищает все таблицы и заполняет базу случайно сгенерированными реалистичными данными.
+ */
+export async function resetAndSeedDatabase(customSeed?: SeedDataResult): Promise<SeedDataResult> {
+  const seedData = customSeed || generateRandomSeedData();
+
+  // 1. Очищаем все таблицы
+  await clearAllDatabaseTables();
+
+  // 2. Записываем в LocalStorage
+  if (typeof window !== 'undefined') {
+    const safeCalcs = seedData.savedCalculations.map(({ stl_file_data, ...rest }) => rest);
+    localStorage.setItem(STORAGE_KEYS.PRINTERS, JSON.stringify(seedData.printers));
+    localStorage.setItem(STORAGE_KEYS.FILAMENTS, JSON.stringify(seedData.filaments));
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(seedData.settings));
+    localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(safeCalcs));
+    localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(seedData.orders));
+    localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(seedData.collections || []));
+  }
+
+  // 3. Записываем в Supabase (если подключен)
+  const client = getSupabaseClient();
+  if (client) {
+    try {
+      if (seedData.printers.length > 0) {
+        await (client as any).from('printers').insert(seedData.printers);
+      }
+      if (seedData.filaments.length > 0) {
+        await (client as any).from('filaments').insert(seedData.filaments);
+      }
+      if (seedData.settings) {
+        await (client as any).from('settings').insert(seedData.settings);
+      }
+      if (seedData.collections && seedData.collections.length > 0) {
+        await (client as any).from('collections').insert(seedData.collections);
+      }
+      if (seedData.savedCalculations.length > 0) {
+        await (client as any).from('saved_calculations').insert(seedData.savedCalculations);
+      }
+      if (seedData.orders.length > 0) {
+        await (client as any).from('orders').insert(seedData.orders);
+      }
+    } catch (e) {
+      console.error('Ошибка вставки сгенерированных данных в Supabase:', e);
+    }
+  }
+
+  return seedData;
+}
+
+export const clearAllData = clearAllDatabaseTables;
+export const seedRandomData = resetAndSeedDatabase;
+

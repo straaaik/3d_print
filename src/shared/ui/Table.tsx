@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export interface TableColumn<T> {
   key: string;
-  header: string;
+  header: string | React.ReactNode;
   render?: (item: T) => React.ReactNode;
   align?: 'left' | 'right' | 'center';
   className?: string;
@@ -21,8 +21,12 @@ interface TableProps<T> {
   emptyState?: React.ReactNode;
   className?: string;
   isSearchable?: boolean; // Добавляет панель поиска сверху таблицы
-  pageSize?: number; // Количество строк на одной странице
+  pageSize?: number; // Количество строк на одной странице (для постраничной пагинации)
   renderSubRow?: (item: T) => React.ReactNode; // Функция отрисовки дочерней раскрывающейся строки
+  infiniteScroll?: boolean; // Включает порционную подгрузку при прокрутке
+  batchSize?: number; // Размер порции (по умолчанию 25)
+  toolbarActions?: React.ReactNode; // Дополнительные элементы управления в строке поиска
+  rowClassName?: (item: T) => string; // Кастомные стили для строки таблицы
 }
 
 export function Table<T>({
@@ -34,22 +38,33 @@ export function Table<T>({
   isSearchable = false,
   pageSize,
   renderSubRow,
+  infiniteScroll = false,
+  batchSize = 25,
+  toolbarActions,
+  rowClassName,
 }: TableProps<T>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(batchSize);
 
-  // Сброс страницы на первую при изменении поискового запроса или сортировки
-  useEffect(() => {
+  const [prevFilterKey, setPrevFilterKey] = useState('');
+  const currentFilterKey = `${searchQuery}_${sortKey || ''}_${sortDirection}_${batchSize}`;
+
+  // Сброс страницы и видимого количества при изменении поиска, сортировки или размера пачки
+  if (prevFilterKey !== currentFilterKey) {
+    setPrevFilterKey(currentFilterKey);
     setCurrentPage(1);
-  }, [searchQuery, sortKey, sortDirection]);
+    setVisibleCount(batchSize);
+  }
 
-  // Логика перетаскивания мышью (Drag-to-Scroll)
+  // Логика перетаскивания мышью (Drag-to-Scroll) с RAF-оптимизацией
   const containerRef = useRef<HTMLDivElement>(null);
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeftState, setScrollLeftState] = useState(0);
+  const rafIdRef = useRef<number | null>(null);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     const container = containerRef.current;
@@ -61,7 +76,8 @@ export function Table<T>({
       target.closest('button') ||
       target.closest('input') ||
       target.closest('th') ||
-      target.closest('a')
+      target.closest('a') ||
+      target.closest('select')
     ) {
       return;
     }
@@ -73,6 +89,10 @@ export function Table<T>({
 
   const handleMouseLeaveOrUp = () => {
     setIsMouseDown(false);
+    if (rafIdRef.current) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -84,7 +104,13 @@ export function Table<T>({
     e.preventDefault();
     const x = e.pageX - container.offsetLeft;
     const walk = (x - startX) * 1.5; // Коэффициент скорости перетаскивания
-    container.scrollLeft = scrollLeftState - walk;
+
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      if (container) {
+        container.scrollLeft = scrollLeftState - walk;
+      }
+    });
   };
 
   // Обработчик переключения сортировки
@@ -157,42 +183,80 @@ export function Table<T>({
     });
   }, [sortedData, searchQuery]);
 
-  // 3. Вычисление страниц
+  // 3. Вычисление страниц для постраничной пагинации
   const totalPages = useMemo(() => {
     if (!pageSize) return 1;
     return Math.ceil(filteredAndSortedData.length / pageSize);
   }, [filteredAndSortedData, pageSize]);
 
-  // Данные для текущей страницы
-  const paginatedData = useMemo(() => {
-    if (!pageSize) return filteredAndSortedData;
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return filteredAndSortedData.slice(startIndex, endIndex);
-  }, [filteredAndSortedData, currentPage, pageSize]);
+  // Данные для отображения (в зависимости от режима: infinite scroll, pagination или все данные)
+  const displayedData = useMemo(() => {
+    if (infiniteScroll) {
+      return filteredAndSortedData.slice(0, visibleCount);
+    }
+    if (pageSize) {
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      return filteredAndSortedData.slice(startIndex, endIndex);
+    }
+    return filteredAndSortedData;
+  }, [filteredAndSortedData, infiniteScroll, visibleCount, pageSize, currentPage]);
+
+  // Sentinel для автоматической подгрузки при прокрутке
+  const sentinelRef = useRef<HTMLTableRowElement | null>(null);
+
+  useEffect(() => {
+    if (!infiniteScroll) return;
+    if (visibleCount >= filteredAndSortedData.length) return;
+
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + batchSize, filteredAndSortedData.length));
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [infiniteScroll, visibleCount, filteredAndSortedData.length, batchSize]);
 
   const startIndex = pageSize ? (currentPage - 1) * pageSize : 0;
-  const endIndex = startIndex + paginatedData.length;
+  const endIndex = startIndex + displayedData.length;
 
   return (
     <div className={`w-full overflow-hidden rounded-lg border border-[#242930] bg-[#16181d] flex flex-col ${className}`}>
-      {/* Панель поиска */}
-      {isSearchable && data.length > 0 && (
-        <div className="p-2.5 border-b border-[#242930] flex items-center justify-between gap-4 bg-[#111317]/40 select-none">
-          <div className="relative flex-1 max-w-xs">
-            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-accent" />
-            <input
-              type="text"
-              placeholder="Поиск по таблице..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#1a1d24] border border-[#242930] focus:border-primary focus:outline-none rounded-lg px-2.5 py-1.5 pl-8 text-xs text-white placeholder-neutral-accent transition-colors"
-            />
+      {/* Панель поиска и действий */}
+      {(isSearchable || toolbarActions) && data.length > 0 && (
+        <div className="p-2.5 border-b border-[#242930] flex flex-wrap items-center justify-between gap-3 bg-[#111317]/40 select-none min-h-[46px]">
+          <div className="flex items-center gap-3 flex-1 min-w-[200px] max-w-sm">
+            {isSearchable && (
+              <div className="relative w-full">
+                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-accent" />
+                <input
+                  type="text"
+                  placeholder="Поиск по таблице..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-[#1a1d24] border border-[#242930] focus:border-primary focus:outline-none rounded-lg px-2.5 py-1.5 pl-8 text-xs text-white placeholder-neutral-accent transition-colors"
+                />
+              </div>
+            )}
+            {searchQuery && !toolbarActions && (
+              <span className="text-[10px] text-neutral-accent font-semibold shrink-0">
+                Найдено: {filteredAndSortedData.length}
+              </span>
+            )}
           </div>
-          {searchQuery && (
-            <span className="text-[10px] text-neutral-accent font-semibold">
-              Найдено: {filteredAndSortedData.length}
-            </span>
+
+          {toolbarActions && (
+            <div className="flex items-center gap-2.5 ml-auto">
+              {toolbarActions}
+            </div>
           )}
         </div>
       )}
@@ -204,7 +268,7 @@ export function Table<T>({
         onMouseLeave={handleMouseLeaveOrUp}
         onMouseUp={handleMouseLeaveOrUp}
         onMouseMove={handleMouseMove}
-        className={`w-full overflow-x-auto min-h-[160px] transition-all duration-300 ${
+        className={`w-full overflow-x-auto min-h-[160px] smooth-scroll transition-all duration-300 ${
           isMouseDown ? 'cursor-grabbing' : ''
         }`}
       >
@@ -220,12 +284,14 @@ export function Table<T>({
                     : 'text-left';
                 
                 const isSorted = sortKey === col.key;
+                const isSelectCol = col.key === 'select';
+                const paddingClass = isSelectCol ? 'py-2 px-1.5 w-8 max-w-[32px]' : 'py-2 px-3';
 
                 return (
                   <th
                     key={col.key}
                     onClick={() => handleSort(col)}
-                    className={`py-2 px-3 text-xs uppercase tracking-wider font-bold transition-colors select-none group ${
+                    className={`${paddingClass} text-xs uppercase tracking-wider font-bold transition-colors select-none group ${
                       col.sortable ? 'cursor-pointer hover:bg-[#242930]/40' : ''
                     } ${alignClass} ${col.className || ''}`}
                   >
@@ -253,7 +319,7 @@ export function Table<T>({
             </tr>
           </thead>
           <tbody className="divide-y divide-secondary/30 relative">
-            {paginatedData.length === 0 ? (
+            {displayedData.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="py-12 text-center align-middle">
                   <div className="flex flex-col items-center justify-center gap-2 select-none">
@@ -272,12 +338,12 @@ export function Table<T>({
                 </td>
               </tr>
             ) : (
-              paginatedData.map((item) => (
+              displayedData.map((item) => (
                 <React.Fragment key={keyExtractor(item)}>
-                  <motion.tr
-                    layout
-                    transition={{ type: 'spring', stiffness: 220, damping: 26 }}
-                    className="text-gray-300 hover:text-white hover:bg-[#242930]/30 transition-colors"
+                  <tr
+                    className={`text-gray-300 hover:text-white transition-colors table-row-optimized ${
+                      rowClassName ? rowClassName(item) : 'hover:bg-[#242930]/30'
+                    }`}
                   >
                     {columns.map((col) => {
                       const alignClass = 
@@ -286,26 +352,57 @@ export function Table<T>({
                           : col.align === 'center' 
                           ? 'text-center' 
                           : 'text-left';
+                      const isSelectCol = col.key === 'select';
+                      const tdPadding = isSelectCol ? 'py-2 px-1.5 w-8 max-w-[32px]' : 'py-2.5 px-3';
                       return (
                         <td
                           key={col.key}
-                          className={`py-2.5 px-3 align-middle ${alignClass} ${col.className || ''}`}
+                          className={`${tdPadding} align-middle ${alignClass} ${col.className || ''}`}
                         >
                           {col.render ? col.render(item) : (item as any)[col.key]}
                         </td>
                       );
                     })}
-                  </motion.tr>
+                  </tr>
                   {renderSubRow && renderSubRow(item)}
                 </React.Fragment>
               ))
+            )}
+            {/* Невидимый маркер для Infinite Scroll */}
+            {infiniteScroll && visibleCount < filteredAndSortedData.length && (
+              <tr ref={sentinelRef}>
+                <td colSpan={columns.length} className="py-2 text-center text-xs text-neutral-accent">
+                  <div className="flex items-center justify-center gap-2 py-2">
+                    <div className="w-3.5 h-3.5 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                    <span>Подгрузка данных...</span>
+                  </div>
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
       </div>
 
-      {/* Панель пагинации */}
-      {pageSize && totalPages > 1 && (
+      {/* Панель Infinite Scroll */}
+      {infiniteScroll && filteredAndSortedData.length > batchSize && (
+        <div className="p-2.5 border-t border-[#242930] bg-[#111317]/40 flex items-center justify-between gap-4 text-xs select-none">
+          <span className="text-neutral-accent font-medium">
+            Показано {displayedData.length} из {filteredAndSortedData.length}
+          </span>
+          {visibleCount < filteredAndSortedData.length && (
+            <button
+              type="button"
+              onClick={() => setVisibleCount(filteredAndSortedData.length)}
+              className="px-2.5 py-1 rounded bg-[#1a1d24] border border-[#242930] hover:border-primary text-gray-300 hover:text-white transition-colors cursor-pointer text-xs font-medium"
+            >
+              Показать все ({filteredAndSortedData.length})
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Панель пагинации (для постраничного режима) */}
+      {!infiniteScroll && pageSize && totalPages > 1 && (
         <div className="p-3 border-t border-[#242930] bg-[#111317]/30 flex items-center justify-between gap-4 text-xs select-none">
           <span className="text-neutral-accent font-medium">
             Показано {startIndex + 1}–{endIndex} из {filteredAndSortedData.length}
@@ -358,3 +455,4 @@ export function Table<T>({
     </div>
   );
 }
+

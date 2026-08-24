@@ -13,6 +13,7 @@ export interface DatePickerProps {
   error?: string;
   hint?: string;
   className?: string;
+  buttonClassName?: string;
   format?: 'DD.MM' | 'DD.MM.YYYY' | 'YYYY-MM-DD';
   dropdownPosition?: 'top' | 'bottom' | 'auto';
   align?: 'left' | 'right' | 'auto';
@@ -66,7 +67,8 @@ export function DatePicker({
   error,
   hint,
   className = '',
-  format = 'DD.MM',
+  buttonClassName = '',
+  format = 'DD.MM.YYYY',
   dropdownPosition = 'auto',
   align = 'auto',
 }: DatePickerProps) {
@@ -79,6 +81,14 @@ export function DatePicker({
   // Текущая просматриваемая дата в календаре
   const selectedDate = useMemo(() => parseToDate(value), [value]);
   const [viewDate, setViewDate] = useState<Date>(selectedDate);
+
+  // Нормализованное отображаемое значение даты
+  const displayValue = useMemo(() => {
+    if (!value || !value.trim()) return '';
+    const d = parseToDate(value);
+    if (isNaN(d.getTime())) return value;
+    return formatDateString(d, format);
+  }, [value, format]);
 
   // Расчет фикс-координат для React Portal поверх всей страницы
   const updateCoords = () => {
@@ -234,7 +244,7 @@ export function DatePicker({
     d.getFullYear() === today.getFullYear();
 
   return (
-    <div ref={containerRef} className={`w-full flex flex-col gap-1 relative ${className}`}>
+    <div ref={containerRef} className={`w-full flex flex-col gap-1.5 relative ${className}`}>
       {label && (
         <span className="text-gray-300 text-xs sm:text-sm font-medium select-none">
           {label}
@@ -247,14 +257,14 @@ export function DatePicker({
           ref={buttonRef}
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-full flex items-center justify-between bg-[#1a1d24] border border-[#242930] hover:border-[#FF6B00]/60 focus:border-[#FF6B00] focus:outline-none rounded-lg px-3 py-1.5 text-white text-xs sm:text-sm font-mono transition-colors cursor-pointer select-none ${
+          className={`w-full h-9 min-h-[36px] flex items-center justify-center bg-[#14161d] border border-[#242930] hover:border-[#FF6B00]/60 focus:border-[#FF6B00] focus:outline-none rounded-xl px-3 text-white text-xs sm:text-sm font-mono transition-colors cursor-pointer select-none ${
             error ? 'border-red-500' : ''
-          }`}
+          } ${buttonClassName}`}
         >
-          <div className="flex items-center gap-2">
-            <CalendarIcon className="w-4 h-4 text-[#FF8800] shrink-0" />
-            <span className={value ? 'text-white' : 'text-gray-500'}>
-              {value || placeholder}
+          <div className="flex items-center justify-center gap-1.5 min-w-0">
+            <CalendarIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#FF8800] shrink-0" />
+            <span className={`truncate ${value ? 'text-gray-200 hover:text-white font-medium' : 'text-gray-500'}`}>
+              {displayValue || placeholder}
             </span>
           </div>
         </button>

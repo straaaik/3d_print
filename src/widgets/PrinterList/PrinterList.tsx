@@ -20,6 +20,7 @@ export function PrinterList() {
   // Состояния для модального окна формы
   const [isOpen, setIsOpen] = useState(false);
   const [editingPrinter, setEditingPrinter] = useState<Printer | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Состояния полей формы
   const [name, setName] = useState('');
@@ -103,8 +104,13 @@ export function PrinterList() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (confirm(`Вы уверены, что хотите удалить принтер "${name}"?\nЭто сбросит его из настроек по умолчанию, если он был выбран.`)) {
-      await deletePrinter(id);
+    setDeleteTarget({ id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (deleteTarget) {
+      await deletePrinter(deleteTarget.id);
+      setDeleteTarget(null);
     }
   };
 
@@ -298,6 +304,25 @@ export function PrinterList() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Модальное окно подтверждения удаления */}
+      <Modal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Удалить принтер?"
+        variant="warning"
+        maxWidth="sm"
+        footer={
+          <div className="flex gap-3 justify-end">
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Отмена</Button>
+            <Button variant="danger" onClick={confirmDelete}>Удалить</Button>
+          </div>
+        }
+      >
+        <p className="text-sm text-gray-300">
+          Вы уверены, что хотите удалить принтер <strong className="text-white">«{deleteTarget?.name}»</strong>? Это сбросит его из настроек по умолчанию, если он был выбран.
+        </p>
       </Modal>
     </div>
   );

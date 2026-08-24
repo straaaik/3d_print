@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
+  title: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode; // Зафиксированный нижний футер с кнопками
   variant?: 'default' | 'error' | 'success' | 'warning' | 'info';
@@ -118,12 +118,15 @@ export function Modal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0, pointerEvents: 'none' }}
+          transition={{ duration: 0.15 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5"
+        >
           {/* Фон */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+          <div
             onClick={onClose}
             className="fixed inset-0 bg-black/70 backdrop-blur-sm"
           />
@@ -165,7 +168,7 @@ export function Modal({
               </div>
             )}
           </motion.div>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );

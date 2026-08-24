@@ -3,6 +3,8 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { DataProvider } from "../entities/model/DataProvider";
 import { ToastProvider } from "../entities/model/ToastProvider";
+import { AuthProvider } from "../entities/model/AuthProvider";
+import { AuthGuard } from "../shared/ui/AuthGuard";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -15,8 +17,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Калькулятор стоимости 3D-печати",
-  description: "Локальный калькулятор стоимости 3D-печати с поддержкой Supabase и LocalStorage",
+  title: "3D Labs • Калькулятор и учет 3D-печати",
+  description: "Система учета заказов, калькулятор себестоимости 3D-печати и склад материалов",
 };
 
 export default function RootLayout({
@@ -26,14 +28,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="antialiased min-h-screen">
+      <body className="antialiased min-h-screen bg-[#0d0e12] text-white">
         <ToastProvider>
-          <DataProvider>
-            {children}
-          </DataProvider>
+          <AuthProvider>
+            <DataProvider>
+              <AuthGuard>
+                {children}
+              </AuthGuard>
+            </DataProvider>
+          </AuthProvider>
         </ToastProvider>
       </body>
     </html>
   );
 }
-

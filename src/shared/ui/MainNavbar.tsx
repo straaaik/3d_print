@@ -5,6 +5,15 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ShoppingBag, BarChart3, Calculator, Package, Layers, Cpu, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { 
+  ordersTheme, 
+  statsTheme, 
+  calculatorTheme, 
+  productsTheme, 
+  filamentsTheme, 
+  printersTheme, 
+  settingsTheme 
+} from '../theme';
 
 export interface MainNavbarProps {
   className?: string;
@@ -14,60 +23,60 @@ export interface MainNavbarProps {
 
 const NAV_ITEMS = [
   {
-    id: 'orders',
-    label: 'Заказы',
+    id: ordersTheme.id,
+    label: ordersTheme.name,
     href: '/orders',
     icon: ShoppingBag,
-    activeGradient: 'from-[#FF5500] to-[#FF8800]',
-    activeShadow: 'shadow-[#FF6B00]/30',
+    activeGradient: ordersTheme.nav.activeGradient,
+    activeShadow: ordersTheme.nav.activeShadow,
   },
   {
-    id: 'stats',
-    label: 'Статистика',
+    id: statsTheme.id,
+    label: statsTheme.name,
     href: '/stats',
     icon: BarChart3,
-    activeGradient: 'from-emerald-600 to-emerald-500',
-    activeShadow: 'shadow-emerald-500/30',
+    activeGradient: statsTheme.nav.activeGradient,
+    activeShadow: statsTheme.nav.activeShadow,
   },
   {
-    id: 'calculator',
-    label: 'Калькулятор',
+    id: calculatorTheme.id,
+    label: calculatorTheme.name,
     href: '/calculator',
     icon: Calculator,
-    activeGradient: 'from-[#0993b8] to-[#0CB4E0]',
-    activeShadow: 'shadow-primary/30',
+    activeGradient: calculatorTheme.nav.activeGradient,
+    activeShadow: calculatorTheme.nav.activeShadow,
   },
   {
-    id: 'products',
-    label: 'Товары',
+    id: productsTheme.id,
+    label: productsTheme.name,
     href: '/products',
     icon: Package,
-    activeGradient: 'from-amber-600 to-amber-500',
-    activeShadow: 'shadow-amber-500/30',
+    activeGradient: productsTheme.nav.activeGradient,
+    activeShadow: productsTheme.nav.activeShadow,
   },
   {
-    id: 'filaments',
-    label: 'Филаменты',
+    id: filamentsTheme.id,
+    label: filamentsTheme.name,
     href: '/filaments',
     icon: Layers,
-    activeGradient: 'from-violet-600 to-violet-500',
-    activeShadow: 'shadow-violet-500/30',
+    activeGradient: filamentsTheme.nav.activeGradient,
+    activeShadow: filamentsTheme.nav.activeShadow,
   },
   {
-    id: 'printers',
-    label: 'Принтеры',
+    id: printersTheme.id,
+    label: printersTheme.name,
     href: '/printers',
     icon: Cpu,
-    activeGradient: 'from-sky-600 to-sky-400',
-    activeShadow: 'shadow-sky-400/30',
+    activeGradient: printersTheme.nav.activeGradient,
+    activeShadow: printersTheme.nav.activeShadow,
   },
   {
-    id: 'settings',
-    label: 'Настройки',
+    id: settingsTheme.id,
+    label: settingsTheme.name,
     href: '/settings',
     icon: Settings,
-    activeGradient: 'from-slate-600 to-slate-500',
-    activeShadow: 'shadow-slate-400/30',
+    activeGradient: settingsTheme.nav.activeGradient,
+    activeShadow: settingsTheme.nav.activeShadow,
   },
 ];
 

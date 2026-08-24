@@ -11,6 +11,7 @@ interface NumberCounterProps {
   min?: number;
   max?: number;
   step?: number;
+  disabled?: boolean;
   className?: string;
 }
 
@@ -46,6 +47,7 @@ export function NumberCounter({
   min = 1,
   max = 9999,
   step = 1,
+  disabled = false,
   className = '',
 }: NumberCounterProps) {
   const [isFocused, setIsFocused] = useState(false);
@@ -120,17 +122,21 @@ export function NumberCounter({
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
-        <span className="text-[#9ca3af] text-[11px] uppercase font-bold tracking-wider select-none">
+        <span className="text-gray-300 text-xs sm:text-sm font-medium select-none">
           {label}
         </span>
       )}
       
-      <div className="flex items-center bg-[#1a1d24] border border-[#242930] rounded-lg h-9 overflow-hidden focus-within:border-primary transition-colors select-none">
+      <div className={`flex items-center rounded-xl h-9 min-h-[36px] overflow-hidden transition-colors select-none ${
+        disabled 
+          ? 'bg-[#101217] border border-[#1e222b] opacity-60 cursor-not-allowed' 
+          : 'bg-[#14161d] border border-[#242930] focus-within:border-[#FF6B00]'
+      }`}>
         {/* Кнопка минус */}
         <button
           type="button"
           onClick={handleDecrement}
-          disabled={value <= min}
+          disabled={disabled || value <= min}
           className="h-full px-3 text-neutral-accent hover:text-white hover:bg-[#242930] active:scale-[0.88] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-neutral-accent disabled:active:scale-100 transition-all flex items-center justify-center border-r border-[#242930] cursor-pointer disabled:cursor-not-allowed"
         >
           <Minus size={14} />
@@ -138,10 +144,12 @@ export function NumberCounter({
 
         {/* Центральное число (клик переключает на ввод) */}
         <div 
-          onClick={() => setIsFocused(true)}
-          className="flex-1 h-full flex items-center justify-center cursor-text px-2 min-w-[50px] relative overflow-hidden"
+          onClick={() => !disabled && setIsFocused(true)}
+          className={`flex-1 h-full flex items-center justify-center px-2 min-w-[50px] relative overflow-hidden ${
+            disabled ? 'cursor-not-allowed' : 'cursor-text'
+          }`}
         >
-          {isFocused ? (
+          {isFocused && !disabled ? (
             <input
               ref={inputRef}
               type="text"
@@ -176,7 +184,7 @@ export function NumberCounter({
         <button
           type="button"
           onClick={handleIncrement}
-          disabled={value >= max}
+          disabled={disabled || value >= max}
           className="h-full px-3 text-neutral-accent hover:text-white hover:bg-[#242930] active:scale-[0.88] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-neutral-accent disabled:active:scale-100 transition-all flex items-center justify-center border-l border-[#242930] cursor-pointer disabled:cursor-not-allowed"
         >
           <Plus size={14} />

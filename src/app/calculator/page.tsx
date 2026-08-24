@@ -23,7 +23,7 @@ export default function CalculatorPage() {
 
   return (
     <div className="min-h-screen bg-[#0d0e12]/60 flex flex-col justify-between font-sans">
-      <main className="max-w-5xl w-full mx-auto px-3 sm:px-6 py-4 md:py-6 space-y-4">
+      <main className="w-full mx-auto px-3 sm:px-6 py-4 md:py-6 max-w-none space-y-4">
         <div className="flex justify-center">
           <MainNavbar />
         </div>
