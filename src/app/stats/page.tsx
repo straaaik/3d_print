@@ -1,14 +1,12 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
-import { StatsPlaceholder } from '../../widgets/StatsPlaceholder/StatsPlaceholder';
+import { StatsDashboard } from '../../widgets/Stats/StatsDashboard';
 import { MainNavbar } from '../../shared/ui/MainNavbar';
 import { useData } from '../../entities/model/DataProvider';
 
 export default function StatsPage() {
   const { isLoading } = useData();
-  const router = useRouter();
 
   if (isLoading) {
     return (
@@ -25,13 +23,13 @@ export default function StatsPage() {
 
   return (
     <div className="min-h-screen bg-[#0d0e12]/60 flex flex-col justify-between font-sans">
-      <main className="w-full mx-auto px-3 sm:px-6 py-4 md:py-6 max-w-6xl space-y-4">
+      <main className="w-full mx-auto px-3 sm:px-6 py-4 md:py-6 max-w-7xl space-y-4">
         {/* Главный верхний таббар навигации */}
         <div className="flex justify-center">
           <MainNavbar />
         </div>
 
-        <StatsPlaceholder onGoToCalculator={() => router.push('/calculator')} />
+        <StatsDashboard />
       </main>
 
       <footer className="w-full text-center py-6 border-t border-[#242930]/30 select-none">
