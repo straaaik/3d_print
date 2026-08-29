@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SavedCalculation, AssemblyPrintedPart } from '../../../shared/types';
 import { Checkbox } from '../../../shared/ui/Checkbox';
-import { NumberCounter } from '../../../shared/ui/NumberCounter';
+import { CockpitStatusPill } from '../../../shared/ui/CockpitTable/CockpitStatusPill';
+import { Tooltip } from '../../../shared/ui/Tooltip';
 import { 
   Box, 
   ChevronRight, 
@@ -12,18 +13,16 @@ import {
   Edit2, 
   Trash2, 
   FolderPlus, 
-  Tag, 
-  Flame, 
-  TrendingUp,
-  Copy,
-  Check,
-  FileCode,
-  Download,
+  Copy, 
+  Check, 
+  FileCode, 
+  Download, 
   ExternalLink,
-  Printer as PrinterIcon,
-  Clock
+  MoreVertical,
+  Plus,
+  Minus
 } from 'lucide-react';
-import { formatCurrency, formatDate } from '../../../shared/lib/format';
+import { formatCurrency } from '../../../shared/lib/format';
 import { ProductCategory, getCategoryLucideIcon } from '../../../shared/lib/categories';
 import { SalesStatInfo } from '../types';
 
@@ -99,16 +98,6 @@ export const AssemblyRow = React.memo(function AssemblyRow({
   const catObj = categoriesList.find((c) => c.label === item.category || c.id === item.category);
   const catLabel = catObj?.label || item.category || 'Разное';
   const CatIcon = getCategoryLucideIcon(catLabel);
-  const catBadgeStyle = catObj?.color || 'bg-gray-800 text-gray-400 border-gray-700';
-
-  // Форматирование даты (только дата)
-  const dateFormatted = item.created_at
-    ? new Date(item.created_at).toLocaleDateString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      })
-    : '—';
 
   const shortId = item.id ? (item.id.length > 8 ? item.id.slice(0, 6) : item.id) : '—';
 
@@ -153,18 +142,20 @@ export const AssemblyRow = React.memo(function AssemblyRow({
   return (
     <>
       <tr
-        className={`border-b transition-all duration-150 select-none cursor-pointer ${
+        className={`border-b border-white/5 transition-colors select-none cursor-pointer font-mono text-xs ${
           isContextMenuOpen
-            ? 'bg-cyan-500/15 border-cyan-500/40 border-l-4 border-l-cyan-500'
+            ? 'bg-cyan-950/40 border-cyan-500/40'
+            : isExpanded
+            ? 'bg-cyan-950/25 border-cyan-500/30'
             : isChildInCollection
-            ? 'bg-[#0b121a]/90 hover:bg-[#101b27] border-l-2 border-l-cyan-500/50 animate-fade-in border-[#242930]'
-            : 'bg-[#10151f]/85 hover:bg-[#141c28]'
-        } ${isExpanded ? 'border-cyan-500/50 bg-[#121926]' : 'border-[#242930]'}`}
+            ? 'bg-neutral-950/60 hover:bg-neutral-900/60'
+            : 'bg-neutral-900/40 hover:bg-neutral-900/80'
+        }`}
         onContextMenu={onContextMenu}
       >
-        {/* Чекбокс */}
+        {/* 1. Чекбокс */}
         <td
-          className="w-8 px-2 py-3 text-center"
+          className="w-8 px-3 py-2.5 text-center"
           onClick={(e) => {
             e.stopPropagation();
             onToggleSelect(item.id);
@@ -173,228 +164,219 @@ export const AssemblyRow = React.memo(function AssemblyRow({
           <Checkbox
             checked={isChecked}
             onChange={() => onToggleSelect(item.id)}
-            variant="primary"
+            variant="cyan"
             size="sm"
           />
         </td>
 
-        {/* ID и Дата создания */}
-        <td className="py-3 px-3 min-w-[105px] whitespace-nowrap cursor-pointer" onClick={(e) => e.stopPropagation()}>
-          <div className="flex flex-col gap-1">
+        {/* 2. ID и Дата создания (#ASM-1081) */}
+        <td className="py-2.5 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+          <Tooltip content={`ID сборки: ${item.id} (Нажмите, чтобы скопировать)`}>
             <button
               type="button"
               onClick={handleCopyId}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-mono text-xs font-bold text-cyan-300 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 hover:border-cyan-500/50 w-fit shadow-sm cursor-pointer transition-colors"
-              title={`ID: ${item.id} (Нажмите, чтобы скопировать)`}
+              className="inline-flex items-center gap-1 font-mono font-semibold text-cyan-300 hover:text-cyan-200 transition-colors cursor-pointer"
             >
-              <span>#asm-{shortId}</span>
+              <span>#ASM-{shortId}</span>
               {copiedId ? (
-                <Check className="w-3 h-3 text-emerald-400" />
+                <Check className="w-2.5 h-2.5 text-emerald-400" />
               ) : (
-                <Copy className="w-2.5 h-2.5 opacity-40 group-hover:opacity-80" />
+                <Copy className="w-2.5 h-2.5 opacity-20 group-hover:opacity-70 transition-opacity" />
               )}
             </button>
-            <span className="text-[11px] text-gray-400 font-mono tracking-tight" title={item.created_at ? formatDate(item.created_at) : 'Дата не указана'}>
-              {dateFormatted}
-            </span>
-          </div>
+          </Tooltip>
         </td>
 
-        {/* Название, категория и кнопка «Заказ» */}
-        <td className={`py-3 px-3 ${isChildInCollection ? 'pl-5 sm:pl-7' : ''}`}>
-          <div className="flex items-center justify-between gap-3">
-            {/* Левая часть */}
-            <div className="flex flex-col gap-1 min-w-0">
-              <div className="flex items-center gap-1.5 min-w-0">
-                {isChildInCollection && (
-                  <span className="text-cyan-500/70 font-mono text-xs select-none mr-0.5 font-bold">
-                    └─
-                  </span>
-                )}
-
-                {/* Кнопка раскрытия состава сборки */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleExpand();
-                  }}
-                  className={`p-1 rounded-lg transition-all shrink-0 cursor-pointer shadow-sm ${
-                    isExpanded
-                      ? 'bg-cyan-500 text-black font-extrabold shadow-cyan-500/30'
-                      : 'bg-cyan-500/15 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40'
-                  }`}
-                  title={isExpanded ? 'Скрыть состав сборки' : 'Раскрыть состав сборки'}
-                >
-                  <motion.div
-                    animate={{ rotate: isExpanded ? 90 : 0 }}
-                    transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-                  >
-                    <ChevronRight size={14} />
-                  </motion.div>
-                </button>
-
-                <span className="px-1.5 py-0.2 bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 text-[10px] font-bold uppercase tracking-wider rounded-md shrink-0 flex items-center gap-1">
-                  <Box size={11} className="text-cyan-400" /> Сборка ({parts.length})
-                </span>
-
-                <span
-                  className="font-bold text-cyan-200 hover:text-cyan-300 transition-colors truncate block text-xs sm:text-sm cursor-pointer"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onStartRename(item);
-                  }}
-                  title="Нажмите, чтобы переименовать"
-                >
-                  {item.name}
-                </span>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-1.5 pl-6">
-                <span
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onOpenCategoryModal(item);
-                  }}
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold border ${catBadgeStyle} cursor-pointer hover:border-cyan-500/50 transition-all`}
-                  title="Нажмите, чтобы изменить категорию"
-                >
-                  <CatIcon className="w-3 h-3 shrink-0" />
-                  <span>{catLabel}</span>
-                </span>
-
-                {salesStat && salesStat.soldQty > 0 && (
-                  <span
-                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                      salesStat.isBestseller
-                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse'
-                        : 'bg-[#1a1d26] text-amber-300 border border-[#242930]'
-                    }`}
-                  >
-                    <Flame size={10} className="text-amber-400" />
-                    <span>{salesStat.soldQty} шт</span>
-                  </span>
-                )}
-
-                {item.tags && item.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 items-center">
-                    {item.tags.map((tag, idx) => (
-                      <span
-                        key={idx}
-                        className="px-1.5 py-0.2 bg-[#1a1d26] border border-[#262a36] text-gray-400 text-[10px] rounded"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Правая часть: Выделенная главная кнопка «Заказ» */}
+        {/* 3. Категория */}
+        <td className="py-2.5 px-3 text-neutral-300 font-sans whitespace-nowrap">
+          <Tooltip content="Сменить категорию">
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                onCreateOrder(item);
+                onOpenCategoryModal(item);
               }}
-              className="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-extrabold rounded-xl shadow-md shadow-emerald-500/25 flex items-center gap-1.5 text-xs transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
-              title="Создать заказ со сборкой"
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-mono bg-neutral-900 text-neutral-300 border border-white/10 hover:border-white/20 transition-colors cursor-pointer"
             >
-              <ShoppingCart size={13} strokeWidth={2.5} />
-              <span>Заказ</span>
+              <CatIcon className="w-3 h-3 text-cyan-400 shrink-0" />
+              <span className="truncate max-w-[120px]">{catLabel}</span>
             </button>
+          </Tooltip>
+        </td>
+
+        {/* 4. Название, бейджи и кнопки */}
+        <td className={`py-2.5 px-3 text-neutral-200 font-sans ${isChildInCollection ? 'pl-6' : ''}`}>
+          <div className="flex items-center gap-2 min-w-0">
+            {isChildInCollection && (
+              <span className="text-cyan-500/70 font-mono text-xs select-none mr-0.5 font-bold">
+                └─
+              </span>
+            )}
+
+            {/* Кнопка раскрытия состава сборки */}
+            <Tooltip content={isExpanded ? 'Скрыть детали' : 'Раскрыть состав сборки'}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleExpand();
+                }}
+                className={`p-1 rounded-md transition-all shrink-0 cursor-pointer ${
+                  isExpanded
+                    ? 'bg-cyan-500 text-neutral-950 font-bold'
+                    : 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/40 hover:bg-cyan-900/60'
+                }`}
+              >
+                <motion.div
+                  animate={{ rotate: isExpanded ? 90 : 0 }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+                >
+                  <ChevronRight size={12} />
+                </motion.div>
+              </button>
+            </Tooltip>
+
+            <CockpitStatusPill
+              label={`Сборка (${parts.length})`}
+              tone="cyan"
+              icon={Layers}
+            />
+
+            <span
+              className="font-bold text-white hover:text-cyan-300 transition-colors truncate block text-xs sm:text-[13px] cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                onStartRename(item);
+              }}
+            >
+              {item.name}
+            </span>
           </div>
         </td>
 
-        {/* Материалы */}
-        <td className="py-3 px-3 min-w-[130px]">
-          <span className="text-cyan-300/90 text-xs font-medium">
-            {parts.length} печатн. {parts.length === 1 ? 'деталь' : parts.length < 5 ? 'детали' : 'деталей'}
-            {hardware.length > 0 ? ` + ${hardware.length} фурн.` : ''}
+        {/* 5. Наличие на складе */}
+        <td className="py-2.5 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-2">
+            {isOutOfStock ? (
+              <CockpitStatusPill label="Под заказ" tone="neutral" dot={false} />
+            ) : isLowStock ? (
+              <CockpitStatusPill label={`Мало (${stock} шт)`} tone="yellow" pulse />
+            ) : (
+              <CockpitStatusPill label={`В наличии (${stock} шт)`} tone="cyan" dot />
+            )}
+
+            {/* Быстрые кнопки инкремента */}
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-neutral-900 border border-white/10 rounded-md p-0.5">
+              <Tooltip content="Уменьшить">
+                <button
+                  type="button"
+                  onClick={() => onSetStock(item, Math.max(0, stock - 1))}
+                  disabled={stock <= 0}
+                  className="w-3.5 h-3.5 rounded flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 disabled:opacity-30 cursor-pointer"
+                >
+                  <Minus className="w-2 h-2" />
+                </button>
+              </Tooltip>
+              <span className="font-mono text-[10px] px-1 text-white font-bold">{stock}</span>
+              <Tooltip content="Увеличить">
+                <button
+                  type="button"
+                  onClick={() => onSetStock(item, stock + 1)}
+                  className="w-3.5 h-3.5 rounded flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 cursor-pointer"
+                >
+                  <Plus className="w-2 h-2" />
+                </button>
+              </Tooltip>
+            </div>
+          </div>
+        </td>
+
+        {/* 6. Материалы и узлы */}
+        <td className="py-2.5 px-3 text-neutral-400 font-mono whitespace-nowrap">
+          <span className="truncate max-w-[130px]">
+            {parts.length} дет.{hardware.length > 0 ? ` + ${hardware.length} фурн.` : ''}
           </span>
         </td>
 
-        {/* Параметры печати */}
-        <td className="py-3 px-3 min-w-[125px]">
-          <div className="flex flex-col gap-0.5 font-mono text-xs">
-            <span className="text-white font-semibold">
-              {item.weight_g || 0} г
-            </span>
-            <span className="text-gray-400 text-[11px]">
-              {item.hours || 0}ч {item.minutes || 0}м
-              {laborMins > 0 ? ` (+${laborMins}м сборка)` : ''}
-            </span>
-          </div>
+        {/* 7. Параметры печати */}
+        <td className="py-2.5 px-3 text-neutral-400 font-mono whitespace-nowrap">
+          {item.weight_g || 0}г · {item.hours || 0}ч {item.minutes || 0}м
         </td>
 
-        {/* Наличие на складе */}
-        <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
-          <div className="flex flex-col items-center justify-center gap-1">
-            <NumberCounter
-              value={stock}
-              min={0}
-              onChange={(val) => onSetStock(item, val)}
-            />
-            {isOutOfStock ? (
-              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-red-500/15 border border-red-500/30 text-red-400">
-                Нет на складе
-              </span>
-            ) : isLowStock ? (
-              <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-400">
-                Заканчивается
-              </span>
-            ) : (
-              <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-cyan-500/15 border border-cyan-500/30 text-cyan-300">
-                В наличии
-              </span>
-            )}
-          </div>
+        {/* 8. Себестоимость */}
+        <td className="py-2.5 px-3 text-right font-mono text-neutral-400 whitespace-nowrap">
+          {formatCurrency(item.base_cost, currencySymbol)}
         </td>
 
-        {/* Цены */}
-        <td className="py-3 px-3 text-right">
-          <div className="flex flex-col items-end justify-center font-mono whitespace-nowrap min-w-[95px] leading-tight">
-            <span className="text-cyan-300 font-extrabold text-sm">
-              {formatCurrency(item.final_price, currencySymbol)}
-            </span>
-            <span className="text-[11px] text-gray-400 mt-0.5">
-              себ: {formatCurrency(item.base_cost, currencySymbol)}
-            </span>
-          </div>
+        {/* 9. Цена */}
+        <td className="py-2.5 px-3 text-right font-bold text-cyan-300 font-mono whitespace-nowrap">
+          {formatCurrency(item.final_price, currencySymbol)}
         </td>
 
-        {/* Прибыль */}
-        <td className="py-3 px-3 text-center">
-          <div className="flex flex-col items-center justify-center gap-0.5 font-mono leading-tight whitespace-nowrap">
-            <span className={`font-extrabold text-xs sm:text-sm ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
-              {isPositive ? '+' : ''}
-              {formatCurrency(profit, currencySymbol)}
-            </span>
-            <span className={`text-xs font-bold ${isPositive ? 'text-emerald-400/90' : 'text-red-400/90'}`}>
-              {isPositive ? '▲' : '▼'}
-              {marginPercent}%
-            </span>
-          </div>
+        {/* 10. Маржа / Прибыль */}
+        <td className="py-2.5 px-3 text-right text-emerald-400 font-mono whitespace-nowrap">
+          {isPositive ? '+' : ''}{formatCurrency(profit, currencySymbol)}
+          <span className="text-[10px] text-neutral-500 ml-1">({marginPercent}%)</span>
         </td>
 
-        {/* 3D STL / Состав */}
-        <td className="py-3 px-2 text-center" onClick={(e) => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={onToggleExpand}
-            className={`px-2 py-0.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 border transition-all cursor-pointer select-none mx-auto ${
-              isExpanded
-                ? 'bg-cyan-500 text-black border-cyan-400 font-bold shadow-sm'
-                : 'bg-[#141b24] text-cyan-300 border-cyan-500/40 hover:bg-cyan-500/20'
-            }`}
-          >
-            <span>{isExpanded ? 'Скрыть' : 'Состав'}</span>
-          </button>
+        {/* 11. Действия */}
+        <td className="py-2.5 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-end gap-1">
+            {/* Кнопка Заказ */}
+            <Tooltip content="Создать заказ со сборкой">
+              <button
+                type="button"
+                onClick={() => onCreateOrder(item)}
+                className="px-2 py-1 rounded-md font-mono text-[11px] font-bold bg-white text-neutral-950 hover:bg-neutral-200 active:scale-95 transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+              >
+                <ShoppingCart className="w-3 h-3" />
+                <span>Заказ</span>
+              </button>
+            </Tooltip>
+
+            {/* Редактировать сборку */}
+            <Tooltip content="Редактировать компоненты сборки">
+              <button
+                type="button"
+                onClick={() => onEditAssembly(item)}
+                className="p-1 rounded-md border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white transition-colors cursor-pointer"
+              >
+                <Edit2 className="w-3 h-3" />
+              </button>
+            </Tooltip>
+
+            {/* Переключить состав */}
+            <Tooltip content={isExpanded ? 'Скрыть детали' : 'Показать детали'}>
+              <button
+                type="button"
+                onClick={onToggleExpand}
+                className={`p-1 rounded-md border text-xs font-mono transition-colors cursor-pointer ${
+                  isExpanded
+                    ? 'bg-cyan-950 text-cyan-300 border-cyan-500/60'
+                    : 'border-white/10 bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white'
+                }`}
+              >
+                <Layers className="w-3 h-3" />
+              </button>
+            </Tooltip>
+
+            {/* Меню */}
+            <Tooltip content="Опции">
+              <button
+                type="button"
+                onClick={(e) => {
+                  if (onContextMenu) onContextMenu(e);
+                }}
+                className="p-1 rounded-md hover:bg-white/10 text-neutral-500 hover:text-white transition-colors cursor-pointer"
+              >
+                <MoreVertical className="w-3 h-3" />
+              </button>
+            </Tooltip>
+          </div>
         </td>
       </tr>
 
-      {/* Раскрывающийся состав сборки — полноформатные строки деталей и фурнитуры с колонками как в таблице */}
+      {/* Раскрывающийся состав сборки — полноформатные строки деталей и фурнитуры */}
       <AnimatePresence>
         {isExpanded && (
           <motion.tr
@@ -402,33 +384,33 @@ export const AssemblyRow = React.memo(function AssemblyRow({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="bg-[#0b0e14]"
+            className="bg-neutral-950/80"
           >
-            <td colSpan={9} className="p-0 overflow-hidden border-b border-[#242930]/80">
+            <td colSpan={11} className="p-0 overflow-hidden border-b border-white/10">
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-                className="overflow-hidden bg-[#090d14]/95 shadow-inner"
+                className="overflow-hidden bg-neutral-950 shadow-inner p-2 space-y-2 font-mono text-xs"
               >
-                {/* 1. Шапка 3D-печатных деталей (Циан-плашка) */}
-                <div className="p-3 px-4 bg-gradient-to-r from-cyan-500/15 via-[#131b26] to-[#0f141f] border-l-4 border-l-cyan-500 border-b border-[#242930] flex items-center justify-between gap-3 flex-wrap text-xs select-none">
+                {/* 1. Шапка 3D-печатных деталей */}
+                <div className="p-2.5 px-3.5 bg-cyan-950/30 border border-cyan-500/30 rounded-xl flex items-center justify-between gap-3 flex-wrap select-none">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Box size={16} className="text-cyan-400" />
-                    <span className="font-bold text-cyan-300 uppercase tracking-wider text-xs">
+                    <Box size={14} className="text-cyan-400" />
+                    <span className="font-bold text-cyan-300 uppercase tracking-wider text-xs font-sans">
                       3D-печатные детали: «{item.name}»
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-mono font-bold text-[10px]">
+                    <span className="px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-700/50 font-bold text-[10px]">
                       {parts.length} поз. ({totalPartsPieces} шт)
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3 font-mono text-xs flex-wrap">
-                    <span className="text-gray-400">
+                  <div className="flex items-center gap-3 text-xs flex-wrap">
+                    <span className="text-neutral-400">
                       Себестоимость: <strong className="text-white">{formatCurrency(totalPartsCost, currencySymbol)}</strong>
                     </span>
-                    <span className="text-gray-400">
+                    <span className="text-neutral-400">
                       Продажа: <strong className="text-cyan-300">{formatCurrency(totalPartsPrice, currencySymbol)}</strong>
                     </span>
                     <span className="text-emerald-400 font-bold">
@@ -437,439 +419,289 @@ export const AssemblyRow = React.memo(function AssemblyRow({
                   </div>
                 </div>
 
-                {/* 2. Таблица состава сборки: 3D-детали, фурнитура и ручной труд */}
-                <table className="w-full text-left text-xs border-collapse min-w-[950px]">
-                  <colgroup>
-                    <col className="w-8" />
-                    <col className="w-[105px]" />
-                    <col />
-                    <col className="w-[130px]" />
-                    <col className="w-[125px]" />
-                    <col className="w-[95px]" />
-                    <col className="w-[105px]" />
-                    <col className="w-[95px]" />
-                    <col className="w-[80px]" />
-                  </colgroup>
-                  <tbody>
-                    {/* А. 3D-печатные детали */}
-                    {parts.map((part, pIdx) => {
-                      const partId = part.id || `part-${pIdx + 1}`;
-                      const partShortId = part.id ? (part.id.length > 8 ? part.id.slice(0, 6) : part.id) : `${pIdx + 1}`;
-                      const partProfit = Math.round(((part.final_price || 0) - (part.base_cost || 0)) * (part.quantity || 1) * 100) / 100;
-                      const partMargin =
-                        part.final_price && part.final_price > 0
-                          ? Math.round((((part.final_price - part.base_cost) / part.final_price) * 1000)) / 10
-                          : 0;
+                {/* 2. Таблица деталей */}
+                <div className="border border-white/10 rounded-xl overflow-hidden bg-neutral-950/60">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <tbody className="divide-y divide-white/5">
+                      {/* А. 3D-печатные детали */}
+                      {parts.map((part, pIdx) => {
+                        const partId = part.id || `part-${pIdx + 1}`;
+                        const partShortId = part.id ? (part.id.length > 8 ? part.id.slice(0, 6) : part.id) : `${pIdx + 1}`;
+                        const partProfit = Math.round(((part.final_price || 0) - (part.base_cost || 0)) * (part.quantity || 1) * 100) / 100;
+                        const partMargin =
+                          part.final_price && part.final_price > 0
+                            ? Math.round((((part.final_price - part.base_cost) / part.final_price) * 1000)) / 10
+                            : 0;
 
-                      const hasStlFile = Boolean(part.stl_file_data);
-                      const hasStlUrl = Boolean(part.stl_url && part.stl_url.trim());
+                        const hasStlFile = Boolean(part.stl_file_data);
+                        const hasStlUrl = Boolean(part.stl_url && part.stl_url.trim());
 
-                      return (
-                        <tr
-                          key={partId}
-                          className="border-b border-[#242930]/80 bg-[#090e17]/90 hover:bg-[#0e1624] border-l-2 border-l-cyan-500/50 transition-colors group"
-                        >
-                          {/* 1. Древовидная метка */}
-                          <td className="w-8 px-2 py-2.5 text-center text-cyan-500/70 font-mono text-xs font-bold">
-                            └─
-                          </td>
+                        return (
+                          <tr
+                            key={partId}
+                            className="hover:bg-white/[0.02] transition-colors group"
+                          >
+                            <td className="w-8 px-3 py-2.5 text-center text-cyan-400 font-bold">
+                              └─
+                            </td>
 
-                          {/* 2. ID / Номер детали */}
-                          <td className="py-2.5 px-3 min-w-[105px] whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex flex-col gap-0.5">
-                              <button
-                                type="button"
-                                onClick={(e) => handleCopyPartId(e, partId, pIdx)}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-mono text-xs font-bold text-cyan-300 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 hover:border-cyan-500/50 w-fit shadow-sm cursor-pointer transition-colors"
-                                title={`ID детали: ${partId} (Нажмите, чтобы скопировать)`}
-                              >
-                                <span>#part-{partShortId}</span>
-                                {copiedPartIndex === pIdx ? (
-                                  <Check className="w-3 h-3 text-emerald-400" />
-                                ) : (
-                                  <Copy className="w-2.5 h-2.5 opacity-40 group-hover:opacity-80" />
-                                )}
-                              </button>
-                              <span className="text-[10px] text-gray-500 font-mono">3D деталь</span>
-                            </div>
-                          </td>
+                            <td className="py-2.5 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                              <Tooltip content={`ID детали: ${partId} (Нажмите, чтобы скопировать)`}>
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleCopyPartId(e, partId, pIdx)}
+                                  className="inline-flex items-center gap-1 font-mono text-xs font-bold text-cyan-300 hover:text-cyan-200 transition-colors w-fit cursor-pointer"
+                                >
+                                  <span>#part-{partShortId}</span>
+                                  {copiedPartIndex === pIdx ? (
+                                    <Check className="w-3 h-3 text-emerald-400" />
+                                  ) : (
+                                    <Copy className="w-2.5 h-2.5 opacity-30 group-hover:opacity-80" />
+                                  )}
+                                </button>
+                              </Tooltip>
+                            </td>
 
-                          {/* 3. Название детали */}
-                          <td className="py-2.5 px-3 pl-4">
-                            <div className="flex flex-col gap-0.5 max-w-[300px] sm:max-w-[400px]">
+                            <td className="py-2.5 px-3">
                               <div className="flex items-center gap-2">
-                                <span className="px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-bold font-mono text-[10px] shrink-0">
+                                <span className="px-1.5 py-0.2 rounded bg-cyan-950/60 text-cyan-300 border border-cyan-800/40 font-bold text-[10px] shrink-0">
                                   × {part.quantity} шт
                                 </span>
-                                <span className="font-bold text-white tracking-tight truncate block text-xs">
+                                <span className="font-bold text-white truncate block text-xs font-sans">
                                   {part.name}
                                 </span>
-                              </div>
-                              {part.printer_name && (
-                                <div className="flex items-center gap-1 text-[10px] text-gray-400 font-mono">
-                                  <PrinterIcon size={10} className="text-gray-500" />
-                                  <span>{part.printer_name}</span>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-
-                          {/* 4. Материал и цвет */}
-                          <td className="py-2.5 px-3 min-w-[130px]">
-                            <div className="flex items-center gap-1.5 max-w-[140px]">
-                              {part.filament_color && (
-                                <div
-                                  className="w-3 h-3 rounded-full border border-black/30 shrink-0 shadow-inner"
-                                  style={{ backgroundColor: part.filament_color }}
-                                />
-                              )}
-                              <span className="truncate font-medium text-xs text-gray-200" title={part.filament_name || 'PLA'}>
-                                {part.filament_name || 'PLA'}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* 5. Параметры печати */}
-                          <td className="py-2.5 px-3 min-w-[125px]">
-                            <div className="flex flex-col gap-0.5 font-mono text-xs">
-                              <span className="text-white font-semibold">
-                                {part.weight_g || 0} г
-                                {part.quantity > 1 ? (
-                                  <span className="text-[10px] text-gray-400 font-normal ml-1">
-                                    ({(part.weight_g || 0) * part.quantity}г)
+                                {part.printer_name && (
+                                  <span className="text-[10px] text-neutral-500 hidden sm:inline">
+                                    • {part.printer_name}
                                   </span>
-                                ) : null}
-                              </span>
-                              <span className="text-gray-400 text-[11px]">
-                                {part.hours || 0}ч {part.minutes || 0}м
-                              </span>
-                            </div>
-                          </td>
+                                )}
+                              </div>
+                            </td>
 
-                          {/* 6. Количество в сборке */}
-                          <td className="py-2.5 px-3 text-center">
-                            <div className="flex flex-col items-center justify-center gap-0.5 font-mono">
-                              <span className="px-2 py-0.5 bg-[#121c2a] border border-cyan-500/30 text-cyan-300 rounded-lg text-xs font-bold">
-                                {part.quantity} шт
-                              </span>
-                            </div>
-                          </td>
+                            <td className="py-2.5 px-3 whitespace-nowrap">
+                              <div className="flex items-center gap-1.5">
+                                {part.filament_color && (
+                                  <span
+                                    className="w-2.5 h-2.5 rounded-full border border-white/20 shrink-0"
+                                    style={{ backgroundColor: part.filament_color }}
+                                  />
+                                )}
+                                <span className="truncate text-xs text-neutral-300 font-sans">
+                                  {part.filament_name || 'PLA'}
+                                </span>
+                              </div>
+                            </td>
 
-                          {/* 7. Стоимость и себестоимость */}
-                          <td className="py-2.5 px-3 text-right font-mono">
-                            <div className="flex flex-col items-end justify-center whitespace-nowrap min-w-[95px] leading-tight">
-                              <span className="text-cyan-300 font-bold text-xs sm:text-sm">
-                                {formatCurrency((part.final_price || 0) * (part.quantity || 1), currencySymbol)}
-                              </span>
-                              <span className="text-[10px] text-gray-400 mt-0.5">
-                                себ: {formatCurrency((part.base_cost || 0) * (part.quantity || 1), currencySymbol)}
-                              </span>
-                            </div>
-                          </td>
+                            <td className="py-2.5 px-3 whitespace-nowrap text-neutral-400">
+                              {part.weight_g || 0}г · {part.hours || 0}ч {part.minutes || 0}м
+                            </td>
 
-                          {/* 8. Прибыль и маржа */}
-                          <td className="py-2.5 px-3 text-center font-mono">
-                            <div className="flex flex-col items-center justify-center gap-0.5 leading-tight whitespace-nowrap">
-                              <span className="font-bold text-xs text-emerald-400">
-                                +{formatCurrency(partProfit, currencySymbol)}
+                            <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                              <div className="flex flex-col items-end">
+                                <span className="text-cyan-300 font-bold">
+                                  {formatCurrency((part.final_price || 0) * (part.quantity || 1), currencySymbol)}
+                                </span>
+                                <span className="text-[10px] text-neutral-500">
+                                  себ: {formatCurrency((part.base_cost || 0) * (part.quantity || 1), currencySymbol)}
+                                </span>
+                              </div>
+                            </td>
+
+                            <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                              <span className="text-emerald-400 font-bold">
+                                +{formatCurrency(partProfit, currencySymbol)} ({partMargin}%)
                               </span>
-                              <span className="text-[10px] font-bold text-emerald-400/90">
-                                ▲{partMargin}%
-                              </span>
-                            </div>
-                          </td>
+                            </td>
 
-                          {/* 9. 3D-Модель (STL) */}
-                          <td className="py-2.5 px-2 text-center" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex items-center justify-center gap-1">
-                              {hasStlFile && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => handleDownloadPartStl(e, part)}
-                                  className="p-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-400 transition-colors cursor-pointer"
-                                  title={`Скачать STL (${part.stl_file_name || 'файл'})`}
-                                >
-                                  <Download size={13} />
-                                </button>
-                              )}
+                            <td className="py-2.5 px-3 text-right" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex items-center justify-end gap-1">
+                                {hasStlFile && (
+                                  <Tooltip content={`Скачать STL (${part.stl_file_name || 'файл'})`}>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => handleDownloadPartStl(e, part)}
+                                      className="p-1 rounded-lg bg-emerald-950/40 hover:bg-emerald-950 border border-emerald-800/40 text-emerald-400 transition-colors cursor-pointer"
+                                    >
+                                      <Download size={13} />
+                                    </button>
+                                  </Tooltip>
+                                )}
 
-                              {hasStlUrl && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.open(part.stl_url, '_blank');
-                                  }}
-                                  className="p-1 rounded-lg bg-[#1a1d26] hover:bg-[#242930] border border-[#242930] text-gray-300 transition-colors cursor-pointer"
-                                  title="Открыть внешнюю ссылку на модель"
-                                >
-                                  <ExternalLink size={13} />
-                                </button>
-                              )}
+                                {hasStlUrl && (
+                                  <Tooltip content="Открыть внешнюю ссылку на модель">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.open(part.stl_url, '_blank');
+                                      }}
+                                      className="p-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 transition-colors cursor-pointer"
+                                    >
+                                      <ExternalLink size={13} />
+                                    </button>
+                                  </Tooltip>
+                                )}
 
-                              {!hasStlFile && !hasStlUrl && (
-                                <span className="text-gray-600 text-xs font-mono">—</span>
-                              )}
+                                {!hasStlFile && !hasStlUrl && (
+                                  <span className="text-neutral-600 text-xs">—</span>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+
+                      {/* Б. Разделитель фурнитуры */}
+                      {hardware.length > 0 && (
+                        <tr className="bg-neutral-900/60 border-t border-b border-white/10 select-none">
+                          <td colSpan={9} className="p-2.5 px-3.5">
+                            <div className="flex items-center justify-between gap-3 flex-wrap text-xs">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Layers size={14} className="text-purple-400" />
+                                <span className="font-bold text-purple-300 uppercase tracking-wider text-xs font-sans">
+                                  Фурнитура и комплектующие
+                                </span>
+                                <span className="px-2 py-0.5 rounded bg-purple-950/60 text-purple-300 border border-purple-800/40 font-bold text-[10px]">
+                                  {hardware.length} поз. ({totalHwPieces} шт)
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-3 text-xs flex-wrap">
+                                <span className="text-neutral-400">
+                                  Себестоимость: <strong className="text-white">{formatCurrency(totalHwCost, currencySymbol)}</strong>
+                                </span>
+                                <span className="text-neutral-400">
+                                  Продажа: <strong className="text-purple-300">{formatCurrency(totalHwPrice, currencySymbol)}</strong>
+                                </span>
+                                <span className="text-emerald-400 font-bold">
+                                  Прибыль: +{formatCurrency(totalHwProfit, currencySymbol)}
+                                </span>
+                              </div>
                             </div>
                           </td>
                         </tr>
-                      );
-                    })}
+                      )}
 
-                    {/* Б. Разделительная плашка фурнитуры (Синяя плашка, отделяющая секцию) */}
-                    {hardware.length > 0 && (
-                      <tr className="border-t-2 border-b border-[#242930] bg-gradient-to-r from-blue-500/20 via-[#101826] to-[#0d121c] border-l-4 border-l-blue-500 select-none">
-                        <td colSpan={9} className="p-3 px-4">
-                          <div className="flex items-center justify-between gap-3 flex-wrap text-xs">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Layers size={16} className="text-blue-400" />
-                              <span className="font-bold text-blue-300 uppercase tracking-wider text-xs">
-                                Фурнитура и комплектующие
-                              </span>
-                              <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-mono font-bold text-[10px]">
-                                {hardware.length} поз. ({totalHwPieces} шт)
-                              </span>
-                            </div>
+                      {/* В. Строки фурнитуры */}
+                      {hardware.map((hw, hIdx) => {
+                        const hwId = hw.id || `hw-${hIdx + 1}`;
+                        const hwShortId = hw.id ? (hw.id.length > 8 ? hw.id.slice(0, 6) : hw.id) : `${hIdx + 1}`;
+                        const hwTotalCost = (hw.cost_per_unit || 0) * (hw.quantity || 1);
+                        const hwTotalPrice = (hw.price_per_unit || 0) * (hw.quantity || 1);
+                        const hwProfit = Math.round((hwTotalPrice - hwTotalCost) * 100) / 100;
+                        const hwMargin =
+                          hwTotalPrice > 0
+                            ? Math.round(((hwProfit / hwTotalPrice) * 1000)) / 10
+                            : 0;
 
-                            <div className="flex items-center gap-3 font-mono text-xs flex-wrap">
-                              <span className="text-gray-400">
-                                Себестоимость: <strong className="text-white">{formatCurrency(totalHwCost, currencySymbol)}</strong>
-                              </span>
-                              <span className="text-gray-400">
-                                Продажа: <strong className="text-blue-300">{formatCurrency(totalHwPrice, currencySymbol)}</strong>
-                              </span>
+                        return (
+                          <tr
+                            key={hwId}
+                            className="hover:bg-white/[0.02] transition-colors group"
+                          >
+                            <td className="w-8 px-3 py-2.5 text-center text-purple-400 font-bold">
+                              └─
+                            </td>
+
+                            <td className="py-2.5 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                              <Tooltip content={`ID фурнитуры: ${hwId} (Нажмите, чтобы скопировать)`}>
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleCopyHwId(e, hwId, hIdx)}
+                                  className="inline-flex items-center gap-1 font-mono text-xs font-bold text-purple-300 hover:text-purple-200 transition-colors w-fit cursor-pointer"
+                                >
+                                  <span>#hw-{hwShortId}</span>
+                                  {copiedHwIndex === hIdx ? (
+                                    <Check className="w-3 h-3 text-emerald-400" />
+                                  ) : (
+                                    <Copy className="w-2.5 h-2.5 opacity-30 group-hover:opacity-80" />
+                                  )}
+                                </button>
+                              </Tooltip>
+                            </td>
+
+                            <td className="py-2.5 px-3" colSpan={2}>
+                              <div className="flex items-center gap-2">
+                                <span className="px-1.5 py-0.2 rounded bg-purple-950/60 text-purple-300 border border-purple-800/40 font-bold text-[10px] shrink-0">
+                                  × {hw.quantity} шт
+                                </span>
+                                <span className="font-semibold text-neutral-200 truncate text-xs font-sans">
+                                  {hw.name}
+                                </span>
+                              </div>
+                            </td>
+
+                            <td className="py-2.5 px-3 whitespace-nowrap text-neutral-400">
+                              {formatCurrency(hw.cost_per_unit, currencySymbol)} / шт
+                            </td>
+
+                            <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                              <div className="flex flex-col items-end">
+                                <span className="text-purple-300 font-bold">
+                                  {formatCurrency(hwTotalPrice, currencySymbol)}
+                                </span>
+                                <span className="text-[10px] text-neutral-500">
+                                  себ: {formatCurrency(hwTotalCost, currencySymbol)}
+                                </span>
+                              </div>
+                            </td>
+
+                            <td className="py-2.5 px-3 text-center whitespace-nowrap">
                               <span className="text-emerald-400 font-bold">
-                                Прибыль: +{formatCurrency(totalHwProfit, currencySymbol)}
+                                {hwProfit > 0 ? `+${formatCurrency(hwProfit, currencySymbol)}` : '0 ₽'}
+                                {hwMargin > 0 ? ` (${hwMargin}%)` : ''}
                               </span>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
+                            </td>
 
-                    {/* В. Строки фурнитуры и покупных компонентов */}
-                    {hardware.map((hw, hIdx) => {
-                      const hwId = hw.id || `hw-${hIdx + 1}`;
-                      const hwShortId = hw.id ? (hw.id.length > 8 ? hw.id.slice(0, 6) : hw.id) : `${hIdx + 1}`;
-                      const hwTotalCost = (hw.cost_per_unit || 0) * (hw.quantity || 1);
-                      const hwTotalPrice = (hw.price_per_unit || 0) * (hw.quantity || 1);
-                      const hwProfit = Math.round((hwTotalPrice - hwTotalCost) * 100) / 100;
-                      const hwMargin =
-                        hwTotalPrice > 0
-                          ? Math.round(((hwProfit / hwTotalPrice) * 1000)) / 10
-                          : 0;
+                            <td className="py-2.5 px-3 text-right text-neutral-600">
+                              —
+                            </td>
+                          </tr>
+                        );
+                      })}
 
-                      return (
-                        <tr
-                          key={hwId}
-                          className="border-b border-[#242930]/80 bg-[#080d18]/90 hover:bg-[#0d1526] border-l-2 border-l-blue-500/60 transition-colors group"
-                        >
-                          {/* 1. Древовидная метка */}
-                          <td className="w-8 px-2 py-2.5 text-center text-blue-400/80 font-mono text-xs font-bold">
+                      {/* Г. Строка ручной сборки */}
+                      {laborCost > 0 && (
+                        <tr className="bg-neutral-900/40 border-t border-white/5">
+                          <td className="w-8 px-3 py-2.5 text-center text-emerald-400 font-bold">
                             └─
                           </td>
 
-                          {/* 2. ID фурнитуры */}
-                          <td className="py-2.5 px-3 min-w-[105px] whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                            <div className="flex flex-col gap-0.5">
-                              <button
-                                type="button"
-                                onClick={(e) => handleCopyHwId(e, hwId, hIdx)}
-                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-mono text-xs font-bold text-blue-300 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 hover:border-blue-500/50 w-fit shadow-sm cursor-pointer transition-colors"
-                                title={`ID фурнитуры: ${hwId} (Нажмите, чтобы скопировать)`}
-                              >
-                                <span>#hw-{hwShortId}</span>
-                                {copiedHwIndex === hIdx ? (
-                                  <Check className="w-3 h-3 text-emerald-400" />
-                                ) : (
-                                  <Copy className="w-2.5 h-2.5 opacity-40 group-hover:opacity-80" />
-                                )}
-                              </button>
-                              <span className="text-[10px] text-blue-400/70 font-mono">фурнитура</span>
-                            </div>
-                          </td>
-
-                          {/* 3. Наименование фурнитуры */}
-                          <td className="py-2.5 px-3 pl-4">
-                            <div className="flex items-center gap-2 min-w-0 max-w-[300px] sm:max-w-[400px]">
-                              <span className="px-1.5 py-0.2 rounded bg-blue-500/15 text-blue-300 border border-blue-500/30 font-bold font-mono text-[10px] shrink-0">
-                                × {hw.quantity} шт
-                              </span>
-                              <span className="font-semibold text-gray-200 truncate text-xs">
-                                {hw.name}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* 4. Тип / Категория */}
-                          <td className="py-2.5 px-3 min-w-[130px]">
-                            <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-300/90 border border-blue-500/25 text-[11px] font-medium inline-flex items-center gap-1">
-                              <Layers size={11} className="text-blue-400" />
-                              <span>Метизы / Крепеж</span>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 font-mono text-xs font-bold text-emerald-400">
+                              #labor
                             </span>
                           </td>
 
-                          {/* 5. Цена за единицу */}
-                          <td className="py-2.5 px-3 min-w-[125px]">
-                            <div className="flex flex-col gap-0.5 font-mono text-xs text-gray-400">
-                              <span>{formatCurrency(hw.cost_per_unit, currencySymbol)} / шт</span>
-                              <span className="text-[10px] text-gray-500">себестоимость</span>
-                            </div>
-                          </td>
-
-                          {/* 6. Количество */}
-                          <td className="py-2.5 px-3 text-center">
-                            <div className="flex flex-col items-center justify-center gap-0.5 font-mono">
-                              <span className="px-2 py-0.5 bg-[#0f1728] border border-blue-500/30 text-blue-300 rounded-lg text-xs font-bold">
-                                {hw.quantity} шт
+                          <td className="py-2.5 px-3" colSpan={3}>
+                            <div className="flex items-center gap-2">
+                              <span className="px-1.5 py-0.2 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-800/40 font-bold text-[10px] shrink-0 flex items-center gap-1">
+                                <Wrench size={10} /> {laborMins} мин
+                              </span>
+                              <span className="font-semibold text-neutral-200 text-xs font-sans">
+                                Ручная сборка, пайка и подгонка
                               </span>
                             </div>
                           </td>
 
-                          {/* 7. Стоимость и себестоимость */}
-                          <td className="py-2.5 px-3 text-right font-mono">
-                            <div className="flex flex-col items-end justify-center whitespace-nowrap min-w-[95px] leading-tight">
-                              <span className="text-blue-300 font-bold text-xs sm:text-sm">
-                                {formatCurrency(hwTotalPrice, currencySymbol)}
-                              </span>
-                              <span className="text-[10px] text-gray-400 mt-0.5">
-                                себ: {formatCurrency(hwTotalCost, currencySymbol)}
-                              </span>
-                            </div>
+                          <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                            <span className="text-emerald-400 font-bold">
+                              {formatCurrency(laborCost, currencySymbol)}
+                            </span>
                           </td>
 
-                          {/* 8. Прибыль и маржа */}
-                          <td className="py-2.5 px-3 text-center font-mono">
-                            <div className="flex flex-col items-center justify-center gap-0.5 leading-tight whitespace-nowrap">
-                              <span className={`font-bold text-xs ${hwProfit > 0 ? 'text-emerald-400' : 'text-gray-400'}`}>
-                                {hwProfit > 0 ? `+${formatCurrency(hwProfit, currencySymbol)}` : '0 ₽'}
-                              </span>
-                              <span className={`text-[10px] font-bold ${hwMargin > 0 ? 'text-emerald-400/90' : 'text-gray-500'}`}>
-                                {hwMargin > 0 ? `▲${hwMargin}%` : '—'}
-                              </span>
-                            </div>
+                          <td className="py-2.5 px-3 text-center whitespace-nowrap text-neutral-400">
+                            Труд мастера
                           </td>
 
-                          {/* 9. 3D-Модель */}
-                          <td className="py-2.5 px-2 text-center text-gray-600 text-xs font-mono">
+                          <td className="py-2.5 px-3 text-right text-neutral-600">
                             —
                           </td>
                         </tr>
-                      );
-                    })}
-
-                    {/* Г. Разделительная плашка ручной сборки мастера */}
-                    {laborCost > 0 && (
-                      <tr className="border-t-2 border-b border-[#242930] bg-gradient-to-r from-emerald-500/20 via-[#0c1815] to-[#091210] border-l-4 border-l-emerald-500 select-none">
-                        <td colSpan={9} className="p-3 px-4">
-                          <div className="flex items-center justify-between gap-3 flex-wrap text-xs">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Wrench size={16} className="text-emerald-400" />
-                              <span className="font-bold text-emerald-300 uppercase tracking-wider text-xs">
-                                Ручная сборка и подгонка
-                              </span>
-                              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold text-[10px]">
-                                {laborMins} мин работы
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-3 font-mono text-xs flex-wrap">
-                              <span className="text-gray-400">
-                                Труд мастера в себестоимости: <strong className="text-emerald-300">{formatCurrency(laborCost, currencySymbol)}</strong>
-                              </span>
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-
-                    {/* Д. Строка ручного труда мастера */}
-                    {laborCost > 0 && (
-                      <tr className="border-b border-[#242930]/80 bg-[#071310]/85 hover:bg-[#0a1c17] border-l-2 border-l-emerald-500/60 transition-colors group">
-                        {/* 1. Древовидная метка */}
-                        <td className="w-8 px-2 py-2.5 text-center text-emerald-400/80 font-mono text-xs font-bold">
-                          └─
-                        </td>
-
-                        {/* 2. ID труда */}
-                        <td className="py-2.5 px-3 min-w-[105px] whitespace-nowrap">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-mono text-xs font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 w-fit shadow-sm">
-                              #labor
-                            </span>
-                            <span className="text-[10px] text-emerald-400/70 font-mono">сборка</span>
-                          </div>
-                        </td>
-
-                        {/* 3. Название */}
-                        <td className="py-2.5 px-3 pl-4">
-                          <div className="flex items-center gap-2 min-w-0 max-w-[300px] sm:max-w-[400px]">
-                            <span className="px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold font-mono text-[10px] shrink-0 flex items-center gap-1">
-                              <Wrench size={10} /> {laborMins} мин
-                            </span>
-                            <span className="font-semibold text-emerald-200 truncate text-xs">
-                              Ручная сборка и подгонка деталей
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* 4. Тип */}
-                        <td className="py-2.5 px-3 min-w-[130px]">
-                          <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300/90 border border-emerald-500/25 text-[11px] font-medium inline-flex items-center gap-1">
-                            <Clock size={11} className="text-emerald-400" />
-                            <span>Труд мастера</span>
-                          </span>
-                        </td>
-
-                        {/* 5. Параметры времени */}
-                        <td className="py-2.5 px-3 min-w-[125px]">
-                          <div className="flex flex-col gap-0.5 font-mono text-xs text-gray-400">
-                            <span className="text-emerald-300 font-semibold">{laborMins} минут</span>
-                            <span className="text-[10px] text-gray-500">время работы</span>
-                          </div>
-                        </td>
-
-                        {/* 6. Количество */}
-                        <td className="py-2.5 px-3 text-center">
-                          <div className="flex flex-col items-center justify-center gap-0.5 font-mono">
-                            <span className="px-2 py-0.5 bg-[#0a1815] border border-emerald-500/30 text-emerald-300 rounded-lg text-xs font-bold">
-                              1 цикл
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* 7. Стоимость */}
-                        <td className="py-2.5 px-3 text-right font-mono">
-                          <div className="flex flex-col items-end justify-center whitespace-nowrap min-w-[95px] leading-tight">
-                            <span className="text-emerald-300 font-bold text-xs sm:text-sm">
-                              {formatCurrency(laborCost, currencySymbol)}
-                            </span>
-                            <span className="text-[10px] text-gray-400 mt-0.5">
-                              в цене изделия
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* 8. Прибыль */}
-                        <td className="py-2.5 px-3 text-center font-mono">
-                          <div className="flex flex-col items-center justify-center gap-0.5 leading-tight whitespace-nowrap">
-                            <span className="font-bold text-xs text-emerald-400">
-                              +{formatCurrency(laborCost, currencySymbol)}
-                            </span>
-                            <span className="text-[10px] text-emerald-400/90">
-                              100% труд
-                            </span>
-                          </div>
-                        </td>
-
-                        {/* 9. 3D-Модель */}
-                        <td className="py-2.5 px-2 text-center text-gray-600 text-xs font-mono">
-                          —
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </motion.div>
             </td>
           </motion.tr>

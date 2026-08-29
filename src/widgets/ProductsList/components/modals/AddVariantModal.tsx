@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ProductCollection, SavedCalculation, Filament, Printer } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
 import { Select } from '../../../../shared/ui/Select';
-import { Button } from '../../../../shared/ui/Button';
+import { CockpitButton } from '../../../../shared/ui/CockpitButton';
 import { FolderPlus, Layers, Copy, Plus, Sparkles } from 'lucide-react';
 
 interface AddVariantModalProps {
@@ -80,56 +80,42 @@ export function AddVariantModal({
     <Modal
       isOpen={Boolean(collection)}
       onClose={onClose}
-      title={
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg bg-purple-500/20 border border-purple-500/30 text-purple-300">
-            <Plus size={18} />
-          </div>
-          <div>
-            <span className="text-white font-bold">
-              Добавить вариант в коллекцию «{collection.name}»
-            </span>
-            <div className="text-[11px] text-gray-400 font-normal">
-              Создание новой модификации по размеру, цвету или типу материала
-            </div>
-          </div>
-        </div>
-      }
+      title={`§ 3D-LABS // ADD_VARIANT [ ${collection.name} ]`}
       maxWidth="lg"
       footer={
-        <div className="flex items-center justify-between gap-3 select-none w-full">
+        <div className="flex items-center justify-between gap-3 select-none w-full font-mono text-xs">
           <button
             type="button"
             onClick={onNavigateToCalculator}
-            className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1.5 underline cursor-pointer font-semibold"
+            className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1.5 cursor-pointer font-mono font-semibold"
           >
             <Sparkles size={13} />
-            <span>Рассчитать детально в калькуляторе</span>
+            <span>[ Рассчитать в калькуляторе ]</span>
           </button>
 
           <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSubmitting} className="border-[#242930] text-gray-300">
+            <CockpitButton type="button" onClick={onClose} disabled={isSubmitting}>
               Отмена
-            </Button>
-            <Button
+            </CockpitButton>
+            <CockpitButton
               type="button"
-              size="sm"
               onClick={handleSubmit}
               disabled={isSubmitting || !variantName.trim()}
-              className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white font-extrabold px-4 py-2 rounded-xl shadow-md shadow-purple-500/25 cursor-pointer"
+              isActive={true}
+              className="border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold"
             >
               {isSubmitting ? 'Создание...' : 'Добавить вариант'}
-            </Button>
+            </CockpitButton>
           </div>
         </div>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4 pt-1 select-none">
+      <form onSubmit={handleSubmit} className="space-y-3 pt-1 select-none font-mono text-xs">
         {/* Базовый вариант (источник) */}
         {childsInCol.length > 0 && (
-          <div className="bg-[#13111f] p-3 rounded-2xl border border-purple-500/30">
-            <label className="block text-xs font-bold text-purple-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <Copy size={13} />
+          <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
+            <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <Copy size={13} className="text-cyan-400" />
               Взять за основу существующий вариант
             </label>
             <Select
@@ -152,8 +138,8 @@ export function AddVariantModal({
         )}
 
         {/* Название варианта */}
-        <div className="bg-[#161224] p-3 rounded-2xl border border-[#242930]">
-          <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+        <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
+          <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5">
             Название нового варианта *
           </label>
           <input
@@ -163,15 +149,15 @@ export function AddVariantModal({
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVariantName(e.target.value)}
             required
             autoFocus
-            className="w-full bg-[#0d0a17] border border-[#242930] hover:border-purple-500/50 focus:border-purple-400 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white placeholder-gray-500 focus:outline-none transition-colors font-medium"
+            className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none transition-colors font-mono"
           />
         </div>
 
         {/* Материал и Вес */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="bg-[#12141c] p-3 rounded-2xl border border-[#242930]">
-            <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <Layers size={14} className="text-purple-400" />
+          <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
+            <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <Layers size={13} className="text-cyan-400" />
               Материал / Филамент
             </label>
             <Select
@@ -185,8 +171,8 @@ export function AddVariantModal({
             />
           </div>
 
-          <div className="bg-[#12141c] p-3 rounded-2xl border border-[#242930]">
-            <label className="block text-xs font-bold text-gray-300 uppercase tracking-wider mb-1.5">
+          <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
+            <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5">
               Масса детали (грамм)
             </label>
             <input
@@ -195,7 +181,7 @@ export function AddVariantModal({
               placeholder="Масса в граммах"
               value={weight}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWeight(e.target.value)}
-              className="w-full bg-[#0d0e14] border border-[#242930] hover:border-purple-500/40 focus:border-purple-400 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white font-mono placeholder-gray-500 focus:outline-none transition-colors"
+              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-neutral-600 focus:outline-none transition-colors"
             />
           </div>
         </div>

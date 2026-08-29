@@ -1,152 +1,179 @@
 import React from 'react';
-import { Package, ArrowUpRight, Receipt, DollarSign, HelpCircle, TrendingUp } from 'lucide-react';
 import { WarehouseMetrics } from '../types';
 import { formatCurrency } from '../../../shared/lib/format';
 import { CustomTooltip } from '../../../shared/ui/Tooltip';
+import { HelpCircle } from 'lucide-react';
 
 interface ProductsSummaryProps {
   metrics: WarehouseMetrics;
   totalProductsCount: number;
   currencySymbol: string;
+  singleCount?: number;
+  assemblyCount?: number;
+  collectionsCount?: number;
+  lowStockCount?: number;
 }
 
 export const ProductsSummary = React.memo(function ProductsSummary({
   metrics,
   totalProductsCount,
   currencySymbol,
+  singleCount = 0,
+  assemblyCount = 0,
+  collectionsCount = 0,
+  lowStockCount = 0,
 }: ProductsSummaryProps) {
+  const stockPercentage = totalProductsCount > 0 
+    ? Math.min(100, Math.round((metrics.inStockPositionsCount / totalProductsCount) * 100))
+    : 0;
+
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      {/* 1. Всего на складе */}
-      <div className="bg-[#16181d] border border-[#242930] hover:border-amber-500/40 rounded-2xl p-4 transition-all duration-200 shadow-lg relative overflow-hidden group">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-amber-500/10 transition-colors" />
-
-        <div className="flex items-center justify-between text-gray-400 mb-1.5">
-          <span className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 text-gray-300">
-            Остаток на складе
-            <CustomTooltip
-              title="Остаток готовой продукции"
-              description="Общее количество готовых напечатанных изделий и сборок, доступных для немедленной отгрузки."
-              formula="Сумма (stock_quantity) по всем товарам"
-              accentColor="amber"
-              align="left"
-            >
-              <HelpCircle className="w-3.5 h-3.5 text-gray-500 hover:text-amber-400 transition-colors cursor-help" />
-            </CustomTooltip>
-          </span>
-          <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-            <Package className="w-4 h-4" />
-          </div>
-        </div>
-
-        <div className="text-xl sm:text-2xl font-bold font-mono text-white tracking-tight">
-          {metrics.totalUnits} <span className="text-xs sm:text-sm text-gray-400 font-sans font-normal">шт</span>
-        </div>
-
-        <div className="mt-2 flex items-center gap-2 text-[11px] text-gray-400">
-          <span className="font-medium text-gray-300 font-mono">{metrics.inStockPositionsCount}</span>
-          <span>из {totalProductsCount} позиций в наличии</span>
-        </div>
-      </div>
-
-      {/* 2. Оценка склада (Розничная) */}
-      <div className="bg-[#16181d] border border-[#242930] hover:border-emerald-500/40 rounded-2xl p-4 transition-all duration-200 shadow-lg relative overflow-hidden group">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-emerald-500/10 transition-colors" />
-
-        <div className="flex items-center justify-between text-gray-400 mb-1.5">
-          <span className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 text-gray-300">
-            Оценка склада
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 select-none">
+      {/* 1. Оценка склада (Выручка) */}
+      <div className="border border-white/10 bg-white/[0.02] hover:border-white/20 transition-all p-3.5 rounded-xl flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[11px] text-neutral-400 uppercase tracking-wider">
+              Оценка склада (розница)
+            </span>
             <CustomTooltip
               title="Оценка склада в розничных ценах"
               description="Потенциальная выручка при продаже всего текущего складского остатка товаров."
               formula="Сумма (Розничная цена × Остаток)"
-              accentColor="emerald"
-              align="center"
+              accentColor="cyan"
+              align="left"
             >
-              <HelpCircle className="w-3.5 h-3.5 text-gray-500 hover:text-emerald-400 transition-colors cursor-help" />
+              <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white transition-colors cursor-help" />
             </CustomTooltip>
-          </span>
-          <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <ArrowUpRight className="w-4 h-4" />
+          </div>
+
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-xl sm:text-2xl font-bold text-white font-mono">
+              {formatCurrency(metrics.totalRetailValue, currencySymbol)}
+            </span>
+            <span className="text-[11px] font-mono text-emerald-400">
+              +{metrics.profitMargin.toFixed(1)}%
+            </span>
+          </div>
+
+          <div className="mt-2 h-1 w-full bg-white/10 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-cyan-400 rounded-full transition-all duration-500"
+              style={{ width: `${stockPercentage}%` }}
+            />
           </div>
         </div>
 
-        <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-400 tracking-tight">
-          {formatCurrency(metrics.totalRetailValue, currencySymbol)}
-        </div>
-
-        <div className="mt-2 flex items-center gap-2 text-[11px] text-gray-400">
-          <span>Потенциальная выручка</span>
-        </div>
+        <span className="text-[10px] font-mono text-neutral-400 mt-2 block">
+          {metrics.inStockPositionsCount} из {totalProductsCount} позиций в наличии
+        </span>
       </div>
 
-      {/* 3. Себестоимость склада */}
-      <div className="bg-[#16181d] border border-[#242930] hover:border-amber-500/40 rounded-2xl p-4 transition-all duration-200 shadow-lg relative overflow-hidden group">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-amber-500/10 transition-colors" />
-
-        <div className="flex items-center justify-between text-gray-400 mb-1.5">
-          <span className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 text-gray-300">
-            Себестоимость
-            <CustomTooltip
-              title="Замороженная себестоимость"
-              description="Фактические затраты на пластик, энергию, амортизацию и фурнитуру в товарах на складе."
-              formula="Сумма (Себестоимость × Остаток)"
-              accentColor="amber"
-              align="center"
-            >
-              <HelpCircle className="w-3.5 h-3.5 text-gray-500 hover:text-amber-400 transition-colors cursor-help" />
-            </CustomTooltip>
-          </span>
-          <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
-            <Receipt className="w-4 h-4" />
-          </div>
-        </div>
-
-        <div className="text-xl sm:text-2xl font-bold font-mono text-amber-400 tracking-tight">
-          {formatCurrency(metrics.totalCostValue, currencySymbol)}
-        </div>
-
-        <div className="mt-2 flex items-center gap-2 text-[11px] text-gray-400">
-          <span>Заморожено в сырье и печати</span>
-        </div>
-      </div>
-
-      {/* 4. Чистая прибыль & Маржа */}
-      <div className="bg-[#16181d] border border-[#242930] hover:border-[#FF6B00]/40 rounded-2xl p-4 transition-all duration-200 shadow-lg relative overflow-hidden group">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-[#FF6B00]/5 rounded-full blur-2xl pointer-events-none group-hover:bg-[#FF6B00]/10 transition-colors" />
-
-        <div className="flex items-center justify-between text-gray-400 mb-1.5">
-          <span className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 text-gray-300">
-            Чистая прибыль
+      {/* 2. Чистая прибыль */}
+      <div className="border border-white/10 bg-white/[0.02] hover:border-white/20 transition-all p-3.5 rounded-xl flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[11px] text-neutral-400 uppercase tracking-wider">
+              Чистая прибыль склада
+            </span>
             <CustomTooltip
               title="Потенциальная чистая прибыль"
               description="Чистый доход за вычетом всех производственных затрат при реализации остатка склада."
               formula="Оценка склада − Себестоимость склада"
-              accentColor="amber"
-              align="right"
+              accentColor="emerald"
+              align="center"
             >
-              <HelpCircle className="w-3.5 h-3.5 text-gray-500 hover:text-amber-400 transition-colors cursor-help" />
+              <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white transition-colors cursor-help" />
             </CustomTooltip>
-          </span>
-          <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <DollarSign className="w-4 h-4" />
+          </div>
+
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-xl sm:text-2xl font-bold text-emerald-400 font-mono">
+              +{formatCurrency(metrics.potentialProfit, currencySymbol)}
+            </span>
+            <span className="text-[11px] font-mono text-neutral-400">
+              {metrics.profitMargin.toFixed(1)}% маржа
+            </span>
           </div>
         </div>
 
-        <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-400 tracking-tight">
-          +{formatCurrency(metrics.potentialProfit, currencySymbol)}
+        <span className="text-[10px] font-mono text-neutral-400 mt-3 block">
+          Себестоимость: {formatCurrency(metrics.totalCostValue, currencySymbol)}
+        </span>
+      </div>
+
+      {/* 3. Позиций в каталоге */}
+      <div className="border border-white/10 bg-white/[0.02] hover:border-white/20 transition-all p-3.5 rounded-xl flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[11px] text-neutral-400 uppercase tracking-wider">
+              Позиций в каталоге
+            </span>
+            <CustomTooltip
+              title="Позиции каталога 3D Labs"
+              description="Общее число созданных карточек товаров, включая сборки и коллекции."
+              formula="Кол-во сохраненных моделей"
+              accentColor="cyan"
+              align="center"
+            >
+              <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white transition-colors cursor-help" />
+            </CustomTooltip>
+          </div>
+
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="text-xl sm:text-2xl font-bold text-white font-mono">
+              {totalProductsCount}
+            </span>
+            <span className="text-[11px] font-mono text-cyan-400">
+              {singleCount} деталей
+            </span>
+          </div>
         </div>
 
-        <div className="mt-2 flex items-center gap-2 text-[11px] text-gray-400">
-          {metrics.totalRetailValue > 0 ? (
-            <span className="font-bold text-emerald-400 font-mono">
-              {metrics.profitMargin.toFixed(1)}% средняя маржа
+        <span className="text-[10px] font-mono text-neutral-400 mt-3 block">
+          {assemblyCount} сборок · {collectionsCount} коллекций
+        </span>
+      </div>
+
+      {/* 4. Складской остаток и дефицит */}
+      <div className="border border-white/10 bg-white/[0.02] hover:border-white/20 transition-all p-3.5 rounded-xl flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[11px] text-neutral-400 uppercase tracking-wider">
+              Складские остатки
             </span>
-          ) : (
-            <span>при полной распродаже</span>
-          )}
+            <CustomTooltip
+              title="Остаток готовой продукции"
+              description="Общее количество готовых изделий на складе, готовых к мгновенной отгрузке."
+              formula="Сумма (stock_quantity)"
+              accentColor="amber"
+              align="right"
+            >
+              <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white transition-colors cursor-help" />
+            </CustomTooltip>
+          </div>
+
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className={`text-xl sm:text-2xl font-bold font-mono ${lowStockCount > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+              {metrics.totalUnits} <span className="text-xs font-normal text-neutral-400 font-sans">шт</span>
+            </span>
+            {lowStockCount > 0 ? (
+              <span className="text-[11px] font-mono text-amber-400">
+                {lowStockCount} в дефиците
+              </span>
+            ) : (
+              <span className="text-[11px] font-mono text-emerald-400">
+                Готово к отгрузке
+              </span>
+            )}
+          </div>
         </div>
+
+        <span className="text-[10px] font-mono text-neutral-400 mt-3 block">
+          {lowStockCount > 0 ? `Критический остаток (≤ 2 шт): ${lowStockCount}` : 'Склад в оптимальном состоянии'}
+        </span>
       </div>
     </div>
   );
 });
+

@@ -209,6 +209,7 @@ export interface DetailedCalculationResult {
   profitTotal: number;
   profitPerUnit: number;
   marginPercent: number;
+  markupPercent: number;
 }
 
 export interface CalculateCostParams {
@@ -369,6 +370,7 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
     ? round2(finalPricePerUnit - baseCostPerUnit) 
     : profitTotal;
   const marginPercent = calcMarginPercent(profitTotal, totalFinalPrice);
+  const markupPercent = calcMarkupPercent(profitTotal, totalBaseCost);
   
   return {
     materialCost,
@@ -406,6 +408,7 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
     profitTotal,
     profitPerUnit,
     marginPercent,
+    markupPercent,
   };
 }
 
@@ -429,6 +432,7 @@ export interface AssemblyTotalsResult {
   grandFinalPrice: number;
   profit: number;
   marginPercent: number;
+  markupPercent: number;
 }
 
 /**
@@ -481,6 +485,7 @@ export function calculateAssemblyTotals(
   const grandFinalPrice = round2(partsFinalPrice + hwFinalPrice + laborCost);
   const profit = round2(grandFinalPrice - grandBaseCost);
   const marginPercent = calcMarginPercent(profit, grandFinalPrice);
+  const markupPercent = calcMarkupPercent(profit, grandBaseCost);
 
   return {
     totalWeight: round2(totalWeight),
@@ -497,6 +502,7 @@ export function calculateAssemblyTotals(
     grandFinalPrice,
     profit,
     marginPercent,
+    markupPercent,
   };
 }
 

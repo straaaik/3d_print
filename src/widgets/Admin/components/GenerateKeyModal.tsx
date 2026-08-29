@@ -2,9 +2,8 @@
 
 import React, { useState } from 'react';
 import { Modal } from '../../../shared/ui/Modal';
-import { Button } from '../../../shared/ui/Button';
-import { Input } from '../../../shared/ui/Input';
-import { Select } from '../../../shared/ui/Select';
+import { CockpitButton } from '../../../shared/ui/CockpitButton';
+import { CockpitDropdown } from '../../../shared/ui/CockpitDropdown';
 import { UserRole, RegistrationKey } from '../../../shared/types';
 import { useAuth } from '../../../entities/model/AuthProvider';
 import { useToast } from '../../../entities/model/ToastProvider';
@@ -32,7 +31,7 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
 
   const [count, setCount] = useState<number>(1);
   const [role, setRole] = useState<UserRole>('user');
-  const [expiresInDays, setExpiresInDays] = useState<string>('0'); // 0 = бессрочно
+  const [expiresInDays, setExpiresInDays] = useState<string>('0');
   const [note, setNote] = useState<string>('');
   
   const [isGenerating, setIsGenerating] = useState(false);
@@ -103,16 +102,16 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Генератор ключей доступа"
+      title="§ 3D-LABS // ACCESS_KEY_GENERATOR"
       maxWidth="md"
     >
       {!generatedKeys ? (
-        <div className="space-y-4 pt-1">
+        <div className="space-y-4 pt-1 font-mono text-xs">
           {/* Количество ключей */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
-              <Layers className="w-3.5 h-3.5 text-purple-400" />
-              Количество ключей
+            <label className="text-xs text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-cyan-400" />
+              Количество ключей:
             </label>
             <div className="grid grid-cols-4 gap-2">
               {[1, 5, 10, 20].map((num) => (
@@ -120,10 +119,10 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
                   key={num}
                   type="button"
                   onClick={() => setCount(num)}
-                  className={`py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                  className={`py-2 rounded-xl text-xs font-mono font-bold transition-all border cursor-pointer ${
                     count === num
-                      ? 'bg-purple-600 border-purple-500 text-white shadow-md shadow-purple-600/30'
-                      : 'bg-[#14161d] border-[#242930] text-gray-400 hover:text-white hover:border-purple-800'
+                      ? 'bg-white text-neutral-950 border-white shadow-sm'
+                      : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
                   {num === 1 ? '1 ключ' : `${num} шт`}
@@ -132,11 +131,11 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
             </div>
           </div>
 
-          {/* Роль, которую дает ключ */}
+          {/* Роль */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
-              Уровень доступа (Роль)
+            <label className="text-xs text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+              Уровень доступа (Роль):
             </label>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -144,16 +143,16 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
                 onClick={() => setRole('user')}
                 className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
                   role === 'user'
-                    ? 'bg-purple-950/40 border-purple-500 text-white shadow-md shadow-purple-600/20'
-                    : 'bg-[#14161d] border-[#242930] text-gray-400 hover:text-white'
+                    ? 'bg-cyan-950/60 border-cyan-500/50 text-white shadow-sm'
+                    : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white'
                 }`}
               >
-                <div className="flex items-center gap-1.5 text-xs font-bold text-blue-400">
-                  <UserCheck className="w-4 h-4" />
+                <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-400">
+                  <UserCheck className="w-3.5 h-3.5" />
                   Пользователь
                 </div>
-                <div className="text-[11px] text-gray-400">
-                  Доступ к калькулятору, заказам, складам и настройкам
+                <div className="text-[11px] text-neutral-400 font-sans">
+                  Доступ к калькулятору, заказам, складам и расчетам
                 </div>
               </button>
 
@@ -162,15 +161,15 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
                 onClick={() => setRole('admin')}
                 className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
                   role === 'admin'
-                    ? 'bg-purple-950/40 border-purple-500 text-white shadow-md shadow-purple-600/20'
-                    : 'bg-[#14161d] border-[#242930] text-gray-400 hover:text-white'
+                    ? 'bg-purple-950/60 border-purple-500/50 text-white shadow-sm'
+                    : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white'
                 }`}
               >
-                <div className="flex items-center gap-1.5 text-xs font-bold text-purple-400">
-                  <ShieldCheck className="w-4 h-4" />
+                <div className="flex items-center gap-1.5 text-xs font-bold text-purple-300">
+                  <ShieldCheck className="w-3.5 h-3.5" />
                   Администратор
                 </div>
-                <div className="text-[11px] text-gray-400">
+                <div className="text-[11px] text-neutral-400 font-sans">
                   Полный доступ + генерация ключей и управление аккаунтами
                 </div>
               </button>
@@ -179,95 +178,94 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
 
           {/* Срок действия */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-purple-400" />
-              Срок действия ключа
-            </label>
-            <select
+            <CockpitDropdown
+              label={
+                <span className="flex items-center gap-1.5 text-xs text-neutral-400 uppercase tracking-wider">
+                  <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                  Срок действия ключа:
+                </span>
+              }
               value={expiresInDays}
-              onChange={(e) => setExpiresInDays(e.target.value)}
-              className="w-full h-10 bg-[#14161d] border border-[#242930] hover:border-purple-700 focus:border-purple-500 rounded-xl px-3 text-xs sm:text-sm text-white focus:outline-none transition-colors"
-            >
-              <option value="0">Бессрочно (без ограничений по времени)</option>
-              <option value="1">24 часа (1 день)</option>
-              <option value="3">3 дня</option>
-              <option value="7">7 дней (1 неделя)</option>
-              <option value="30">30 дней (1 месяц)</option>
-              <option value="90">90 дней (3 месяца)</option>
-            </select>
+              onChange={(val) => setExpiresInDays(val)}
+              options={[
+                { value: '0', label: 'Бессрочно', subtext: 'Без ограничений по времени' },
+                { value: '1', label: '24 часа (1 день)', badge: '1 день' },
+                { value: '3', label: '3 дня', badge: '3 дня' },
+                { value: '7', label: '7 дней (1 неделя)', badge: '1 неделя' },
+                { value: '30', label: '30 дней (1 месяц)', badge: '1 месяц' },
+                { value: '90', label: '90 дней (3 месяца)', badge: '3 месяца' },
+              ]}
+              variant="input"
+              placeholder="Выберите срок действия..."
+            />
           </div>
 
-          {/* Заметка / Назначение */}
+          {/* Заметка */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-purple-400" />
-              Заметка / Кому выдается (опционально)
+            <label className="text-xs text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-cyan-400" />
+              Заметка / Назначение:
             </label>
             <input
               type="text"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder="Например: Для оператора цеха, Мастер Иван, Клиент VIP"
-              className="w-full h-10 bg-[#14161d] border border-[#242930] hover:border-purple-700 focus:border-purple-500 rounded-xl px-3 text-xs sm:text-sm text-white focus:outline-none transition-colors placeholder-gray-600"
+              placeholder="Например: Для оператора цеха, Мастер Иван..."
+              className="w-full h-9 bg-neutral-900 border border-white/15 hover:border-white/25 focus:border-cyan-400 rounded-xl px-3 text-xs text-white focus:outline-none transition-colors font-sans"
             />
           </div>
 
           {/* Кнопки действий */}
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button
-              variant="outline"
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
+            <CockpitButton
+              type="button"
               onClick={handleClose}
               disabled={isGenerating}
             >
               Отмена
-            </Button>
-            <button
+            </CockpitButton>
+            <CockpitButton
               type="button"
               onClick={handleGenerate}
               disabled={isGenerating}
-              className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-[0.99] text-white font-bold rounded-xl text-xs sm:text-sm shadow-lg shadow-purple-600/25 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              icon={Sparkles}
+              isActive={true}
+              className="border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold"
             >
-              {isGenerating ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  <span>Сгенерировать {count > 1 ? `(${count} шт)` : 'ключ'}</span>
-                </>
-              )}
-            </button>
+              {isGenerating ? 'Генерация...' : `Сгенерировать ${count > 1 ? `(${count} шт)` : 'ключ'}`}
+            </CockpitButton>
           </div>
         </div>
       ) : (
-        /* Экран с результатами генерации */
-        <div className="space-y-4 pt-1">
-          <div className="bg-emerald-950/30 border border-emerald-800/50 rounded-2xl p-3.5 flex items-center gap-3 text-emerald-200">
+        /* Результаты генерации */
+        <div className="space-y-4 pt-1 font-mono text-xs">
+          <div className="bg-emerald-950/40 border border-emerald-800/40 rounded-xl p-3.5 flex items-center gap-3 text-emerald-200">
             <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
             <div>
-              <div className="text-xs font-bold text-white">
+              <div className="text-xs font-bold text-white font-mono">
                 {generatedKeys.length === 1 ? 'Ключ успешно создан!' : `Сгенерировано ключей: ${generatedKeys.length}`}
               </div>
-              <div className="text-[11px] text-emerald-300/80">
+              <div className="text-[11px] text-emerald-300/80 font-sans">
                 Передайте ключ пользователю для одноразовой регистрации
               </div>
             </div>
           </div>
 
-          {/* Список сгенерированных ключей */}
+          {/* Список ключей */}
           <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
             {generatedKeys.map((keyItem) => {
               const isCopied = copiedKeyId === keyItem.id;
               return (
                 <div
                   key={keyItem.id}
-                  className="bg-[#14161d] border border-purple-900/40 rounded-xl p-2.5 flex items-center justify-between gap-3 hover:border-purple-600/60 transition-colors"
+                  className="bg-neutral-900 border border-white/15 rounded-xl p-2.5 flex items-center justify-between gap-3 hover:border-white/30 transition-colors"
                 >
                   <div className="min-w-0 flex-1">
-                    <div className="font-mono text-sm sm:text-base font-bold text-amber-300 tracking-wider">
+                    <div className="font-mono text-sm font-bold text-amber-300 tracking-wider">
                       {keyItem.key}
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] text-gray-400 mt-0.5">
-                      <span className={keyItem.role_to_grant === 'admin' ? 'text-purple-400 font-semibold' : 'text-blue-400'}>
+                    <div className="flex items-center gap-2 text-[10px] text-neutral-400 mt-0.5">
+                      <span className={keyItem.role_to_grant === 'admin' ? 'text-purple-400 font-semibold' : 'text-cyan-400'}>
                         {keyItem.role_to_grant === 'admin' ? 'Администратор' : 'Пользователь'}
                       </span>
                       {keyItem.note && (
@@ -282,10 +280,10 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
                   <button
                     type="button"
                     onClick={() => copySingleKey(keyItem)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                       isCopied
                         ? 'bg-emerald-600 text-white'
-                        : 'bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 border border-purple-700/50'
+                        : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
                     }`}
                   >
                     {isCopied ? (
@@ -305,32 +303,33 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
             })}
           </div>
 
-          {/* Кнопки действий после генерации */}
-          <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#242930]">
-            <Button
-              variant="outline"
+          {/* Футер после генерации */}
+          <div className="flex items-center justify-between gap-2 pt-2 border-t border-white/10">
+            <CockpitButton
+              type="button"
               onClick={resetForm}
             >
               Сгенерировать ещё
-            </Button>
+            </CockpitButton>
 
             <div className="flex items-center gap-2">
               {generatedKeys.length > 1 && (
-                <Button
-                  variant="secondary"
+                <CockpitButton
+                  type="button"
                   onClick={copyAllKeys}
-                  className="flex items-center gap-1.5"
+                  icon={copiedAll ? Check : Copy}
                 >
-                  {copiedAll ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedAll ? 'Все скопированы' : 'Скопировать все'}</span>
-                </Button>
+                  {copiedAll ? 'Все скопированы' : 'Скопировать все'}
+                </CockpitButton>
               )}
-              <Button
-                variant="primary"
+              <CockpitButton
+                type="button"
                 onClick={handleClose}
+                isActive={true}
+                className="border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold"
               >
                 Готово
-              </Button>
+              </CockpitButton>
             </div>
           </div>
         </div>

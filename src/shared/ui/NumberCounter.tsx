@@ -16,7 +16,6 @@ interface NumberCounterProps {
   isModified?: boolean;
 }
 
-// Вспомогательный компонент для плавной анимации разряда числа
 function Digit({ value, direction }: { value: string; direction: 'up' | 'down' }) {
   return (
     <span className="inline-block overflow-hidden relative w-[0.6em] h-5 text-center select-none pointer-events-none">
@@ -32,7 +31,7 @@ function Digit({ value, direction }: { value: string; direction: 'up' | 'down' }
             damping: 25, 
             mass: 0.8
           }}
-          className="absolute inset-0 flex items-center justify-center font-mono text-sm text-white font-bold"
+          className="absolute inset-0 flex items-center justify-center font-mono text-xs text-white font-bold"
         >
           {value}
         </motion.span>
@@ -58,7 +57,6 @@ export function NumberCounter({
   const [direction, setDirection] = useState<'up' | 'down'>('up');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Синхронизация направления анимации
   useEffect(() => {
     if (value > prevValue) {
       setDirection('up');
@@ -69,7 +67,6 @@ export function NumberCounter({
     setInputValue(value.toString());
   }, [value, prevValue]);
 
-  // Фокусировка инпута при переходе в режим редактирования
   useEffect(() => {
     if (isFocused && inputRef.current) {
       inputRef.current.focus();
@@ -104,7 +101,7 @@ export function NumberCounter({
       commitValue();
     } else if (e.key === 'Escape') {
       setIsFocused(false);
-      setInputValue(value.toString()); // Отмена изменений
+      setInputValue(value.toString());
     }
   };
 
@@ -114,42 +111,38 @@ export function NumberCounter({
       setInputValue(value.toString());
       return;
     }
-    
-    // Загоняем значение в разрешенные рамки [min, max]
     const clamped = Math.max(min, Math.min(max, parsed));
     onChange(clamped);
     setInputValue(clamped.toString());
   };
 
   return (
-    <div className={`flex flex-col gap-1.5 ${className}`}>
+    <div className={`flex flex-col gap-1.5 font-mono text-xs ${className}`}>
       {label && (
-        <span className="text-gray-300 text-xs sm:text-sm font-medium select-none">
+        <span className="text-neutral-400 text-xs font-mono uppercase tracking-wider select-none">
           {label}
         </span>
       )}
       
       <div className={`flex items-center rounded-xl h-9 min-h-[36px] overflow-hidden transition-colors select-none ${
         disabled 
-          ? 'bg-[#101217] border border-[#1e222b] opacity-60 cursor-not-allowed' 
+          ? 'bg-neutral-950 border border-white/5 opacity-40 cursor-not-allowed' 
           : isModified
-          ? 'bg-[#14161d] border border-amber-500/70 shadow-[0_0_10px_rgba(245,158,11,0.15)] focus-within:border-[#FF6B00]'
-          : 'bg-[#14161d] border border-[#242930] focus-within:border-[#FF6B00]'
+          ? 'bg-neutral-900 border border-amber-500/70 shadow-[0_0_10px_rgba(245,158,11,0.15)] focus-within:border-cyan-400'
+          : 'bg-neutral-900 border border-white/15 focus-within:border-cyan-400 hover:border-white/25'
       }`}>
-        {/* Кнопка минус */}
         <button
           type="button"
           onClick={handleDecrement}
           disabled={disabled || value <= min}
-          className="h-full px-3 text-neutral-accent hover:text-white hover:bg-[#242930] active:scale-[0.88] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-neutral-accent disabled:active:scale-100 transition-all flex items-center justify-center border-r border-[#242930] cursor-pointer disabled:cursor-not-allowed"
+          className="h-full px-2.5 text-neutral-400 hover:text-white hover:bg-white/10 active:scale-[0.88] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-neutral-400 disabled:active:scale-100 transition-all flex items-center justify-center border-r border-white/10 cursor-pointer disabled:cursor-not-allowed"
         >
-          <Minus size={14} />
+          <Minus size={13} />
         </button>
 
-        {/* Центральное число (клик переключает на ввод) */}
         <div 
           onClick={() => !disabled && setIsFocused(true)}
-          className={`flex-1 h-full flex items-center justify-center px-2 min-w-[50px] relative overflow-hidden ${
+          className={`flex-1 h-full flex items-center justify-center px-2 min-w-[40px] relative overflow-hidden ${
             disabled ? 'cursor-not-allowed' : 'cursor-text'
           }`}
         >
@@ -163,7 +156,7 @@ export function NumberCounter({
               onChange={handleInputChange}
               onBlur={handleBlur}
               onKeyDown={handleKeyDown}
-              className="w-full text-center bg-transparent border-none outline-none font-mono text-sm text-white font-bold p-0 focus:ring-0"
+              className="w-full text-center bg-transparent border-none outline-none font-mono text-xs text-white font-bold p-0 focus:ring-0"
             />
           ) : (
             <div className="h-full flex items-center justify-center overflow-hidden">
@@ -184,14 +177,13 @@ export function NumberCounter({
           )}
         </div>
 
-        {/* Кнопка плюс */}
         <button
           type="button"
           onClick={handleIncrement}
           disabled={disabled || value >= max}
-          className="h-full px-3 text-neutral-accent hover:text-white hover:bg-[#242930] active:scale-[0.88] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-neutral-accent disabled:active:scale-100 transition-all flex items-center justify-center border-l border-[#242930] cursor-pointer disabled:cursor-not-allowed"
+          className="h-full px-2.5 text-neutral-400 hover:text-white hover:bg-white/10 active:scale-[0.88] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-neutral-400 disabled:active:scale-100 transition-all flex items-center justify-center border-l border-white/10 cursor-pointer disabled:cursor-not-allowed"
         >
-          <Plus size={14} />
+          <Plus size={13} />
         </button>
       </div>
     </div>

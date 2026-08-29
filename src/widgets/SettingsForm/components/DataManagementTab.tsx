@@ -2,7 +2,7 @@
 
 import React, { useRef } from 'react';
 import { Card } from '../../../shared/ui/Card';
-import { Button } from '../../../shared/ui/Button';
+import { CockpitButton } from '../../../shared/ui/CockpitButton';
 import { Modal } from '../../../shared/ui/Modal';
 import { useToast } from '../../../entities/model/ToastProvider';
 import { useData } from '../../../entities/model/DataProvider';
@@ -12,12 +12,10 @@ import {
   Sparkles, 
   Trash2, 
   Database, 
-  ShieldAlert, 
   Cpu, 
   Layers, 
   Package, 
-  ShoppingBag,
-  FileJson
+  ShoppingBag
 } from 'lucide-react';
 
 interface DataManagementTabProps {
@@ -45,7 +43,8 @@ export function DataManagementTab({
   const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Экспорт данных (Бэкап)
+  const isDev = process.env.NODE_ENV === 'development' || (typeof window !== 'undefined' && localStorage.getItem('3d_dev_session') === 'true');
+
   const handleExportData = () => {
     if (typeof window === 'undefined') return;
 
@@ -74,7 +73,6 @@ export function DataManagementTab({
     }
   };
 
-  // Импорт данных (Восстановление)
   const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileReader = new FileReader();
     const file = e.target.files?.[0];
@@ -130,46 +128,46 @@ export function DataManagementTab({
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 font-mono text-xs">
       {/* 1. Сводка текущего хранилища */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-4 rounded-2xl bg-[#16181d] border border-[#242930] flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-sky-500/15 text-sky-400">
-            <Cpu size={18} />
+        <div className="p-3.5 rounded-xl bg-neutral-950/90 border border-white/10 flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-cyan-950/60 text-cyan-400 border border-cyan-800/40">
+            <Cpu size={16} />
           </div>
           <div>
-            <span className="text-lg font-bold font-mono text-white">{printers.length}</span>
-            <span className="text-xs text-gray-400 block">Принтеров в парке</span>
+            <span className="text-base font-bold font-mono text-white">{printers.length}</span>
+            <span className="text-[10px] text-neutral-400 block font-sans">Принтеров в парке</span>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#16181d] border border-[#242930] flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-purple-500/15 text-purple-400">
-            <Layers size={18} />
+        <div className="p-3.5 rounded-xl bg-neutral-950/90 border border-white/10 flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-purple-950/60 text-purple-300 border border-purple-800/40">
+            <Layers size={16} />
           </div>
           <div>
-            <span className="text-lg font-bold font-mono text-white">{filaments.length}</span>
-            <span className="text-xs text-gray-400 block">Катушек филамента</span>
+            <span className="text-base font-bold font-mono text-white">{filaments.length}</span>
+            <span className="text-[10px] text-neutral-400 block font-sans">Катушек филамента</span>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#16181d] border border-[#242930] flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-emerald-500/15 text-emerald-400">
-            <Package size={18} />
+        <div className="p-3.5 rounded-xl bg-neutral-950/90 border border-white/10 flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
+            <Package size={16} />
           </div>
           <div>
-            <span className="text-lg font-bold font-mono text-white">{savedCalculations.length}</span>
-            <span className="text-xs text-gray-400 block">Товаров в каталоге</span>
+            <span className="text-base font-bold font-mono text-white">{savedCalculations.length}</span>
+            <span className="text-[10px] text-neutral-400 block font-sans">Товаров в каталоге</span>
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#16181d] border border-[#242930] flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-amber-500/15 text-amber-400">
-            <ShoppingBag size={18} />
+        <div className="p-3.5 rounded-xl bg-neutral-950/90 border border-white/10 flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-amber-950/60 text-amber-400 border border-amber-800/40">
+            <ShoppingBag size={16} />
           </div>
           <div>
-            <span className="text-lg font-bold font-mono text-white">{collections.length}</span>
-            <span className="text-xs text-gray-400 block">Коллекций / Папок</span>
+            <span className="text-base font-bold font-mono text-white">{collections.length}</span>
+            <span className="text-[10px] text-neutral-400 block font-sans">Коллекций / Папок</span>
           </div>
         </div>
       </div>
@@ -178,27 +176,26 @@ export function DataManagementTab({
       <Card
         title="Резервное копирование и экспорт в файл"
         stepNumber="💾"
-        className="border-[#242930] bg-[#16181d]"
       >
         <div className="flex flex-col gap-4">
-          <p className="text-xs text-gray-400 leading-relaxed">
+          <p className="text-xs text-neutral-400 font-sans leading-relaxed">
             Выгрузите полный слепок вашей базы (оборудование, палитру пластика, калькуляции, настройки и коллекции) в отдельный JSON-файл для надежного хранения или переноса на другое устройство.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
             <button
               type="button"
               onClick={handleExportData}
-              className="p-4 rounded-xl bg-[#12141a] border border-[#242930] hover:border-primary/50 hover:bg-primary/5 flex items-center gap-3 text-left transition-all cursor-pointer select-none group"
+              className="p-3.5 rounded-xl bg-neutral-900 border border-white/10 hover:border-cyan-400/50 flex items-center gap-3 text-left transition-all cursor-pointer select-none group"
             >
-              <div className="p-3 rounded-xl bg-primary/15 text-primary group-hover:scale-110 transition-transform">
-                <Download size={20} />
+              <div className="p-2.5 rounded-lg bg-cyan-950/60 text-cyan-400 border border-cyan-800/40 group-hover:scale-105 transition-transform">
+                <Download size={18} />
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-white group-hover:text-primary transition-colors">
+                <span className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors font-mono">
                   Экспортировать бэкап
                 </span>
-                <span className="text-[11px] text-gray-400">
+                <span className="text-[10px] text-neutral-400 font-sans">
                   Скачать JSON-файл со всеми таблицами
                 </span>
               </div>
@@ -215,16 +212,16 @@ export function DataManagementTab({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-4 rounded-xl bg-[#12141a] border border-[#242930] hover:border-sky-500/50 hover:bg-sky-500/5 flex items-center gap-3 text-left transition-all cursor-pointer select-none group"
+              className="p-3.5 rounded-xl bg-neutral-900 border border-white/10 hover:border-cyan-400/50 flex items-center gap-3 text-left transition-all cursor-pointer select-none group"
             >
-              <div className="p-3 rounded-xl bg-sky-500/15 text-sky-400 group-hover:scale-110 transition-transform">
-                <Upload size={20} />
+              <div className="p-2.5 rounded-lg bg-cyan-950/60 text-cyan-400 border border-cyan-800/40 group-hover:scale-105 transition-transform">
+                <Upload size={18} />
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-white group-hover:text-sky-400 transition-colors">
+                <span className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors font-mono">
                   Импортировать из файла
                 </span>
-                <span className="text-[11px] text-gray-400">
+                <span className="text-[10px] text-neutral-400 font-sans">
                   Восстановить данные из ранее сохраненного JSON
                 </span>
               </div>
@@ -233,111 +230,117 @@ export function DataManagementTab({
         </div>
       </Card>
 
-      {/* 3. Генератор тестов и Опасная зона */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Генератор случайных данных */}
-        <Card
-          title="Генератор тестовых данных"
-          stepNumber="🎲"
-          className="border-[#242930] bg-[#16181d] flex flex-col justify-between"
-        >
-          <div className="flex flex-col gap-4">
-            <p className="text-xs text-gray-400 leading-relaxed">
-              Автоматически наполнит базу реалистичным набором 3D-принтеров (Bambu Lab, Voron, Creality), палитрой пластиков, готовыми товарами, заказами и расходами.
-            </p>
+      {/* 3. DEV & Опасная зона */}
+      <div className={`grid grid-cols-1 ${isDev ? 'md:grid-cols-2' : ''} gap-4`}>
+        {isDev && (
+          <Card
+            title="Генератор тестовых данных"
+            headerAction={
+              <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-amber-950/60 text-amber-400 border border-amber-800/40">
+                DEV
+              </span>
+            }
+            stepNumber="🎲"
+            className="flex flex-col justify-between"
+          >
+            <div className="flex flex-col gap-3">
+              <p className="text-xs text-neutral-400 font-sans leading-relaxed">
+                Автоматически наполнит базу реалистичным набором 3D-принтеров (Bambu Lab, Voron, Creality), палитрой пластиков, готовыми товарами, заказами и расходами.
+              </p>
 
-            <Button
-              variant="primary"
-              onClick={() => setIsConfirmSeedModalOpen(true)}
-              disabled={isSeeding || isClearing}
-              className="flex items-center justify-center gap-2 w-full py-2.5 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-bold border-none shadow-md shadow-amber-500/20"
-            >
-              <Sparkles size={16} />
-              {isSeeding ? 'Генерация...' : 'Сгенерировать демо-данные'}
-            </Button>
-          </div>
-        </Card>
+              <CockpitButton
+                type="button"
+                onClick={() => setIsConfirmSeedModalOpen(true)}
+                disabled={isSeeding || isClearing}
+                icon={Sparkles}
+                className="w-full justify-center py-2"
+              >
+                {isSeeding ? 'Генерация...' : 'Сгенерировать демо-данные'}
+              </CockpitButton>
+            </div>
+          </Card>
+        )}
 
-        {/* Опасная зона - Очистка */}
         <Card
           title="Опасная зона: Сброс базы"
           stepNumber="⚠️"
-          className="border-red-500/20 bg-[#16181d] flex flex-col justify-between"
+          className="border-rose-800/30 flex flex-col justify-between"
         >
-          <div className="flex flex-col gap-4">
-            <p className="text-xs text-red-400/80 leading-relaxed">
+          <div className="flex flex-col gap-3">
+            <p className="text-xs text-rose-300/80 font-sans leading-relaxed">
               Полное удаление всех принтеров, катушек, товаров и заказов. Восстановить данные будет невозможно без заранее сохраненного бэкапа.
             </p>
 
-            <Button
-              variant="danger"
+            <CockpitButton
+              type="button"
               onClick={() => setIsConfirmClearModalOpen(true)}
               disabled={isSeeding || isClearing}
-              className="flex items-center justify-center gap-2 w-full py-2.5"
+              icon={Trash2}
+              className="w-full justify-center py-2 text-rose-300 bg-rose-950/60 border-rose-800/40 hover:bg-rose-900/80 hover:text-white"
             >
-              <Trash2 size={16} />
               {isClearing ? 'Очистка...' : 'Очистить все таблицы'}
-            </Button>
+            </CockpitButton>
           </div>
         </Card>
       </div>
 
-      {/* Модальное окно подтверждения генерации случайных данных */}
-      <Modal
-        isOpen={isConfirmSeedModalOpen}
-        onClose={() => !isSeeding && setIsConfirmSeedModalOpen(false)}
-        title="Сгенерировать случайные данные?"
-        variant="warning"
-        maxWidth="sm"
-        footer={
-          <div className="flex gap-3 justify-end">
-            <Button variant="outline" disabled={isSeeding} onClick={() => setIsConfirmSeedModalOpen(false)}>
-              Отмена
-            </Button>
-            <Button
-              variant="primary"
-              disabled={isSeeding}
-              onClick={async () => {
-                setIsSeeding(true);
-                try {
-                  await seedRandomData();
-                  setIsConfirmSeedModalOpen(false);
-                  showToast('Случайные тестовые данные успешно созданы!', 'success');
-                } catch (err) {
-                  console.error(err);
-                  showToast('Ошибка при генерации тестовых данных.', 'error');
-                } finally {
-                  setIsSeeding(false);
-                }
-              }}
-              className="bg-amber-500 hover:bg-amber-400 text-black font-semibold"
-            >
-              {isSeeding ? 'Генерация...' : 'Сгенерировать'}
-            </Button>
+      {/* Модальное окно подтверждения генерации */}
+      {isDev && (
+        <Modal
+          isOpen={isConfirmSeedModalOpen}
+          onClose={() => !isSeeding && setIsConfirmSeedModalOpen(false)}
+          title="§ 3D-LABS // GENERATE_DEMO_DATA"
+          variant="warning"
+          maxWidth="sm"
+          footer={
+            <div className="flex gap-2 justify-end w-full">
+              <CockpitButton disabled={isSeeding} onClick={() => setIsConfirmSeedModalOpen(false)}>
+                Отмена
+              </CockpitButton>
+              <CockpitButton
+                disabled={isSeeding}
+                isActive={true}
+                onClick={async () => {
+                  setIsSeeding(true);
+                  try {
+                    await seedRandomData();
+                    setIsConfirmSeedModalOpen(false);
+                    showToast('Случайные тестовые данные успешно созданы!', 'success');
+                  } catch (err) {
+                    console.error(err);
+                    showToast('Ошибка при генерации тестовых данных.', 'error');
+                  } finally {
+                    setIsSeeding(false);
+                  }
+                }}
+                className="border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold"
+              >
+                {isSeeding ? 'Генерация...' : 'Сгенерировать'}
+              </CockpitButton>
+            </div>
+          }
+        >
+          <div className="text-xs text-neutral-300 space-y-2 font-sans">
+            <p>
+              Все текущие таблицы будут наполнены новым случайно сгенерированным набором оборудования, пластика, каталога товаров и заказов.
+            </p>
           </div>
-        }
-      >
-        <div className="text-sm text-gray-300 space-y-2">
-          <p>
-            Все текущие таблицы будут наполнены новым случайно сгенерированным набором оборудования, пластика, каталога товаров и заказов.
-          </p>
-        </div>
-      </Modal>
+        </Modal>
+      )}
 
       {/* Модальное окно подтверждения полной очистки */}
       <Modal
         isOpen={isConfirmClearModalOpen}
         onClose={() => !isClearing && setIsConfirmClearModalOpen(false)}
-        title="Очистить все таблицы базы данных?"
+        title="§ 3D-LABS // CLEAR_DATABASE"
         variant="error"
         maxWidth="sm"
         footer={
-          <div className="flex gap-3 justify-end">
-            <Button variant="outline" disabled={isClearing} onClick={() => setIsConfirmClearModalOpen(false)}>
+          <div className="flex gap-2 justify-end w-full">
+            <CockpitButton disabled={isClearing} onClick={() => setIsConfirmClearModalOpen(false)}>
               Отмена
-            </Button>
-            <Button
-              variant="danger"
+            </CockpitButton>
+            <CockpitButton
               disabled={isClearing}
               onClick={async () => {
                 setIsClearing(true);
@@ -352,13 +355,14 @@ export function DataManagementTab({
                   setIsClearing(false);
                 }
               }}
+              className="bg-rose-950/60 text-rose-300 border-rose-800/40 hover:bg-rose-900/80 hover:text-white font-bold"
             >
               {isClearing ? 'Очистка...' : 'Удалить всё'}
-            </Button>
+            </CockpitButton>
           </div>
         }
       >
-        <p className="text-sm text-gray-300">
+        <p className="text-xs text-neutral-300 font-sans">
           Вы действительно хотите полностью удалить все данные из всех таблиц? База данных и локальное хранилище станут пустыми.
         </p>
       </Modal>

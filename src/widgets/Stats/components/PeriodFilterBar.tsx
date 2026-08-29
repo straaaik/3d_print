@@ -8,10 +8,7 @@ import {
   ChevronRight, 
   Check, 
   Clock, 
-  Filter, 
-  X,
-  Layers,
-  Sparkles
+  X
 } from 'lucide-react';
 import { 
   PeriodPreset, 
@@ -20,6 +17,7 @@ import {
   formatMonthKeyLabel 
 } from '../helpers/statsCalculator';
 import { DatePicker } from '../../../shared/ui/DatePicker';
+import { Tooltip } from '../../../shared/ui/Tooltip';
 
 interface PeriodFilterBarProps {
   selectedPreset: PeriodPreset;
@@ -110,7 +108,6 @@ export function PeriodFilterBar({
     if (availableMonthKeys.length === 0) return;
     const currentIndex = availableMonthKeys.indexOf(selectedMonthKey);
     if (currentIndex === -1 || currentIndex === availableMonthKeys.length - 1) {
-      // Переходим к первому или следующему
       onSelectMonthKey(availableMonthKeys[0]);
     } else {
       onSelectMonthKey(availableMonthKeys[currentIndex + 1]);
@@ -161,23 +158,24 @@ export function PeriodFilterBar({
   };
 
   return (
-    <div className="bg-[#16181d] border border-[#242930] rounded-2xl p-3 sm:p-4 shadow-lg flex flex-col gap-3">
+    <div className="bg-neutral-950/90 border border-white/10 rounded-xl p-3 sm:p-4 shadow-lg flex flex-col gap-3 font-mono text-xs select-none">
       {/* 1-Я СТРОКА: Месяцы с быстрым переключением и кнопками навигации */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           {/* Навигатор со стрелками */}
-          <div className="flex items-center gap-1 bg-[#101217] border border-[#242930] p-1 rounded-xl shadow-inner">
-            <button
-              type="button"
-              onClick={handlePrevMonth}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#242930] transition-colors cursor-pointer"
-              title="Предыдущий месяц"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
+          <div className="flex items-center gap-1 bg-neutral-900 border border-white/10 p-1 rounded-xl">
+            <Tooltip content="Предыдущий месяц">
+              <button
+                type="button"
+                onClick={handlePrevMonth}
+                className="p-1 rounded-lg text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </Tooltip>
 
-            <div className="flex items-center gap-2 px-2.5 py-1 bg-[#16181d] border border-emerald-500/30 rounded-lg text-xs sm:text-sm font-bold text-white shadow-sm">
-              <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+            <div className="flex items-center gap-2 px-2.5 py-1 bg-neutral-950 border border-white/10 rounded-lg text-xs font-bold text-white shadow-sm">
+              <Calendar className="w-3.5 h-3.5 text-cyan-400" />
               <span className="whitespace-nowrap font-mono">
                 {selectedPreset === 'all' 
                   ? 'Все месяцы' 
@@ -193,31 +191,32 @@ export function PeriodFilterBar({
               </span>
             </div>
 
-            <button
-              type="button"
-              onClick={handleNextMonth}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#242930] transition-colors cursor-pointer"
-              title="Следующий месяц"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+            <Tooltip content="Следующий месяц">
+              <button
+                type="button"
+                onClick={handleNextMonth}
+                className="p-1 rounded-lg text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </Tooltip>
           </div>
 
           {/* Вкладка «Все время» */}
           <button
             type="button"
             onClick={() => handleMonthClick('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
               selectedPreset === 'all'
-                ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-md shadow-emerald-500/25 border border-emerald-400/40'
-                : 'bg-[#101217] text-gray-400 hover:text-white hover:bg-[#1f232b] border border-[#242930]'
+                ? 'bg-white/15 text-white border border-white/30 font-bold shadow-sm'
+                : 'bg-neutral-900 text-neutral-400 hover:text-white hover:bg-white/5 border border-white/10'
             }`}
           >
             {selectedPreset === 'all' && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
             <span>Вся история</span>
           </button>
 
-          {/* Список динамических кнопок месяцев, где есть заказы */}
+          {/* Список кнопок месяцев */}
           <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 max-w-full lg:max-w-xl scrollbar-none">
             {availableMonthKeys.map((mKey) => {
               const isSelected = selectedPreset === 'month' && selectedMonthKey === mKey;
@@ -226,10 +225,10 @@ export function PeriodFilterBar({
                   key={mKey}
                   type="button"
                   onClick={() => handleMonthClick(mKey)}
-                  className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                     isSelected
-                      ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-md shadow-emerald-500/25 border border-emerald-400/40'
-                      : 'bg-[#101217] text-gray-300 hover:text-white hover:bg-[#1f232b] border border-[#242930]'
+                      ? 'bg-white/15 text-white border border-white/30 font-bold shadow-sm'
+                      : 'bg-neutral-900 text-neutral-400 hover:text-white hover:bg-white/5 border border-white/10'
                   }`}
                 >
                   {isSelected && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
@@ -251,8 +250,8 @@ export function PeriodFilterBar({
                 onClick={() => handleShortcutClick(p.id)}
                 className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                   isActive
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50'
-                    : 'bg-[#101217] text-gray-400 hover:text-gray-200 border border-[#242930]'
+                    ? 'bg-white/15 text-white border border-white/30 font-bold'
+                    : 'bg-neutral-900 text-neutral-400 hover:text-neutral-200 border border-white/10'
                 }`}
               >
                 {p.label}
@@ -265,8 +264,8 @@ export function PeriodFilterBar({
             onClick={handleCustomToggle}
             className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
               selectedPreset === 'custom'
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50'
-                : 'bg-[#101217] text-gray-400 hover:text-gray-200 border border-[#242930]'
+                ? 'bg-white/15 text-white border border-white/30 font-bold'
+                : 'bg-neutral-900 text-neutral-400 hover:text-neutral-200 border border-white/10'
             }`}
           >
             <Calendar className="w-3.5 h-3.5" />
@@ -276,26 +275,26 @@ export function PeriodFilterBar({
         </div>
       </div>
 
-      {/* 2-Я СТРОКА: Информационная плашка активного интервала */}
-      <div className="flex items-center justify-between gap-2 text-xs border-t border-[#242930]/60 pt-2.5">
+      {/* 2-Я СТРОКА: Информационная плашка */}
+      <div className="flex items-center justify-between gap-2 text-xs border-t border-white/10 pt-2.5">
         <div className="flex items-center gap-2">
-          <Clock className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="text-gray-400">Активный диапазон:</span>
-          <span className="font-mono text-emerald-300 font-semibold">
+          <Clock className="w-3.5 h-3.5 text-cyan-400" />
+          <span className="text-neutral-400">Активный диапазон:</span>
+          <span className="font-mono text-cyan-300 font-semibold">
             {formatRangeLabel(actualRange, selectedPreset, selectedMonthKey)}
           </span>
         </div>
 
         <div className="flex items-center gap-1.5">
-          <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono font-semibold">
+          <span className="px-2.5 py-0.5 rounded-lg bg-white/5 border border-white/10 text-neutral-300 font-mono font-semibold">
             {ordersCount} {ordersCount === 1 ? 'заказ' : ordersCount < 5 ? 'заказа' : 'заказов'}
           </span>
         </div>
       </div>
 
-      {/* Выпадающая панель выбора произвольных дат (если включен режим custom) */}
+      {/* Выпадающая панель дат */}
       {(isCustomOpen || selectedPreset === 'custom') && (
-        <div className="pt-3 border-t border-[#242930]/80 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 items-end animate-in fade-in">
+        <div className="pt-3 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 items-end">
           <div>
             <DatePicker
               label="Дата начала"
@@ -303,7 +302,6 @@ export function PeriodFilterBar({
               onChange={handleStartDateChange}
               placeholder="Начало периода"
               format="DD.MM.YYYY"
-              buttonClassName="bg-[#101217]"
             />
           </div>
 
@@ -314,7 +312,6 @@ export function PeriodFilterBar({
               onChange={handleEndDateChange}
               placeholder="Конец периода"
               format="DD.MM.YYYY"
-              buttonClassName="bg-[#101217]"
             />
           </div>
 
@@ -328,23 +325,24 @@ export function PeriodFilterBar({
                   endDate: now,
                 });
               }}
-              className="flex-1 h-9 px-3 rounded-xl bg-[#101217] hover:bg-[#20242d] border border-[#242930] text-gray-300 hover:text-white text-xs font-medium transition-colors flex items-center justify-center cursor-pointer"
+              className="flex-1 h-9 px-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-white/10 text-neutral-300 hover:text-white text-xs font-medium transition-colors flex items-center justify-center cursor-pointer font-mono"
             >
               С 1 числа месяца
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                onChangeCustomRange({ startDate: null, endDate: null });
-                onSelectPreset('all');
-                setIsCustomOpen(false);
-              }}
-              className="h-9 px-3 rounded-xl bg-[#101217] hover:bg-rose-500/20 text-gray-400 hover:text-rose-400 border border-[#242930] hover:border-rose-500/30 text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer"
-              title="Сбросить даты"
-            >
-              <X className="w-3.5 h-3.5" />
-              <span>Сброс</span>
-            </button>
+            <Tooltip content="Сбросить даты">
+              <button
+                type="button"
+                onClick={() => {
+                  onChangeCustomRange({ startDate: null, endDate: null });
+                  onSelectPreset('all');
+                  setIsCustomOpen(false);
+                }}
+                className="h-9 px-3 rounded-xl bg-neutral-900 hover:bg-rose-950/40 text-neutral-400 hover:text-rose-300 border border-white/10 hover:border-rose-500/30 text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer font-mono"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Сброс</span>
+              </button>
+            </Tooltip>
           </div>
         </div>
       )}

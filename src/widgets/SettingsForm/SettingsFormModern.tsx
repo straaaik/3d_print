@@ -3,8 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useData } from '../../entities/model/DataProvider';
 import { useToast } from '../../entities/model/ToastProvider';
-import { PageHeader } from '../../shared/ui/PageHeader';
-import { Button } from '../../shared/ui/Button';
+import { CockpitButton } from '../../shared/ui/CockpitButton';
 import { SettingsTabs, SettingsTabId } from './components/SettingsTabs';
 import { GeneralSettingsTab } from './components/GeneralSettingsTab';
 import { LaborSettingsTab } from './components/LaborSettingsTab';
@@ -18,9 +17,9 @@ import {
   RotateCcw, 
   CheckCircle2, 
   AlertCircle,
-  Sparkles,
   Sliders
 } from 'lucide-react';
+import { usePersistentState } from '../../shared/lib/usePersistentState';
 
 const getNormalizedMaterialMultipliers = (multipliers?: Record<string, number> | null): Record<string, number> => ({
   pla_petg: multipliers?.pla_petg ?? 100,
@@ -45,7 +44,7 @@ export function SettingsFormModern() {
   } = useData();
   const { showToast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<SettingsTabId>('general');
+  const [activeTab, setActiveTab] = usePersistentState<SettingsTabId>('3d_settings_active_tab', 'general');
   const [isSaving, setIsSaving] = useState(false);
 
   // Состояние генератора и сброса данных
@@ -191,7 +190,6 @@ export function SettingsFormModern() {
   const totalModifiedCount = changesMap.general + changesMap.labor + changesMap.pricing + changesMap.materials;
   const isDirty = totalModifiedCount > 0;
 
-  // Синхронизация с DataProvider для блокировки переходов
   useEffect(() => {
     setIsSettingsDirty(isDirty);
     return () => {
@@ -199,7 +197,6 @@ export function SettingsFormModern() {
     };
   }, [isDirty, setIsSettingsDirty]);
 
-  // Функция сохранения настроек
   const handleSave = useCallback(async () => {
     if (!settings || isSaving) return;
     setIsSaving(true);
@@ -248,7 +245,6 @@ export function SettingsFormModern() {
     showToast,
   ]);
 
-  // Передаем функцию сохранения в реф DataProvider для всплывающей модалки
   useEffect(() => {
     if (settingsSaveRef) {
       settingsSaveRef.current = async () => {
@@ -298,7 +294,6 @@ export function SettingsFormModern() {
     materialMultipliers,
   ]);
 
-  // Горячая клавиша сохранения: Ctrl + S / Cmd + S
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -312,27 +307,19 @@ export function SettingsFormModern() {
   }, [handleSave]);
 
   return (
-    <div className="space-y-6">
-      {/* Шапка страницы */}
-      <PageHeader
-        icon={SettingsIcon}
-        title="Настройки мастерской"
-        subtitle="Параметры калькулятора, тарифы, работа мастера, наценки и коэффициенты материалов"
-        accentColor="#0CB4E0"
-      />
-
+    <div className="space-y-4 font-mono text-xs">
       {/* Верхняя фиксированная панель статуса и быстрых действий */}
-      <div className="sticky top-2 z-20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 sm:p-4 bg-[#16181d]/90 backdrop-blur-xl border border-[#242930] rounded-2xl shadow-xl transition-all">
+      <div className="sticky top-2 z-20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 sm:p-4 bg-neutral-950/90 backdrop-blur-xl border border-white/15 rounded-2xl shadow-xl transition-all">
         {/* Индикатор статуса */}
         <div className="flex items-center gap-3">
           {totalModifiedCount > 0 ? (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-xs font-semibold animate-in fade-in">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-950/60 border border-amber-800/40 text-amber-300 text-xs font-semibold">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
               <span>Несохранённых изменений: <strong className="font-mono font-bold text-amber-200">{totalModifiedCount}</strong></span>
             </div>
           ) : (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
-              <CheckCircle2 size={15} />
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-950/60 border border-emerald-800/40 text-emerald-400 text-xs font-medium">
+              <CheckCircle2 size={14} />
               <span>Все параметры сохранены</span>
             </div>
           )}
@@ -341,42 +328,26 @@ export function SettingsFormModern() {
         {/* Кнопки действий */}
         <div className="flex items-center gap-2 self-end sm:self-auto">
           {totalModifiedCount > 0 && (
-            <button
+            <CockpitButton
               type="button"
               onClick={handleResetToSaved}
               disabled={isSaving}
-              className="px-3 py-2 rounded-xl text-xs font-semibold text-gray-300 hover:text-white bg-[#1a1d24] border border-[#242930] hover:border-gray-600 transition-all cursor-pointer select-none flex items-center gap-1.5"
+              icon={RotateCcw}
             >
-              <RotateCcw size={13} />
-              <span>Сбросить</span>
-            </button>
+              Сбросить
+            </CockpitButton>
           )}
 
-          <button
+          <CockpitButton
             type="button"
             onClick={handleSave}
             disabled={isSaving || totalModifiedCount === 0}
-            className={`group relative overflow-hidden flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-300 select-none cursor-pointer ${
-              totalModifiedCount > 0
-                ? 'bg-[linear-gradient(115deg,#0CB4E0_0%,#38bdf8_20%,#f59e0b_50%,#ff6b00_75%,#0CB4E0_100%)] animate-shimmer-flow hover:animate-shimmer-flow-fast text-white shadow-[0_4px_16px_rgba(12,180,224,0.35),0_4px_24px_rgba(255,107,0,0.25)] hover:shadow-[0_0_28px_rgba(12,180,224,0.55),0_0_40px_rgba(255,107,0,0.45)] hover:scale-[1.03] active:scale-[0.97]'
-                : 'bg-[#242930] text-gray-400 border border-transparent cursor-not-allowed opacity-70'
-            }`}
+            icon={Save}
+            isActive={totalModifiedCount > 0}
+            className={totalModifiedCount > 0 ? 'border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold' : ''}
           >
-            {/* Анимированный скользящий световой блик при наведении */}
-            {totalModifiedCount > 0 && (
-              <span className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/35 to-transparent -skew-x-25 -translate-x-[200%] group-hover:translate-x-[350%] transition-transform duration-1000 ease-out pointer-events-none" />
-            )}
-
-            <Save
-              size={16}
-              className={`shrink-0 transition-transform duration-300 ${
-                totalModifiedCount > 0 ? 'group-hover:rotate-[-12deg] group-hover:scale-110' : ''
-              }`}
-            />
-            <span className="relative z-10 drop-shadow-sm">
-              {isSaving ? 'Сохранение...' : 'Сохранить настройки'}
-            </span>
-          </button>
+            {isSaving ? 'Сохранение...' : 'Сохранить настройки'}
+          </CockpitButton>
         </div>
       </div>
 

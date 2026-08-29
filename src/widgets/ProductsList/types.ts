@@ -1,6 +1,7 @@
 import { SavedCalculation, ProductCollection, AssemblyPrintedPart, AssemblyHardwareItem } from '../../shared/types';
 
 export type ProductFilter = 'all' | 'single' | 'assembly' | 'collections' | 'low_stock' | 'bestsellers';
+export type StockFilter = 'all' | 'in_stock' | 'low_stock' | 'out_of_stock';
 
 export type CatalogTableRow =
   | {
@@ -70,5 +71,14 @@ export interface WarehouseMetrics {
   profitMargin: number;
 }
 
-export type SortField = 'name' | 'category' | 'filament' | 'params' | 'stock' | 'cost' | 'price' | 'profit' | 'date' | 'id';
+export type SortField = 'name' | 'category' | 'filament' | 'params' | 'stock' | 'cost' | 'price' | 'profit' | 'date' | 'id' | 'sales';
 export type SortOrder = 'asc' | 'desc';
+
+export function formatProductArticle(row: CatalogTableRow): string {
+  const isCol = row.rowKind === 'collection';
+  const isAsm = row.rowKind === 'product' && row.item.type === 'assembly';
+  const prefix = isCol ? '#COL-' : isAsm ? '#ASM-' : '#PRD-';
+  const shortId = row.id.length > 8 ? row.id.slice(0, 6).toUpperCase() : row.id.toUpperCase();
+  return `${prefix}${shortId}`;
+}
+

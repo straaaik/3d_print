@@ -39,6 +39,9 @@ export async function updateSession(request: NextRequest) {
   // IMPORTANT: getUser() triggers token refresh if expired
   const { data: { user } } = await supabase.auth.getUser();
 
+  const isDevSession = process.env.NODE_ENV === 'development' && request.cookies.get('3d_dev_session')?.value === 'true';
+  const isAuthenticated = !!user || isDevSession;
+
   const pathname = request.nextUrl.pathname;
   const isLoginPage = pathname === '/login';
   const isAuthCallback = pathname.startsWith('/auth/callback');
@@ -49,14 +52,14 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Not logged in -> redirect to /login
-  if (!user && !isLoginPage) {
+  if (!isAuthenticated && !isLoginPage) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
   // Logged in -> redirect away from /login
-  if (user && isLoginPage) {
+  if (isAuthenticated && isLoginPage) {
     const url = request.nextUrl.clone();
     url.pathname = '/orders';
     return NextResponse.redirect(url);

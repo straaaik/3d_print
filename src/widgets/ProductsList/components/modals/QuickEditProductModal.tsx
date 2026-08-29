@@ -3,7 +3,7 @@ import { SavedCalculation, Filament, Printer } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
 import { Input } from '../../../../shared/ui/Input';
 import { Select, SelectOption } from '../../../../shared/ui/Select';
-import { Button } from '../../../../shared/ui/Button';
+import { CockpitButton } from '../../../../shared/ui/CockpitButton';
 import { round2 } from '../../helpers';
 
 interface QuickEditProductModalProps {
@@ -97,21 +97,43 @@ export function QuickEditProductModal({
     <Modal
       isOpen={Boolean(item)}
       onClose={onClose}
-      title={`Редактирование товара: «${item.name}»`}
+      title={`§ 3D-LABS // QUICK_EDIT [ ${item.name} ]`}
       maxWidth="lg"
+      footer={
+        <div className="flex justify-end gap-2 w-full font-mono text-xs">
+          <CockpitButton type="button" onClick={onClose} disabled={isSaving}>
+            Отмена
+          </CockpitButton>
+          <CockpitButton
+            type="submit"
+            disabled={isSaving || !name.trim()}
+            onClick={handleSubmit}
+            isActive={true}
+            className="border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold"
+          >
+            {isSaving ? 'Сохранение...' : 'Сохранить изменения'}
+          </CockpitButton>
+        </div>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-        <Input
-          label="Наименование товара *"
-          value={name}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-          required
-          autoFocus
-        />
+      <form onSubmit={handleSubmit} className="space-y-3 pt-1 font-mono text-xs">
+        <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
+          <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5">
+            Наименование товара *
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+            required
+            autoFocus
+            className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none transition-colors font-mono"
+          />
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1.5">Категория</label>
+          <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
+            <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5">Категория</label>
             <Select
               options={categoryOptions.filter((o) => o.value !== '__new__')}
               value={category}
@@ -119,19 +141,21 @@ export function QuickEditProductModal({
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1.5">Теги (через запятую)</label>
-            <Input
+          <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
+            <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5">Теги (через запятую)</label>
+            <input
+              type="text"
               placeholder="напр. дракон, игрушка"
               value={tagsInput}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTagsInput(e.target.value)}
+              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none transition-colors font-mono"
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-[#242930]">
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1.5">Материал (Пластик)</label>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
+            <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5">Материал (Пластик)</label>
             <Select
               options={filaments.map((f) => ({
                 value: f.id,
@@ -143,8 +167,8 @@ export function QuickEditProductModal({
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1.5">Принтер</label>
+          <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
+            <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5">Принтер</label>
             <Select
               options={printers.map((p) => ({
                 value: p.id,
@@ -156,79 +180,71 @@ export function QuickEditProductModal({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 pt-1 border-t border-[#242930]">
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1.5">Вес (г)</label>
-            <Input
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
+            <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Вес (г)</label>
+            <input
               type="number"
               step="any"
               value={weight}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWeight(e.target.value)}
+              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none"
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1.5">Часы печати</label>
-            <Input
+          <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
+            <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Часы</label>
+            <input
               type="number"
               min="0"
               value={hours}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setHours(e.target.value)}
+              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none"
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1.5">Минуты</label>
-            <Input
+          <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
+            <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Минуты</label>
+            <input
               type="number"
               min="0"
               max="59"
               value={minutes}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMinutes(e.target.value)}
+              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none"
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 pt-1 border-t border-[#242930]">
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1.5">Остаток на складе</label>
-            <Input
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
+            <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Склад (шт)</label>
+            <input
               type="number"
               min="0"
               value={stock}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStock(e.target.value)}
+              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none"
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1.5">Себестоимость</label>
-            <Input
+          <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
+            <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Себестоимость</label>
+            <input
               type="number"
               step="any"
               value={baseCost}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setBaseCost(e.target.value)}
+              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none"
             />
           </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-300 mb-1.5">Цена продажи</label>
-            <Input
+          <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
+            <label className="block text-[10px] font-bold text-neutral-400 uppercase tracking-wider mb-1">Цена продажи</label>
+            <input
               type="number"
               step="any"
               value={finalPrice}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFinalPrice(e.target.value)}
+              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-lg px-2.5 py-1.5 text-xs text-cyan-400 font-bold font-mono focus:outline-none"
             />
           </div>
-        </div>
-
-        <div className="flex justify-end gap-2 pt-3 border-t border-[#242930]">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSaving}>
-            Отмена
-          </Button>
-          <Button
-            type="submit"
-            size="sm"
-            disabled={isSaving || !name.trim()}
-            className="bg-amber-500 hover:bg-amber-600 text-black font-bold border-none"
-          >
-            {isSaving ? 'Сохранение...' : 'Сохранить изменения'}
-          </Button>
         </div>
       </form>
     </Modal>

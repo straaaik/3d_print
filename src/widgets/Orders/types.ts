@@ -31,8 +31,10 @@ import {
 
 export type { Order, OrderStatus, ContactItem, ContactType, CostItem, SavedCalculation };
 
-export type SortField = keyof Order | 'net_profit';
+export type SortField = keyof Order | 'net_profit' | 'debt' | 'payment_status';
 export type SortOrder = 'asc' | 'desc';
+export type OrderTypeFilter = 'all' | 'in_progress' | 'completed' | 'income' | 'expense';
+export type PaymentFilter = 'all' | 'paid' | 'unpaid' | 'partial';
 
 export interface StatusBadgeConfig {
   value: OrderStatus;

@@ -9,9 +9,9 @@ export interface TableSelectOption {
   value: string;
   label: string;
   icon?: React.ComponentType<{ className?: string }>;
-  color?: string; // Цветовой акцент / индикатор
-  badgeStyle?: string; // Кастомные стили бейджа (фон, цвет текста, бордер)
-  description?: string; // Вспомогательное описание
+  color?: string;
+  badgeStyle?: string;
+  description?: string;
   disabled?: boolean;
 }
 
@@ -59,14 +59,12 @@ export function TableSelect({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Находим активную опцию
   const selectedOption = useMemo(() => {
     return options.find(opt => opt.value === value) || null;
   }, [options, value]);
 
   const SelectedIcon = selectedOption?.icon;
 
-  // Динамический расчет фиксированных координат портала поверх всей страницы
   const updateCoords = useCallback(() => {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
@@ -88,7 +86,6 @@ export function TableSelect({
         calculatedLeft = rect.right - dropdownWidth;
       }
 
-      // Ограничение границами экрана
       calculatedLeft = Math.max(8, Math.min(calculatedLeft, window.innerWidth - dropdownWidth - 8));
 
       setCoords({
@@ -112,7 +109,6 @@ export function TableSelect({
     };
   }, [isOpen, updateCoords]);
 
-  // Закрытие по клику вне кнопки и портала
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -131,7 +127,6 @@ export function TableSelect({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  // Сброс строки поиска при открытии / закрытии
   useEffect(() => {
     if (!isOpen) {
       setSearchQuery('');
@@ -143,7 +138,6 @@ export function TableSelect({
     }
   }, [isOpen, isSearchable, options.length]);
 
-  // Фильтрация опций по поисковому запросу
   const filteredOptions = useMemo(() => {
     if (!searchQuery.trim()) return options;
     const query = searchQuery.toLowerCase().trim();
@@ -155,7 +149,6 @@ export function TableSelect({
     );
   }, [options, searchQuery]);
 
-  // Навигация с клавиатуры
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!isOpen) {
       if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
@@ -199,38 +192,37 @@ export function TableSelect({
   const shouldShowSearch = isSearchable || options.length >= 7;
 
   return (
-    <div ref={containerRef} className={`relative inline-block w-full ${className}`}>
-      {/* Кнопка триггер в ячейке таблицы */}
+    <div ref={containerRef} className={`relative inline-block w-full font-mono ${className}`}>
       <button
         ref={buttonRef}
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
         onKeyDown={handleKeyDown}
-        className={`group w-full h-[28px] px-2.5 py-1 rounded-lg flex items-center justify-between gap-1.5 transition-all text-xs sm:text-[13px] font-semibold cursor-pointer select-none outline-none ${
-          disabled ? 'opacity-50 cursor-not-allowed' : 'hover:brightness-110 active:scale-[0.98]'
+        className={`group w-full h-[28px] px-2.5 py-1 rounded-lg flex items-center justify-between gap-1.5 transition-all text-xs font-mono font-semibold cursor-pointer select-none outline-none ${
+          disabled ? 'opacity-40 cursor-not-allowed' : 'hover:border-white/30 active:scale-[0.98]'
         } ${
-          isOpen ? 'ring-2 ring-[#FF6B00]/40 border-[#FF6B00]/60' : ''
+          isOpen ? 'ring-1 ring-cyan-400/40 border-cyan-400/60' : ''
         } ${
           selectedOption?.badgeStyle
             ? selectedOption.badgeStyle
-            : 'bg-[#14161d] border border-[#242930] text-gray-200 hover:border-[#FF6B00]/40'
+            : 'bg-neutral-900 border border-white/15 text-neutral-200 hover:text-white'
         } ${buttonClassName}`}
         title={selectedOption ? `Текущее: ${selectedOption.label}` : placeholder}
       >
         <div className="flex items-center gap-1.5 min-w-0 flex-1 truncate">
           {selectedOption?.color && !selectedOption.badgeStyle && (
             <div
-              className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
+              className="w-2 h-2 rounded-full shrink-0 shadow-sm"
               style={{ backgroundColor: selectedOption.color }}
             />
           )}
 
           {SelectedIcon && (
-            <SelectedIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 opacity-90 group-hover:opacity-100 transition-opacity" />
+            <SelectedIcon className="w-3.5 h-3.5 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity" />
           )}
 
-          <span className="truncate text-left text-xs sm:text-[13px] font-semibold tracking-tight">
+          <span className="truncate text-left text-xs font-mono tracking-tight">
             {selectedOption ? selectedOption.label : placeholder}
           </span>
         </div>
@@ -246,7 +238,6 @@ export function TableSelect({
         )}
       </button>
 
-      {/* Портал выпадающего меню прямо в document.body поверх всей таблицы */}
       {isOpen && coords && typeof window !== 'undefined' && createPortal(
         <div
           ref={dropdownRef}
@@ -265,39 +256,37 @@ export function TableSelect({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.94, y: coords.isTop ? 6 : -6 }}
               transition={{ duration: 0.12, ease: [0.16, 1, 0.3, 1] }}
-              className="bg-[#13151c]/95 backdrop-blur-2xl border border-[#2e3444] rounded-xl shadow-2xl shadow-black/90 p-1.5 flex flex-col focus:outline-none select-none text-xs sm:text-[13px]"
+              className="bg-neutral-950/95 backdrop-blur-2xl border border-white/15 rounded-xl shadow-2xl p-1.5 flex flex-col focus:outline-none select-none text-xs font-mono"
             >
-              {/* Заголовок меню (если задан) */}
               {headerTitle && (
-                <div className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-gray-400 border-b border-[#242930]/80 mb-1 flex items-center justify-between">
+                <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-neutral-400 border-b border-white/10 mb-1 flex items-center justify-between">
                   <span>{headerTitle}</span>
-                  <span className="text-[10px] text-gray-500 font-mono font-normal">
-                    {options.length} вар.
+                  <span className="text-[10px] text-neutral-500 font-mono">
+                    {options.length} опций
                   </span>
                 </div>
               )}
 
-              {/* Строка быстрого поиска (если вариантов много) */}
               {shouldShowSearch && (
                 <div className="relative mb-1 px-1">
-                  <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Search className="w-3 h-3 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     ref={searchInputRef}
                     type="text"
-                    placeholder="Поиск..."
+                    placeholder="ПОИСК..."
                     value={searchQuery}
                     onChange={e => {
                       setSearchQuery(e.target.value);
                       setHighlightedIndex(0);
                     }}
                     onKeyDown={handleKeyDown}
-                    className="w-full bg-[#0b0d12] border border-[#242930] focus:border-[#FF6B00] focus:outline-none rounded-lg px-2.5 py-1.5 pl-8 text-xs sm:text-[13px] text-white placeholder-gray-500 transition-colors"
+                    className="w-full bg-neutral-900 border border-white/15 focus:border-cyan-400 focus:outline-none rounded-lg px-2 py-1 pl-7 text-xs text-white placeholder-neutral-500 font-mono uppercase"
                   />
                   {searchQuery && (
                     <button
                       type="button"
                       onClick={() => setSearchQuery('')}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 p-0.5 cursor-pointer"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white p-0.5 cursor-pointer"
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -305,11 +294,10 @@ export function TableSelect({
                 </div>
               )}
 
-              {/* Список вариантов */}
-              <div className="overflow-y-auto max-h-64 space-y-0.5 pr-0.5">
+              <div className="overflow-y-auto max-h-60 space-y-0.5 pr-0.5 custom-scrollbar">
                 {filteredOptions.length === 0 ? (
-                  <div className="px-3 py-3 text-center text-xs text-gray-400 select-none">
-                    Ничего не найдено
+                  <div className="px-3 py-3 text-center text-xs text-neutral-500 select-none font-mono">
+                    [ Не найдено ]
                   </div>
                 ) : (
                   filteredOptions.map((opt, idx) => {
@@ -324,16 +312,15 @@ export function TableSelect({
                         disabled={opt.disabled}
                         onClick={() => handleSelect(opt.value)}
                         onMouseEnter={() => setHighlightedIndex(idx)}
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs sm:text-[13px] font-semibold cursor-pointer transition-all text-left ${
+                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-mono cursor-pointer transition-all text-left ${
                           isSelected
-                            ? 'bg-[#FF6B00]/15 text-white border border-[#FF6B00]/30 shadow-sm shadow-[#FF6B00]/10'
+                            ? 'bg-white/15 text-white border border-white/20 font-bold shadow-sm'
                             : isHighlighted
-                            ? 'bg-[#1f232e] text-white'
-                            : 'text-gray-300 hover:text-white hover:bg-[#1a1d25]'
+                            ? 'bg-white/10 text-white'
+                            : 'text-neutral-300 hover:text-white hover:bg-white/5'
                         } ${opt.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                       >
                         <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
-                          {/* Индикатор или цвет бейджа */}
                           {opt.badgeStyle ? (
                             <span
                               className={`inline-flex items-center justify-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-bold border shrink-0 ${opt.badgeStyle}`}
@@ -345,26 +332,26 @@ export function TableSelect({
                             <div className="flex items-center gap-2 min-w-0 truncate">
                               {opt.color && (
                                 <div
-                                  className="w-2.5 h-2.5 rounded-full border border-black/30 shrink-0 shadow-sm"
+                                  className="w-2 h-2 rounded-full border border-black/30 shrink-0 shadow-sm"
                                   style={{ backgroundColor: opt.color }}
                                 />
                               )}
                               {OptIcon && (
-                                <OptIcon className="w-4 h-4 text-[#FF8800] shrink-0" />
+                                <OptIcon className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                               )}
                               <span className="truncate">{opt.label}</span>
                             </div>
                           )}
 
                           {opt.description && (
-                            <span className="text-[11px] text-gray-500 font-normal truncate hidden sm:inline">
+                            <span className="text-[10px] text-neutral-500 font-normal truncate hidden sm:inline">
                               {opt.description}
                             </span>
                           )}
                         </div>
 
                         {isSelected && (
-                          <Check className="w-4 h-4 text-[#FF8800] shrink-0 ml-1" />
+                          <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0 ml-1" />
                         )}
                       </button>
                     );

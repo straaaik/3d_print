@@ -12,7 +12,7 @@ export function formatCurrency(amount: number, currency: string = '₽'): string
     maximumFractionDigits: 2,
   });
 
-  return `${formatted} ${currency}`;
+  return `${formatted}\u00A0${currency}`;
 }
 
 /**

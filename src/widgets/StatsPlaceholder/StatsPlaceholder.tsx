@@ -2,8 +2,7 @@
 
 import React from 'react';
 import { BarChart3, TrendingUp, DollarSign, Layers, Printer, Sparkles, ArrowRight } from 'lucide-react';
-
-import { PageHeader } from '../../shared/ui/PageHeader';
+import { CockpitButton } from '../../shared/ui/CockpitButton';
 
 interface StatsPlaceholderProps {
   onGoToCalculator: () => void;
@@ -11,100 +10,96 @@ interface StatsPlaceholderProps {
 
 export function StatsPlaceholder({ onGoToCalculator }: StatsPlaceholderProps) {
   return (
-    <div className="space-y-6 max-w-4xl mx-auto py-2">
-      {/* Заголовок и статус */}
-      <PageHeader
-        icon={BarChart3}
-        title="Аналитика и Статистика"
-        badge={
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#00e676]/15 text-[#00e676] border border-[#00e676]/30">
-            <Sparkles className="w-3 h-3" /> В разработке
-          </span>
-        }
-        subtitle="Финансовый учет, аналитика расхода филаментов и статистика работы оборудования"
-        accentColor="#00e676"
-        actions={
-          <button
+    <div className="space-y-4 max-w-4xl mx-auto py-2 font-mono text-xs select-none">
+      {/* Терминальная шапка */}
+      <div className="rounded-2xl border border-white/15 bg-neutral-950/90 p-5 sm:p-6 shadow-2xl backdrop-blur-2xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-cyan-400 shrink-0">
+              <BarChart3 className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-lg font-bold text-white tracking-tight font-sans">Аналитика и Статистика</h2>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold text-amber-400 bg-amber-950/60 border border-amber-800/40 font-mono">
+                  <Sparkles className="w-3 h-3" /> В РАЗРАБОТКЕ
+                </span>
+              </div>
+              <p className="text-neutral-400 text-xs font-sans">
+                Финансовый учет, аналитика расхода филаментов и статистика работы оборудования
+              </p>
+            </div>
+          </div>
+
+          <CockpitButton
             onClick={onGoToCalculator}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#00e676] to-[#10b981] hover:from-[#10e576] hover:to-[#34d399] text-[#0d0e12] font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-1.5 shadow-lg shadow-[#00e676]/25 cursor-pointer"
+            icon={ArrowRight}
+            isActive={true}
+            className="border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold"
           >
-            Перейти к калькулятору
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        }
-      />
+            К калькулятору
+          </CockpitButton>
+        </div>
+      </div>
 
-      {/* Заглушки метрик аналитики */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-[#16181d] border border-[#242930] rounded-xl p-5 flex items-center gap-4 opacity-80 hover:border-[#00e676]/30 transition-colors">
-          <div className="w-10 h-10 rounded-lg bg-[#00e676]/15 border border-[#00e676]/30 flex items-center justify-center text-[#00e676]">
-            <DollarSign className="w-5 h-5" />
+      {/* Метрики */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-emerald-950/60 border border-emerald-800/40 flex items-center justify-center text-emerald-400">
+            <DollarSign className="w-4 h-4" />
           </div>
           <div>
-            <div className="text-xs text-[#9ca3af]">Выручка за месяц</div>
-            <div className="text-xl font-bold text-white">0 ₽</div>
+            <div className="text-[10px] text-neutral-500 uppercase">Выручка за месяц</div>
+            <div className="text-base font-bold text-white font-mono">0 ₽</div>
           </div>
         </div>
 
-        <div className="bg-[#16181d] border border-[#242930] rounded-xl p-5 flex items-center gap-4 opacity-80 hover:border-[#00e676]/30 transition-colors">
-          <div className="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
-            <Layers className="w-5 h-5" />
+        <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-cyan-950/60 border border-cyan-800/40 flex items-center justify-center text-cyan-400">
+            <Layers className="w-4 h-4" />
           </div>
           <div>
-            <div className="text-xs text-[#9ca3af]">Расход пластика</div>
-            <div className="text-xl font-bold text-white">0.0 кг</div>
+            <div className="text-[10px] text-neutral-500 uppercase">Расход пластика</div>
+            <div className="text-base font-bold text-white font-mono">0.0 кг</div>
           </div>
         </div>
 
-        <div className="bg-[#16181d] border border-[#242930] rounded-xl p-5 flex items-center gap-4 opacity-80 hover:border-[#00e676]/30 transition-colors">
-          <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-            <Printer className="w-5 h-5" />
+        <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-purple-950/60 border border-purple-800/40 flex items-center justify-center text-purple-300">
+            <Printer className="w-4 h-4" />
           </div>
           <div>
-            <div className="text-xs text-[#9ca3af]">Часов печати</div>
-            <div className="text-xl font-bold text-white">0 ч</div>
+            <div className="text-[10px] text-neutral-500 uppercase">Часов печати</div>
+            <div className="text-base font-bold text-white font-mono">0 ч</div>
           </div>
         </div>
       </div>
 
-      {/* Визуальный макет аналитических графиков */}
-      <div className="bg-[#16181d] border border-[#242930] rounded-2xl p-6 sm:p-8 space-y-4">
-        <h3 className="text-lg font-semibold text-white">Планируемые отчеты и графики:</h3>
+      {/* Планируемые отчеты */}
+      <div className="bg-neutral-950/90 border border-white/15 rounded-2xl p-5 sm:p-6 space-y-3">
+        <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
+          § 3D-LABS // ПЛАНИРУЕМЫЕ ОТЧЕТЫ И ГРАФИКИ
+        </h3>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 rounded-xl bg-[#0d0e12] border border-[#00e676]/20 space-y-3">
-            <div className="flex items-center gap-2 text-[#00e676] font-medium text-sm">
-              <TrendingUp className="w-4 h-4" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 space-y-2">
+            <div className="flex items-center gap-2 text-cyan-400 font-bold text-xs">
+              <TrendingUp className="w-3.5 h-3.5" />
               Прибыльность и окупаемость
             </div>
-            <p className="text-xs text-[#9ca3af] leading-relaxed">
+            <p className="text-[11px] text-neutral-400 font-sans leading-relaxed">
               Автоматический расчет чистой прибыли с учетом амортизации принтеров, электричества и небракованной печати.
             </p>
-            <div className="h-16 flex items-end gap-1.5 pt-2 border-b border-[#242930]/40 px-2 opacity-70">
-              <div className="w-full bg-[#00e676]/20 h-4 rounded-t" />
-              <div className="w-full bg-[#00e676]/40 h-8 rounded-t" />
-              <div className="w-full bg-[#00e676]/60 h-6 rounded-t" />
-              <div className="w-full bg-[#00e676]/80 h-11 rounded-t" />
-              <div className="w-full bg-[#00e676] h-14 rounded-t shadow-sm shadow-[#00e676]/50" />
-            </div>
           </div>
 
-          <div className="p-4 rounded-xl bg-[#0d0e12] border border-[#00e676]/20 space-y-3">
-            <div className="flex items-center gap-2 text-[#00e676] font-medium text-sm">
-              <Layers className="w-4 h-4" />
+          <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 space-y-2">
+            <div className="flex items-center gap-2 text-cyan-400 font-bold text-xs">
+              <Layers className="w-3.5 h-3.5" />
               Остатки материалов
             </div>
-            <p className="text-xs text-[#9ca3af] leading-relaxed">
+            <p className="text-[11px] text-neutral-400 font-sans leading-relaxed">
               Графическое отслеживание расхода катушек и предупреждение о необходимости дозакупки пластика.
             </p>
-            <div className="space-y-2 pt-1 opacity-70">
-              <div className="w-full bg-[#1c2026] h-2 rounded-full overflow-hidden">
-                <div className="bg-[#00e676] h-full w-3/4 rounded-full shadow-sm shadow-[#00e676]/50" />
-              </div>
-              <div className="w-full bg-[#1c2026] h-2 rounded-full overflow-hidden">
-                <div className="bg-[#10b981]/60 h-full w-1/2 rounded-full" />
-              </div>
-            </div>
           </div>
         </div>
       </div>

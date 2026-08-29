@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { SavedCalculation, ProductCollection } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
-import { Button } from '../../../../shared/ui/Button';
+import { CockpitButton } from '../../../../shared/ui/CockpitButton';
 import { Package, Layers, Check } from 'lucide-react';
 
 interface MoveProductModalProps {
@@ -59,34 +59,50 @@ export function MoveProductModal({
       onClose={onClose}
       title={
         movingProduct
-          ? `Коллекция для «${movingProduct.name}»`
-          : `Перемещение выбранных товаров (${selectedIds.length} шт)`
+          ? `§ 3D-LABS // MOVE_PRODUCT [ ${movingProduct.name} ]`
+          : `§ 3D-LABS // BATCH_MOVE [ ${selectedIds.length} поз. ]`
       }
       maxWidth="md"
+      footer={
+        <div className="flex justify-end gap-2 w-full font-mono text-xs">
+          <CockpitButton type="button" onClick={onClose} disabled={isSaving}>
+            Отмена
+          </CockpitButton>
+          <CockpitButton
+            type="button"
+            disabled={isSaving}
+            onClick={handleSave}
+            isActive={true}
+            className="border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold"
+          >
+            {isSaving ? 'Сохранение...' : 'Применить'}
+          </CockpitButton>
+        </div>
+      }
     >
-      <div className="space-y-4 pt-1">
-        <label className="block text-xs font-semibold text-gray-300">
+      <div className="space-y-3 pt-1 font-mono text-xs">
+        <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider">
           Выберите целевую коллекцию:
         </label>
 
-        <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+        <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
           {/* Вариант: Без коллекции */}
           <div
             onClick={() => setTargetCollectionId('none')}
-            className={`p-3 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition-all ${
+            className={`p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition-all ${
               targetCollectionId === 'none'
-                ? 'bg-amber-500/20 border-amber-500 text-white font-semibold'
-                : 'bg-[#141720] border-[#242930] text-gray-400 hover:text-white'
+                ? 'bg-white/10 border-white/25 text-white font-semibold'
+                : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <Package size={16} className={targetCollectionId === 'none' ? 'text-amber-400' : 'text-gray-500'} />
+              <Package size={15} className={targetCollectionId === 'none' ? 'text-cyan-400' : 'text-neutral-500'} />
               <div>
-                <span className="font-bold block">Без коллекции (Общий каталог)</span>
-                <span className="text-[11px] text-gray-400">Сделать самостоятельной позицией</span>
+                <span className="font-bold block font-mono">Без коллекции (Общий каталог)</span>
+                <span className="text-[10px] text-neutral-500 font-sans">Сделать самостоятельной позицией</span>
               </div>
             </div>
-            {targetCollectionId === 'none' && <Check size={16} className="text-amber-400" />}
+            {targetCollectionId === 'none' && <Check size={14} className="text-cyan-400" />}
           </div>
 
           {/* Список существующих коллекций */}
@@ -97,40 +113,25 @@ export function MoveProductModal({
               <div
                 key={col.id}
                 onClick={() => setTargetCollectionId(col.id)}
-                className={`p-3 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition-all ${
+                className={`p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition-all ${
                   isSelected
-                    ? 'bg-amber-500/20 border-amber-500 text-white font-semibold'
-                    : 'bg-[#141720] border-[#242930] text-gray-400 hover:text-white'
+                    ? 'bg-white/10 border-white/25 text-white font-semibold'
+                    : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Layers size={16} className={isSelected ? 'text-amber-400' : 'text-gray-500'} />
+                  <Layers size={15} className={isSelected ? 'text-cyan-400' : 'text-neutral-500'} />
                   <div>
-                    <span className="font-bold block">{col.name}</span>
-                    <span className="text-[11px] text-gray-400">
+                    <span className="font-bold block font-mono">{col.name}</span>
+                    <span className="text-[10px] text-neutral-500 font-sans">
                       {col.category || 'Разное'} • {childCount} вариантов
                     </span>
                   </div>
                 </div>
-                {isSelected && <Check size={16} className="text-amber-400" />}
+                {isSelected && <Check size={14} className="text-cyan-400" />}
               </div>
             );
           })}
-        </div>
-
-        <div className="flex justify-end gap-2 pt-3 border-t border-[#242930]">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSaving}>
-            Отмена
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            disabled={isSaving}
-            onClick={handleSave}
-            className="bg-amber-500 hover:bg-amber-600 text-black font-bold border-none"
-          >
-            {isSaving ? 'Сохранение...' : 'Применить'}
-          </Button>
         </div>
       </div>
     </Modal>

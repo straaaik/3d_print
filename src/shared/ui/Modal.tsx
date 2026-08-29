@@ -9,31 +9,31 @@ export interface ModalProps {
   onClose: () => void;
   title: React.ReactNode;
   children: React.ReactNode;
-  footer?: React.ReactNode; // Зафиксированный нижний футер с кнопками
+  footer?: React.ReactNode;
   variant?: 'default' | 'error' | 'success' | 'warning' | 'info';
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
 }
 
 const variantStyles = {
   default: {
-    borderColor: 'border-[#242930]',
+    borderColor: 'border-white/15',
     icon: null,
   },
   error: {
-    borderColor: 'border-red-500/40',
-    icon: <AlertOctagon className="text-red-500 shrink-0" size={20} />,
+    borderColor: 'border-rose-500/40',
+    icon: <AlertOctagon className="text-rose-400 shrink-0" size={18} />,
   },
   warning: {
     borderColor: 'border-amber-500/40',
-    icon: <AlertTriangle className="text-amber-500 shrink-0" size={20} />,
+    icon: <AlertTriangle className="text-amber-400 shrink-0" size={18} />,
   },
   success: {
     borderColor: 'border-emerald-500/40',
-    icon: <CheckCircle2 className="text-emerald-500 shrink-0" size={20} />,
+    icon: <CheckCircle2 className="text-emerald-400 shrink-0" size={18} />,
   },
   info: {
-    borderColor: 'border-[#0CB4E0]/40',
-    icon: <Info className="text-primary shrink-0" size={20} />,
+    borderColor: 'border-cyan-500/40',
+    icon: <Info className="text-cyan-400 shrink-0" size={18} />,
   },
 };
 
@@ -48,7 +48,6 @@ const maxWidthClasses = {
   '5xl': 'max-w-5xl',
 };
 
-// Анимационные пресеты для вариантов
 const modalVariants: Record<string, any> = {
   default: {
     initial: { opacity: 0, scale: 0.96, y: 8 },
@@ -58,33 +57,31 @@ const modalVariants: Record<string, any> = {
   },
   error: {
     initial: { opacity: 0, scale: 0.95 },
-    // Эффект тряски (shake) при возникновении ошибки
     animate: { 
       opacity: 1, 
       scale: 1,
       x: [0, -10, 8, -8, 6, -4, 2, 0],
     },
     exit: { opacity: 0, scale: 0.95, y: 6 },
-    transition: { duration: 0.38, ease: 'easeOut' },
+    transition: { duration: 0.35, ease: 'easeOut' },
   },
   warning: {
-    initial: { opacity: 0, scale: 0.95, rotate: -1 },
-    animate: { opacity: 1, scale: 1, rotate: 0 },
-    exit: { opacity: 0, scale: 0.95, rotate: 1 },
-    transition: { duration: 0.2, ease: 'easeOut' },
+    initial: { opacity: 0, scale: 0.95 },
+    animate: { opacity: 1, scale: 1 },
+    exit: { opacity: 0, scale: 0.95 },
+    transition: { duration: 0.18, ease: 'easeOut' },
   },
   success: {
-    initial: { opacity: 0, scale: 0.85, y: -8 },
-    // Pop-up с легким отскоком (spring bounce)
+    initial: { opacity: 0, scale: 0.92, y: -6 },
     animate: { opacity: 1, scale: 1, y: 0 },
-    exit: { opacity: 0, scale: 0.9, y: 6 },
-    transition: { type: 'spring', stiffness: 300, damping: 20 },
+    exit: { opacity: 0, scale: 0.92, y: 6 },
+    transition: { type: 'spring', stiffness: 350, damping: 25 },
   },
   info: {
-    initial: { opacity: 0, y: -12 },
+    initial: { opacity: 0, y: -8 },
     animate: { opacity: 1, y: 0 },
     exit: { opacity: 0, y: 8 },
-    transition: { duration: 0.22, ease: 'easeOut' },
+    transition: { duration: 0.18, ease: 'easeOut' },
   },
 };
 
@@ -118,57 +115,66 @@ export function Modal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0, pointerEvents: 'none' }}
-          transition={{ duration: 0.15 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5"
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 overflow-y-auto select-none">
           {/* Фон */}
-          <div
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md"
           />
 
-          {/* Контейнер модального окна */}
+          {/* Контейнер модального окна в стиле Meridian Cockpit */}
           <motion.div
             initial={animConfig.initial}
             animate={animConfig.animate}
             exit={animConfig.exit}
             transition={animConfig.transition}
-            className={`relative w-full ${sizeClass} bg-[#16181d] border ${styleConfig.borderColor} rounded-2xl shadow-2xl p-4 sm:p-6 z-10 max-h-[90vh] flex flex-col`}
+            className={`relative w-full ${sizeClass} my-auto rounded-2xl border ${styleConfig.borderColor} bg-neutral-950/95 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl z-10 max-h-[90vh] flex flex-col overflow-hidden font-sans`}
           >
-            {/* Шапка */}
-            <div className="flex items-center justify-between mb-4 pb-3.5 border-b border-[#242930] select-none shrink-0">
-              <div className="flex items-center gap-2.5">
-                {styleConfig.icon}
-                <h3 className="text-white text-base sm:text-lg font-bold tracking-wide">
-                  {title}
-                </h3>
+            {/* Шапка в стиле Cockpit Topbar */}
+            <div className="flex items-center justify-between border-b border-white/10 px-4 sm:px-5 py-3 bg-neutral-900/60 select-none shrink-0 gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                {/* 3 Терминальные светодиода */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 border border-rose-400/40 inline-block" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80 border border-yellow-400/40 inline-block" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 border border-emerald-400/40 inline-block" />
+                </div>
+
+                <div className="flex items-center gap-2 pl-3 border-l border-white/10 min-w-0">
+                  {styleConfig.icon}
+                  <h3 className="text-white text-sm sm:text-base font-bold tracking-tight truncate">
+                    {title}
+                  </h3>
+                </div>
               </div>
+
               <button
                 type="button"
                 onClick={onClose}
-                className="text-neutral-accent hover:text-white transition-colors p-1.5 rounded-lg hover:bg-[#242930] focus:outline-none cursor-pointer"
+                aria-label="Закрыть"
+                className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer border border-white/10 shrink-0"
               >
-                <X size={18} />
+                <X size={14} />
               </button>
             </div>
 
             {/* Прокручиваемый контент */}
-            <div className="text-gray-300 overflow-y-auto pr-1 flex-1 min-h-0">
+            <div className="text-neutral-200 overflow-y-auto p-4 sm:p-6 flex-1 min-h-0 custom-scrollbar text-xs sm:text-sm">
               {children}
             </div>
 
             {/* Фиксированный нижний футер кнопок */}
             {footer && (
-              <div className="mt-4 pt-3 border-t border-[#242930] shrink-0 bg-[#16181d]">
+              <div className="border-t border-white/10 px-4 sm:px-6 py-3 shrink-0 bg-neutral-950 flex items-center justify-between font-mono text-[11px]">
                 {footer}
               </div>
             )}
           </motion.div>
-        </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );

@@ -4,7 +4,19 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { User, RegistrationKey, UserRole } from '../../shared/types';
 import { createClient } from '@/lib/supabase/client';
 import * as authApi from '../../shared/api/authDb';
-import { registerAction, updateProfileAction, changePasswordAction } from '@/app/auth/actions';
+import { registerAction, updateProfileAction, changePasswordAction, devLoginAction, logoutAction } from '@/app/auth/actions';
+
+const DEV_FALLBACK_USER: User = {
+  id: 'dev-admin-id',
+  email: 'dev@3dlabs.pro',
+  name: 'Kumo',
+  role: 'admin',
+  is_active: true,
+  created_at: new Date().toISOString(),
+  last_login_at: new Date().toISOString(),
+  registration_key_used: 'DEV_MODE_BYPASS',
+  avatar_color: '#ec4899',
+};
 
 interface GenerateKeyOptions {
   role?: UserRole;
@@ -37,6 +49,7 @@ interface AuthContextType {
   
   // Auth methods
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  devLogin: () => Promise<{ success: boolean; error?: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>;
   updateProfile: (data: UpdateProfileData) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
@@ -137,16 +150,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
+    const hasDevCookie = typeof document !== 'undefined' && document.cookie.includes('3d_dev_session=true');
+    const hasDevLocal = typeof window !== 'undefined' && localStorage.getItem('3d_dev_session') === 'true';
+
     // Первоначальная проверка пользователя
     supabase.auth.getUser().then((res: any) => {
       if (!isMounted) return;
       const user = res?.data?.user;
       if (user) {
         loadProfile(user.id);
+      } else if (hasDevCookie || hasDevLocal) {
+        setCurrentUser(DEV_FALLBACK_USER);
+        setIsLoading(false);
       } else {
         setCurrentUser(null);
         setIsLoading(false);
       }
+    }).catch(() => {
+      if (!isMounted) return;
+      if (hasDevCookie || hasDevLocal) {
+        setCurrentUser(DEV_FALLBACK_USER);
+      } else {
+        setCurrentUser(null);
+      }
+      setIsLoading(false);
     });
 
     // Подписка на события авторизации
@@ -155,9 +182,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         loadProfile(session.user.id);
       } else {
-        setCurrentUser(null);
-        setUsers([]);
-        setRegistrationKeys([]);
+        const isStillDev = (typeof document !== 'undefined' && document.cookie.includes('3d_dev_session=true')) ||
+                           (typeof window !== 'undefined' && localStorage.getItem('3d_dev_session') === 'true');
+        if (isStillDev) {
+          setCurrentUser(DEV_FALLBACK_USER);
+        } else {
+          setCurrentUser(null);
+          setUsers([]);
+          setRegistrationKeys([]);
+        }
         setIsLoading(false);
       }
     });
@@ -248,6 +281,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // БЫСТРЫЙ ВХОД ДЛЯ РЕЖИМА РАЗРАБОТКИ
+  const devLogin = async (): Promise<{ success: boolean; error?: string }> => {
+    const DEV_EMAIL = 'dev@3dlabs.pro';
+    const DEV_PASSWORD = 'devpassword123';
+
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('3d_dev_session', 'true');
+        document.cookie = '3d_dev_session=true; path=/; max-age=2592000; SameSite=Lax';
+      }
+
+      // 1. Устанавливаем профиль сразу
+      setCurrentUser(DEV_FALLBACK_USER);
+
+      // 2. Серверное действие (ставит серверную куку и синхронизирует профиль)
+      await devLoginAction();
+
+      // 3. Фоновая попытка связать Supabase Auth на клиенте
+      try {
+        await supabase.auth.signInWithPassword({
+          email: DEV_EMAIL,
+          password: DEV_PASSWORD,
+        });
+      } catch {
+        // Safe fallback
+      }
+
+      return { success: true };
+    } catch (err) {
+      console.error('Ошибка в devLogin:', err);
+      setCurrentUser(DEV_FALLBACK_USER);
+      return { success: true };
+    }
+  };
+
   // РЕГИСТРАЦИЯ ПО КЛЮЧУ
   const register = async ({
     name,
@@ -318,6 +386,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // ВЫХОД ИЗ СИСТЕМЫ
   const logout = async () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('3d_dev_session');
+      document.cookie = '3d_dev_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    }
+    await logoutAction();
     await supabase.auth.signOut();
     setCurrentUser(null);
     setUsers([]);
@@ -445,6 +518,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         users,
         registrationKeys,
         login,
+        devLogin,
         register,
         updateProfile,
         logout,

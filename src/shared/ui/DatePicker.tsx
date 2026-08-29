@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export interface DatePickerProps {
   label?: string;
-  value: string; // Может быть в формате "10.10", "10.10.2026" или "2026-10-10"
+  value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   error?: string;
@@ -26,17 +26,14 @@ const MONTH_NAMES_RU = [
 
 const WEEK_DAYS_RU = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
-// Парсинг любой строки даты в объект Date
 function parseToDate(dateStr: string): Date {
   if (!dateStr) return new Date();
 
-  // YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     const [y, m, d] = dateStr.split('-').map(Number);
     return new Date(y, m - 1, d);
   }
 
-  // DD.MM.YYYY или DD.MM
   const parts = dateStr.split('.');
   if (parts.length >= 2) {
     const day = Number(parts[0]) || 1;
@@ -48,7 +45,6 @@ function parseToDate(dateStr: string): Date {
   return new Date();
 }
 
-// Форматирование даты в нужную строку
 function formatDateString(date: Date, format: 'DD.MM' | 'DD.MM.YYYY' | 'YYYY-MM-DD'): string {
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -78,11 +74,9 @@ export function DatePicker({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Текущая просматриваемая дата в календаре
   const selectedDate = useMemo(() => parseToDate(value), [value]);
   const [viewDate, setViewDate] = useState<Date>(selectedDate);
 
-  // Нормализованное отображаемое значение даты
   const displayValue = useMemo(() => {
     if (!value || !value.trim()) return '';
     const d = parseToDate(value);
@@ -90,7 +84,6 @@ export function DatePicker({
     return formatDateString(d, format);
   }, [value, format]);
 
-  // Расчет фикс-координат для React Portal поверх всей страницы
   const updateCoords = () => {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
@@ -133,12 +126,10 @@ export function DatePicker({
     };
   }, [isOpen]);
 
-  // Синхронизация viewDate при изменении внешнего value
   useEffect(() => {
     setViewDate(parseToDate(value));
   }, [value]);
 
-  // Закрытие по клику вне контейнера и вне портала
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -155,7 +146,6 @@ export function DatePicker({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  // Закрытие по Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setIsOpen(false);
@@ -169,7 +159,6 @@ export function DatePicker({
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
 
-  // Генерация дней для сетки календаря
   const calendarDays = useMemo(() => {
     const firstDayOfMonth = new Date(year, month, 1);
     const lastDayOfMonth = new Date(year, month + 1, 0);
@@ -244,32 +233,30 @@ export function DatePicker({
     d.getFullYear() === today.getFullYear();
 
   return (
-    <div ref={containerRef} className={`w-full flex flex-col gap-1.5 relative ${className}`}>
+    <div ref={containerRef} className={`w-full flex flex-col gap-1.5 relative font-mono text-xs ${className}`}>
       {label && (
-        <span className="text-gray-300 text-xs sm:text-sm font-medium select-none">
+        <span className="text-neutral-400 text-xs font-mono uppercase tracking-wider select-none">
           {label}
         </span>
       )}
 
       <div className="relative">
-        {/* Кнопка поля вызова Календаря */}
         <button
           ref={buttonRef}
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-full h-9 min-h-[36px] flex items-center justify-center bg-[#14161d] border border-[#242930] hover:border-[#FF6B00]/60 focus:border-[#FF6B00] focus:outline-none rounded-xl px-3 text-white text-xs sm:text-sm font-mono transition-colors cursor-pointer select-none ${
-            error ? 'border-red-500' : ''
+          className={`w-full h-9 min-h-[36px] flex items-center justify-between bg-neutral-900 border border-white/15 hover:border-white/25 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 focus:outline-none rounded-xl px-3 text-white text-xs font-mono transition-all cursor-pointer select-none ${
+            error ? '!border-rose-500' : ''
           } ${buttonClassName}`}
         >
-          <div className="flex items-center justify-center gap-1.5 min-w-0">
-            <CalendarIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#FF8800] shrink-0" />
-            <span className={`truncate ${value ? 'text-gray-200 hover:text-white font-medium' : 'text-gray-500'}`}>
+          <div className="flex items-center gap-2 min-w-0">
+            <CalendarIcon className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <span className={`truncate font-mono ${value ? 'text-white font-medium' : 'text-neutral-500'}`}>
               {displayValue || placeholder}
             </span>
           </div>
         </button>
 
-        {/* Выпадающее модальное меню Календаря (Portal на document.body) */}
         {isOpen && coords && typeof window !== 'undefined' && createPortal(
           <div
             ref={dropdownRef}
@@ -287,41 +274,41 @@ export function DatePicker({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: coords.isTop ? 6 : -6, scale: 0.96 }}
                 transition={{ duration: 0.15, ease: 'easeOut' }}
-                className="w-72 bg-[#16181d] border border-[#242930] rounded-2xl shadow-2xl p-4 flex flex-col gap-3 select-none"
+                className="w-72 bg-neutral-950 border border-white/15 rounded-2xl shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl p-4 flex flex-col gap-3 select-none font-mono text-xs"
               >
-                {/* Шапка навигации по месяцам */}
-                <div className="flex items-center justify-between border-b border-[#242930] pb-2.5">
+                {/* Шапка календаря */}
+                <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
                   <button
                     type="button"
                     onClick={handlePrevMonth}
-                    className="p-1 rounded-lg hover:bg-[#242930] text-gray-400 hover:text-white transition-colors cursor-pointer"
+                    className="p-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
 
-                  <span className="text-white text-sm font-bold tracking-wide">
+                  <span className="text-white text-xs font-bold font-mono tracking-wider uppercase">
                     {MONTH_NAMES_RU[month]} {year}
                   </span>
 
                   <button
                     type="button"
                     onClick={handleNextMonth}
-                    className="p-1 rounded-lg hover:bg-[#242930] text-gray-400 hover:text-white transition-colors cursor-pointer"
+                    className="p-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
 
                 {/* Дни недели */}
-                <div className="grid grid-cols-7 text-center text-xs font-semibold text-[#9ca3af]">
+                <div className="grid grid-cols-7 text-center text-[10px] font-semibold text-neutral-500 font-mono">
                   {WEEK_DAYS_RU.map((wd) => (
-                    <span key={wd} className="py-1">
+                    <span key={wd} className="py-0.5">
                       {wd}
                     </span>
                   ))}
                 </div>
 
-                {/* Сетка дней месяца */}
+                {/* Сетка дней */}
                 <div className="grid grid-cols-7 gap-1 text-center text-xs">
                   {calendarDays.map((item, idx) => {
                     const selected = isSelectedDay(item.date);
@@ -332,14 +319,14 @@ export function DatePicker({
                         key={idx}
                         type="button"
                         onClick={() => handleSelectDay(item.date)}
-                        className={`h-8 rounded-lg flex items-center justify-center font-mono text-xs transition-all cursor-pointer ${
+                        className={`h-7 rounded-lg flex items-center justify-center font-mono text-xs transition-all cursor-pointer ${
                           selected
-                            ? 'bg-gradient-to-r from-[#FF5500] to-[#FF8800] text-white font-bold shadow-md shadow-[#FF6B00]/30 scale-105'
+                            ? 'bg-white text-neutral-950 font-bold shadow-md'
                             : todayFlag
-                            ? 'bg-[#FF6B00]/20 text-[#FF8800] border border-[#FF6B00]/40 font-bold'
+                            ? 'bg-cyan-950/60 text-cyan-300 border border-cyan-500/40 font-bold'
                             : item.isCurrentMonth
-                            ? 'text-gray-200 hover:bg-[#242930] hover:text-white'
-                            : 'text-gray-600 hover:bg-[#1a1d24]'
+                            ? 'text-neutral-200 hover:bg-white/10 hover:text-white'
+                            : 'text-neutral-600 hover:bg-white/5'
                         }`}
                       >
                         {item.day}
@@ -348,12 +335,12 @@ export function DatePicker({
                   })}
                 </div>
 
-                {/* Подвал с быстрой кнопкой "Сегодня" */}
-                <div className="border-t border-[#242930] pt-2.5 flex items-center justify-between text-xs">
+                {/* Подвал */}
+                <div className="border-t border-white/10 pt-2 flex items-center justify-between text-[11px] font-mono">
                   <button
                     type="button"
                     onClick={handleSelectToday}
-                    className="text-[#FF8800] hover:underline font-semibold cursor-pointer"
+                    className="text-cyan-400 hover:underline font-semibold cursor-pointer"
                   >
                     Сегодня ({formatDateString(new Date(), format)})
                   </button>
@@ -361,9 +348,9 @@ export function DatePicker({
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="text-gray-400 hover:text-white transition-colors cursor-pointer"
+                    className="text-neutral-400 hover:text-white transition-colors cursor-pointer"
                   >
-                    Закрыть
+                    [ Закрыть ]
                   </button>
                 </div>
               </motion.div>
@@ -373,8 +360,8 @@ export function DatePicker({
         )}
       </div>
 
-      {error && <span className="text-red-500 text-xs mt-0.5">{error}</span>}
-      {hint && !error && <span className="text-[#9ca3af] text-xs mt-0.5">{hint}</span>}
+      {error && <span className="text-rose-400 text-[11px] font-mono mt-0.5">{error}</span>}
+      {hint && !error && <span className="text-neutral-500 text-[10px] font-mono mt-0.5 leading-relaxed">{hint}</span>}
     </div>
   );
 }

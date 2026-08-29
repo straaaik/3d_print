@@ -2,18 +2,19 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ProductCollection, SavedCalculation } from '../../../shared/types';
 import { Checkbox } from '../../../shared/ui/Checkbox';
+import { CockpitStatusPill } from '../../../shared/ui/CockpitTable/CockpitStatusPill';
+import { Tooltip } from '../../../shared/ui/Tooltip';
 import { 
-  Layers, 
   ChevronRight, 
   Plus, 
   Edit2, 
-  Trash2, 
-  FileCode, 
   Copy, 
   Check, 
-  Calendar 
+  FolderPlus, 
+  MoreVertical,
+  FileCode
 } from 'lucide-react';
-import { formatCurrency, formatDate } from '../../../shared/lib/format';
+import { formatCurrency } from '../../../shared/lib/format';
 import { ProductCategory, getCategoryLucideIcon } from '../../../shared/lib/categories';
 
 interface CollectionRowProps {
@@ -58,7 +59,6 @@ export const CollectionRow = React.memo(function CollectionRow({
   const prices = childItems.map((c) => c.final_price || c.base_cost || 0);
   const costs = childItems.map((c) => c.base_cost || 0);
   const weights = childItems.map((c) => c.weight_g || 0);
-  const minutesTotal = childItems.map((c) => (c.hours || 0) * 60 + (c.minutes || 0));
 
   const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
   const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
@@ -67,13 +67,6 @@ export const CollectionRow = React.memo(function CollectionRow({
 
   const minWeight = weights.length > 0 ? Math.min(...weights) : 0;
   const maxWeight = weights.length > 0 ? Math.max(...weights) : 0;
-
-  const minTimeMins = minutesTotal.length > 0 ? Math.min(...minutesTotal) : 0;
-  const maxTimeMins = minutesTotal.length > 0 ? Math.max(...minutesTotal) : 0;
-  const minHours = Math.floor(minTimeMins / 60);
-  const minMins = minTimeMins % 60;
-  const maxHours = Math.floor(maxTimeMins / 60);
-  const maxMins = maxTimeMins % 60;
 
   const totalStock = childItems.reduce((sum, c) => sum + (c.stock_quantity || 0), 0);
   const isOut = totalStock === 0;
@@ -89,16 +82,6 @@ export const CollectionRow = React.memo(function CollectionRow({
   const catObj = categoriesList.find((c) => c.label === collection.category || c.id === collection.category);
   const catLabel = catObj?.label || collection.category || 'Разное';
   const CatIcon = getCategoryLucideIcon(catLabel);
-  const catBadgeStyle = catObj?.color || 'bg-gray-800 text-gray-400 border-gray-700';
-
-  // Форматирование даты (только дата)
-  const dateFormatted = collection.created_at
-    ? new Date(collection.created_at).toLocaleDateString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      })
-    : '—';
 
   const shortId = collection.id ? (collection.id.length > 8 ? collection.id.slice(0, 6) : collection.id) : '—';
 
@@ -113,19 +96,19 @@ export const CollectionRow = React.memo(function CollectionRow({
 
   return (
     <tr
-      className={`border-b transition-colors cursor-pointer select-none ${
+      className={`border-b transition-colors cursor-pointer select-none font-mono text-xs ${
         isContextMenuOpen
-          ? 'bg-purple-500/20 border-purple-500/40 border-l-4 border-l-purple-500'
+          ? 'bg-purple-950/40 border-purple-500/40'
           : isExpanded
-          ? 'bg-gradient-to-r from-purple-500/30 via-[#1c132c] to-[#140e21] border-t-2 border-b border-purple-500/60 font-semibold shadow-lg border-l-4 border-l-purple-400'
-          : 'bg-[#141520]/90 hover:bg-purple-500/15 border-[#242930] font-medium'
+          ? 'bg-purple-950/25 border-purple-500/40'
+          : 'bg-neutral-900/40 hover:bg-neutral-900/80 border-white/5'
       }`}
       onClick={onToggleExpand}
       onContextMenu={onContextMenu}
     >
-      {/* Чекбокс */}
+      {/* 1. Чекбокс */}
       <td
-        className="w-8 px-2 py-3 text-center"
+        className="w-8 px-3 py-2.5 text-center"
         onClick={(e) => {
           e.stopPropagation();
           onToggleSelectAllChilds();
@@ -140,207 +123,180 @@ export const CollectionRow = React.memo(function CollectionRow({
         />
       </td>
 
-      {/* ID и Дата создания */}
-      <td className="py-3 px-3 min-w-[105px] whitespace-nowrap cursor-pointer" onClick={(e) => e.stopPropagation()}>
-        <div className="flex flex-col gap-1">
+      {/* 2. № / Артикул (#COL-1080) */}
+      <td className="py-2.5 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+        <Tooltip content={`ID коллекции: ${collection.id} (Нажмите, чтобы скопировать)`}>
           <button
             type="button"
             onClick={handleCopyId}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-mono text-xs font-bold text-purple-300 bg-purple-500/15 hover:bg-purple-500/25 border border-purple-500/30 hover:border-purple-500/50 w-fit shadow-sm cursor-pointer transition-colors"
-            title={`ID коллекции: ${collection.id} (Нажмите, чтобы скопировать)`}
+            className="inline-flex items-center gap-1 font-mono font-semibold text-purple-300 hover:text-purple-200 transition-colors cursor-pointer"
           >
-            <span>#col-{shortId}</span>
+            <span>#COL-{shortId}</span>
             {copiedId ? (
-              <Check className="w-3 h-3 text-emerald-400" />
+              <Check className="w-2.5 h-2.5 text-emerald-400" />
             ) : (
-              <Copy className="w-2.5 h-2.5 opacity-40 group-hover:opacity-80" />
+              <Copy className="w-2.5 h-2.5 opacity-20 group-hover:opacity-70 transition-opacity" />
             )}
           </button>
-          <span className="text-[11px] text-gray-400 font-mono tracking-tight" title={collection.created_at ? formatDate(collection.created_at) : 'Дата не указана'}>
-            {dateFormatted}
-          </span>
-        </div>
+        </Tooltip>
       </td>
 
-      {/* Название, категория и кнопка «+ Вариант» */}
-      <td className="py-3 px-3">
-        <div className="flex items-center justify-between gap-3">
-          {/* Левая часть */}
-          <div className="flex flex-col gap-1 min-w-0">
-            <div className="flex items-center gap-2 min-w-0">
-              {/* Кнопка раскрытия */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleExpand();
-                }}
-                className={`p-1 rounded-lg transition-all shrink-0 cursor-pointer shadow-sm ${
-                  isExpanded
-                    ? 'bg-purple-500 text-white font-extrabold shadow-purple-500/30'
-                    : 'bg-purple-500/15 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40'
-                }`}
-                title={isExpanded ? 'Свернуть коллекцию' : 'Раскрыть варианты коллекции'}
-              >
-                <motion.div
-                  animate={{ rotate: isExpanded ? 90 : 0 }}
-                  transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-                >
-                  <ChevronRight size={14} />
-                </motion.div>
-              </button>
-
-              <span className="px-2 py-0.5 bg-gradient-to-r from-purple-500/25 to-indigo-500/15 border border-purple-500/50 text-purple-300 text-[10px] font-bold uppercase tracking-wider rounded-lg shrink-0 flex items-center gap-1.5 shadow-sm">
-                <Layers size={11} className="text-purple-400" />
-                <span>Коллекция ({childItems.length})</span>
-              </span>
-
-              <span
-                className="font-bold text-purple-200 hover:text-purple-300 transition-colors truncate block text-xs sm:text-sm cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onStartRename(collection);
-                }}
-                title="Нажмите, чтобы переименовать"
-              >
-                {collection.name}
-              </span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-1.5 pl-8">
-              <span
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenEditModal(collection);
-                }}
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-semibold border ${catBadgeStyle} cursor-pointer hover:border-purple-500/50 transition-all`}
-                title="Нажмите, чтобы редактировать параметры"
-              >
-                <CatIcon className="w-3 h-3 shrink-0" />
-                <span>{catLabel}</span>
-                <Edit2 size={9} className="text-purple-400 ml-0.5 opacity-70 hover:opacity-100" />
-              </span>
-
-              {collection.tags && collection.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 items-center">
-                  {collection.tags.map((tag, idx) => (
-                    <span
-                      key={idx}
-                      className="px-1.5 py-0.2 bg-[#1a1d26] border border-[#262a36] text-gray-400 text-[10px] rounded"
-                    >
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Правая часть: Выделенная главная кнопка «+ Вариант» */}
+      {/* 3. Категория */}
+      <td className="py-2.5 px-3 text-neutral-300 font-sans whitespace-nowrap">
+        <Tooltip content="Свойства коллекции">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              onOpenAddVariantModal(collection);
+              onOpenEditModal(collection);
             }}
-            className="px-3 py-1.5 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white font-extrabold rounded-xl shadow-md shadow-purple-500/25 flex items-center gap-1.5 text-xs transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
-            title="Добавить новый товар в эту коллекцию"
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-mono bg-neutral-900 text-neutral-300 border border-white/10 hover:border-white/20 transition-colors cursor-pointer"
           >
-            <Plus size={13} strokeWidth={2.5} />
-            <span>Вариант</span>
+            <CatIcon className="w-3 h-3 text-purple-400 shrink-0" />
+            <span className="truncate max-w-[120px]">{catLabel}</span>
           </button>
-        </div>
+        </Tooltip>
       </td>
 
-      {/* Материалы */}
-      <td className="py-3 px-3 min-w-[130px]">
-        <div className="flex items-center gap-1.5 max-w-[140px]">
-          {matColors.length > 0 && (
-            <div className="flex items-center -space-x-1 shrink-0">
-              {matColors.slice(0, 3).map((c, i) => (
-                <div
-                  key={i}
-                  className="w-3 h-3 rounded-full border border-black/40 shadow-inner"
-                  style={{ backgroundColor: c }}
-                />
-              ))}
-            </div>
-          )}
-          <span className="truncate font-medium text-xs text-purple-200" title={matNames.join(', ')}>
-            {matNames.length > 0
-              ? `${matNames.slice(0, 2).join(', ')}${matNames.length > 2 ? ` (+${matNames.length - 2})` : ''}`
-              : 'Несколько'}
-          </span>
-        </div>
-      </td>
+      {/* 4. Название коллекции и варианты */}
+      <td className="py-2.5 px-3 text-neutral-200 font-sans">
+        <div className="flex items-center gap-2 min-w-0">
+          {/* Кнопка раскрытия */}
+          <Tooltip content={isExpanded ? 'Свернуть' : 'Раскрыть варианты'}>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleExpand();
+              }}
+              className={`p-1 rounded-md transition-all shrink-0 cursor-pointer ${
+                isExpanded
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-purple-950/80 text-purple-300 border border-purple-800/40 hover:bg-purple-900/60'
+              }`}
+            >
+              <motion.div
+                animate={{ rotate: isExpanded ? 90 : 0 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              >
+                <ChevronRight size={12} />
+              </motion.div>
+            </button>
+          </Tooltip>
 
-      {/* Параметры печати */}
-      <td className="py-3 px-3 min-w-[125px]">
-        <div className="flex flex-col gap-0.5 font-mono text-xs">
-          <span className="text-white font-semibold">
-            {minWeight === maxWeight ? `${minWeight} г` : `${minWeight}–${maxWeight} г`}
-          </span>
-          <span className="text-gray-400 text-[11px]">
-            {minHours === maxHours && minMins === maxMins
-              ? `${minHours}ч ${minMins}м`
-              : `${minHours}ч–${maxHours}ч`}
-          </span>
-        </div>
-      </td>
+          <CockpitStatusPill
+            label={`Коллекция (${childItems.length})`}
+            tone="purple"
+            icon={FolderPlus}
+          />
 
-      {/* Наличие на складе */}
-      <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
-        <div className="flex flex-col items-center justify-center gap-1">
-          <span className="text-purple-300 font-mono font-bold text-xs bg-[#161822] px-2.5 py-1 rounded-lg border border-purple-500/30">
-            {totalStock} <span className="text-gray-400 font-sans font-normal text-[10px]">шт</span>
+          <span
+            className="font-bold text-white hover:text-purple-300 transition-colors truncate text-xs sm:text-[13px] cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              onStartRename(collection);
+            }}
+          >
+            {collection.name}
           </span>
-          {isOut ? (
-            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-red-500/15 border border-red-500/30 text-red-400">
-              Нет на складе
-            </span>
-          ) : (
-            <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-purple-500/15 border border-purple-500/30 text-purple-300">
-              Всего в коллекции
+
+          {stlCount > 0 && (
+            <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 inline-flex items-center gap-1">
+              <FileCode className="w-2.5 h-2.5" />
+              <span>{stlCount} STL</span>
             </span>
           )}
         </div>
       </td>
 
-      {/* Цены */}
-      <td className="py-3 px-3 text-right">
-        <div className="flex flex-col items-end justify-center font-mono whitespace-nowrap min-w-[95px] leading-tight">
-          <span className="text-purple-300 font-extrabold text-sm">
-            {minPrice === maxPrice
-              ? formatCurrency(minPrice, currencySymbol)
-              : `${formatCurrency(minPrice, currencySymbol)}–${formatCurrency(maxPrice, currencySymbol)}`}
-          </span>
-          <span className="text-[11px] text-gray-400 mt-0.5">
-            себ:{' '}
-            {minCost === maxCost
-              ? formatCurrency(minCost, currencySymbol)
-              : `${formatCurrency(minCost, currencySymbol)}–${formatCurrency(maxCost, currencySymbol)}`}
+      {/* 5. Статус склада */}
+      <td className="py-2.5 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+        {isOut ? (
+          <CockpitStatusPill label="0 шт на складе" tone="neutral" dot={false} />
+        ) : (
+          <CockpitStatusPill label={`${totalStock} шт в наличии`} tone="purple" dot />
+        )}
+      </td>
+
+      {/* 6. Материалы в коллекции */}
+      <td className="py-2.5 px-3 text-neutral-400 font-mono whitespace-nowrap">
+        <div className="flex items-center gap-1">
+          {matColors.slice(0, 3).map((c, i) => (
+            <span
+              key={i}
+              className="w-2 h-2 rounded-full border border-white/20 shrink-0"
+              style={{ backgroundColor: c }}
+            />
+          ))}
+          <span className="truncate max-w-[100px]">
+            {matNames.length > 0 ? `${matNames.length} мат.` : '—'}
           </span>
         </div>
       </td>
 
-      {/* Прибыль */}
-      <td className="py-3 px-3 text-center">
-        <div className="flex flex-col items-center justify-center gap-0.5 font-mono leading-tight whitespace-nowrap">
-          <span className="font-extrabold text-xs sm:text-sm text-emerald-400">
-            +{formatCurrency(totalProfit, currencySymbol)}
-          </span>
-          <span className="text-[10px] text-gray-400 font-sans">
-            потенциал
-          </span>
-        </div>
+      {/* 7. Параметры (Вес) */}
+      <td className="py-2.5 px-3 text-neutral-400 font-mono whitespace-nowrap">
+        {minWeight === maxWeight ? `${minWeight}г` : `${minWeight}–${maxWeight}г`}
       </td>
 
-      {/* 3D STL */}
-      <td className="py-3 px-2 text-center" onClick={(e) => e.stopPropagation()}>
-        <span className="px-2 py-0.5 bg-[#1a1d24] border border-purple-500/30 text-purple-300 rounded-lg text-xs font-mono inline-flex items-center gap-1">
-          <FileCode size={12} className="text-purple-400" />
-          <span>{stlCount > 0 ? `${stlCount} STL` : '—'}</span>
-        </span>
+      {/* 8. Себестоимость (диапазон) */}
+      <td className="py-2.5 px-3 text-right font-mono text-neutral-400 whitespace-nowrap">
+        {minCost === maxCost
+          ? formatCurrency(minCost, currencySymbol)
+          : `${formatCurrency(minCost, currencySymbol)}–${formatCurrency(maxCost, currencySymbol)}`}
+      </td>
+
+      {/* 9. Цена (диапазон) */}
+      <td className="py-2.5 px-3 text-right font-bold text-purple-300 font-mono whitespace-nowrap">
+        {minPrice === maxPrice
+          ? formatCurrency(minPrice, currencySymbol)
+          : `${formatCurrency(minPrice, currencySymbol)}–${formatCurrency(maxPrice, currencySymbol)}`}
+      </td>
+
+      {/* 10. Прибыль */}
+      <td className="py-2.5 px-3 text-right text-emerald-400 font-mono whitespace-nowrap">
+        +{formatCurrency(totalProfit, currencySymbol)}
+      </td>
+
+      {/* 11. Действия */}
+      <td className="py-2.5 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-1">
+          {/* Добавить вариант */}
+          <Tooltip content="Добавить вариант товара в коллекцию">
+            <button
+              type="button"
+              onClick={() => onOpenAddVariantModal(collection)}
+              className="px-2 py-1 rounded-md font-mono text-[11px] font-bold bg-purple-950/80 hover:bg-purple-900 text-purple-200 border border-purple-800/40 flex items-center gap-1 transition-colors cursor-pointer"
+            >
+              <Plus className="w-3 h-3" />
+              <span>Вариант</span>
+            </button>
+          </Tooltip>
+
+          {/* Редактировать */}
+          <Tooltip content="Свойства коллекции">
+            <button
+              type="button"
+              onClick={() => onOpenEditModal(collection)}
+              className="p-1 rounded-md border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white transition-colors cursor-pointer"
+            >
+              <Edit2 className="w-3 h-3" />
+            </button>
+          </Tooltip>
+
+          {/* Меню */}
+          <Tooltip content="Опции">
+            <button
+              type="button"
+              onClick={(e) => {
+                if (onContextMenu) onContextMenu(e);
+              }}
+              className="p-1 rounded-md hover:bg-white/10 text-neutral-500 hover:text-white transition-colors cursor-pointer"
+            >
+              <MoreVertical className="w-3 h-3" />
+            </button>
+          </Tooltip>
+        </div>
       </td>
     </tr>
   );

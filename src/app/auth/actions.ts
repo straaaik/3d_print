@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { getRandomAvatarColor } from '@/shared/api/authDb';
+import { cookies } from 'next/headers';
 
 export interface RegisterActionParams {
   name: string;
@@ -243,6 +244,80 @@ export async function changePasswordAction(
  * Выход из системы
  */
 export async function logoutAction(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.delete('3d_dev_session');
   const supabase = await createClient();
   await supabase.auth.signOut();
 }
+
+/**
+ * Быстрый вход для режима разработки (Dev Login)
+ */
+export async function devLoginAction(): Promise<{ success: boolean; email?: string; password?: string; error?: string }> {
+  const DEV_EMAIL = 'dev@3dlabs.pro';
+  const DEV_PASSWORD = 'devpassword123';
+  const DEV_NAME = 'Kumo';
+
+  try {
+    const cookieStore = await cookies();
+    cookieStore.set('3d_dev_session', 'true', {
+      path: '/',
+      httpOnly: false,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+    });
+
+    const supabase = await createClient();
+
+    // 1. Попытка входа
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: DEV_EMAIL,
+      password: DEV_PASSWORD,
+    });
+
+    if (!signInError && signInData?.user) {
+      return { success: true, email: DEV_EMAIL, password: DEV_PASSWORD };
+    }
+
+    // 2. Если пользователя нет — регистрируем
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email: DEV_EMAIL,
+      password: DEV_PASSWORD,
+      options: {
+        data: {
+          name: DEV_NAME,
+          role: 'admin',
+          avatar_color: '#ec4899',
+          registration_key_used: 'DEV_MODE_BYPASS',
+        },
+      },
+    });
+
+    if (signUpError && !signUpError.message.includes('already registered')) {
+      console.warn('Dev signUp error:', signUpError);
+    }
+
+    const userId = signUpData?.user?.id || signInData?.user?.id;
+    if (userId) {
+      await (supabase as any)
+        .from('profiles')
+        .upsert({
+          id: userId,
+          email: DEV_EMAIL,
+          name: DEV_NAME,
+          role: 'admin',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          last_login_at: new Date().toISOString(),
+          registration_key_used: 'DEV_MODE_BYPASS',
+          avatar_color: '#ec4899',
+        });
+    }
+
+    return { success: true, email: DEV_EMAIL, password: DEV_PASSWORD };
+  } catch (err: any) {
+    console.error('Ошибка devLoginAction:', err);
+    return { success: true, email: DEV_EMAIL, password: DEV_PASSWORD };
+  }
+}
+

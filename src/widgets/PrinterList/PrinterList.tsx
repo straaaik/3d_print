@@ -3,16 +3,15 @@
 import React, { useState } from 'react';
 import { useData } from '../../entities/model/DataProvider';
 import { Printer } from '../../shared/types';
-import { Card } from '../../shared/ui/Card';
 import { Input } from '../../shared/ui/Input';
-import { Button } from '../../shared/ui/Button';
+import { CockpitButton } from '../../shared/ui/CockpitButton';
 import { NumberCounter } from '../../shared/ui/NumberCounter';
 import { Modal } from '../../shared/ui/Modal';
 import { ColorPicker } from '../../shared/ui/ColorPicker';
+import { Tooltip } from '../../shared/ui/Tooltip';
 import { formatCurrency } from '../../shared/lib/format';
-import { Edit2, Trash2, Plus, Cpu, Settings as SettingsIcon, AlertCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { PageHeader } from '../../shared/ui/PageHeader';
+import { Edit2, Trash2, Plus, Cpu, Settings as SettingsIcon } from 'lucide-react';
+import { usePersistentState } from '../../shared/lib/usePersistentState';
 
 export function PrinterList() {
   const { printers, settings, addPrinter, updatePrinter, deletePrinter } = useData();
@@ -23,11 +22,11 @@ export function PrinterList() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Состояния полей формы
-  const [name, setName] = useState('');
-  const [powerW, setPowerW] = useState('300');
-  const [price, setPrice] = useState('');
-  const [lifespanHours, setLifespanHours] = useState('5000');
-  const [color, setColor] = useState('#0CB4E0');
+  const [name, setName] = usePersistentState('3d_printer_draft_name', '');
+  const [powerW, setPowerW] = usePersistentState('3d_printer_draft_power', '300');
+  const [price, setPrice] = usePersistentState('3d_printer_draft_price', '');
+  const [lifespanHours, setLifespanHours] = usePersistentState('3d_printer_draft_lifespan', '5000');
+  const [color, setColor] = usePersistentState('3d_printer_draft_color', '#0CB4E0');
 
   // Ошибки формы
   const [errors, setErrors] = useState<{ name?: string; powerW?: string; price?: string; lifespanHours?: string }>({});
@@ -115,136 +114,139 @@ export function PrinterList() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Заголовок и кнопка */}
-      <PageHeader
-        icon={Cpu}
-        title="Мои 3D-принтеры"
-        subtitle="Оборудование для печати, расчет энергопотребления и амортизации"
-        accentColor="#38bdf8"
-        actions={
-          <Button
+    <div className="rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl overflow-hidden font-mono text-xs">
+      {/* Terminal Header */}
+      <div className="flex items-center justify-between border-b border-white/10 px-4 sm:px-6 py-3 bg-neutral-900/60 select-none">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 border border-rose-400/40 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80 border border-yellow-400/40 inline-block" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 border border-emerald-400/40 inline-block" />
+          </div>
+
+          <div className="flex items-center gap-2 pl-3 border-l border-white/10">
+            <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-white font-mono font-bold text-xs sm:text-sm tracking-wider">
+              § 3D-LABS // ПАРК ОБОРУДОВАНИЯ
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <CockpitButton
             onClick={handleOpenAdd}
-            variant="primary"
-            size="md"
-            className="bg-gradient-to-r from-sky-600 to-sky-400 hover:from-sky-500 hover:to-sky-300 text-white border-none shadow-lg shadow-sky-400/25 cursor-pointer flex items-center gap-1.5"
+            icon={Plus}
+            isActive={true}
+            className="border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold"
           >
-            <Plus className="w-4 h-4" />
-            <span>Добавить принтер</span>
-          </Button>
-        }
-      />
+            Добавить принтер
+          </CockpitButton>
+        </div>
+      </div>
 
       {/* Список принтеров */}
-      {printers.length === 0 ? (
-        <Card>
-          <div className="py-16 text-center flex flex-col items-center justify-center gap-4 select-none">
-            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary">
-              <Cpu size={24} />
+      <div className="p-4 sm:p-6">
+        {printers.length === 0 ? (
+          <div className="py-16 text-center flex flex-col items-center justify-center gap-3 select-none">
+            <div className="w-10 h-10 bg-cyan-950/60 border border-cyan-800/40 rounded-xl flex items-center justify-center text-cyan-400">
+              <Cpu size={20} />
             </div>
             <div className="max-w-sm">
-              <h3 className="text-white font-semibold text-base mb-1">Список принтеров пуст</h3>
-              <p className="text-neutral-accent text-xs">
+              <h3 className="text-white font-bold text-sm mb-1 font-mono">Список принтеров пуст</h3>
+              <p className="text-neutral-400 text-xs font-sans">
                 Добавьте принтер (например, Bambu Lab A1), указав его мощность и цену покупки, чтобы корректно считать амортизацию и расход электричества.
               </p>
             </div>
-            <Button size="sm" onClick={handleOpenAdd} className="flex items-center gap-1 mt-2">
-              <Plus size={14} /> Добавить первый принтер
-            </Button>
+            <CockpitButton onClick={handleOpenAdd} icon={Plus} className="mt-2">
+              Добавить первый принтер
+            </CockpitButton>
           </div>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          <AnimatePresence initial={false}>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {printers.map((printer) => {
               const depreciationPerHour = printer.lifespan_hours > 0 ? printer.price / printer.lifespan_hours : 0;
               const isDefault = settings?.default_printer_id === printer.id;
               
               return (
-                <motion.div
+                <div
                   key={printer.id}
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.15 }}
-                  className="relative group"
+                  className="p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all flex flex-col justify-between gap-3 group font-mono"
                 >
-                  <Card className="h-full flex flex-col justify-between">
-                    <div>
-                      {/* Шапка карточки принтера */}
-                      <div className="flex justify-between items-start gap-4 mb-2.5 select-none">
-                        <div className="flex items-start gap-2">
-                          {/* Цветной кружочек метки принтера */}
-                          <div 
-                            className="w-4 h-4 rounded-full border border-black/25 mt-0.5 shrink-0 shadow-inner"
-                            style={{ backgroundColor: printer.color || '#0CB4E0' }}
-                          />
-                          <div>
-                            <h3 className="text-white font-bold text-base leading-tight group-hover:text-primary transition-colors">
-                              {printer.name}
-                            </h3>
-                            {isDefault && (
-                              <span className="inline-flex items-center gap-1 text-[10px] text-primary font-bold uppercase mt-1">
-                                <SettingsIcon size={10} /> По умолчанию
-                              </span>
-                            )}
-                          </div>
+                  <div>
+                    {/* Шапка карточки */}
+                    <div className="flex justify-between items-start gap-3 mb-2.5 select-none">
+                      <div className="flex items-start gap-2">
+                        <div 
+                          className="w-3.5 h-3.5 rounded-full border border-white/20 mt-0.5 shrink-0 shadow-sm"
+                          style={{ backgroundColor: printer.color || '#0CB4E0' }}
+                        />
+                        <div>
+                          <h3 className="text-white font-bold text-sm font-sans leading-tight">
+                            {printer.name}
+                          </h3>
+                          {isDefault && (
+                            <span className="inline-flex items-center gap-1 text-[10px] text-cyan-400 font-mono font-bold uppercase mt-1">
+                              <SettingsIcon size={10} /> По умолчанию
+                            </span>
+                          )}
                         </div>
-                        
-                        {/* Действия */}
-                        <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                      </div>
+                      
+                      {/* Действия */}
+                      <div className="flex items-center gap-1">
+                        <Tooltip content="Редактировать">
                           <button
                             onClick={() => handleOpenEdit(printer)}
-                            className="p-1 text-neutral-accent hover:text-white rounded hover:bg-[#242930] transition-colors focus:outline-none"
-                            title="Редактировать"
+                            className="p-1.5 text-neutral-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors focus:outline-none cursor-pointer"
                           >
-                            <Edit2 size={14} />
+                            <Edit2 size={13} />
                           </button>
+                        </Tooltip>
+                        <Tooltip content="Удалить">
                           <button
                             onClick={() => handleDelete(printer.id, printer.name)}
-                            className="p-1 text-red-500/70 hover:text-red-400 rounded hover:bg-red-500/10 transition-colors focus:outline-none"
-                            title="Удалить"
+                            className="p-1.5 text-rose-400 hover:text-rose-300 rounded-lg hover:bg-rose-950/40 transition-colors focus:outline-none cursor-pointer"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={13} />
                           </button>
-                        </div>
-                      </div>
-
-                      {/* Характеристики */}
-                      <div className="grid grid-cols-2 gap-2 py-2 border-t border-b border-[#242930]/40 font-mono text-xs select-none">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-neutral-accent">Мощность</span>
-                          <span className="text-white font-semibold">{printer.power_w} Вт</span>
-                        </div>
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-neutral-accent">Стоимость</span>
-                          <span className="text-white font-semibold">{formatCurrency(printer.price, currencySymbol)}</span>
-                        </div>
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-neutral-accent">Ресурс работы</span>
-                          <span className="text-white font-semibold">{printer.lifespan_hours.toLocaleString('ru-RU')} ч</span>
-                        </div>
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-neutral-accent">Амортизация</span>
-                          <span className="text-primary font-bold">{depreciationPerHour.toFixed(2)} {currencySymbol}/ч</span>
-                        </div>
+                        </Tooltip>
                       </div>
                     </div>
-                  </Card>
-                </motion.div>
+
+                    {/* Характеристики */}
+                    <div className="grid grid-cols-2 gap-2 py-2 border-t border-b border-white/10 text-xs select-none">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-neutral-500 text-[10px] uppercase">Мощность</span>
+                        <span className="text-white font-semibold">{printer.power_w} Вт</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-neutral-500 text-[10px] uppercase">Стоимость</span>
+                        <span className="text-white font-semibold">{formatCurrency(printer.price, currencySymbol)}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-neutral-500 text-[10px] uppercase">Ресурс</span>
+                        <span className="text-white font-semibold">{printer.lifespan_hours.toLocaleString('ru-RU')} ч</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-neutral-500 text-[10px] uppercase">Амортизация</span>
+                        <span className="text-cyan-400 font-bold">{depreciationPerHour.toFixed(2)} {currencySymbol}/ч</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               );
             })}
-          </AnimatePresence>
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       {/* Модальное окно создания/редактирования */}
       <Modal
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
-        title={editingPrinter ? 'Редактировать принтер' : 'Добавить новый принтер'}
+        title={editingPrinter ? '§ 3D-LABS // EDIT_PRINTER' : '§ 3D-LABS // NEW_PRINTER'}
       >
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 font-mono text-xs">
           {/* Название */}
           <Input
             label="Название 3D-принтера"
@@ -262,10 +264,10 @@ export function PrinterList() {
             onChange={(val) => setPowerW(val.toString())}
             min={1}
           />
-          {errors.powerW && <p className="text-red-500 text-xs -mt-3 select-none">{errors.powerW}</p>}
+          {errors.powerW && <p className="text-rose-400 text-xs -mt-2 select-none">{errors.powerW}</p>}
 
           {/* Стоимость и Ресурс */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <Input
               label={`Цена покупки, ${currencySymbol}`}
               type="number"
@@ -278,12 +280,12 @@ export function PrinterList() {
             />
             <div className="flex flex-col gap-1">
               <NumberCounter
-                label="Срок службы (ресурс), ч"
+                label="Ресурс работы, ч"
                 value={parseInt(lifespanHours) || 0}
                 onChange={(val) => setLifespanHours(val.toString())}
                 min={1}
               />
-              {errors.lifespanHours && <p className="text-red-500 text-xs select-none">{errors.lifespanHours}</p>}
+              {errors.lifespanHours && <p className="text-rose-400 text-xs select-none">{errors.lifespanHours}</p>}
             </div>
           </div>
 
@@ -295,13 +297,17 @@ export function PrinterList() {
           />
 
           {/* Кнопки формы */}
-          <div className="flex gap-3 justify-end mt-4 pt-4 border-t border-[#242930]/40">
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+          <div className="flex gap-2 justify-end mt-3 pt-3 border-t border-white/10">
+            <CockpitButton type="button" onClick={() => setIsOpen(false)}>
               Отмена
-            </Button>
-            <Button type="submit">
+            </CockpitButton>
+            <CockpitButton
+              type="submit"
+              isActive={true}
+              className="border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold"
+            >
               {editingPrinter ? 'Сохранить изменения' : 'Добавить принтер'}
-            </Button>
+            </CockpitButton>
           </div>
         </form>
       </Modal>
@@ -310,18 +316,23 @@ export function PrinterList() {
       <Modal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        title="Удалить принтер?"
+        title="§ 3D-LABS // DELETE_PRINTER"
         variant="warning"
         maxWidth="sm"
         footer={
-          <div className="flex gap-3 justify-end">
-            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Отмена</Button>
-            <Button variant="danger" onClick={confirmDelete}>Удалить</Button>
+          <div className="flex gap-2 justify-end w-full">
+            <CockpitButton onClick={() => setDeleteTarget(null)}>Отмена</CockpitButton>
+            <CockpitButton
+              onClick={confirmDelete}
+              className="bg-rose-950/60 text-rose-300 border-rose-800/40 hover:bg-rose-900/80 hover:text-white font-bold"
+            >
+              Удалить
+            </CockpitButton>
           </div>
         }
       >
-        <p className="text-sm text-gray-300">
-          Вы уверены, что хотите удалить принтер <strong className="text-white">«{deleteTarget?.name}»</strong>? Это сбросит его из настроек по умолчанию, если он был выбран.
+        <p className="text-xs text-neutral-300 font-sans">
+          Вы уверены, что хотите удалить принтер <strong className="text-white font-mono">«{deleteTarget?.name}»</strong>? Это сбросит его из настроек по умолчанию, если он был выбран.
         </p>
       </Modal>
     </div>

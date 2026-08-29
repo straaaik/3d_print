@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { 
   Package, 
   Box, 
@@ -9,12 +9,13 @@ import {
   RotateCcw, 
   Trash2, 
   RefreshCw, 
-  CheckSquare 
+  CheckSquare,
+  Search,
+  X
 } from 'lucide-react';
 import { ProductFilter } from '../types';
-import { Button } from '../../../shared/ui/Button';
-import { Select, SelectOption } from '../../../shared/ui/Select';
-import { TableFilterBar, FilterTabItem } from '../../../shared/ui/TableFilterBar';
+import { CockpitDropdown, CockpitDropdownOption } from '../../../shared/ui/CockpitDropdown';
+import { SelectOption } from '../../../shared/ui/Select';
 
 interface ProductsFilterBarProps {
   productFilter: ProductFilter;
@@ -65,100 +66,159 @@ export const ProductsFilterBar = React.memo(function ProductsFilterBar({
 }: ProductsFilterBarProps) {
   const selectedCount = selectedIds.length;
 
-  const tabs: FilterTabItem<ProductFilter>[] = [
-    { id: 'all', label: 'Все', count: counts.all, icon: Package, variant: 'default' },
-    { id: 'single', label: 'Товары', count: counts.single, icon: Box, variant: 'default' },
-    { id: 'assembly', label: 'Сборки', count: counts.assembly, icon: Layers, variant: 'cyan' },
-    { id: 'collections', label: 'Коллекции', count: counts.collections, icon: FolderPlus, variant: 'purple' },
-    { id: 'low_stock', label: 'Заканчиваются', count: counts.lowStock, icon: AlertTriangle, variant: 'rose' },
-    { id: 'bestsellers', label: 'Хиты продаж', count: counts.bestsellers, icon: Flame, variant: 'amber' },
+  const tabs = [
+    { id: 'all' as ProductFilter, label: 'Все', count: counts.all, icon: Package },
+    { id: 'single' as ProductFilter, label: 'Товары', count: counts.single, icon: Box },
+    { id: 'assembly' as ProductFilter, label: 'Сборки', count: counts.assembly, icon: Layers },
+    { id: 'collections' as ProductFilter, label: 'Коллекции', count: counts.collections, icon: FolderPlus },
+    { id: 'low_stock' as ProductFilter, label: 'Заканчиваются', count: counts.lowStock, icon: AlertTriangle, warning: counts.lowStock > 0 },
+    { id: 'bestsellers' as ProductFilter, label: 'Хиты продаж', count: counts.bestsellers, icon: Flame },
   ];
 
-  return (
-    <div className="space-y-3 select-none">
-      {/* Единый горизонтальный блок фильтрации как в Заказах на базе переиспользуемого компонента TableFilterBar */}
-      <TableFilterBar<ProductFilter>
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        searchPlaceholder="Поиск по ID, названию изделия, материалу или тегу..."
-        tabs={tabs}
-        activeTab={productFilter}
-        onTabChange={setProductFilter}
-        selects={
-          <Select
-            variant="compact"
-            size="sm"
-            dropdownWidth={180}
-            options={categoryFilterOptions.filter((o) => o.value !== '__new__')}
-            value={selectedCategory}
-            onChange={(val) => setSelectedCategory(val)}
-          />
-        }
-        actions={
-          <div className="flex items-center gap-1.5">
-            {canUndo && (
-              <button
-                type="button"
-                onClick={onUndo}
-                className="text-xs text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 px-2.5 py-1.5 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer font-semibold shadow-sm"
-                title="Отменить последнее действие (Ctrl+Z)"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>Отменить (Ctrl+Z)</span>
-              </button>
-            )}
+  const categoryDropdownOptions: CockpitDropdownOption[] = useMemo(() => {
+    return categoryFilterOptions
+      .filter((opt) => opt.value !== '__new__')
+      .map((opt) => ({
+        value: String(opt.value),
+        label: opt.label,
+        icon: opt.icon,
+      }));
+  }, [categoryFilterOptions]);
 
-            {totalSavedCalculationsCount > 0 && (
+  return (
+    <div className="space-y-3 select-none font-sans">
+      {/* Главный блок поиска, табов и фильтрации */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 p-2.5 rounded-xl bg-neutral-900/40 border border-white/10 backdrop-blur-md">
+        {/* Поиск и категории */}
+        <div className="flex items-center gap-2 flex-1 max-w-xl">
+          {/* Поисковое поле */}
+          <div className="relative flex-1">
+            <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Поиск по названию, ID, пластику..."
+              className="w-full bg-neutral-950/80 border border-white/15 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 rounded-xl pl-8 pr-7 py-1.5 text-xs font-mono text-white placeholder:text-neutral-500 transition-all outline-none"
+            />
+            {searchQuery && (
               <button
                 type="button"
-                onClick={onOpenBulkDelete}
-                className="text-xs text-rose-400 hover:text-rose-300 bg-rose-950/30 hover:bg-rose-950/60 border border-rose-900/40 px-2.5 py-1.5 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer font-semibold shadow-sm"
-                title="Очистить каталог товаров"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white p-0.5 cursor-pointer"
               >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Очистить каталог</span>
+                <X className="w-3 h-3" />
               </button>
             )}
           </div>
-        }
-      />
 
-      {/* Плавающая панель массовых действий при выборе чекбоксами */}
+          {/* Селектор категорий */}
+          <div className="w-44 shrink-0">
+            <CockpitDropdown
+              value={selectedCategory}
+              onChange={setSelectedCategory}
+              options={categoryDropdownOptions}
+              variant="pill"
+              placeholder="Категория"
+              dropdownWidth={220}
+            />
+          </div>
+        </div>
+
+        {/* Табы-фильтры по типу позиций */}
+        <div className="flex items-center gap-1 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = productFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setProductFilter(tab.id)}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-mono flex items-center gap-1.5 transition-all whitespace-nowrap cursor-pointer border ${
+                  isActive
+                    ? 'bg-white/10 text-white border-white/25 shadow-sm font-semibold'
+                    : 'bg-white/[0.02] text-neutral-400 border-white/5 hover:border-white/15 hover:text-neutral-200'
+                }`}
+              >
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-cyan-400' : 'text-neutral-500'}`} />
+                <span>{tab.label}</span>
+                <span className={`text-[10px] px-1 py-0.2 rounded font-mono ${
+                  isActive
+                    ? 'bg-white/20 text-white'
+                    : tab.warning
+                    ? 'bg-amber-950/80 text-amber-400 border border-amber-800/40'
+                    : 'bg-white/5 text-neutral-400'
+                }`}>
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Быстрые действия */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {canUndo && (
+            <button
+              type="button"
+              onClick={onUndo}
+              className="text-xs font-mono text-amber-400 hover:text-amber-300 bg-amber-950/40 hover:bg-amber-950/70 border border-amber-800/40 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+              title="Отменить последнее действие (Ctrl+Z)"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Ctrl+Z</span>
+            </button>
+          )}
+
+          {totalSavedCalculationsCount > 0 && (
+            <button
+              type="button"
+              onClick={onOpenBulkDelete}
+              className="text-xs font-mono text-rose-400 hover:text-rose-300 bg-rose-950/30 hover:bg-rose-950/60 border border-rose-900/40 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+              title="Очистить каталог товаров"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Очистить</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Панель массовых действий при выборе чекбоксами */}
       {selectedCount > 0 && (
-        <div className="flex items-center justify-between gap-3 p-3 bg-gradient-to-r from-amber-500/15 via-[#181c26] to-[#16181d] border border-amber-500/50 rounded-2xl animate-fade-in shadow-xl">
-          <div className="flex items-center gap-2">
-            <CheckSquare size={16} className="text-amber-400 shrink-0" />
-            <span className="text-xs font-bold text-white">
-              Выбрано позиций: <strong className="text-amber-400 font-mono text-sm">{selectedCount}</strong>
+        <div className="flex items-center justify-between gap-3 p-3 bg-neutral-900/90 border border-cyan-500/40 rounded-xl animate-fade-in shadow-2xl backdrop-blur-md">
+          <div className="flex items-center gap-2 font-mono text-xs">
+            <CheckSquare className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span className="text-white">
+              ВЫБРАНО ПОЗИЦИЙ: <strong className="text-cyan-400 font-bold text-sm">{selectedCount}</strong>
             </span>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              size="sm"
-              variant="outline"
+          <div className="flex items-center gap-2 flex-wrap font-mono text-xs">
+            <button
+              type="button"
               onClick={onOpenBatchMove}
-              className="border-amber-500/40 text-amber-300 hover:bg-amber-500/15 text-xs py-1.5 px-3 rounded-xl"
+              className="px-2.5 py-1.5 rounded-lg border border-purple-500/40 bg-purple-950/40 hover:bg-purple-950/70 text-purple-300 transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              <FolderPlus size={13} className="mr-1" />
-              <span>В коллекцию...</span>
-            </Button>
+              <FolderPlus className="w-3.5 h-3.5" />
+              <span>[ В коллекцию... ]</span>
+            </button>
 
-            <Button
-              size="sm"
-              variant="outline"
+            <button
+              type="button"
               onClick={onOpenRecalcModal}
               disabled={isRecalculating}
-              className="border-amber-500/40 text-amber-300 hover:bg-amber-500/15 text-xs py-1.5 px-3 rounded-xl"
+              className="px-2.5 py-1.5 rounded-lg border border-amber-500/40 bg-amber-950/40 hover:bg-amber-950/70 text-amber-300 transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              <RefreshCw size={13} className={`mr-1 ${isRecalculating ? 'animate-spin' : ''}`} />
-              <span>Пересчитать ({selectedCount})</span>
-            </Button>
+              <RefreshCw className={`w-3.5 h-3.5 ${isRecalculating ? 'animate-spin' : ''}`} />
+              <span>[ Пересчитать ({selectedCount}) ]</span>
+            </button>
 
             <button
               type="button"
               onClick={onClearSelection}
-              className="text-xs text-gray-400 hover:text-white px-2.5 py-1.5 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer border border-transparent"
             >
               Снять выбор
             </button>
@@ -168,3 +228,4 @@ export const ProductsFilterBar = React.memo(function ProductsFilterBar({
     </div>
   );
 });
+

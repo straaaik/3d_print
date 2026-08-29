@@ -845,7 +845,10 @@
       "type": "income",
       "title": "Набор геометрических кашпо Origami (4 шт)",
       "quantity": 2,
-      "amount": 9080,
+      "base_amount": 10000,
+      "discount_percent": 10,
+      "discount_amount": 1000,
+      "amount": 9000,
       "cost": 3814,
       "cost_items": [
         {
@@ -881,7 +884,7 @@
       ],
       "deadline": "22.08.2026",
       "status": "Печать",
-      "notes": "Предоплата на карту Сбера, остаток при получении в руки."
+      "notes": "Скидка 10% за повторный заказ. Предоплата на карту Сбера, остаток при получении в руки."
     },
     {
       "id": "c36b7c6d-783d-438f-ab57-99502cedb03e",
@@ -891,7 +894,10 @@
       "type": "income",
       "title": "Срочная печать прототипа детали дрона",
       "quantity": 10,
-      "amount": 30800,
+      "base_amount": 25000,
+      "urgency_percent": 25,
+      "urgency_amount": 6250,
+      "amount": 31250,
       "cost": 16320,
       "cost_items": [
         {
@@ -932,6 +938,9 @@
       "type": "income",
       "title": "Кронштейн шагового двигателя NEMA 17 усиленный",
       "quantity": 3,
+      "base_amount": 2000,
+      "discount_percent": 10,
+      "discount_amount": 200,
       "amount": 1800,
       "cost": 894,
       "cost_items": [
@@ -1006,7 +1015,10 @@
       "type": "income",
       "title": "Партия сувенирных брелоков с логотипом (30 шт)",
       "quantity": 2,
-      "amount": 7800,
+      "base_amount": 7800,
+      "discount_percent": 10,
+      "discount_amount": 780,
+      "amount": 7020,
       "cost": 2730,
       "cost_items": [
         {
@@ -1052,6 +1064,9 @@
       "type": "income",
       "title": "Держатель катушек филамента на подшипниках",
       "quantity": 1,
+      "base_amount": 4750,
+      "urgency_percent": 20,
+      "urgency_amount": 950,
       "amount": 5700,
       "cost": 2850,
       "cost_items": [

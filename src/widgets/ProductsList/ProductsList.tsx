@@ -11,9 +11,6 @@ import {
   Order 
 } from '../../shared/types';
 import { getOrders, restoreAllCollections } from '../../shared/api/db';
-import { PageHeader } from '../../shared/ui/PageHeader';
-import { Button } from '../../shared/ui/Button';
-import { productsTheme } from '../../shared/theme';
 import { 
   getStoredCategories, 
   saveNewCategory, 
@@ -21,23 +18,27 @@ import {
   getCategoryLucideIcon 
 } from '../../shared/lib/categories';
 import { recalculateAllProducts } from '../../features/calculate-cost/model/calculate';
-import { 
-  Package, 
-  Layers, 
-  FolderPlus, 
-  RefreshCw, 
-  RotateCcw, 
-  Plus 
-} from 'lucide-react';
+import { SelectOption } from '../../shared/ui/Select';
+import { usePersistentState } from '../../shared/lib/usePersistentState';
+import { Package } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 
-import { CatalogTableRow, ProductFilter, SortField, SortOrder } from './types';
-import { getWarehouseMetrics, getSalesStats, prepareDraftOrderFromProduct, round2 } from './helpers';
-import { ProductsSummary } from './components/ProductsSummary';
-import { ProductsFilterBar } from './components/ProductsFilterBar';
-import { ProductsTableModern } from './components/ProductsTableModern';
+import { 
+  CatalogTableRow, 
+  ProductFilter, 
+  StockFilter, 
+  SortField, 
+  SortOrder 
+} from './types';
+import { 
+  getWarehouseMetrics, 
+  getSalesStats, 
+  prepareDraftOrderFromProduct 
+} from './helpers';
+import { ProductsV2View } from './components/v2/ProductsV2View';
 import { ProductDrawer } from './components/ProductDrawer';
 
-// Модальные окна
+// Modals
 import { CollectionModal } from './components/modals/CollectionModal';
 import { DeleteCollectionModal } from './components/modals/DeleteCollectionModal';
 import { AddVariantModal } from './components/modals/AddVariantModal';
@@ -50,9 +51,17 @@ import { DeleteProductModal } from './components/modals/DeleteProductModal';
 import { ClearCatalogModal } from './components/modals/ClearCatalogModal';
 import { QuickEditProductModal } from './components/modals/QuickEditProductModal';
 
-export function ProductsList() {
+export interface ProductsListProps {
+  isExpanded?: boolean;
+  onToggleExpand?: (expanded: boolean) => void;
+}
+
+export function ProductsList({
+  isExpanded: externalIsExpanded,
+  onToggleExpand: externalOnToggleExpand,
+}: ProductsListProps = {}) {
   const router = useRouter();
-  const { showWarning, showSuccess } = useToast();
+  const { showWarning, showSuccess, showInfo } = useToast();
   const {
     isOnline,
     savedCalculations,
@@ -80,20 +89,21 @@ export function ProductsList() {
     setCalcDefect,
     setCalcIsOwnerLabor,
     setCalcIsLaborPerUnit,
-    setCalcDiscountType,
-    setCalcDiscountValue,
-    setCalcUrgencyType,
-    setCalcUrgencyValue,
     setCalcCustomCostItems,
   } = useData();
 
   const currencySymbol = settings?.currency ?? '₽';
   const laborRate = settings?.labor_rate_per_hour ?? 600;
 
-  // 1. Категории и теги
+  // 1. Полноэкранный режим
+  const [internalIsExpanded, setInternalIsExpanded] = usePersistentState<boolean>('3d_products_expanded_view', false);
+  const isExpanded = externalIsExpanded !== undefined ? externalIsExpanded : internalIsExpanded;
+  const setIsExpanded = externalOnToggleExpand || setInternalIsExpanded;
+
+  // 2. Категории
   const [categoriesList, setCategoriesList] = useState<ProductCategory[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = usePersistentState<string>('3d_products_selected_category', 'all');
+  const [searchQuery, setSearchQuery] = usePersistentState<string>('3d_products_search_query', '');
 
   useEffect(() => {
     setCategoriesList(getStoredCategories());
@@ -105,18 +115,18 @@ export function ProductsList() {
     showSuccess(`Категория «${name}» создана!`, 'Категория добавлена');
   };
 
-  const categoryFilterOptions = useMemo(() => {
-    const allOpt = { value: 'all', label: 'Все категории', icon: Package };
-    const catOpts = categoriesList.map((cat) => ({
+  const categoryFilterOptions = useMemo<SelectOption[]>(() => {
+    const allOpt: SelectOption = { value: 'all', label: 'Все категории', icon: Package };
+    const catOpts: SelectOption[] = categoriesList.map((cat) => ({
       value: cat.id,
       label: cat.label,
       icon: getCategoryLucideIcon(cat.id),
-      badgeStyle: cat.color || 'bg-gray-800 text-gray-300 border-gray-700',
+      badgeStyle: cat.color || 'bg-neutral-800 text-neutral-300 border-neutral-700',
     }));
     return [allOpt, ...catOpts];
   }, [categoriesList]);
 
-  // 2. История заказов (для статистики продаж без мутации исторических данных)
+  // 3. Заказы и статистика продаж
   const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
@@ -132,9 +142,11 @@ export function ProductsList() {
 
     const handleRefresh = () => loadOrdersData();
     window.addEventListener('saved_calculations_updated', handleRefresh);
+    window.addEventListener('orders_updated', handleRefresh);
     window.addEventListener('storage', handleRefresh);
     return () => {
       window.removeEventListener('saved_calculations_updated', handleRefresh);
+      window.removeEventListener('orders_updated', handleRefresh);
       window.removeEventListener('storage', handleRefresh);
     };
   }, []);
@@ -143,15 +155,16 @@ export function ProductsList() {
     return getSalesStats(orders, savedCalculations);
   }, [orders, savedCalculations]);
 
-  // 3. Складские метрики
+  // 4. Складские KPI метрики
   const warehouseMetrics = useMemo(() => {
     return getWarehouseMetrics(savedCalculations);
   }, [savedCalculations]);
 
-  // 4. Фильтры и сортировка
-  const [productFilter, setProductFilter] = useState<ProductFilter>('all');
-  const [sortField, setSortField] = useState<SortField>('name');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  // 5. Фильтры и сортировка
+  const [productFilter, setProductFilter] = usePersistentState<ProductFilter>('3d_products_product_filter', 'all');
+  const [stockFilter, setStockFilter] = usePersistentState<StockFilter>('3d_products_stock_filter', 'all');
+  const [sortField, setSortField] = usePersistentState<SortField>('3d_products_sort_field', 'name');
+  const [sortOrder, setSortOrder] = usePersistentState<SortOrder>('3d_products_sort_order', 'asc');
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -162,30 +175,23 @@ export function ProductsList() {
     }
   };
 
-  // 5. Развернутые строки (ТОЛЬКО для коллекций и сборок)
-  const [expandedItemIds, setExpandedItemIds] = useState<Record<string, boolean>>({});
+  // 6. Пагинация порциями (Infinite Scroll)
+  const PRODUCTS_CHUNK_SIZE = 25;
+  const [visibleCount, setVisibleCount] = useState<number>(PRODUCTS_CHUNK_SIZE);
 
-  const handleToggleExpand = (id: string) => {
+  // Сброс порции при смене фильтров
+  useEffect(() => {
+    setVisibleCount(PRODUCTS_CHUNK_SIZE);
+  }, [searchQuery, productFilter, stockFilter, selectedCategory]);
+
+  // 7. Раскрытие коллекций и сборок
+  const [expandedItemIds, setExpandedItemIds] = usePersistentState<Record<string, boolean>>('3d_products_expanded_ids', {});
+
+  const handleToggleExpandRow = (id: string) => {
     setExpandedItemIds((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // 6. Выбор чекбоксами
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-
-  const handleToggleSelect = (id: string) => {
-    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
-  };
-
-  const handleToggleSelectAll = () => {
-    const allIds = savedCalculations.map((c) => c.id);
-    if (selectedIds.length === allIds.length) {
-      setSelectedIds([]);
-    } else {
-      setSelectedIds(allIds);
-    }
-  };
-
-  // 7. Стек отмены (Ctrl+Z)
+  // 8. Стек истории для Undo (Ctrl+Z / Alt+Z)
   const [historyStack, setHistoryStack] = useState<
     Array<{ calculations: SavedCalculation[]; collections: ProductCollection[] }>
   >([]);
@@ -199,7 +205,7 @@ export function ProductsList() {
 
   const handleUndo = useCallback(async () => {
     if (historyStack.length === 0) {
-      showWarning('Нет доступных действий для отмены', 'Отмена (Ctrl+Z)');
+      showWarning('История изменений пуста', 'Отмена (Ctrl+Z)');
       return;
     }
 
@@ -211,197 +217,136 @@ export function ProductsList() {
         restoreAllSavedCalculations(previousState.calculations),
         restoreAllCollections(previousState.collections),
       ]);
-      showSuccess('Изменения успешно отменены (Ctrl+Z)!', 'Откат назад');
+      showSuccess('Действие отменено (Ctrl+Z)!', 'Откат состояния');
     } catch (err) {
-      console.error('Ошибка отката изменений:', err);
+      console.error('Ошибка отката:', err);
     }
   }, [historyStack, restoreAllSavedCalculations, showWarning, showSuccess]);
 
-  // Глобальный слушатель Ctrl+Z
+  // Глобальный слушатель Ctrl+Z / Alt+Z
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        target &&
-        (target.tagName === 'INPUT' ||
-          target.tagName === 'TEXTAREA' ||
-          target.tagName === 'SELECT' ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
-
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+      if ((e.altKey && e.code === 'KeyZ') || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey)) {
+        const activeTag = document.activeElement?.tagName?.toLowerCase();
+        if (activeTag === 'input' || activeTag === 'textarea') return;
         e.preventDefault();
         handleUndo();
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleUndo]);
 
-  // 8. Переименование на месте
+  // 9. Черновик сборки (Staged assembly)
+  const [stagedAssemblyParts, setStagedAssemblyParts] = usePersistentState<AssemblyPrintedPart[]>('3d_products_staged_assembly', []);
+
+  const handleStageForAssembly = (item: SavedCalculation) => {
+    const foundFilament = filaments.find((f) => f.name === item.filament_name);
+    const newPart: AssemblyPrintedPart = {
+      id: `part-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      name: item.name,
+      filament_id: foundFilament?.id,
+      filament_name: item.filament_name || 'PLA',
+      filament_color: item.filament_color || '#3b82f6',
+      printer_name: item.printer_name,
+      weight_g: item.weight_g || 0,
+      hours: item.hours || 0,
+      minutes: item.minutes || 0,
+      quantity: 1,
+      base_cost: item.base_cost,
+      final_price: item.final_price,
+      stl_url: item.stl_url,
+      stl_file_name: item.stl_file_name,
+      stl_file_data: item.stl_file_data,
+      product_id: item.id,
+    };
+
+    setStagedAssemblyParts((prev) => [...prev, newPart]);
+    showSuccess(`«${item.name}» добавлен в черновик сборки!`, 'В сборку');
+  };
+
+  // 10. Быстрое переименование
   const [editingNameId, setEditingNameId] = useState<string | null>(null);
   const [editingNameValue, setEditingNameValue] = useState<string>('');
   const [isInlineNameShaking, setIsInlineNameShaking] = useState(false);
-  const editingTargetRef = useRef<SavedCalculation | ProductCollection | null>(null);
 
-  const handleStartRename = (target: SavedCalculation | ProductCollection) => {
-    editingTargetRef.current = target;
-    setEditingNameId(target.id);
-    setEditingNameValue(target.name);
+  const handleStartRename = (itemOrCol: SavedCalculation | ProductCollection) => {
+    setEditingNameId(itemOrCol.id);
+    setEditingNameValue(itemOrCol.name);
   };
 
   const handleSaveRename = async () => {
-    if (!editingTargetRef.current || !editingNameValue.trim()) {
-      setEditingNameId(null);
+    if (!editingNameId) return;
+    const trimmed = editingNameValue.trim();
+    if (!trimmed) {
+      setIsInlineNameShaking(true);
+      setTimeout(() => setIsInlineNameShaking(false), 500);
       return;
     }
 
-    const trimmed = editingNameValue.trim();
-    const target = editingTargetRef.current;
-
-    try {
-      pushHistory();
-      if ('filament_name' in target || 'type' in target) {
-        // Товар
-        await updateSavedCalculation({
-          ...(target as SavedCalculation),
-          name: trimmed,
-        });
-      } else {
-        // Коллекция
-        await updateCollection({
-          ...(target as ProductCollection),
-          name: trimmed,
-        });
-        const childs = savedCalculations.filter((c) => c.collection_id === target.id);
-        for (const child of childs) {
-          await updateSavedCalculation({
-            ...child,
-            collection_name: trimmed,
-          });
-        }
+    pushHistory();
+    const isCol = collections.some((c) => c.id === editingNameId);
+    if (isCol) {
+      const col = collections.find((c) => c.id === editingNameId)!;
+      await updateCollection({ ...col, name: trimmed });
+      showSuccess(`Коллекция переименована в «${trimmed}»`, 'Переименование');
+    } else {
+      const item = savedCalculations.find((c) => c.id === editingNameId);
+      if (item) {
+        await updateSavedCalculation({ ...item, name: trimmed });
+        showSuccess(`Товар переименован в «${trimmed}»`, 'Переименование');
       }
-      showSuccess(`Переименовано в «${trimmed}»`, 'Готово');
-    } catch (err) {
-      console.error('Ошибка переименования:', err);
-    } finally {
-      setEditingNameId(null);
-      editingTargetRef.current = null;
     }
+    setEditingNameId(null);
   };
 
-  // 9. Корректировка остатка
+  const handleCancelRename = () => {
+    setEditingNameId(null);
+  };
+
+  // 11. Быстрое изменение остатка
   const handleSetStock = async (item: SavedCalculation, newStock: number) => {
-    try {
-      pushHistory();
-      await updateSavedCalculation({
-        ...item,
-        stock_quantity: Math.max(0, newStock),
-      });
-      showSuccess(`Остаток товара «${item.name}»: ${newStock} шт`, 'Склад обновлен');
-    } catch (err) {
-      console.error('Ошибка изменения остатка:', err);
-    }
+    pushHistory();
+    const val = Math.max(0, Math.round(newStock));
+    await updateSavedCalculation({
+      ...item,
+      stock_quantity: val,
+    });
   };
 
-  // 10. Переход в Заказы с предзаполнением
+  // 12. Создание заказа
   const handleCreateOrder = (item: SavedCalculation) => {
-    const draftData = prepareDraftOrderFromProduct(item);
-    localStorage.setItem('draft_order_from_product', JSON.stringify(draftData));
-    showSuccess(`Товар «${item.name}» перенесен в Заказы!`, 'Переход в Заказы');
-    router.push('/orders');
+    const draftOrder = prepareDraftOrderFromProduct(item);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('draft_order_from_product', JSON.stringify(draftOrder));
+      router.push('/orders');
+    }
   };
 
-  // 11. Загрузка в калькулятор
-  const handleLoadIntoCalculator = (calc: SavedCalculation) => {
-    if (calc.filament_id && filaments.some((f) => f.id === calc.filament_id)) {
-      setCalcFilamentId(calc.filament_id);
-    }
-    if (calc.printer_id && printers.some((p) => p.id === calc.printer_id)) {
-      setCalcPrinterId(calc.printer_id);
-    }
-    setCalcWeight(calc.weight_g.toString());
-    setCalcHours(calc.hours.toString());
-    setCalcMinutes(calc.minutes.toString());
-    setCalcQuantity(calc.quantity.toString());
+  // 13. Загрузка в Калькулятор
+  const handleLoadIntoCalculator = (item: SavedCalculation) => {
+    const filament = filaments.find((f) => f.id === item.filament_id) || filaments.find((f) => f.name === item.filament_name);
+    const printer = printers.find((p) => p.id === item.printer_id) || printers.find((p) => p.name === item.printer_name);
 
-    if (calc.labor_minutes !== undefined) setCalcLaborMinutes(calc.labor_minutes.toString());
-    if (calc.labor_rate_per_hour !== undefined) setCalcLaborRate(calc.labor_rate_per_hour.toString());
-    if (calc.markup_percent !== undefined) setCalcMarkup(calc.markup_percent.toString());
-    if (calc.defect_percent !== undefined) setCalcDefect(calc.defect_percent.toString());
-    if (calc.is_owner_labor !== undefined) setCalcIsOwnerLabor(Boolean(calc.is_owner_labor));
-    if (calc.is_labor_per_unit !== undefined) setCalcIsLaborPerUnit(Boolean(calc.is_labor_per_unit));
+    if (filament) setCalcFilamentId(filament.id);
+    if (printer) setCalcPrinterId(printer.id);
+    setCalcWeight(String(item.weight_g || 0));
+    setCalcHours(String(item.hours || 0));
+    setCalcMinutes(String(item.minutes || 0));
+    setCalcQuantity(String(item.quantity || 1));
+    setCalcLaborMinutes(String(item.labor_minutes || 0));
+    if (item.labor_rate_per_hour) setCalcLaborRate(String(item.labor_rate_per_hour));
+    if (item.markup_percent) setCalcMarkup(String(item.markup_percent));
+    if (item.defect_percent) setCalcDefect(String(item.defect_percent));
+    if (item.is_owner_labor !== undefined) setCalcIsOwnerLabor(item.is_owner_labor);
+    if (item.is_labor_per_unit !== undefined) setCalcIsLaborPerUnit(item.is_labor_per_unit);
+    if (item.custom_cost_items) setCalcCustomCostItems(item.custom_cost_items);
 
-    if (calc.discount_percent && calc.discount_percent > 0) {
-      setCalcDiscountType('percent');
-      setCalcDiscountValue(calc.discount_percent.toString());
-    } else if (calc.discount_amount && calc.discount_amount > 0) {
-      setCalcDiscountType('fixed');
-      setCalcDiscountValue(calc.discount_amount.toString());
-    } else {
-      setCalcDiscountValue('');
-    }
-
-    if (calc.urgency_percent && calc.urgency_percent > 0) {
-      setCalcUrgencyType('percent');
-      setCalcUrgencyValue(calc.urgency_percent.toString());
-    } else if (calc.urgency_amount && calc.urgency_amount > 0) {
-      setCalcUrgencyType('fixed');
-      setCalcUrgencyValue(calc.urgency_amount.toString());
-    } else {
-      setCalcUrgencyValue('');
-    }
-
-    if (calc.custom_cost_items && Array.isArray(calc.custom_cost_items)) {
-      setCalcCustomCostItems(calc.custom_cost_items);
-    } else {
-      setCalcCustomCostItems([]);
-    }
-
+    showSuccess(`Параметры «${item.name}» загружены в Калькулятор!`, 'Калькулятор');
     router.push('/calculator');
   };
 
-  // 12. Буфер деталей сборки
-  const [stagedAssemblyParts, setStagedAssemblyParts] = useState<AssemblyPrintedPart[]>([]);
-
-  const handleStageForAssembly = (prod: SavedCalculation) => {
-    const existingIndex = stagedAssemblyParts.findIndex((p) => p.product_id === prod.id);
-
-    if (existingIndex >= 0) {
-      setStagedAssemblyParts((prev) =>
-        prev.map((p, i) => (i === existingIndex ? { ...p, quantity: p.quantity + 1 } : p))
-      );
-      showSuccess(`Количество «${prod.name}» в сборке увеличено!`, 'Черновик сборки');
-    } else {
-      const newPart: AssemblyPrintedPart = {
-        id: Math.random().toString(36).substring(2, 9),
-        product_id: prod.id,
-        name: prod.name,
-        weight_g: round2(prod.weight_g),
-        hours: prod.hours,
-        minutes: prod.minutes,
-        quantity: 1,
-        filament_id: prod.filament_id,
-        filament_name: prod.filament_name,
-        filament_color: prod.filament_color,
-        printer_id: prod.printer_id,
-        printer_name: prod.printer_name,
-        base_cost: round2(prod.base_cost),
-        final_price: round2(prod.final_price),
-        stl_url: prod.stl_url,
-        stl_file_name: prod.stl_file_name,
-        stl_file_data: prod.stl_file_data,
-      };
-
-      setStagedAssemblyParts((prev) => [...prev, newPart]);
-      showSuccess(`Товар «${prod.name}» добавлен в черновик сборки!`, 'Добавлено');
-    }
-  };
-
-  // 13. Состояния модальных окон
+  // 14. Состояния модалок
   const [isCollectionModalOpen, setIsCollectionModalOpen] = useState(false);
   const [editingCollection, setEditingCollection] = useState<ProductCollection | null>(null);
   const [deletingCollection, setDeletingCollection] = useState<ProductCollection | null>(null);
@@ -424,7 +369,28 @@ export function ProductsList() {
   const [quickEditProductItem, setQuickEditProductItem] = useState<SavedCalculation | null>(null);
   const [activeDrawerItem, setActiveDrawerItem] = useState<SavedCalculation | null>(null);
 
-  // 14. Обработчики сохранения
+  // Контекстное меню
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; row: CatalogTableRow } | null>(null);
+  const contextMenuRef = useRef<HTMLDivElement | null>(null);
+
+  // Закрытие контекстного меню
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        setContextMenu(null);
+      }
+    };
+    const handleClose = () => setContextMenu(null);
+
+    window.addEventListener('click', handleClickOutside);
+    window.addEventListener('scroll', handleClose);
+    return () => {
+      window.removeEventListener('click', handleClickOutside);
+      window.removeEventListener('scroll', handleClose);
+    };
+  }, []);
+
+  // 15. Обработчики для модалок
   const handleSaveCollection = async (data: {
     name: string;
     category: string;
@@ -443,7 +409,7 @@ export function ProductsList() {
         tags: data.tags,
         description: data.description,
       });
-      showSuccess(`Коллекция «${data.name}» обновлена!`, 'Сохранено');
+      showSuccess(`Коллекция «${data.name}» обновлена!`, 'Успешно');
     } else {
       const created = await addCollection({
         name: data.name,
@@ -452,7 +418,7 @@ export function ProductsList() {
         description: data.description,
       });
       colId = created.id;
-      showSuccess(`Коллекция «${data.name}» создана!`, 'Создано');
+      showSuccess(`Коллекция «${data.name}» создана!`, 'Готово');
     }
 
     if (colId) {
@@ -481,8 +447,8 @@ export function ProductsList() {
     pushHistory();
     await deleteCollection(colId, deleteWithProducts);
     showSuccess(
-      deleteWithProducts ? 'Коллекция и вложенные товары удалены' : 'Коллекция расформирована',
-      'Удаление'
+      deleteWithProducts ? 'Коллекция и входящие в неё товары удалены' : 'Коллекция расформирована',
+      'Удалено'
     );
   };
 
@@ -493,13 +459,13 @@ export function ProductsList() {
         ...editingAssembly,
         ...assemblyData,
       } as SavedCalculation);
-      showSuccess(`Сборка «${assemblyData.name}» обновлена!`, 'Обновлено');
+      showSuccess(`Сборка «${assemblyData.name}» обновлена!`, 'Сохранено');
     } else {
       await addSavedCalculation({
         ...assemblyData,
         created_at: new Date().toISOString(),
       } as SavedCalculation);
-      showSuccess(`Сборка «${assemblyData.name}» создана!`, 'Создано');
+      showSuccess(`Сборка «${assemblyData.name}» создана!`, 'Готово');
       setStagedAssemblyParts([]);
     }
   };
@@ -557,7 +523,7 @@ export function ProductsList() {
       });
     }
 
-    showSuccess(`Вариант «${data.name}» добавлен в коллекцию!`, 'Вариант создан');
+    showSuccess(`Вариант «${data.name}» добавлен в коллекцию!`, 'Товар добавлен');
   };
 
   const handleSaveProductMoveSingle = async (prod: SavedCalculation, targetColId: string) => {
@@ -604,23 +570,19 @@ export function ProductsList() {
     showSuccess(
       targetColId === 'none'
         ? `${ids.length} товаров извлечено из коллекций`
-        : `${ids.length} товаров перенесено в «${dest?.name}»`,
-      'Группировка'
+        : `${ids.length} товаров перемещено в «${dest?.name}»`,
+      'Перемещение'
     );
-    setSelectedIds([]);
   };
 
   const handleConfirmRecalculate = async (scope: 'selected' | 'all') => {
     setIsRecalculating(true);
     try {
       pushHistory();
-      const targetIds = scope === 'selected' && selectedIds.length > 0 ? selectedIds : undefined;
-      const fullyUpdated = recalculateAllProducts(savedCalculations, filaments, printers, settings, targetIds);
+      const fullyUpdated = recalculateAllProducts(savedCalculations, filaments, printers, settings);
       await restoreAllSavedCalculations(fullyUpdated);
-      const count = targetIds ? targetIds.length : fullyUpdated.length;
-      showSuccess(`Себестоимость ${count} товаров успешно пересчитана!`, 'Цены обновлены');
+      showSuccess(`Пересчитано ${fullyUpdated.length} позиций каталога!`, 'Цены обновлены');
       setIsRecalcModalOpen(false);
-      setSelectedIds([]);
     } catch (err) {
       console.error('Ошибка пересчета:', err);
     } finally {
@@ -651,7 +613,7 @@ export function ProductsList() {
       category,
       tags,
     });
-    showSuccess(`Категория товара «${item.name}» обновлена!`, 'Сохранено');
+    showSuccess(`Категория товара «${item.name}» обновлена!`, 'Успешно');
   };
 
   const handleConfirmDeleteProduct = async (id: string) => {
@@ -669,15 +631,15 @@ export function ProductsList() {
   const handleSaveQuickEdit = async (updated: SavedCalculation) => {
     pushHistory();
     await updateSavedCalculation(updated);
-    showSuccess(`Товар «${updated.name}» успешно обновлен!`, 'Сохранено');
+    showSuccess(`Товар «${updated.name}» успешно обновлен!`, 'Успешно');
     if (activeDrawerItem?.id === updated.id) {
       setActiveDrawerItem(updated);
     }
   };
 
-  // 15. Формирование строк таблицы с фильтрацией и сортировкой
+  // 16. Преобразование данных в строки таблицы (CatalogTableRow)
   const tableData = useMemo<CatalogTableRow[]>(() => {
-    const rows: CatalogTableRow[] = [];
+    const rowsList: CatalogTableRow[] = [];
     const query = searchQuery.toLowerCase().trim();
 
     // 1. Коллекции
@@ -686,10 +648,9 @@ export function ProductsList() {
         (c) => c.collection_id === col.id || (Boolean(col.name) && Boolean(c.collection_name) && c.collection_name === col.name)
       );
 
-      // Фильтр по типу
       if (productFilter === 'single') childs = childs.filter((c) => c.type !== 'assembly');
       if (productFilter === 'assembly') childs = childs.filter((c) => c.type === 'assembly');
-      if (productFilter === 'low_stock') childs = childs.filter((c) => (c.stock_quantity || 0) <= 2);
+      if (productFilter === 'low_stock') childs = childs.filter((c) => (c.stock_quantity || 0) <= 2 && (c.stock_quantity || 0) > 0);
       if (productFilter === 'bestsellers') {
         childs = childs.filter((c) => {
           const st = salesStatsMap.get(c.id);
@@ -697,13 +658,18 @@ export function ProductsList() {
         });
       }
 
+      // Фильтр по остаткам
+      if (stockFilter === 'in_stock') childs = childs.filter((c) => (c.stock_quantity || 0) > 0);
+      if (stockFilter === 'low_stock') childs = childs.filter((c) => (c.stock_quantity || 0) <= 2 && (c.stock_quantity || 0) > 0);
+      if (stockFilter === 'out_of_stock') childs = childs.filter((c) => (c.stock_quantity || 0) === 0);
+
       // Фильтр по категории
       if (selectedCategory !== 'all' && (col.category || 'Разное') !== selectedCategory) {
         const hasMatchingChild = childs.some((c) => (c.category || 'Разное') === selectedCategory);
         if (!hasMatchingChild) return;
       }
 
-      // Фильтр по поисковому запросу
+      // Поиск
       if (query) {
         const matchCol =
           col.name.toLowerCase().includes(query) ||
@@ -722,7 +688,8 @@ export function ProductsList() {
         (productFilter === 'single' ||
           productFilter === 'assembly' ||
           productFilter === 'low_stock' ||
-          productFilter === 'bestsellers') &&
+          productFilter === 'bestsellers' ||
+          stockFilter !== 'all') &&
         childs.length === 0
       ) {
         return;
@@ -791,10 +758,10 @@ export function ProductsList() {
         created_at: col.created_at,
       };
 
-      rows.push(colRow);
+      rowsList.push(colRow);
     });
 
-    // 2. Самостоятельные товары (не входящие в коллекции)
+    // 2. Одиночные товары и сборки
     if (productFilter !== 'collections') {
       const standalone = savedCalculations.filter((c) => {
         const hasColId = Boolean(c.collection_id && collections.some((col) => col.id === c.collection_id));
@@ -805,13 +772,21 @@ export function ProductsList() {
       const filtered = standalone.filter((calc) => {
         if (productFilter === 'single' && calc.type === 'assembly') return false;
         if (productFilter === 'assembly' && calc.type !== 'assembly') return false;
-        if (productFilter === 'low_stock' && (calc.stock_quantity || 0) > 2) return false;
+        if (productFilter === 'low_stock' && ((calc.stock_quantity || 0) > 2 || (calc.stock_quantity || 0) === 0)) return false;
         if (productFilter === 'bestsellers') {
           const st = salesStatsMap.get(calc.id);
           if (!st || st.soldQty <= 0) return false;
         }
+
+        // Фильтр остатков
+        if (stockFilter === 'in_stock' && (calc.stock_quantity || 0) <= 0) return false;
+        if (stockFilter === 'low_stock' && ((calc.stock_quantity || 0) > 2 || (calc.stock_quantity || 0) === 0)) return false;
+        if (stockFilter === 'out_of_stock' && (calc.stock_quantity || 0) > 0) return false;
+
+        // Категория
         if (selectedCategory !== 'all' && (calc.category || 'Разное') !== selectedCategory) return false;
 
+        // Поиск
         if (query) {
           const matchName = calc.name.toLowerCase().includes(query);
           const matchFil = (calc.filament_name || '').toLowerCase().includes(query);
@@ -823,7 +798,7 @@ export function ProductsList() {
       });
 
       filtered.forEach((item) => {
-        rows.push({
+        rowsList.push({
           rowKind: 'product',
           id: item.id,
           item,
@@ -840,8 +815,20 @@ export function ProductsList() {
       });
     }
 
-    // Сортировка строк (на верхнем уровне)
-    rows.sort((a, b) => {
+    return rowsList;
+  }, [
+    collections,
+    savedCalculations,
+    productFilter,
+    stockFilter,
+    selectedCategory,
+    searchQuery,
+    salesStatsMap,
+  ]);
+
+  // Сортировка
+  const sortedRows = useMemo(() => {
+    return [...tableData].sort((a, b) => {
       let cmp = 0;
       if (sortField === 'name') {
         cmp = a.name.localeCompare(b.name, 'ru');
@@ -852,180 +839,100 @@ export function ProductsList() {
       } else if (sortField === 'id') {
         cmp = a.id.localeCompare(b.id);
       } else if (sortField === 'price') {
-        cmp = a.final_price - b.final_price;
+        cmp = (a.final_price || 0) - (b.final_price || 0);
       } else if (sortField === 'cost') {
-        cmp = a.base_cost - b.base_cost;
+        cmp = (a.base_cost || 0) - (b.base_cost || 0);
       } else if (sortField === 'stock') {
-        cmp = a.stock_quantity - b.stock_quantity;
+        cmp = (a.stock_quantity || 0) - (b.stock_quantity || 0);
       } else if (sortField === 'params') {
-        cmp = a.weight_g - b.weight_g;
+        cmp = (a.weight_g || 0) - (b.weight_g || 0);
       } else if (sortField === 'profit') {
-        const pA = a.final_price - a.base_cost;
-        const pB = b.final_price - b.base_cost;
+        const pA = (a.final_price || 0) - (a.base_cost || 0);
+        const pB = (b.final_price || 0) - (b.base_cost || 0);
         cmp = pA - pB;
+      } else if (sortField === 'sales') {
+        const sA = a.rowKind === 'product' ? (salesStatsMap.get(a.id)?.soldQty || 0) : 0;
+        const sB = b.rowKind === 'product' ? (salesStatsMap.get(b.id)?.soldQty || 0) : 0;
+        cmp = sA - sB;
       }
       return sortOrder === 'asc' ? cmp : -cmp;
     });
+  }, [tableData, sortField, sortOrder, salesStatsMap]);
 
-    return rows;
-  }, [
-    collections,
-    savedCalculations,
-    expandedItemIds,
-    productFilter,
-    selectedCategory,
-    searchQuery,
-    salesStatsMap,
-    sortField,
-    sortOrder,
-  ]);
+  const visibleRows = useMemo(() => {
+    return sortedRows.slice(0, visibleCount);
+  }, [sortedRows, visibleCount]);
 
-  // Счетчики для вкладок
+  // Счетчики для табов
   const counts = useMemo(() => {
     return {
       all: savedCalculations.length,
       single: savedCalculations.filter((c) => c.type !== 'assembly').length,
       assembly: savedCalculations.filter((c) => c.type === 'assembly').length,
       collections: collections.length,
-      lowStock: savedCalculations.filter((c) => (c.stock_quantity || 0) <= 2).length,
+      inStock: savedCalculations.filter((c) => (c.stock_quantity || 0) > 0).length,
+      lowStock: savedCalculations.filter((c) => (c.stock_quantity || 0) <= 2 && (c.stock_quantity || 0) > 0).length,
       bestsellers: savedCalculations.filter((c) => (salesStatsMap.get(c.id)?.soldQty || 0) > 0).length,
-      displayed: tableData.length,
     };
-  }, [savedCalculations, collections, salesStatsMap, tableData.length]);
+  }, [savedCalculations, collections, salesStatsMap]);
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* Шапка страницы */}
-      <PageHeader
-        icon={Package}
-        title="Каталог товаров"
-        subtitle="Хранилище моделей, 3D-файлов, коллекций и составных сборок"
-        accentColor={productsTheme.accentHex}
-        className="p-4 sm:p-5"
-        actions={
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Отмена последнего действия */}
-            <Button
-              onClick={handleUndo}
-              disabled={historyStack.length === 0}
-              variant="outline"
-              size="md"
-              className={`p-2.5 rounded-xl transition-all flex items-center justify-center shrink-0 ${
-                historyStack.length > 0
-                  ? 'border-amber-500/40 text-amber-400 hover:bg-amber-500/10 cursor-pointer shadow-sm'
-                  : 'border-[#242930] text-gray-600 opacity-40 cursor-not-allowed'
-              }`}
-              title={historyStack.length > 0 ? 'Отменить последнее действие (Ctrl+Z)' : 'Нет действий для отмены'}
-            >
-              <RotateCcw className={`w-4 h-4 ${historyStack.length > 0 ? 'text-amber-400' : 'text-gray-600'}`} />
-            </Button>
-
-            {/* Пересчет цен */}
-            <Button
-              onClick={() => setIsRecalcModalOpen(true)}
-              variant="outline"
-              size="md"
-              disabled={savedCalculations.length === 0 || isRecalculating}
-              className={`border-amber-500/50 text-amber-300 hover:bg-amber-500/15 cursor-pointer flex items-center gap-2 transition-all shrink-0 ${
-                selectedIds.length > 0 ? 'bg-amber-500/20 text-white font-bold shadow-md' : ''
-              }`}
-            >
-              <RefreshCw className={`w-4 h-4 text-amber-400 ${isRecalculating ? 'animate-spin' : ''}`} />
-              <span>{selectedIds.length > 0 ? `Пересчитать (${selectedIds.length})` : 'Пересчитать цены'}</span>
-            </Button>
-
-            {/* Создать коллекцию */}
-            <Button
-              onClick={() => {
-                setEditingCollection(null);
-                setIsCollectionModalOpen(true);
-              }}
-              variant="outline"
-              size="md"
-              className="border-purple-500/50 text-purple-300 hover:bg-purple-500/15 hover:border-purple-400 cursor-pointer flex items-center gap-2 transition-all shadow-sm rounded-xl font-bold"
-            >
-              <FolderPlus className="w-4 h-4 text-purple-400" />
-              <span>+ Коллекция</span>
-            </Button>
-
-            {/* Создать сборку */}
-            <Button
-              onClick={() => {
-                setEditingAssembly(null);
-                setIsAssemblyModalOpen(true);
-              }}
-              variant="outline"
-              size="md"
-              className={`border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/15 hover:border-cyan-400 cursor-pointer flex items-center gap-2 relative transition-all rounded-xl font-bold ${
-                stagedAssemblyParts.length > 0 ? 'bg-cyan-500/20 shadow-md border-cyan-400' : ''
-              }`}
-            >
-              <Layers className="w-4 h-4 text-cyan-400" />
-              <span>+ Сборка</span>
-              {stagedAssemblyParts.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.2 rounded-full bg-cyan-500 text-black text-xs font-mono font-extrabold shadow-sm">
-                  {stagedAssemblyParts.reduce((acc, p) => acc + p.quantity, 0)}
-                </span>
-              )}
-            </Button>
-          </div>
-        }
-      >
-        {/* KPI Сводка в шапке */}
-        <div className="mt-3 pt-3 border-t border-[#242930]/80">
-          <ProductsSummary
-            metrics={warehouseMetrics}
-            totalProductsCount={savedCalculations.length}
-            currencySymbol={currencySymbol}
-          />
-        </div>
-      </PageHeader>
-
-      {/* Панель фильтров, поиска и категорий */}
-      {(savedCalculations.length > 0 || collections.length > 0) && (
-        <ProductsFilterBar
-          productFilter={productFilter}
-          setProductFilter={setProductFilter}
-          selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
-          categoryFilterOptions={categoryFilterOptions}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          counts={counts}
-          selectedIds={selectedIds}
-          totalSavedCalculationsCount={savedCalculations.length}
-          onClearSelection={() => setSelectedIds([])}
-          onOpenBatchMove={() => setIsBatchMoveOpen(true)}
-          onOpenRecalcModal={() => setIsRecalcModalOpen(true)}
-          isRecalculating={isRecalculating}
-          canUndo={historyStack.length > 0}
-          onUndo={handleUndo}
-          onOpenBulkDelete={() => setIsBulkDeleteOpen(true)}
-        />
-      )}
-
-      {/* Современная оптимизированная таблица товаров */}
-      <ProductsTableModern
+    <div className="space-y-4">
+      {/* ГЛАВНАЯ КОНСОЛЬ ТОВАРОВ V2 */}
+      <ProductsV2View
         rows={tableData}
-        selectedIds={selectedIds}
-        onToggleSelectAll={handleToggleSelectAll}
-        onToggleSelect={handleToggleSelect}
-        expandedItemIds={expandedItemIds}
-        onToggleExpand={handleToggleExpand}
+        sortedRows={sortedRows}
+        visibleRows={visibleRows}
+        visibleCount={visibleCount}
+        totalRowsCount={sortedRows.length}
+        onLoadMore={() => setVisibleCount((prev) => Math.min(prev + PRODUCTS_CHUNK_SIZE, sortedRows.length))}
+        onShowAll={() => setVisibleCount(sortedRows.length)}
+        warehouseMetrics={warehouseMetrics}
+        singleCount={counts.single}
+        assemblyCount={counts.assembly}
+        collectionCount={counts.collections}
+        inStockCount={counts.inStock}
+        lowStockCount={counts.lowStock}
+        outOfStockCount={savedCalculations.filter((c) => (c.stock_quantity || 0) === 0).length}
+        stlCount={savedCalculations.filter((c) => c.stl_url || c.stl_file_data).length}
+        bestsellerCount={counts.bestsellers}
+        totalProductsCount={savedCalculations.length}
+        currencySymbol={currencySymbol}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        productFilter={productFilter}
+        setProductFilter={setProductFilter}
+        stockFilter={stockFilter}
+        setStockFilter={setStockFilter}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
+        categoriesList={categoriesList}
+        counts={counts}
         sortField={sortField}
         sortOrder={sortOrder}
         onSort={handleSort}
+        expandedItemIds={expandedItemIds}
+        onToggleExpandRow={handleToggleExpandRow}
         editingNameId={editingNameId}
         editingNameValue={editingNameValue}
         setEditingNameValue={setEditingNameValue}
         onSaveRename={handleSaveRename}
-        onCancelRename={() => setEditingNameId(null)}
+        onCancelRename={handleCancelRename}
         isInlineNameShaking={isInlineNameShaking}
         onStartRename={handleStartRename}
+        onUndo={handleUndo}
+        canUndo={historyStack.length > 0}
         onSelectForDrawer={(item) => setActiveDrawerItem(item)}
         onSetStock={handleSetStock}
         onOpenCategoryModal={(item) => setEditingCategoryItem(item)}
-        onOpenQuickEditModal={(item) => setQuickEditProductItem(item)}
+        onOpenQuickEditModal={(item) => {
+          if (item.type === 'assembly') {
+            setEditingAssembly(item);
+            setIsAssemblyModalOpen(true);
+          } else {
+            setQuickEditProductItem(item);
+          }
+        }}
         onCreateOrder={handleCreateOrder}
         onLoadIntoCalculator={handleLoadIntoCalculator}
         onStageForAssembly={handleStageForAssembly}
@@ -1037,15 +944,12 @@ export function ProductsList() {
           setEditingCollection(col);
           setIsCollectionModalOpen(true);
         }}
-        onOpenAddVariantModal={(col) => setActiveAddVariantCollection(col)}
-        onOpenDeleteCollection={(col) => setDeletingCollection(col)}
-        salesStatsMap={salesStatsMap}
-        currencySymbol={currencySymbol}
-        categoriesList={categoriesList}
-        filaments={filaments}
-        printers={printers}
-        canUndo={historyStack.length > 0}
-        onUndo={handleUndo}
+        onOpenAddVariantModal={(col) => {
+          setActiveAddVariantCollection(col);
+        }}
+        onOpenDeleteCollection={(col) => {
+          setDeletingCollection(col);
+        }}
         onOpenCreateCollection={() => {
           setEditingCollection(null);
           setIsCollectionModalOpen(true);
@@ -1054,137 +958,175 @@ export function ProductsList() {
           setEditingAssembly(null);
           setIsAssemblyModalOpen(true);
         }}
-        onNavigateToCalculator={() => router.push('/calculator')}
-      />
-
-      {/* Боковая панель деталей товара (ProductDrawer) */}
-      <ProductDrawer
-        item={activeDrawerItem}
-        onClose={() => setActiveDrawerItem(null)}
-        onSetStock={handleSetStock}
-        onCreateOrder={handleCreateOrder}
-        onLoadIntoCalculator={handleLoadIntoCalculator}
-        onOpenQuickEdit={(item) => setQuickEditProductItem(item)}
-        onOpenMoveProduct={(item) => setMovingProduct(item)}
-        onOpenStlModal={(item) => setEditingStlItem(item)}
-        onDelete={(id, name, type) => setDeletingProductItem({ id, name, type })}
-        salesStat={activeDrawerItem ? salesStatsMap.get(activeDrawerItem.id) : undefined}
-        currencySymbol={currencySymbol}
-        categoriesList={categoriesList}
-        filaments={filaments}
-        printers={printers}
-        settings={settings}
-      />
-
-      {/* -------------------- МОДАЛЬНЫЕ ОКНА -------------------- */}
-
-      {/* 1. Коллекция */}
-      <CollectionModal
-        isOpen={isCollectionModalOpen}
-        onClose={() => setIsCollectionModalOpen(false)}
-        editingCollection={editingCollection}
-        categoryOptions={categoryFilterOptions}
-        savedCalculations={savedCalculations}
-        currencySymbol={currencySymbol}
-        onSave={handleSaveCollection}
-      />
-
-      {/* 2. Удаление коллекции */}
-      <DeleteCollectionModal
-        collection={deletingCollection}
-        onClose={() => setDeletingCollection(null)}
-        onConfirm={handleConfirmDeleteCollection}
-      />
-
-      {/* 3. Добавить вариант в коллекцию */}
-      <AddVariantModal
-        collection={activeAddVariantCollection}
-        onClose={() => setActiveAddVariantCollection(null)}
-        savedCalculations={savedCalculations}
-        filaments={filaments}
-        printers={printers}
-        onConfirm={handleSaveAddVariant}
-        onNavigateToCalculator={() => router.push('/calculator')}
-      />
-
-      {/* 4. Конструктор сборки */}
-      <AssemblyModal
-        isOpen={isAssemblyModalOpen}
-        onClose={() => setIsAssemblyModalOpen(false)}
-        editingAssembly={editingAssembly}
-        stagedParts={stagedAssemblyParts}
-        savedCalculations={savedCalculations}
-        filaments={filaments}
-        printers={printers}
-        laborRate={laborRate}
-        currencySymbol={currencySymbol}
-        onSave={handleSaveAssembly}
-      />
-
-      {/* 5. Перемещение в коллекцию */}
-      <MoveProductModal
-        movingProduct={movingProduct}
-        selectedIds={selectedIds}
-        isBatchMoveOpen={isBatchMoveOpen}
-        collections={collections}
-        savedCalculations={savedCalculations}
-        onClose={() => {
-          setMovingProduct(null);
-          setIsBatchMoveOpen(false);
-        }}
-        onSaveSingle={handleSaveProductMoveSingle}
-        onSaveBatch={handleSaveProductMoveBatch}
-      />
-
-      {/* 6. Пересчет цен */}
-      <RecalculateModal
-        isOpen={isRecalcModalOpen}
-        onClose={() => setIsRecalcModalOpen(false)}
-        selectedCount={selectedIds.length}
-        totalCount={savedCalculations.length}
+        onOpenRecalcModal={() => setIsRecalcModalOpen(true)}
+        onOpenBulkDelete={() => setIsBulkDeleteOpen(true)}
         isRecalculating={isRecalculating}
-        onConfirm={handleConfirmRecalculate}
-      />
-
-      {/* 7. Редактирование STL */}
-      <EditStlModal
-        item={editingStlItem}
-        onClose={() => setEditingStlItem(null)}
-        onSave={handleSaveStl}
-      />
-
-      {/* 8. Категория и теги */}
-      <CategoryModal
-        item={editingCategoryItem}
-        categoryOptions={categoryFilterOptions}
-        onClose={() => setEditingCategoryItem(null)}
-        onSave={handleSaveCategory}
-        onCreateCategory={handleCreateCategory}
-      />
-
-      {/* 9. Удаление одного товара */}
-      <DeleteProductModal
-        item={deletingProductItem}
-        onClose={() => setDeletingProductItem(null)}
-        onConfirm={handleConfirmDeleteProduct}
-      />
-
-      {/* 10. Очистка каталога */}
-      <ClearCatalogModal
-        isOpen={isBulkDeleteOpen}
-        onClose={() => setIsBulkDeleteOpen(false)}
-        onConfirm={handleConfirmBulkDelete}
-      />
-
-      {/* 11. Быстрое полное редактирование параметров товара */}
-      <QuickEditProductModal
-        item={quickEditProductItem}
+        salesStatsMap={salesStatsMap}
         filaments={filaments}
         printers={printers}
-        categoryOptions={categoryFilterOptions}
-        onClose={() => setQuickEditProductItem(null)}
-        onSave={handleSaveQuickEdit}
+        isOnline={isOnline}
+        isExpanded={isExpanded}
+        onToggleExpand={setIsExpanded}
+        contextMenu={contextMenu}
+        setContextMenu={setContextMenu}
+        contextMenuRef={contextMenuRef}
       />
+
+      {/* Slide-Over Detail Drawer */}
+      <AnimatePresence>
+        {activeDrawerItem && (
+          <ProductDrawer
+            item={activeDrawerItem}
+            onClose={() => setActiveDrawerItem(null)}
+            onSetStock={handleSetStock}
+            onCreateOrder={handleCreateOrder}
+            onLoadIntoCalculator={handleLoadIntoCalculator}
+            onOpenQuickEdit={(item) => {
+              if (item.type === 'assembly') {
+                setEditingAssembly(item);
+                setIsAssemblyModalOpen(true);
+              } else {
+                setQuickEditProductItem(item);
+              }
+            }}
+            onOpenMoveProduct={(item) => setMovingProduct(item)}
+            onOpenStlModal={(item) => setEditingStlItem(item)}
+            onDelete={(id, name, type) => setDeletingProductItem({ id, name, type })}
+            salesStat={salesStatsMap.get(activeDrawerItem.id)}
+            currencySymbol={currencySymbol}
+            categoriesList={categoriesList}
+            filaments={filaments}
+            printers={printers}
+            settings={settings}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Модальные окна */}
+      {isCollectionModalOpen && (
+        <CollectionModal
+          isOpen={isCollectionModalOpen}
+          onClose={() => {
+            setIsCollectionModalOpen(false);
+            setEditingCollection(null);
+          }}
+          editingCollection={editingCollection}
+          categoryOptions={categoryFilterOptions}
+          savedCalculations={savedCalculations}
+          currencySymbol={currencySymbol}
+          onSave={handleSaveCollection}
+        />
+      )}
+
+      {deletingCollection && (
+        <DeleteCollectionModal
+          collection={deletingCollection}
+          onClose={() => setDeletingCollection(null)}
+          onConfirm={handleConfirmDeleteCollection}
+        />
+      )}
+
+      {activeAddVariantCollection && (
+        <AddVariantModal
+          collection={activeAddVariantCollection}
+          onClose={() => setActiveAddVariantCollection(null)}
+          savedCalculations={savedCalculations}
+          filaments={filaments}
+          printers={printers}
+          onConfirm={handleSaveAddVariant}
+          onNavigateToCalculator={() => router.push('/calculator')}
+        />
+      )}
+
+      {isAssemblyModalOpen && (
+        <AssemblyModal
+          isOpen={isAssemblyModalOpen}
+          onClose={() => {
+            setIsAssemblyModalOpen(false);
+            setEditingAssembly(null);
+          }}
+          editingAssembly={editingAssembly}
+          stagedParts={editingAssembly ? [] : stagedAssemblyParts}
+          savedCalculations={savedCalculations}
+          filaments={filaments}
+          printers={printers}
+          laborRate={laborRate}
+          currencySymbol={currencySymbol}
+          onSave={handleSaveAssembly}
+        />
+      )}
+
+      {(movingProduct || isBatchMoveOpen) && (
+        <MoveProductModal
+          movingProduct={movingProduct}
+          selectedIds={[]}
+          isBatchMoveOpen={isBatchMoveOpen}
+          collections={collections}
+          savedCalculations={savedCalculations}
+          onClose={() => {
+            setMovingProduct(null);
+            setIsBatchMoveOpen(false);
+          }}
+          onSaveSingle={handleSaveProductMoveSingle}
+          onSaveBatch={handleSaveProductMoveBatch}
+        />
+      )}
+
+      {isRecalcModalOpen && (
+        <RecalculateModal
+          isOpen={isRecalcModalOpen}
+          onClose={() => setIsRecalcModalOpen(false)}
+          selectedCount={savedCalculations.length}
+          totalCount={savedCalculations.length}
+          isRecalculating={isRecalculating}
+          onConfirm={handleConfirmRecalculate}
+        />
+      )}
+
+      {editingStlItem && (
+        <EditStlModal
+          item={editingStlItem}
+          onClose={() => setEditingStlItem(null)}
+          onSave={handleSaveStl}
+        />
+      )}
+
+      {editingCategoryItem && (
+        <CategoryModal
+          item={editingCategoryItem}
+          categoryOptions={categoryFilterOptions}
+          onClose={() => setEditingCategoryItem(null)}
+          onSave={handleSaveCategory}
+          onCreateCategory={handleCreateCategory}
+        />
+      )}
+
+      {deletingProductItem && (
+        <DeleteProductModal
+          item={deletingProductItem}
+          onClose={() => setDeletingProductItem(null)}
+          onConfirm={handleConfirmDeleteProduct}
+        />
+      )}
+
+      {isBulkDeleteOpen && (
+        <ClearCatalogModal
+          isOpen={isBulkDeleteOpen}
+          onClose={() => setIsBulkDeleteOpen(false)}
+          onConfirm={handleConfirmBulkDelete}
+        />
+      )}
+
+      {quickEditProductItem && (
+        <QuickEditProductModal
+          item={quickEditProductItem}
+          filaments={filaments}
+          printers={printers}
+          categoryOptions={categoryFilterOptions}
+          onClose={() => setQuickEditProductItem(null)}
+          onSave={handleSaveQuickEdit}
+        />
+      )}
     </div>
   );
 }

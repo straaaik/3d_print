@@ -36,22 +36,164 @@ const DEFAULT_SETTINGS: Settings = {
 const DEFAULT_PRINTERS: Printer[] = [];
 const DEFAULT_FILAMENTS: Filament[] = [];
 const DEFAULT_SAVED_CALCULATIONS: SavedCalculation[] = [];
-const DEFAULT_ORDERS: Order[] = [];
+const DEFAULT_ORDERS: Order[] = [
+  {
+    id: 'ord-sample-1',
+    order_number: 1045,
+    created_at: '2026-08-28T14:30:00.000Z',
+    date: '28.08.2026',
+    type: 'income',
+    title: 'Срочная печать шестерни редуктора (Nylon CF)',
+    quantity: 2,
+    base_amount: 4000,
+    urgency_type: 'percent',
+    urgency_percent: 25,
+    urgency_amount: 1000,
+    amount: 5000,
+    cost: 1350,
+    cost_items: [
+      { id: 'c1', category: 'Печать', amount: 1050 },
+      { id: 'c2', category: 'Упаковка', amount: 300 },
+    ],
+    payments: [5000],
+    payment: 5000,
+    client: 'Авито',
+    contact: '+7 (928) 441-89-12',
+    contacts: [{ type: 'phone', value: '+7 (928) 441-89-12', label: 'Телефон' }],
+    deadline: '29.08.2026',
+    status: 'Печать',
+    notes: 'Срочный заказ в день обращения, клиент заберет самовывозом.',
+  },
+  {
+    id: 'ord-sample-2',
+    order_number: 1044,
+    created_at: '2026-08-27T11:15:00.000Z',
+    date: '27.08.2026',
+    type: 'income',
+    title: 'Партия корпусов датчиков влажности (PETG)',
+    quantity: 20,
+    base_amount: 16000,
+    discount_type: 'percent',
+    discount_percent: 15,
+    discount_amount: 2400,
+    amount: 13600,
+    cost: 4200,
+    cost_items: [
+      { id: 'c1', category: 'Печать', amount: 3600 },
+      { id: 'c2', category: 'Работа руками', amount: 600 },
+    ],
+    payments: [6800],
+    payment: 6800,
+    client: 'Telegram',
+    contact: '@sensor_maker_pro',
+    contacts: [{ type: 'telegram', value: '@sensor_maker_pro', label: 'Telegram' }],
+    deadline: '02.09.2026',
+    status: 'Ждет печати',
+    notes: 'Скидка 15% за оптовую партию 20 штук. Предоплата 50% внесена.',
+  },
+  {
+    id: 'ord-sample-3',
+    order_number: 1043,
+    created_at: '2026-08-26T16:40:00.000Z',
+    date: '26.08.2026',
+    type: 'income',
+    title: 'Прототип выставочного макета дрона (PLA+)',
+    quantity: 1,
+    base_amount: 8000,
+    discount_type: 'fixed',
+    discount_percent: 5,
+    discount_amount: 400,
+    urgency_type: 'percent',
+    urgency_percent: 20,
+    urgency_amount: 1600,
+    amount: 9200,
+    cost: 2800,
+    cost_items: [
+      { id: 'c1', category: 'Печать', amount: 2100 },
+      { id: 'c2', category: 'Покраска', amount: 700 },
+    ],
+    payments: [9200],
+    payment: 9200,
+    client: 'VK',
+    contact: 'vk.com/dronetech_lab',
+    contacts: [{ type: 'vk', value: 'vk.com/dronetech_lab', label: 'VK' }],
+    deadline: '30.08.2026',
+    status: 'Покраска',
+    notes: 'Применена наценка за срочность +20% и скидка постоянного клиента 400 ₽.',
+  },
+  {
+    id: 'ord-sample-4',
+    order_number: 1042,
+    created_at: '2026-08-25T09:20:00.000Z',
+    date: '25.08.2026',
+    type: 'income',
+    title: 'Шарнирный дракон Crystal (Silk Gold)',
+    quantity: 2,
+    base_amount: 3600,
+    amount: 3600,
+    cost: 840,
+    cost_items: [
+      { id: 'c1', category: 'Печать', amount: 720 },
+      { id: 'c2', category: 'Упаковка', amount: 120 },
+    ],
+    payments: [3600],
+    payment: 3600,
+    client: 'Авито',
+    contact: '+7 (918) 332-11-44',
+    contacts: [{ type: 'phone', value: '+7 (918) 332-11-44', label: 'Телефон' }],
+    deadline: '26.08.2026',
+    status: 'Готово',
+    notes: 'Стандартный заказ без скидок и наценок.',
+  },
+  {
+    id: 'ord-sample-5',
+    order_number: 1041,
+    created_at: '2026-08-24T18:00:00.000Z',
+    date: '24.08.2026',
+    type: 'expense',
+    title: 'Закупка филамента PETG и сопел 0.4мм',
+    quantity: 1,
+    amount: 5400,
+    cost: 5400,
+    cost_items: [{ id: 'c1', category: 'Расходные материалы', amount: 5400 }],
+    payments: [5400],
+    payment: 5400,
+    client: 'Другое',
+    contact: '',
+    contacts: [],
+    deadline: '24.08.2026',
+    status: 'Готово',
+    notes: 'Закупка расходников для мастерской (Ozon).',
+  }
+];
 const DEFAULT_COLLECTIONS: ProductCollection[] = [];
 
-// Инициализация клиента Supabase
+// Инициализация клиента Supabase (базовый)
 export function getSupabaseClient() {
   return createClient();
 }
 
-// Проверка доступности Supabase
-export async function checkSupabaseConnection(): Promise<boolean> {
+// Получение клиента Supabase только при наличии активной авторизованной сессии
+export async function getAuthenticatedSupabaseClient() {
   const client = getSupabaseClient();
-  if (!client) return false;
+  if (!client) return null;
 
   try {
-    const { error } = await (client as any).from('profiles').select('id').limit(1);
-    return !error;
+    const { data } = await client.auth.getSession();
+    if (!data?.session?.user) {
+      return null;
+    }
+    return client;
+  } catch {
+    return null;
+  }
+}
+
+// Проверка доступности Supabase и наличия активной сессии
+export async function checkSupabaseConnection(): Promise<boolean> {
+  try {
+    const authClient = await getAuthenticatedSupabaseClient();
+    return !!authClient;
   } catch {
     return false;
   }
@@ -62,7 +204,7 @@ export async function checkSupabaseConnection(): Promise<boolean> {
 // ==========================================
 
 export async function getFilaments(): Promise<Filament[]> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
   
   if (client) {
     try {
@@ -95,7 +237,7 @@ export async function getFilaments(): Promise<Filament[]> {
 }
 
 export async function saveFilament(filament: Omit<Filament, 'id'> & { id?: string }): Promise<Filament> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
   const id = filament.id || crypto.randomUUID();
   const newFilament = { ...filament, id };
 
@@ -141,7 +283,7 @@ export async function saveFilament(filament: Omit<Filament, 'id'> & { id?: strin
 }
 
 export async function deleteFilament(id: string): Promise<void> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
     try {
@@ -177,7 +319,7 @@ export async function deleteFilament(id: string): Promise<void> {
 // ==========================================
 
 export async function getPrinters(): Promise<Printer[]> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
     try {
@@ -208,7 +350,7 @@ export async function getPrinters(): Promise<Printer[]> {
 }
 
 export async function savePrinter(printer: Omit<Printer, 'id'> & { id?: string }): Promise<Printer> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
   const id = printer.id || crypto.randomUUID();
   const newPrinter = { ...printer, id };
 
@@ -253,7 +395,7 @@ export async function savePrinter(printer: Omit<Printer, 'id'> & { id?: string }
 }
 
 export async function deletePrinter(id: string): Promise<void> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
     try {
@@ -288,7 +430,7 @@ export async function deletePrinter(id: string): Promise<void> {
 // ==========================================
 
 export async function getSettings(): Promise<Settings> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
     try {
@@ -347,7 +489,7 @@ export async function getSettings(): Promise<Settings> {
 }
 
 export async function saveSettings(settings: Settings): Promise<Settings> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
     try {
@@ -392,7 +534,7 @@ export async function saveSettings(settings: Settings): Promise<Settings> {
 // ==========================================
 
 export async function getSavedCalculations(): Promise<SavedCalculation[]> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
   
   if (client) {
     try {
@@ -434,7 +576,7 @@ export async function getSavedCalculations(): Promise<SavedCalculation[]> {
 export async function addSavedCalculation(
   calc: Omit<SavedCalculation, 'id' | 'created_at'>
 ): Promise<SavedCalculation> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
   const id = typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9);
   const newCalc: SavedCalculation = {
     ...calc,
@@ -483,7 +625,7 @@ export async function addSavedCalculation(
 export async function updateSavedCalculation(
   calc: SavedCalculation
 ): Promise<SavedCalculation> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
     try {
@@ -524,7 +666,7 @@ export async function updateSavedCalculation(
 }
 
 export async function deleteSavedCalculation(id: string): Promise<boolean> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
     try {
@@ -565,7 +707,7 @@ export async function deleteSavedCalculation(id: string): Promise<boolean> {
 }
 
 export async function clearAllSavedCalculations(): Promise<boolean> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
     try {
@@ -596,7 +738,7 @@ export async function clearAllSavedCalculations(): Promise<boolean> {
  * Заменяет clearAll + addOne-by-one на единую операцию.
  */
 export async function restoreAllSavedCalculations(calculations: SavedCalculation[]): Promise<void> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
 
   // Обновляем localStorage атомарно
   const safeList = calculations.map(({ stl_file_data, ...rest }) => rest);
@@ -630,7 +772,7 @@ export async function restoreAllSavedCalculations(calculations: SavedCalculation
 // ==========================================
 
 export async function getCollections(): Promise<ProductCollection[]> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
   
   if (client) {
     try {
@@ -667,7 +809,7 @@ export async function getCollections(): Promise<ProductCollection[]> {
 export async function saveCollection(
   col: Omit<ProductCollection, 'id' | 'created_at'> & { id?: string }
 ): Promise<ProductCollection> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
   const id = col.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9));
   const newCol: ProductCollection = {
     ...col,
@@ -710,7 +852,7 @@ export async function saveCollection(
 }
 
 export async function updateCollection(col: ProductCollection): Promise<ProductCollection> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
     try {
@@ -742,7 +884,7 @@ export async function updateCollection(col: ProductCollection): Promise<ProductC
 }
 
 export async function deleteCollection(id: string, deleteContainedProducts = false): Promise<boolean> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
 
   if (deleteContainedProducts) {
     const calculations = await getSavedCalculations();
@@ -789,7 +931,7 @@ export async function deleteCollection(id: string, deleteContainedProducts = fal
 }
 
 export async function clearAllCollections(): Promise<boolean> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
     try {
@@ -818,7 +960,7 @@ export async function clearAllCollections(): Promise<boolean> {
 export async function restoreAllCollections(collections: ProductCollection[]): Promise<void> {
   localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(collections));
 
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
   if (client) {
     try {
       await (client as any)
@@ -845,7 +987,7 @@ export async function restoreAllOrders(orders: Order[]): Promise<void> {
   // Обновляем localStorage атомарно
   localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
 
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
   if (client && orders.length > 0) {
     try {
       await (client as any)
@@ -862,7 +1004,7 @@ export async function restoreAllOrders(orders: Order[]): Promise<void> {
 // ==========================================
 
 export async function getOrders(): Promise<Order[]> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
   
   if (client) {
     try {
@@ -885,7 +1027,20 @@ export async function getOrders(): Promise<Order[]> {
   if (typeof window !== 'undefined') {
     const local = localStorage.getItem(STORAGE_KEYS.ORDERS);
     if (local) {
-      return JSON.parse(local);
+      try {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const hasModifiers = parsed.some(o => o.discount_percent || o.discount_amount || o.urgency_percent || o.urgency_amount);
+          if (!hasModifiers) {
+            const merged = [...DEFAULT_ORDERS.slice(0, 3), ...parsed];
+            localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(merged));
+            return merged;
+          }
+          return parsed;
+        }
+      } catch (e) {
+        console.error('Ошибка парсинга заказов из localStorage:', e);
+      }
     }
     localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(DEFAULT_ORDERS));
     return DEFAULT_ORDERS;
@@ -894,7 +1049,7 @@ export async function getOrders(): Promise<Order[]> {
 }
 
 export async function saveOrder(order: Omit<Order, 'id'> & { id?: string }): Promise<Order> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
   const id = order.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9));
 
   let order_number = order.order_number;
@@ -947,7 +1102,7 @@ export async function saveOrder(order: Omit<Order, 'id'> & { id?: string }): Pro
 }
 
 export async function deleteOrder(id: string): Promise<boolean> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
     try {
@@ -989,10 +1144,10 @@ export async function deleteOrder(id: string): Promise<boolean> {
 
 /**
  * Полностью удаляет все данные из всех таблиц (orders, saved_calculations, settings, filaments, printers)
- * как в Supabase (если подключен), так и в LocalStorage.
+ * как в Supabase (если подключен и авторизован), так и в LocalStorage.
  */
 export async function clearAllDatabaseTables(): Promise<void> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
     try {
@@ -1040,8 +1195,8 @@ export async function resetAndSeedDatabase(customSeed?: SeedDataResult): Promise
     localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(seedData.collections || []));
   }
 
-  // 3. Записываем в Supabase (если подключен)
-  const client = getSupabaseClient();
+  // 3. Записываем в Supabase (если подключен и есть авторизованная сессия)
+  const client = await getAuthenticatedSupabaseClient();
   if (client) {
     try {
       if (seedData.printers.length > 0) {
@@ -1092,7 +1247,7 @@ export const DEFAULT_MONTHLY_GOALS_CONFIG: MonthlyGoalsConfig = {
 };
 
 export async function getMonthlyGoalsConfig(): Promise<MonthlyGoalsConfig> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
   if (client) {
     try {
       const { data, error } = await (client as any)
@@ -1165,7 +1320,7 @@ export function getCachedMonthlyGoalsConfig(): MonthlyGoalsConfig {
 
 export async function saveMonthlyGoal(monthKey: string, targetAmount: number): Promise<void> {
   const cleanAmount = Math.max(0, Number(targetAmount) || 0);
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
     try {
@@ -1203,7 +1358,7 @@ export async function saveMonthlyGoal(monthKey: string, targetAmount: number): P
 }
 
 export async function saveMonthlyGoalsConfig(config: MonthlyGoalsConfig): Promise<void> {
-  const client = getSupabaseClient();
+  const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
     try {
@@ -1235,6 +1390,115 @@ export async function saveMonthlyGoalsConfig(config: MonthlyGoalsConfig): Promis
     } catch (err) {
       console.error('Ошибка сохранения целей в localStorage:', err);
     }
+  }
+}
+
+// ==========================================
+// OFFLINE-TO-ONLINE AUTO SYNCHRONIZATION API
+// ==========================================
+
+export interface SyncDataResult {
+  settings: Settings;
+  filaments: Filament[];
+  printers: Printer[];
+  savedCalculations: SavedCalculation[];
+  collections: ProductCollection[];
+  orders: Order[];
+  goals: MonthlyGoalsConfig;
+}
+
+/**
+ * Автоматическая фоновая синхронизация данных из локального хранилища в облако.
+ * Вызывается при восстановлении интернет-соединения.
+ */
+export async function syncLocalStorageToSupabase(): Promise<SyncDataResult | null> {
+  const client = await getAuthenticatedSupabaseClient();
+  if (!client || typeof window === 'undefined') return null;
+
+  try {
+    // 1. Считываем данные из LocalStorage
+    const localFilaments: Filament[] = localStorage.getItem(STORAGE_KEYS.FILAMENTS)
+      ? JSON.parse(localStorage.getItem(STORAGE_KEYS.FILAMENTS)!)
+      : [];
+    const localPrinters: Printer[] = localStorage.getItem(STORAGE_KEYS.PRINTERS)
+      ? JSON.parse(localStorage.getItem(STORAGE_KEYS.PRINTERS)!)
+      : [];
+    const localSettings: Settings | null = localStorage.getItem(STORAGE_KEYS.SETTINGS)
+      ? JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS)!)
+      : null;
+    const localCalcs: SavedCalculation[] = localStorage.getItem(STORAGE_KEYS.SAVED_CALCULATIONS)
+      ? JSON.parse(localStorage.getItem(STORAGE_KEYS.SAVED_CALCULATIONS)!)
+      : [];
+    const localOrders: Order[] = localStorage.getItem(STORAGE_KEYS.ORDERS)
+      ? JSON.parse(localStorage.getItem(STORAGE_KEYS.ORDERS)!)
+      : [];
+    const localCollections: ProductCollection[] = localStorage.getItem(STORAGE_KEYS.COLLECTIONS)
+      ? JSON.parse(localStorage.getItem(STORAGE_KEYS.COLLECTIONS)!)
+      : [];
+    const localGoalsConfig = getCachedMonthlyGoalsConfig();
+
+    // 2. Отправляем (upsert) локальные изменения в облако
+    if (localPrinters.length > 0) {
+      await (client as any).from('printers').upsert(localPrinters);
+    }
+    if (localFilaments.length > 0) {
+      await (client as any).from('filaments').upsert(localFilaments);
+    }
+    if (localSettings) {
+      await (client as any).from('settings').upsert({
+        ...localSettings,
+        updated_at: new Date().toISOString(),
+      });
+    }
+    if (localCollections.length > 0) {
+      await (client as any).from('collections').upsert(localCollections);
+    }
+    if (localCalcs.length > 0) {
+      const safeCalcs = localCalcs.map(({ stl_file_data, ...rest }) => rest);
+      await (client as any).from('saved_calculations').upsert(safeCalcs);
+    }
+    if (localOrders.length > 0) {
+      await (client as any).from('orders').upsert(localOrders);
+    }
+    if (localGoalsConfig) {
+      const rows = [
+        {
+          month_key: 'default',
+          target_amount: localGoalsConfig.defaultGoal || 0,
+          updated_at: new Date().toISOString(),
+        },
+        ...Object.entries(localGoalsConfig.monthlyGoals || {}).map(([mKey, amt]) => ({
+          month_key: mKey,
+          target_amount: amt,
+          updated_at: new Date().toISOString(),
+        })),
+      ];
+      await (client as any).from('monthly_goals').upsert(rows, { onConflict: 'user_id,month_key' });
+    }
+
+    // 3. Загружаем объединенные данные из облака
+    const [cloudSettings, cloudFilaments, cloudPrinters, cloudCalcs, cloudCollections, cloudOrders, cloudGoals] = await Promise.all([
+      getSettings(),
+      getFilaments(),
+      getPrinters(),
+      getSavedCalculations(),
+      getCollections(),
+      getOrders(),
+      getMonthlyGoalsConfig(),
+    ]);
+
+    return {
+      settings: cloudSettings,
+      filaments: cloudFilaments,
+      printers: cloudPrinters,
+      savedCalculations: cloudCalcs,
+      collections: cloudCollections,
+      orders: cloudOrders,
+      goals: cloudGoals,
+    };
+  } catch (err) {
+    console.error('Ошибка в syncLocalStorageToSupabase:', err);
+    return null;
   }
 }
 

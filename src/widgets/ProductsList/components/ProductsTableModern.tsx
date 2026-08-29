@@ -1,29 +1,39 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { CatalogTableRow, SortField, SortOrder, SalesStatInfo } from '../types';
-import { SavedCalculation, ProductCollection, Filament, Printer } from '../../../shared/types';
-import { ProductCategory } from '../../../shared/lib/categories';
-import { CollectionRow } from './CollectionRow';
-import { AssemblyRow } from './AssemblyRow';
-import { ProductRow } from './ProductRow';
-import { Checkbox } from '../../../shared/ui/Checkbox';
+'use client';
+
+import React, { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { 
-  ChevronUp, 
-  ChevronDown, 
-  Package, 
-  Layers, 
-  Plus, 
-  RotateCcw, 
-  Calculator as CalculatorIcon,
-  ShoppingCart,
-  Play,
-  Edit2,
+  SavedCalculation, 
+  ProductCollection, 
+  AssemblyPrintedPart, 
+  Filament, 
+  Printer 
+} from '../../../shared/types';
+import { CockpitTable } from '../../../shared/ui/CockpitTable/CockpitTable';
+import { CockpitTableColumn } from '../../../shared/ui/CockpitTable/types';
+import { CockpitStatusPill } from '../../../shared/ui/CockpitTable/CockpitStatusPill';
+import { formatCurrency } from '../../../shared/lib/format';
+import { Tooltip } from '../../../shared/ui/Tooltip';
+import { ProductCategory, getCategoryLucideIcon } from '../../../shared/lib/categories';
+import { CatalogTableRow, SortField, SortOrder, SalesStatInfo } from '../types';
+
+import {
+  Package,
+  Layers,
   FolderPlus,
+  Flame,
+  Plus,
+  Minus,
+  Calculator as CalculatorIcon,
+  X,
   Copy,
-  Trash2,
-  Tag
+  Check,
+  Edit2,
+  FileCode,
+  ShoppingCart,
+  MoreVertical,
+  ChevronRight
 } from 'lucide-react';
-import { Button } from '../../../shared/ui/Button';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface ProductsTableModernProps {
   rows: CatalogTableRow[];
@@ -35,17 +45,13 @@ interface ProductsTableModernProps {
   sortField: SortField;
   sortOrder: SortOrder;
   onSort: (field: SortField) => void;
-
-  // Редактирование имени
   editingNameId: string | null;
   editingNameValue: string;
   setEditingNameValue: (val: string) => void;
-  onSaveRename: () => void;
+  onSaveRename: (id: string, newName: string, isCol: boolean) => void;
   onCancelRename: () => void;
-  isInlineNameShaking: boolean;
-  onStartRename: (itemOrCol: SavedCalculation | ProductCollection) => void;
-
-  // Действия над товарами
+  isInlineNameShaking?: boolean;
+  onStartRename: (item: SavedCalculation | ProductCollection) => void;
   onSelectForDrawer: (item: SavedCalculation) => void;
   onSetStock: (item: SavedCalculation, newStock: number) => void;
   onOpenCategoryModal: (item: SavedCalculation) => void;
@@ -53,29 +59,23 @@ interface ProductsTableModernProps {
   onCreateOrder: (item: SavedCalculation) => void;
   onLoadIntoCalculator: (item: SavedCalculation) => void;
   onStageForAssembly: (item: SavedCalculation) => void;
-  stagedAssemblyParts: any[];
+  stagedAssemblyParts?: AssemblyPrintedPart[];
   onOpenMoveProduct: (item: SavedCalculation) => void;
   onOpenStlModal: (item: SavedCalculation) => void;
   onDelete: (id: string, name: string, type?: string) => void;
-
-  // Действия над коллекциями
   onOpenEditCollection: (col: ProductCollection) => void;
   onOpenAddVariantModal: (col: ProductCollection) => void;
   onOpenDeleteCollection: (col: ProductCollection) => void;
-
-  // Справочники
   salesStatsMap: Map<string, SalesStatInfo>;
   currencySymbol: string;
   categoriesList: ProductCategory[];
   filaments: Filament[];
   printers: Printer[];
-
-  // Пустое состояние
-  canUndo: boolean;
-  onUndo: () => void;
-  onOpenCreateCollection: () => void;
-  onOpenNewAssemblyModal: () => void;
-  onNavigateToCalculator: () => void;
+  canUndo?: boolean;
+  onUndo?: () => void;
+  onOpenCreateCollection?: () => void;
+  onOpenNewAssemblyModal?: () => void;
+  onNavigateToCalculator?: () => void;
 }
 
 export const ProductsTableModern = React.memo(function ProductsTableModern({
@@ -93,7 +93,6 @@ export const ProductsTableModern = React.memo(function ProductsTableModern({
   setEditingNameValue,
   onSaveRename,
   onCancelRename,
-  isInlineNameShaking,
   onStartRename,
   onSelectForDrawer,
   onSetStock,
@@ -102,802 +101,745 @@ export const ProductsTableModern = React.memo(function ProductsTableModern({
   onCreateOrder,
   onLoadIntoCalculator,
   onStageForAssembly,
-  stagedAssemblyParts,
-  onOpenMoveProduct,
+  stagedAssemblyParts = [],
   onOpenStlModal,
-  onDelete,
   onOpenEditCollection,
   onOpenAddVariantModal,
-  onOpenDeleteCollection,
   salesStatsMap,
   currencySymbol,
   categoriesList,
   filaments,
-  printers,
-  canUndo,
-  onUndo,
-  onOpenCreateCollection,
-  onOpenNewAssemblyModal,
-  onNavigateToCalculator,
 }: ProductsTableModernProps) {
-  const [visibleCount, setVisibleCount] = useState(30);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Контекстное меню
-  const [contextMenu, setContextMenu] = useState<{
-    x: number;
-    y: number;
-    type: 'product' | 'assembly' | 'collection';
-    item?: SavedCalculation;
-    collection?: ProductCollection;
-  } | null>(null);
-  const contextMenuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
-        setContextMenu(null);
-      }
-    };
-    const handleScroll = () => setContextMenu(null);
-
-    window.addEventListener('mousedown', handleClickOutside);
-    window.addEventListener('scroll', handleScroll, true);
-    return () => {
-      window.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('scroll', handleScroll, true);
-    };
-  }, []);
-
-  const handleRowContextMenu = (
-    e: React.MouseEvent,
-    type: 'product' | 'assembly' | 'collection',
-    item?: SavedCalculation,
-    collection?: ProductCollection
-  ) => {
-    e.preventDefault();
+  const handleCopyId = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    const x = Math.min(e.clientX, window.innerWidth - 240);
-    const y = Math.min(e.clientY, window.innerHeight - 340);
-    setContextMenu({ x, y, type, item, collection });
+    if (typeof navigator !== 'undefined') {
+      navigator.clipboard.writeText(id);
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 1500);
+    }
   };
 
-  // Автоподгрузка строк при скролле
-  useEffect(() => {
-    if (visibleCount >= rows.length) return;
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
+  const stagedIds = useMemo(
+    () => stagedAssemblyParts.map((p) => p.product_id || p.id || '').filter(Boolean),
+    [stagedAssemblyParts]
+  );
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setVisibleCount((prev) => Math.min(prev + 30, rows.length));
-        }
+  // Конфигурация колонок таблицы CockpitTable
+  const columns = useMemo<CockpitTableColumn<CatalogTableRow>[]>(() => {
+    return [
+      // 1. № / АРТИКУЛ
+      {
+        id: 'date',
+        sortKey: 'date',
+        header: '№ / АРТИКУЛ',
+        width: '120px',
+        render: (row) => {
+          const isCol = row.rowKind === 'collection';
+          const isAsm = row.rowKind === 'product' && row.item.type === 'assembly';
+          const prefix = isCol ? '#COL-' : isAsm ? '#ASM-' : '#PRD-';
+          const shortId = row.id.length > 8 ? row.id.slice(0, 6) : row.id;
+          const isCopied = copiedId === row.id;
+
+          const textColor = isCol
+            ? 'text-purple-300 hover:text-purple-200'
+            : isAsm
+            ? 'text-cyan-300 hover:text-cyan-200'
+            : 'text-white hover:text-cyan-400';
+
+          return (
+            <Tooltip content={`ID: ${row.id} (Нажмите, чтобы скопировать)`}>
+              <button
+                type="button"
+                onClick={(e) => handleCopyId(e, row.id)}
+                className={`inline-flex items-center gap-1 font-mono text-xs font-semibold ${textColor} transition-colors cursor-pointer`}
+              >
+                <span>{prefix}{shortId}</span>
+                {isCopied ? (
+                  <Check className="w-2.5 h-2.5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-2.5 h-2.5 opacity-20 hover:opacity-80 transition-opacity" />
+                )}
+              </button>
+            </Tooltip>
+          );
+        },
       },
-      { rootMargin: '300px' }
-    );
 
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  }, [visibleCount, rows.length]);
+      // 2. КАТЕГОРИЯ
+      {
+        id: 'category',
+        sortKey: 'category',
+        header: 'КАТЕГОРИЯ',
+        width: '130px',
+        render: (row) => {
+          const catName = row.category || 'Разное';
+          const catObj = categoriesList.find((c) => c.label === catName || c.id === catName);
+          const catLabel = catObj?.label || catName;
+          const CatIcon = getCategoryLucideIcon(catLabel);
+          const isCol = row.rowKind === 'collection';
 
-  const isAllSelected = rows.length > 0 && selectedIds.length >= rows.length;
-  const isSomeSelected = selectedIds.length > 0 && !isAllSelected;
+          return (
+            <Tooltip content="Сменить категорию">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (row.rowKind === 'product') {
+                    onOpenCategoryModal(row.item);
+                  } else {
+                    onOpenEditCollection(row.collection);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-mono bg-neutral-900 text-neutral-300 border border-white/10 hover:border-white/20 transition-colors cursor-pointer"
+              >
+                <CatIcon className={`w-3 h-3 ${isCol ? 'text-purple-400' : 'text-cyan-400'} shrink-0`} />
+                <span className="truncate max-w-[100px]">{catLabel}</span>
+              </button>
+            </Tooltip>
+          );
+        },
+      },
 
-  const renderSortIndicator = (field: SortField) => {
-    const isActive = sortField === field;
-    return (
-      <span className="inline-flex items-center justify-center w-3.5 h-3.5 shrink-0">
-        {isActive ? (
-          sortOrder === 'asc' ? (
-            <ChevronUp className="w-3.5 h-3.5 text-[#FF8800]" />
-          ) : (
-            <ChevronDown className="w-3.5 h-3.5 text-[#FF8800]" />
-          )
-        ) : (
-          <ChevronDown className="w-3.5 h-3.5 text-gray-600 opacity-0 group-hover:opacity-40 transition-opacity" />
-        )}
-      </span>
-    );
-  };
+      // 3. ИЗДЕЛИЕ / ДЕТАЛИ
+      {
+        id: 'name',
+        sortKey: 'name',
+        header: 'ИЗДЕЛИЕ / ДЕТАЛИ',
+        render: (row) => {
+          const isExpanded = Boolean(expandedItemIds[row.id]);
+          const isRenaming = editingNameId === row.id;
 
-  const visibleRows = rows.slice(0, visibleCount);
-
-  // ПУСТОЕ СОСТОЯНИЕ
-  if (rows.length === 0) {
-    return (
-      <div className="bg-[#16181d] border border-[#242930] rounded-2xl p-12 text-center shadow-xl space-y-5">
-        <div className="w-16 h-16 bg-[#1f222a] border border-[#2d323e] rounded-2xl flex items-center justify-center mx-auto text-gray-400">
-          <Package size={32} />
-        </div>
-        <div className="space-y-1 max-w-md mx-auto">
-          <h3 className="text-lg font-bold text-white">Каталог пуст</h3>
-          <p className="text-xs text-gray-400 leading-relaxed">
-            По вашим фильтрам ничего не найдено или в каталоге пока нет сохраненных расчетов и товаров.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-          {canUndo && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onUndo}
-              className="border-[#242930] text-gray-300 hover:text-white"
-            >
-              <RotateCcw size={14} className="mr-1.5 text-amber-400" />
-              Отменить удаление
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onOpenCreateCollection}
-            className="border-purple-500/40 text-purple-300 hover:bg-purple-500/10"
-          >
-            <Plus size={14} className="mr-1.5 text-purple-400" />
-            Создать коллекцию
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onOpenNewAssemblyModal}
-            className="border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10"
-          >
-            <Layers size={14} className="mr-1.5 text-cyan-400" />
-            Создать сборку
-          </Button>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={onNavigateToCalculator}
-            className="bg-gradient-to-r from-amber-500 to-orange-500 text-black font-bold"
-          >
-            <CalculatorIcon size={14} className="mr-1.5 text-black" />
-            Перейти в калькулятор
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-[#16181d] border border-[#242930] rounded-2xl shadow-xl overflow-hidden relative">
-      <div className="overflow-x-auto w-full custom-scrollbar">
-        <table className="w-full text-left text-xs border-collapse min-w-[950px]">
-          <colgroup>
-            <col className="w-8" />
-            <col className="w-[105px]" />
-            <col />
-            <col className="w-[130px]" />
-            <col className="w-[125px]" />
-            <col className="w-[95px]" />
-            <col className="w-[105px]" />
-            <col className="w-[95px]" />
-            <col className="w-[80px]" />
-          </colgroup>
-          <thead>
-            <tr className="bg-[#0d0e12] border-b border-[#242930] text-gray-400 uppercase tracking-wider font-bold text-xs select-none">
-              {/* Чекбокс выбора всех */}
-              <th className="w-8 px-2 py-3 text-center">
-                <div
-                  className="flex items-center justify-center cursor-pointer"
-                  onClick={onToggleSelectAll}
-                  title={isAllSelected ? 'Снять выбор со всех' : 'Выбрать все позиции'}
+          if (isRenaming) {
+            return (
+              <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                <input
+                  type="text"
+                  value={editingNameValue}
+                  onChange={(e) => setEditingNameValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') onSaveRename(row.id, editingNameValue, row.rowKind === 'collection');
+                    if (e.key === 'Escape') onCancelRename();
+                  }}
+                  autoFocus
+                  className="px-2 py-0.5 bg-neutral-900 border border-cyan-400 text-white rounded text-xs font-sans outline-none w-full max-w-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => onSaveRename(row.id, editingNameValue, row.rowKind === 'collection')}
+                  className="p-1 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30"
                 >
-                  <Checkbox
-                    checked={isAllSelected}
-                    indeterminate={isSomeSelected}
-                    onChange={onToggleSelectAll}
-                    variant="amber"
-                    size="sm"
+                  <Check size={12} />
+                </button>
+                <button
+                  type="button"
+                  onClick={onCancelRename}
+                  className="p-1 rounded bg-rose-500/20 text-rose-300 hover:bg-rose-500/30"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            );
+          }
+
+          if (row.rowKind === 'collection') {
+            return (
+              <div className="flex items-center gap-2 min-w-0 font-sans">
+                <Tooltip content={isExpanded ? 'Свернуть' : 'Раскрыть варианты'}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleExpand(row.id);
+                    }}
+                    className={`p-1 rounded-md transition-all shrink-0 cursor-pointer ${
+                      isExpanded
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-purple-950/80 text-purple-300 border border-purple-800/40 hover:bg-purple-900/60'
+                    }`}
+                  >
+                    <motion.div animate={{ rotate: isExpanded ? 90 : 0 }}>
+                      <ChevronRight size={12} />
+                    </motion.div>
+                  </button>
+                </Tooltip>
+
+              <CockpitStatusPill
+                label={`Коллекция (${row.childItems.length})`}
+                tone="purple"
+                icon={FolderPlus}
+              />
+
+              <span
+                className="font-bold text-white hover:text-purple-300 transition-colors truncate text-xs sm:text-[13px] cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStartRename(row.collection);
+                }}
+              >
+                {row.name}
+              </span>
+
+              {row.stlCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 inline-flex items-center gap-1">
+                  <FileCode className="w-2.5 h-2.5" />
+                  <span>{row.stlCount} STL</span>
+                </span>
+              )}
+            </div>
+          );
+        }
+
+        // Single Product or Assembly
+        const isAsm = row.item.type === 'assembly';
+        const parts = row.item.assembly_parts || [];
+        const hasStl = Boolean(row.item.stl_url || row.item.stl_file_data);
+        const salesStat = salesStatsMap.get(row.id);
+
+        return (
+          <div className="flex items-center gap-2 min-w-0 font-sans">
+            {isAsm && (
+              <Tooltip content={isExpanded ? 'Скрыть детали' : 'Раскрыть состав'}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleExpand(row.id);
+                  }}
+                  className={`p-1 rounded-md transition-all shrink-0 cursor-pointer ${
+                    isExpanded
+                      ? 'bg-cyan-500 text-neutral-950 font-bold'
+                      : 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/40 hover:bg-cyan-900/60'
+                  }`}
+                >
+                  <motion.div animate={{ rotate: isExpanded ? 90 : 0 }}>
+                    <ChevronRight size={12} />
+                  </motion.div>
+                </button>
+              </Tooltip>
+            )}
+
+            {isAsm && (
+              <CockpitStatusPill
+                label={`Сборка (${parts.length})`}
+                tone="cyan"
+                icon={Layers}
+              />
+            )}
+
+            <span
+              className="font-bold text-white group-hover:text-cyan-300 transition-colors truncate text-xs sm:text-[13px] cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectForDrawer(row.item);
+              }}
+            >
+              {row.name}
+            </span>
+
+            {/* Переименование */}
+            <Tooltip content="Переименовать">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStartRename(row.item);
+                }}
+                className="opacity-0 group-hover:opacity-60 hover:opacity-100! text-neutral-400 hover:text-white transition-opacity p-0.5"
+              >
+                <Edit2 className="w-2.5 h-2.5" />
+              </button>
+            </Tooltip>
+
+            {/* STL */}
+            {hasStl && (
+              <Tooltip content="Открыть 3D STL">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenStlModal(row.item);
+                  }}
+                  className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 inline-flex items-center gap-1 cursor-pointer hover:bg-cyan-900/80"
+                >
+                  <FileCode className="w-2.5 h-2.5" />
+                  <span>STL</span>
+                </button>
+              </Tooltip>
+            )}
+
+              {/* Хит продаж */}
+              {salesStat && salesStat.soldQty > 0 && (
+                <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-amber-950/60 text-amber-400 border border-amber-800/40 inline-flex items-center gap-1">
+                  <Flame className="w-2.5 h-2.5" />
+                  <span>{salesStat.soldQty} прод.</span>
+                </span>
+              )}
+            </div>
+          );
+        },
+      },
+
+      // 4. СТАТУС СКЛАДА
+      {
+        id: 'stock',
+        sortKey: 'stock',
+        header: 'СТАТУС СКЛАДА',
+        width: '160px',
+        render: (row) => {
+          if (row.rowKind === 'collection') {
+            const isOut = row.totalStock === 0;
+            return isOut ? (
+              <CockpitStatusPill label="0 шт на складе" tone="neutral" dot={false} />
+            ) : (
+              <CockpitStatusPill label={`${row.totalStock} шт в наличии`} tone="purple" dot />
+            );
+          }
+
+          const stock = row.item.stock_quantity || 0;
+          const isOut = stock === 0;
+          const isLow = stock > 0 && stock <= 2;
+          const isAsm = row.item.type === 'assembly';
+
+          return (
+            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+              {isOut ? (
+                <CockpitStatusPill label="Под заказ" tone="neutral" dot={false} />
+              ) : isLow ? (
+                <CockpitStatusPill label={`Мало (${stock} шт)`} tone="yellow" pulse />
+              ) : (
+                <CockpitStatusPill label={`В наличии (${stock} шт)`} tone={isAsm ? 'cyan' : 'emerald'} dot />
+              )}
+
+              {/* Кнопки регулировки остатка */}
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-neutral-900 border border-white/10 rounded-md p-0.5">
+                <Tooltip content="Уменьшить">
+                  <button
+                    type="button"
+                    onClick={() => onSetStock(row.item, Math.max(0, stock - 1))}
+                    disabled={stock <= 0}
+                    className="w-3.5 h-3.5 rounded flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 disabled:opacity-30 cursor-pointer"
+                  >
+                    <Minus className="w-2 h-2" />
+                  </button>
+                </Tooltip>
+                <span className="font-mono text-[10px] px-1 text-white font-bold">{stock}</span>
+                <Tooltip content="Увеличить">
+                  <button
+                    type="button"
+                    onClick={() => onSetStock(row.item, stock + 1)}
+                    className="w-3.5 h-3.5 rounded flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 cursor-pointer"
+                  >
+                    <Plus className="w-2 h-2" />
+                  </button>
+                </Tooltip>
+              </div>
+            </div>
+          );
+        },
+      },
+
+      // 5. ПЛАСТИК
+      {
+        id: 'filament',
+        sortKey: 'filament',
+        header: 'ПЛАСТИК',
+        width: '140px',
+        render: (row) => {
+          if (row.rowKind === 'collection') {
+            return (
+              <div className="flex items-center gap-1 font-mono text-neutral-400">
+                {row.materialsColors.slice(0, 3).map((c, i) => (
+                  <span
+                    key={i}
+                    className="w-2 h-2 rounded-full border border-white/20 shrink-0"
+                    style={{ backgroundColor: c }}
                   />
-                </div>
-              </th>
+                ))}
+                <span className="truncate max-w-[100px]">
+                  {row.materialsList.length > 0 ? `${row.materialsList.length} мат.` : '—'}
+                </span>
+              </div>
+            );
+          }
 
-              {/* ID / Дата создания */}
-              <th
-                onClick={() => onSort('date')}
-                className="py-3 px-3 cursor-pointer hover:text-white transition-colors group min-w-[95px]"
-              >
-                <div className="flex items-center gap-1">
-                  <span>ID / Дата</span>
-                  {renderSortIndicator('date')}
-                </div>
-              </th>
+          if (row.item.type === 'assembly') {
+            const parts = row.item.assembly_parts || [];
+            const hw = row.item.assembly_hardware || [];
+            return (
+              <span className="truncate max-w-[130px] font-mono text-neutral-400">
+                {parts.length} дет.{hw.length > 0 ? ` + ${hw.length} фурн.` : ''}
+              </span>
+            );
+          }
 
-              {/* Название / Категория */}
-              <th
-                onClick={() => onSort('name')}
-                className="py-3 px-3 cursor-pointer hover:text-white transition-colors group min-w-[220px]"
-              >
-                <div className="flex items-center gap-1">
-                  <span>Наименование / Категория</span>
-                  {renderSortIndicator('name')}
-                </div>
-              </th>
+          const filObj = filaments.find(
+            (f) => f.name.toLowerCase() === (row.item.filament_name || '').toLowerCase() || f.id === row.item.filament_id
+          );
+          const filColor = row.item.filament_color || filObj?.color || '#888888';
 
-              {/* Материал */}
-              <th
-                onClick={() => onSort('filament')}
-                className="py-3 px-3 cursor-pointer hover:text-white transition-colors group min-w-[130px]"
-              >
-                <div className="flex items-center gap-1">
-                  <span>Материал</span>
-                  {renderSortIndicator('filament')}
-                </div>
-              </th>
+          return (
+            <div className="flex items-center gap-1.5 font-mono text-neutral-400">
+              <span
+                className="w-2 h-2 rounded-full border border-white/20 shrink-0"
+                style={{ backgroundColor: filColor }}
+              />
+              <Tooltip content={`Филамент: ${row.item.filament_name || 'Не указан'}`}>
+                <span className="truncate max-w-[120px]">
+                  {row.item.filament_name || '—'}
+                </span>
+              </Tooltip>
+            </div>
+          );
+        },
+      },
 
-              {/* Параметры печати */}
-              <th
-                onClick={() => onSort('params')}
-                className="py-3 px-3 cursor-pointer hover:text-white transition-colors group min-w-[125px]"
-              >
-                <div className="flex items-center gap-1">
-                  <span>Параметры</span>
-                  {renderSortIndicator('params')}
-                </div>
-              </th>
+      // 6. ВЕС / ВРЕМЯ
+      {
+        id: 'params',
+        sortKey: 'params',
+        header: 'ВЕС / ВРЕМЯ',
+        width: '120px',
+        render: (row) => {
+          if (row.rowKind === 'collection') {
+            return (
+              <span className="font-mono text-neutral-400">
+                {row.minWeight === row.maxWeight ? `${row.minWeight}г` : `${row.minWeight}–${row.maxWeight}г`}
+              </span>
+            );
+          }
 
-              {/* Наличие на складе */}
-              <th
-                onClick={() => onSort('stock')}
-                className="py-3 px-3 text-center cursor-pointer hover:text-white transition-colors group min-w-[95px]"
-              >
-                <div className="flex items-center justify-center gap-1">
-                  <span>Наличие</span>
-                  {renderSortIndicator('stock')}
-                </div>
-              </th>
+          return (
+            <span className="font-mono text-neutral-400">
+              {row.weight_g || 0}г · {row.hours || 0}ч {row.minutes || 0}м
+            </span>
+          );
+        },
+      },
 
-              {/* Цены */}
-              <th
-                onClick={() => onSort('price')}
-                className="py-3 px-3 text-right cursor-pointer hover:text-white transition-colors group min-w-[105px]"
-              >
-                <div className="flex items-center justify-end gap-1">
-                  <span>Стоимость</span>
-                  {renderSortIndicator('price')}
-                </div>
-              </th>
+      // 7. СЕБЕСТОИМОСТЬ
+      {
+        id: 'cost',
+        sortKey: 'cost',
+        header: 'СЕБЕСТОИМ.',
+        align: 'right',
+        width: '100px',
+        render: (row) => {
+          if (row.rowKind === 'collection') {
+            return (
+              <span className="font-mono text-neutral-400">
+                {row.minCost === row.maxCost
+                  ? formatCurrency(row.minCost, currencySymbol)
+                  : `${formatCurrency(row.minCost, currencySymbol)}–${formatCurrency(row.maxCost, currencySymbol)}`}
+              </span>
+            );
+          }
 
-              {/* Прибыль */}
-              <th
-                onClick={() => onSort('profit')}
-                className="py-3 px-3 text-center cursor-pointer hover:text-white transition-colors group min-w-[95px]"
-              >
-                <div className="flex items-center justify-center gap-1">
-                  <span>Прибыль</span>
-                  {renderSortIndicator('profit')}
-                </div>
-              </th>
+          return (
+            <span className="font-mono text-neutral-400">
+              {formatCurrency(row.base_cost, currencySymbol)}
+            </span>
+          );
+        },
+      },
 
-              {/* 3D-Модель */}
-              <th className="py-3 px-2 text-center min-w-[80px]">
-                <span>3D-Модель</span>
-              </th>
-            </tr>
-          </thead>
+      // 8. ЦЕНА
+      {
+        id: 'price',
+        sortKey: 'price',
+        header: 'ЦЕНА',
+        align: 'right',
+        width: '110px',
+        render: (row) => {
+          if (row.rowKind === 'collection') {
+            return (
+              <span className="font-mono font-bold text-purple-300">
+                {row.minPrice === row.maxPrice
+                  ? formatCurrency(row.minPrice, currencySymbol)
+                  : `${formatCurrency(row.minPrice, currencySymbol)}–${formatCurrency(row.maxPrice, currencySymbol)}`}
+              </span>
+            );
+          }
 
-          <tbody>
-            {visibleRows.map((row) => {
-              // 1. СТРОКА КОЛЛЕКЦИИ
-              if (row.rowKind === 'collection') {
-                const isExpanded = Boolean(expandedItemIds[row.id]);
-                const childIds = row.childItems.map((c) => c.id);
-                const isCollectionMenuOpen = contextMenu?.collection?.id === row.collection.id;
+          const isAsm = row.item.type === 'assembly';
+          return (
+            <span className={`font-mono font-bold ${isAsm ? 'text-cyan-300' : 'text-white'}`}>
+              {formatCurrency(row.final_price, currencySymbol)}
+            </span>
+          );
+        },
+      },
 
-                return (
-                  <React.Fragment key={`col-${row.id}`}>
-                    <CollectionRow
-                      collection={row.collection}
-                      childItems={row.childItems}
-                      isExpanded={isExpanded}
-                      onToggleExpand={() => onToggleExpand(row.id)}
-                      selectedIds={selectedIds}
-                      onToggleSelectAllChilds={() => {
-                        const allChecked = childIds.length > 0 && childIds.every((id) => selectedIds.includes(id));
-                        if (allChecked) {
-                          childIds.forEach((id) => onToggleSelect(id));
-                        } else {
-                          childIds.filter((id) => !selectedIds.includes(id)).forEach((id) => onToggleSelect(id));
-                        }
-                      }}
-                      onStartRename={() => onStartRename(row.collection)}
-                      onOpenEditModal={onOpenEditCollection}
-                      onOpenAddVariantModal={onOpenAddVariantModal}
-                      onOpenDeleteModal={onOpenDeleteCollection}
-                      currencySymbol={currencySymbol}
-                      categoriesList={categoriesList}
-                      onContextMenu={(e) => handleRowContextMenu(e, 'collection', undefined, row.collection)}
-                      isContextMenuOpen={isCollectionMenuOpen}
-                    />
+      // 9. ПРИБЫЛЬ
+      {
+        id: 'profit',
+        sortKey: 'profit',
+        header: 'ПРИБЫЛЬ',
+        align: 'right',
+        width: '130px',
+        render: (row) => {
+          if (row.rowKind === 'collection') {
+            return (
+              <span className="font-mono text-emerald-400">
+                +{formatCurrency(row.totalProfit, currencySymbol)}
+              </span>
+            );
+          }
 
-                    {/* Дочерние товары коллекции — рендерятся прямо в таблице для идеального совпадения столбцов */}
-                    {isExpanded && row.childItems.length === 0 && (
-                      <tr key={`col-empty-${row.id}`} className="bg-[#0b0c11]">
-                        <td colSpan={9} className="p-4 text-center text-xs text-gray-400 border-b border-[#242930]/80 border-l-4 border-purple-500/60">
-                          <div className="flex items-center justify-center gap-3">
-                            <span>В коллекции «{row.collection.name}» пока нет товаров.</span>
-                            <button
-                              type="button"
-                              onClick={() => onOpenAddVariantModal(row.collection)}
-                              className="text-purple-400 hover:text-purple-300 font-semibold cursor-pointer underline"
-                            >
-                              + Добавить первый вариант
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
+          const profit = Math.round(((row.final_price || 0) - (row.base_cost || 0)) * 100) / 100;
+          const margin = row.final_price > 0 ? Math.round((profit / row.final_price) * 1000) / 10 : 0;
+          const isPos = profit >= 0;
 
-                    {isExpanded &&
-                      row.childItems.map((child) => {
-                        const isChildChecked = selectedIds.includes(child.id);
-                        const childSalesStat = salesStatsMap.get(child.id);
-                        const isChildMenuOpen = contextMenu?.item?.id === child.id;
+          return (
+            <span className="font-mono text-emerald-400 whitespace-nowrap">
+              {isPos ? '+' : ''}{formatCurrency(profit, currencySymbol)}
+              <span className="text-[10px] text-neutral-500 ml-1">({margin}%)</span>
+            </span>
+          );
+        },
+      },
 
-                        if (child.type === 'assembly') {
-                          const isChildAssemblyExpanded = Boolean(expandedItemIds[child.id]);
-                          return (
-                            <AssemblyRow
-                              key={`child-${child.id}`}
-                              item={child}
-                              isExpanded={isChildAssemblyExpanded}
-                              onToggleExpand={() => onToggleExpand(child.id)}
-                              isChecked={isChildChecked}
-                              onToggleSelect={onToggleSelect}
-                              onStartRename={onStartRename}
-                              onSetStock={onSetStock}
-                              onOpenCategoryModal={onOpenCategoryModal}
-                              onCreateOrder={onCreateOrder}
-                              onEditAssembly={() => onOpenQuickEditModal(child)}
-                              onOpenMoveProduct={onOpenMoveProduct}
-                              onDelete={onDelete}
-                              salesStat={childSalesStat}
-                              currencySymbol={currencySymbol}
-                              categoriesList={categoriesList}
-                              isChildInCollection={true}
-                              onContextMenu={(e) => handleRowContextMenu(e, 'assembly', child)}
-                              isContextMenuOpen={isChildMenuOpen}
-                            />
-                          );
-                        }
+      // 10. ДЕЙСТВИЯ
+      {
+        id: 'actions',
+        header: 'ДЕЙСТВИЯ',
+        align: 'right',
+        width: '130px',
+        render: (row) => {
+          if (row.rowKind === 'collection') {
+            return (
+              <div className="flex items-center justify-end gap-1 font-mono" onClick={(e) => e.stopPropagation()}>
+                <Tooltip content="Добавить вариант товара в коллекцию">
+                  <button
+                    type="button"
+                    onClick={() => onOpenAddVariantModal(row.collection)}
+                    className="px-2 py-1 rounded-md font-mono text-[11px] font-bold bg-purple-950/80 hover:bg-purple-900 text-purple-200 border border-purple-800/40 flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>Вариант</span>
+                  </button>
+                </Tooltip>
 
-                        return (
-                          <ProductRow
-                            key={`child-${child.id}`}
-                            item={child}
-                            isChecked={isChildChecked}
-                            onToggleSelect={onToggleSelect}
-                            onSelectForDrawer={onSelectForDrawer}
-                            onStartRename={onStartRename}
-                            onSetStock={onSetStock}
-                            onOpenCategoryModal={onOpenCategoryModal}
-                            onOpenQuickEditModal={onOpenQuickEditModal}
-                            onCreateOrder={onCreateOrder}
-                            onLoadIntoCalculator={onLoadIntoCalculator}
-                            onStageForAssembly={onStageForAssembly}
-                            isStagedInAssembly={stagedAssemblyParts.some((p) => p.product_id === child.id)}
-                            stagedQty={stagedAssemblyParts.find((p) => p.product_id === child.id)?.quantity || 0}
-                            onOpenMoveProduct={onOpenMoveProduct}
-                            onOpenStlModal={onOpenStlModal}
-                            onDelete={onDelete}
-                            salesStat={childSalesStat}
-                            currencySymbol={currencySymbol}
-                            categoriesList={categoriesList}
-                            filaments={filaments}
-                            printers={printers}
-                            isChildInCollection={true}
-                            onContextMenu={(e) => handleRowContextMenu(e, 'product', child)}
-                            isContextMenuOpen={isChildMenuOpen}
-                          />
-                        );
-                      })}
+                <Tooltip content="Свойства коллекции">
+                  <button
+                    type="button"
+                    onClick={() => onOpenEditCollection(row.collection)}
+                    className="p-1 rounded-md border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white transition-colors cursor-pointer"
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </button>
+                </Tooltip>
+              </div>
+            );
+          }
 
-                    {/* Итоговая разделительная плашка закрытия коллекции */}
-                    {isExpanded && row.childItems.length > 0 && (
-                      <tr
-                        key={`col-end-${row.id}`}
-                        className="bg-gradient-to-r from-purple-500/15 via-[#130f20] to-[#0c0a14] border-b-2 border-purple-500/50 border-l-4 border-l-purple-500 select-none"
-                      >
-                        <td colSpan={9} className="py-2 px-4 text-xs text-purple-300 font-mono">
-                          <div className="flex items-center justify-between gap-3 flex-wrap">
-                            <div className="flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-                              <span className="font-semibold text-purple-200">
-                                Конец коллекции «{row.collection.name}»
-                              </span>
-                              <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-bold">
-                                {row.childItems.length} {row.childItems.length === 1 ? 'вариант' : row.childItems.length < 5 ? 'варианта' : 'вариантов'}
-                              </span>
-                            </div>
+          const isStaged = stagedIds.includes(row.id);
+          const stagedQty = stagedAssemblyParts.find((p) => (p.product_id || p.id) === row.id)?.quantity || 0;
 
-                            <button
-                              type="button"
-                              onClick={() => onOpenAddVariantModal(row.collection)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 text-xs font-semibold cursor-pointer transition-colors"
-                            >
-                              <Plus size={13} strokeWidth={2.5} />
-                              <span>Добавить вариант</span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
-                );
-              }
+          return (
+            <div className="flex items-center justify-end gap-1 font-mono" onClick={(e) => e.stopPropagation()}>
+              <Tooltip content="Создать заказ в CRM">
+                <button
+                  type="button"
+                  onClick={() => onCreateOrder(row.item)}
+                  className="px-2 py-1 rounded-md font-mono text-[11px] font-bold bg-white text-neutral-950 hover:bg-neutral-200 active:scale-95 transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                >
+                  <ShoppingCart className="w-3 h-3" />
+                  <span>Заказ</span>
+                </button>
+              </Tooltip>
 
-              // 2. СТРОКА ТОВАРА (ОДИНОЧНОГО ИЛИ ВЛОЖЕННОГО В КОЛЛЕКЦИЮ)
-              const isChecked = selectedIds.includes(row.id);
-              const salesStat = salesStatsMap.get(row.id);
-              const stagedItem = stagedAssemblyParts.find((p) => p.product_id === row.id);
-              const isMenuOpen = contextMenu?.item?.id === row.item.id;
+              <Tooltip content="Открыть в Калькуляторе">
+                <button
+                  type="button"
+                  onClick={() => onLoadIntoCalculator(row.item)}
+                  className="p-1 rounded-md border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white transition-colors cursor-pointer"
+                >
+                  <CalculatorIcon className="w-3 h-3" />
+                </button>
+              </Tooltip>
 
-              if (row.item.type === 'assembly') {
-                const isExpanded = Boolean(expandedItemIds[row.id]);
-                return (
-                  <AssemblyRow
-                    key={`item-${row.id}`}
-                    item={row.item}
-                    isExpanded={isExpanded}
-                    onToggleExpand={() => onToggleExpand(row.id)}
-                    isChecked={isChecked}
-                    onToggleSelect={onToggleSelect}
-                    onStartRename={onStartRename}
-                    onSetStock={onSetStock}
-                    onOpenCategoryModal={onOpenCategoryModal}
-                    onCreateOrder={onCreateOrder}
-                    onEditAssembly={() => onOpenQuickEditModal(row.item)}
-                    onOpenMoveProduct={onOpenMoveProduct}
-                    onDelete={onDelete}
-                    salesStat={salesStat}
-                    currencySymbol={currencySymbol}
-                    categoriesList={categoriesList}
-                    onContextMenu={(e) => handleRowContextMenu(e, 'assembly', row.item)}
-                    isContextMenuOpen={isMenuOpen}
-                  />
-                );
-              }
+              <Tooltip content={isStaged ? `В черновике сборки (${stagedQty} шт)` : 'Добавить в сборку'}>
+                <button
+                  type="button"
+                  onClick={() => onStageForAssembly(row.item)}
+                  className={`p-1 rounded-md border transition-colors cursor-pointer ${
+                    isStaged
+                      ? 'bg-cyan-950 text-cyan-300 border-cyan-500/60'
+                      : 'border-white/10 bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white'
+                  }`}
+                >
+                  <Layers className="w-3 h-3" />
+                </button>
+              </Tooltip>
+
+              <Tooltip content="Редактировать параметры">
+                <button
+                  type="button"
+                  onClick={() => onOpenQuickEditModal(row.item)}
+                  className="p-1 rounded-md hover:bg-white/10 text-neutral-500 hover:text-white transition-colors cursor-pointer"
+                >
+                  <MoreVertical className="w-3 h-3" />
+                </button>
+              </Tooltip>
+            </div>
+          );
+        },
+      },
+    ];
+  }, [
+    categoriesList,
+    copiedId,
+    expandedItemIds,
+    editingNameId,
+    editingNameValue,
+    filaments,
+    salesStatsMap,
+    stagedIds,
+    stagedAssemblyParts,
+    currencySymbol,
+    onOpenCategoryModal,
+    onOpenEditCollection,
+    onToggleExpand,
+    onStartRename,
+    onSaveRename,
+    onCancelRename,
+    setEditingNameValue,
+    onSelectForDrawer,
+    onOpenStlModal,
+    onSetStock,
+    onOpenAddVariantModal,
+    onCreateOrder,
+    onLoadIntoCalculator,
+    onStageForAssembly,
+    onOpenQuickEditModal,
+  ]);
+
+  // Подстроки для раскрытия коллекций и сборок
+  const renderSubRow = (row: CatalogTableRow) => {
+    // 1. Варианты коллекции
+    if (row.rowKind === 'collection') {
+      return (
+        <div className="bg-neutral-950/90 border-t border-purple-500/20 px-4 py-3 space-y-2">
+          <div className="flex items-center justify-between font-mono text-xs text-purple-300 pb-1 border-b border-white/5">
+            <span className="flex items-center gap-1.5 font-bold">
+              <FolderPlus size={13} className="text-purple-400" />
+              <span>Варианты коллекции «{row.name}» ({row.childItems.length})</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => onOpenAddVariantModal(row.collection)}
+              className="text-[11px] font-bold text-purple-300 hover:text-purple-200 underline cursor-pointer"
+            >
+              + Добавить вариант
+            </button>
+          </div>
+
+          <div className="divide-y divide-white/5 font-mono text-xs">
+            {row.childItems.map((child) => {
+              const childProfit = Math.round(((child.final_price || 0) - (child.base_cost || 0)) * 100) / 100;
+              const childMargin = child.final_price ? Math.round((childProfit / child.final_price) * 1000) / 10 : 0;
+              const childStock = child.stock_quantity || 0;
 
               return (
-                <ProductRow
-                  key={`item-${row.id}`}
-                  item={row.item}
-                  isChecked={isChecked}
-                  onToggleSelect={onToggleSelect}
-                  onSelectForDrawer={onSelectForDrawer}
-                  onStartRename={onStartRename}
-                  onSetStock={onSetStock}
-                  onOpenCategoryModal={onOpenCategoryModal}
-                  onOpenQuickEditModal={onOpenQuickEditModal}
-                  onCreateOrder={onCreateOrder}
-                  onLoadIntoCalculator={onLoadIntoCalculator}
-                  onStageForAssembly={onStageForAssembly}
-                  isStagedInAssembly={Boolean(stagedItem)}
-                  stagedQty={stagedItem?.quantity || 0}
-                  onOpenMoveProduct={onOpenMoveProduct}
-                  onOpenStlModal={onOpenStlModal}
-                  onDelete={onDelete}
-                  salesStat={salesStat}
-                  currencySymbol={currencySymbol}
-                  categoriesList={categoriesList}
-                  filaments={filaments}
-                  printers={printers}
-                  onContextMenu={(e) => handleRowContextMenu(e, 'product', row.item)}
-                  isContextMenuOpen={isMenuOpen}
-                />
+                <div
+                  key={child.id}
+                  onClick={() => onSelectForDrawer(child)}
+                  className="py-2 flex items-center justify-between gap-3 hover:bg-white/[0.02] px-2 rounded-lg cursor-pointer transition-colors"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-purple-400 font-bold select-none">└─</span>
+                    <span className="font-semibold text-white truncate max-w-xs">{child.name}</span>
+                    <span className="text-[10px] text-neutral-500">#{child.id.slice(0, 6)}</span>
+                    <span className="text-neutral-400">· {child.filament_name}</span>
+                  </div>
+
+                  <div className="flex items-center gap-4 text-right shrink-0">
+                    <CockpitStatusPill
+                      label={`${childStock} шт`}
+                      tone={childStock > 0 ? 'emerald' : 'neutral'}
+                      dot={childStock > 0}
+                    />
+                    <span className="text-neutral-400 font-mono text-xs">
+                      {formatCurrency(child.base_cost, currencySymbol)}
+                    </span>
+                    <span className="font-bold text-white font-mono text-xs">
+                      {formatCurrency(child.final_price, currencySymbol)}
+                    </span>
+                    <span className="text-emerald-400 font-mono text-xs">
+                      +{formatCurrency(childProfit, currencySymbol)} ({childMargin}%)
+                    </span>
+                  </div>
+                </div>
               );
             })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Невидимый sentinel для бесконечной подгрузки */}
-      <div ref={sentinelRef} className="h-4 w-full" />
-
-      {/* Индикатор количества */}
-      {visibleCount < rows.length && (
-        <div className="p-3 text-center text-xs text-gray-500 border-t border-[#242930] bg-[#111318]">
-          Показано {visibleCount} из {rows.length} позиций (прокрутите вниз для подгрузки)
+          </div>
         </div>
-      )}
+      );
+    }
 
-      {/* Контекстное меню по правому клику (как в заказах) */}
-      <AnimatePresence>
-        {contextMenu && (
-          <motion.div
-            ref={contextMenuRef}
-            initial={{ opacity: 0, scale: 0.95, y: -4 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -4 }}
-            transition={{ duration: 0.12 }}
-            style={{ left: contextMenu.x, top: contextMenu.y }}
-            className={`fixed z-50 bg-[#16181d] border rounded-2xl shadow-2xl p-1.5 min-w-[240px] select-none backdrop-blur-xl text-xs sm:text-sm ${
-              contextMenu.type === 'collection'
-                ? 'border-purple-500/40 shadow-purple-500/15'
-                : contextMenu.type === 'assembly'
-                ? 'border-cyan-500/40 shadow-cyan-500/15'
-                : 'border-[#FF6B00]/40 shadow-[#FF6B00]/15'
-            }`}
-          >
-            {/* Шапка контекстного меню */}
-            <div
-              className={`px-3 py-1.5 text-[11px] font-bold border-b border-[#242930] truncate flex items-center justify-between gap-2 ${
-                contextMenu.type === 'collection'
-                  ? 'text-purple-400'
-                  : contextMenu.type === 'assembly'
-                  ? 'text-cyan-400'
-                  : 'text-[#FF8800]'
-              }`}
-            >
-              <span className="truncate">
-                {contextMenu.item?.name || contextMenu.collection?.name}
-              </span>
-              <span
-                className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-bold shrink-0 ${
-                  contextMenu.type === 'collection'
-                    ? 'text-purple-300 bg-purple-500/20'
-                    : contextMenu.type === 'assembly'
-                    ? 'text-cyan-300 bg-cyan-500/20'
-                    : 'text-[#FF8800] bg-[#FF6B00]/20'
-                }`}
-              >
-                {contextMenu.type === 'collection'
-                  ? `#col-${contextMenu.collection?.id ? (contextMenu.collection.id.length > 8 ? contextMenu.collection.id.slice(0, 6) : contextMenu.collection.id) : 'col'}`
-                  : contextMenu.type === 'assembly'
-                  ? `#asm-${contextMenu.item?.id ? (contextMenu.item.id.length > 8 ? contextMenu.item.id.slice(0, 6) : contextMenu.item.id) : 'asm'}`
-                  : `#prod-${contextMenu.item?.id ? (contextMenu.item.id.length > 8 ? contextMenu.item.id.slice(0, 6) : contextMenu.item.id) : 'prod'}`}
-              </span>
-            </div>
+    // 2. Детали сборки
+    if (row.rowKind === 'product' && row.item.type === 'assembly') {
+      const parts = row.item.assembly_parts || [];
+      const hardware = row.item.assembly_hardware || [];
 
-            <div className="py-1 space-y-0.5">
-              {/* А. Меню для Одиночного Товара */}
-              {contextMenu.type === 'product' && contextMenu.item && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onCreateOrder(contextMenu.item!);
-                      setContextMenu(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-200 hover:text-white hover:bg-emerald-500/20 rounded-xl transition-colors cursor-pointer text-left font-medium"
-                  >
-                    <ShoppingCart className="w-4 h-4 text-emerald-400" />
-                    <span>Создать заказ</span>
-                  </button>
+      return (
+        <div className="bg-neutral-950/90 border-t border-cyan-500/20 p-3 space-y-3 font-mono text-xs">
+          <div className="flex items-center justify-between pb-1 border-b border-white/5 text-cyan-300">
+            <span className="flex items-center gap-1.5 font-bold">
+              <Layers size={13} className="text-cyan-400" />
+              <span>Состав 3D-сборки «{row.name}» ({parts.length} печатн. + {hardware.length} фурн.)</span>
+            </span>
+          </div>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onLoadIntoCalculator(contextMenu.item!);
-                      setContextMenu(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-200 hover:text-white hover:bg-[#FF6B00]/20 rounded-xl transition-colors cursor-pointer text-left font-medium"
-                  >
-                    <Play className="w-4 h-4 text-amber-400" fill="currentColor" />
-                    <span>Открыть в калькуляторе</span>
-                  </button>
+          <div className="divide-y divide-white/5">
+            {parts.map((p, idx) => (
+              <div key={idx} className="py-1.5 flex items-center justify-between gap-3 text-neutral-300">
+                <div className="flex items-center gap-2">
+                  <span className="text-cyan-400 font-bold">└─</span>
+                  <span className="px-1.5 py-0.2 rounded bg-cyan-950/80 text-cyan-300 font-bold text-[10px]">
+                    × {p.quantity} шт
+                  </span>
+                  <span className="font-semibold text-white">{p.name}</span>
+                  <span className="text-neutral-500">· {p.filament_name || 'PLA'} ({p.weight_g}г)</span>
+                </div>
+                <div className="flex items-center gap-3 font-mono text-xs">
+                  <span className="text-neutral-400">себ: {formatCurrency(p.base_cost, currencySymbol)}</span>
+                  <span className="font-bold text-cyan-300">{formatCurrency(p.final_price, currencySymbol)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onStageForAssembly(contextMenu.item!);
-                      setContextMenu(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-200 hover:text-white hover:bg-cyan-500/20 rounded-xl transition-colors cursor-pointer text-left font-medium"
-                  >
-                    <Layers className="w-4 h-4 text-cyan-400" />
-                    <span>Добавить в сборку</span>
-                  </button>
+    return null;
+  };
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onOpenQuickEditModal(contextMenu.item!);
-                      setContextMenu(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-200 hover:text-white hover:bg-[#FF6B00]/20 rounded-xl transition-colors cursor-pointer text-left font-medium"
-                  >
-                    <Edit2 className="w-4 h-4 text-amber-400" />
-                    <span>Редактировать параметры...</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onOpenCategoryModal(contextMenu.item!);
-                      setContextMenu(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-200 hover:text-white hover:bg-[#FF6B00]/20 rounded-xl transition-colors cursor-pointer text-left font-medium"
-                  >
-                    <Tag className="w-4 h-4 text-yellow-400" />
-                    <span>Изменить категорию...</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onOpenMoveProduct(contextMenu.item!);
-                      setContextMenu(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-200 hover:text-white hover:bg-purple-500/20 rounded-xl transition-colors cursor-pointer text-left font-medium"
-                  >
-                    <FolderPlus className="w-4 h-4 text-purple-400" />
-                    <span>Переместить в коллекцию...</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (contextMenu.item?.id) {
-                        navigator.clipboard.writeText(contextMenu.item.id);
-                      }
-                      setContextMenu(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-200 hover:text-white hover:bg-[#FF6B00]/20 rounded-xl transition-colors cursor-pointer text-left font-medium"
-                  >
-                    <Copy className="w-4 h-4 text-amber-400" />
-                    <span>Скопировать ID товара</span>
-                  </button>
-
-                  <div className="my-1 border-t border-[#242930]" />
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onDelete(contextMenu.item!.id, contextMenu.item!.name, contextMenu.item!.type);
-                      setContextMenu(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-rose-300 hover:text-rose-200 hover:bg-rose-950/60 rounded-xl transition-colors cursor-pointer text-left font-semibold"
-                  >
-                    <Trash2 className="w-4 h-4 text-rose-400" />
-                    <span>Удалить товар</span>
-                  </button>
-                </>
-              )}
-
-              {/* Б. Меню для Сборки */}
-              {contextMenu.type === 'assembly' && contextMenu.item && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onCreateOrder(contextMenu.item!);
-                      setContextMenu(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-200 hover:text-white hover:bg-emerald-500/20 rounded-xl transition-colors cursor-pointer text-left font-medium"
-                  >
-                    <ShoppingCart className="w-4 h-4 text-emerald-400" />
-                    <span>Создать заказ со сборкой</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onOpenQuickEditModal(contextMenu.item!);
-                      setContextMenu(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-200 hover:text-white hover:bg-cyan-500/20 rounded-xl transition-colors cursor-pointer text-left font-medium"
-                  >
-                    <Edit2 className="w-4 h-4 text-cyan-400" />
-                    <span>Редактировать состав сборки...</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onOpenCategoryModal(contextMenu.item!);
-                      setContextMenu(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-200 hover:text-white hover:bg-cyan-500/20 rounded-xl transition-colors cursor-pointer text-left font-medium"
-                  >
-                    <Tag className="w-4 h-4 text-cyan-400" />
-                    <span>Изменить категорию...</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onOpenMoveProduct(contextMenu.item!);
-                      setContextMenu(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-200 hover:text-white hover:bg-purple-500/20 rounded-xl transition-colors cursor-pointer text-left font-medium"
-                  >
-                    <FolderPlus className="w-4 h-4 text-purple-400" />
-                    <span>Переместить в коллекцию...</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (contextMenu.item?.id) {
-                        navigator.clipboard.writeText(contextMenu.item.id);
-                      }
-                      setContextMenu(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-200 hover:text-white hover:bg-cyan-500/20 rounded-xl transition-colors cursor-pointer text-left font-medium"
-                  >
-                    <Copy className="w-4 h-4 text-cyan-400" />
-                    <span>Скопировать ID сборки</span>
-                  </button>
-
-                  <div className="my-1 border-t border-[#242930]" />
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onDelete(contextMenu.item!.id, contextMenu.item!.name, contextMenu.item!.type);
-                      setContextMenu(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-rose-300 hover:text-rose-200 hover:bg-rose-950/60 rounded-xl transition-colors cursor-pointer text-left font-semibold"
-                  >
-                    <Trash2 className="w-4 h-4 text-rose-400" />
-                    <span>Удалить сборку</span>
-                  </button>
-                </>
-              )}
-
-              {/* В. Меню для Коллекции */}
-              {contextMenu.type === 'collection' && contextMenu.collection && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onOpenAddVariantModal(contextMenu.collection!);
-                      setContextMenu(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-200 hover:text-white hover:bg-purple-500/20 rounded-xl transition-colors cursor-pointer text-left font-medium"
-                  >
-                    <Plus className="w-4 h-4 text-purple-400" />
-                    <span>Добавить вариант товара...</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onOpenEditCollection(contextMenu.collection!);
-                      setContextMenu(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-200 hover:text-white hover:bg-purple-500/20 rounded-xl transition-colors cursor-pointer text-left font-medium"
-                  >
-                    <Edit2 className="w-4 h-4 text-purple-400" />
-                    <span>Параметры коллекции...</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (contextMenu.collection?.id) {
-                        navigator.clipboard.writeText(contextMenu.collection.id);
-                      }
-                      setContextMenu(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-gray-200 hover:text-white hover:bg-purple-500/20 rounded-xl transition-colors cursor-pointer text-left font-medium"
-                  >
-                    <Copy className="w-4 h-4 text-purple-400" />
-                    <span>Скопировать ID коллекции</span>
-                  </button>
-
-                  <div className="my-1 border-t border-[#242930]" />
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onOpenDeleteCollection(contextMenu.collection!);
-                      setContextMenu(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-rose-300 hover:text-rose-200 hover:bg-rose-950/60 rounded-xl transition-colors cursor-pointer text-left font-semibold"
-                  >
-                    <Trash2 className="w-4 h-4 text-rose-400" />
-                    <span>Удалить коллекцию</span>
-                  </button>
-                </>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+  return (
+    <CockpitTable<CatalogTableRow>
+      variant="embedded"
+      selectable={true}
+      selectedIds={selectedIds}
+      onToggleSelect={onToggleSelect}
+      onToggleSelectAll={onToggleSelectAll}
+      sortField={sortField}
+      sortOrder={sortOrder}
+      onSort={(fieldId) => onSort(fieldId as SortField)}
+      columns={columns}
+      data={rows}
+      keyExtractor={(row) => row.id}
+      isRowExpanded={(row) => Boolean(expandedItemIds[row.id])}
+      renderSubRow={renderSubRow}
+      onRowClick={(row) => {
+        if (row.rowKind === 'product') {
+          onSelectForDrawer(row.item);
+        } else {
+          onToggleExpand(row.id);
+        }
+      }}
+    />
   );
 });

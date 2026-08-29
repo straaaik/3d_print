@@ -3,7 +3,7 @@
 import React, { forwardRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export type CheckboxVariant = 'primary' | 'amber' | 'orange' | 'emerald' | 'purple' | 'rose';
+export type CheckboxVariant = 'primary' | 'cyan' | 'amber' | 'orange' | 'emerald' | 'purple' | 'rose';
 export type CheckboxSize = 'sm' | 'md' | 'lg';
 
 export interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'onChange'> {
@@ -39,6 +39,14 @@ const variantStyles: Record<
     glow: 'shadow-[0_0_12px_rgba(12,180,224,0.35)]',
     hoverBorder: 'hover:border-[#0CB4E0]/60',
     iconColor: '#0d0e12',
+  },
+  cyan: {
+    checked: 'bg-gradient-to-br from-cyan-400 to-cyan-600 border-cyan-300 text-black',
+    indeterminate: 'bg-cyan-500/20 border-cyan-400 text-cyan-300',
+    focus: 'focus-visible:ring-cyan-400/40',
+    glow: 'shadow-[0_0_12px_rgba(34,211,238,0.4)]',
+    hoverBorder: 'hover:border-cyan-400/60',
+    iconColor: '#000000',
   },
   amber: {
     checked: 'bg-gradient-to-br from-amber-400 to-amber-500 border-amber-300 text-black',

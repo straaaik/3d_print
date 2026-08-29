@@ -1,8 +1,9 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
-import { Target, DollarSign, RotateCcw } from 'lucide-react';
-import { Modal } from '../../../shared/ui/Modal';
-import { Button } from '../../../shared/ui/Button';
-import { ordersTheme } from '../../../shared/theme';
+import { Target, RotateCcw, Check } from 'lucide-react';
+import { CockpitModal } from '../../../shared/ui/CockpitModal';
+import { CockpitButton } from '../../../shared/ui/CockpitButton';
 
 interface GoalSettingsModalProps {
   isOpen: boolean;
@@ -43,72 +44,65 @@ export function GoalSettingsModal({
   const numericGoal = Number(goalAmount.replace(/\D/g, '') || 0);
   const formattedGoalDisplay = numericGoal > 0 ? numericGoal.toLocaleString('ru-RU') : '0';
 
+  if (!isOpen) return null;
+
   return (
-    <Modal
+    <CockpitModal
       isOpen={isOpen}
       onClose={onClose}
-      title={
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-xl bg-[#FF6B00]/15 text-[#FF8800] border border-[#FF6B00]/30">
-            <Target className="w-4 h-4" />
-          </div>
-          <span>Настройка цели по прибыли</span>
-        </div>
-      }
+      stamp="PROFIT_TARGET"
+      variant="cyan"
       maxWidth="md"
+      title={
+        <span className="text-white font-mono text-sm uppercase tracking-wider flex items-center gap-2">
+          <Target className="w-4 h-4 text-cyan-400" />
+          <span>Цель по чистой прибыли</span>
+        </span>
+      }
+      subtitle={
+        <span className="font-mono text-xs text-neutral-400">
+          Период:{' '}
+          <strong className="text-white font-bold">
+            {selectedMonthKey === 'all' ? 'Все месяцы' : monthLabel}
+          </strong>
+        </span>
+      }
       footer={
-        <div className="flex items-center justify-between gap-2.5">
+        <div className="flex items-center justify-between w-full">
           {currentGoal > 0 ? (
             <button
               type="button"
-              onClick={() => {
-                setGoalAmount('0');
-              }}
-              className="text-xs text-gray-500 hover:text-rose-400 transition-colors flex items-center gap-1 cursor-pointer"
+              onClick={() => setGoalAmount('0')}
+              className="text-xs font-mono text-neutral-500 hover:text-rose-400 transition-colors flex items-center gap-1.5 cursor-pointer"
             >
               <RotateCcw className="w-3 h-3" />
-              <span>Сбросить цель</span>
+              <span>[ Сбросить ]</span>
             </button>
           ) : (
             <div />
           )}
 
           <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={onClose}
-              className="border-[#242930] hover:bg-[#242930] text-gray-300 text-xs sm:text-sm px-4 py-2 rounded-xl cursor-pointer"
-            >
+            <CockpitButton type="button" onClick={onClose}>
               Отмена
-            </Button>
-            <Button
+            </CockpitButton>
+            <CockpitButton
               type="button"
-              variant="primary"
-              size="sm"
               onClick={() => handleSave()}
-              className={`${ordersTheme.primaryButton.gradient} ${ordersTheme.primaryButton.text} border-none ${ordersTheme.primaryButton.shadow} text-xs sm:text-sm font-bold px-5 py-2 rounded-xl cursor-pointer`}
+              icon={Check}
+              isActive={true}
+              className="border-cyan-500/40 bg-cyan-950/60 text-cyan-300 font-bold hover:bg-cyan-900/80 shadow-sm"
             >
-              Сохранить
-            </Button>
+              Сохранить цель
+            </CockpitButton>
           </div>
         </div>
       }
     >
-      <form onSubmit={handleSave} className="space-y-4 pt-1">
-        {/* Контекст месяца */}
-        <div className="text-xs text-gray-400">
-          Укажите желаемую цель по <span className="text-emerald-400 font-semibold">чистой прибыли</span> для{' '}
-          <span className="font-semibold text-white">
-            {selectedMonthKey === 'all' ? 'всех месяцев' : monthLabel}
-          </span>
-          .
-        </div>
-
-        {/* Поле ввода целевой суммы */}
-        <div>
-          <label className="block text-xs font-semibold text-gray-300 mb-1.5 uppercase tracking-wider">
+      <form onSubmit={handleSave} className="space-y-4 font-mono text-xs">
+        {/* Карточка ввода суммы */}
+        <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 space-y-2">
+          <label className="text-[11px] font-mono text-neutral-400 block uppercase tracking-wider">
             Целевая сумма прибыли (₽):
           </label>
           <div className="relative">
@@ -121,23 +115,27 @@ export function GoalSettingsModal({
               }}
               placeholder="Например: 100 000"
               autoFocus
-              className="w-full bg-[#0d0e12] border border-[#242930] hover:border-gray-600 focus:border-[#FF6B00] rounded-xl pl-4 pr-12 py-2.5 text-base sm:text-lg font-mono font-bold text-white placeholder-gray-600 focus:outline-none transition-colors"
+              className="w-full bg-neutral-900 border border-white/15 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 rounded-xl pl-3.5 pr-10 py-2.5 text-lg font-mono font-bold text-white placeholder-neutral-600 focus:outline-none transition-all"
             />
-            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-mono font-bold pointer-events-none">
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 font-mono font-bold pointer-events-none">
               ₽
             </div>
           </div>
+
           {numericGoal > 0 && (
-            <div className="mt-1 text-right text-[11px] text-gray-400 font-mono">
-              Цель: <span className="text-emerald-400 font-semibold">{formattedGoalDisplay} ₽</span>
+            <div className="pt-1.5 flex items-center justify-between text-[11px] text-neutral-400">
+              <span className="text-neutral-500">Установленная цель:</span>
+              <span className="text-emerald-400 font-bold font-mono">
+                {formattedGoalDisplay} ₽
+              </span>
             </div>
           )}
         </div>
 
         {/* Быстрые пресеты сумм */}
-        <div>
-          <span className="block text-[11px] font-semibold text-gray-400 mb-1.5">
-            Быстрый выбор:
+        <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/10 space-y-2">
+          <span className="text-[10px] text-neutral-400 uppercase tracking-wider block font-semibold">
+            Быстрый выбор планки:
           </span>
           <div className="flex flex-wrap gap-1.5">
             {PRESET_AMOUNTS.map((amt) => {
@@ -149,8 +147,8 @@ export function GoalSettingsModal({
                   onClick={() => setGoalAmount(String(amt))}
                   className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all cursor-pointer border ${
                     isSelected
-                      ? 'bg-[#FF6B00] text-white border-[#FF6B00] font-bold shadow-sm'
-                      : 'bg-[#0d0e12] border-[#242930] text-gray-300 hover:text-white hover:border-gray-600'
+                      ? 'bg-cyan-950/60 text-cyan-300 border-cyan-500/50 font-bold shadow-sm'
+                      : 'bg-neutral-900/80 border-white/10 text-neutral-400 hover:text-white hover:border-white/20'
                   }`}
                 >
                   {(amt / 1000).toLocaleString('ru-RU')}k ₽
@@ -160,23 +158,23 @@ export function GoalSettingsModal({
           </div>
         </div>
 
-        {/* Опция: сделать целью по умолчанию для всех месяцев */}
+        {/* Опция: сделать целью по умолчанию */}
         {selectedMonthKey !== 'all' && (
-          <div className="pt-2 border-t border-[#242930]/60">
+          <div className="p-3 rounded-xl bg-white/[0.02] border border-white/10">
             <label className="flex items-center gap-2.5 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={applyToAllMonths}
                 onChange={(e) => setApplyToAllMonths(e.target.checked)}
-                className="w-4 h-4 rounded bg-[#0d0e12] border-[#242930] text-[#FF6B00] focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                className="w-4 h-4 rounded bg-neutral-900 border-white/20 text-cyan-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
               />
-              <span className="text-xs text-gray-300">
+              <span className="text-xs text-neutral-300">
                 Сделать эту сумму целью по умолчанию для всех месяцев
               </span>
             </label>
           </div>
         )}
       </form>
-    </Modal>
+    </CockpitModal>
   );
 }

@@ -4,7 +4,9 @@ import "./globals.css";
 import { DataProvider } from "../entities/model/DataProvider";
 import { ToastProvider } from "../entities/model/ToastProvider";
 import { AuthProvider } from "../entities/model/AuthProvider";
+import { OrderModalProvider } from "../entities/model/OrderModalContext";
 import { AuthGuard } from "../shared/ui/AuthGuard";
+import { InteractiveDotGrid } from "../shared/ui/InteractiveDotGrid";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -28,16 +30,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="antialiased min-h-screen bg-[#0d0e12] text-white">
-        <ToastProvider>
-          <AuthProvider>
-            <DataProvider>
-              <AuthGuard>
-                {children}
-              </AuthGuard>
-            </DataProvider>
-          </AuthProvider>
-        </ToastProvider>
+      <body className="antialiased min-h-screen text-white bg-[#0a0a0a]">
+        <InteractiveDotGrid />
+        <div className="relative z-10">
+          <ToastProvider>
+            <AuthProvider>
+              <DataProvider>
+                <OrderModalProvider>
+                  <AuthGuard>
+                    {children}
+                  </AuthGuard>
+                </OrderModalProvider>
+              </DataProvider>
+            </AuthProvider>
+          </ToastProvider>
+        </div>
       </body>
     </html>
   );

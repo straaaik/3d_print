@@ -1,24 +1,21 @@
 import React, { useState } from 'react';
 import { SavedCalculation, Filament, Printer } from '../../../shared/types';
 import { Checkbox } from '../../../shared/ui/Checkbox';
-import { NumberCounter } from '../../../shared/ui/NumberCounter';
+import { CockpitStatusPill } from '../../../shared/ui/CockpitTable/CockpitStatusPill';
+import { Tooltip } from '../../../shared/ui/Tooltip';
 import { 
   ShoppingCart, 
-  Play, 
+  Calculator, 
   Layers, 
-  FolderPlus, 
-  Trash2, 
   FileCode, 
   Edit2, 
-  Tag, 
-  Flame, 
-  TrendingUp, 
-  Printer as PrinterIcon,
-  Copy,
-  Check,
-  Calendar
+  Copy, 
+  Check, 
+  MoreVertical,
+  Plus,
+  Minus
 } from 'lucide-react';
-import { formatCurrency, formatDate } from '../../../shared/lib/format';
+import { formatCurrency } from '../../../shared/lib/format';
 import { ProductCategory, getCategoryLucideIcon } from '../../../shared/lib/categories';
 import { SalesStatInfo } from '../types';
 
@@ -86,32 +83,19 @@ export const ProductRow = React.memo(function ProductRow({
     item.final_price && item.final_price > 0 ? Math.round((profit / item.final_price) * 1000) / 10 : 0;
   const isPositive = profit >= 0;
 
-  // Поиск цвета филамента
+  // Цвет филамента
   const filObj = filaments.find(
     (f) => f.name.toLowerCase() === (item.filament_name || '').toLowerCase() || f.id === item.filament_id
   );
   const filColor = item.filament_color || filObj?.color || '#888888';
 
-  // Поиск категории
+  // Категория
   const catObj = categoriesList.find((c) => c.label === item.category || c.id === item.category);
   const catLabel = catObj?.label || item.category || 'Разное';
   const CatIcon = getCategoryLucideIcon(catLabel);
-  const catBadgeStyle = catObj?.color || 'bg-gray-800 text-gray-400 border-gray-700';
-
-  // Форматирование даты (только дата)
-  const dateFormatted = item.created_at
-    ? new Date(item.created_at).toLocaleDateString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      })
-    : '—';
 
   const shortId = item.id ? (item.id.length > 8 ? item.id.slice(0, 6) : item.id) : '—';
-
   const hasStl = Boolean(item.stl_url || item.stl_file_data);
-  const hasUrl = Boolean(item.stl_url);
-  const hasFile = Boolean(item.stl_file_data);
 
   const handleCopyId = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -124,19 +108,21 @@ export const ProductRow = React.memo(function ProductRow({
 
   return (
     <tr
-      className={`border-b transition-all duration-150 cursor-pointer select-none group ${
+      className={`border-b border-white/5 transition-colors cursor-pointer select-none group font-mono text-xs ${
         isContextMenuOpen
-          ? 'bg-amber-500/15 border-amber-500/40 border-l-4 border-l-amber-500'
+          ? 'bg-cyan-950/40 border-cyan-500/40'
+          : isChecked
+          ? 'bg-white/[0.04]'
           : isChildInCollection
-          ? 'bg-[#151124]/95 hover:bg-[#1d1732] border-[#2f2247] border-l-4 border-l-purple-500 animate-fade-in shadow-inner'
-          : 'bg-[#12141a]/60 hover:bg-[#181c26] border-[#242930]'
+          ? 'bg-neutral-950/60 hover:bg-neutral-900/60'
+          : 'hover:bg-white/[0.02]'
       }`}
       onClick={() => onSelectForDrawer(item)}
       onContextMenu={onContextMenu}
     >
-      {/* Чекбокс */}
+      {/* 1. Чекбокс */}
       <td
-        className="w-8 px-2 py-3 text-center"
+        className="w-8 px-3 py-2.5 text-center"
         onClick={(e) => {
           e.stopPropagation();
           onToggleSelect(item.id);
@@ -145,225 +131,227 @@ export const ProductRow = React.memo(function ProductRow({
         <Checkbox
           checked={isChecked}
           onChange={() => onToggleSelect(item.id)}
-          variant={isChildInCollection ? 'purple' : 'amber'}
+          variant="cyan"
           size="sm"
         />
       </td>
 
-      {/* ID и Дата создания */}
-      <td className="py-3 px-3 min-w-[105px] whitespace-nowrap cursor-pointer" onClick={(e) => e.stopPropagation()}>
-        <div className="flex flex-col gap-1">
+      {/* 2. № / Артикул (#PRD-1082) */}
+      <td className="py-2.5 px-3 font-semibold text-white whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+        <Tooltip content={`Артикул: ${item.id} (Нажмите, чтобы скопировать)`}>
           <button
             type="button"
             onClick={handleCopyId}
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-mono text-xs font-bold w-fit shadow-sm cursor-pointer transition-colors ${
-              isChildInCollection
-                ? 'text-purple-300 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 hover:border-purple-500/60'
-                : 'text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 hover:border-amber-500/50'
-            }`}
-            title={`ID: ${item.id} (Нажмите, чтобы скопировать)`}
+            className="inline-flex items-center gap-1 text-white hover:text-cyan-400 transition-colors cursor-pointer font-mono font-semibold"
           >
-            <span>#prod-{shortId}</span>
+            <span>#PRD-{shortId}</span>
             {copiedId ? (
-              <Check className="w-3 h-3 text-emerald-400" />
+              <Check className="w-2.5 h-2.5 text-emerald-400" />
             ) : (
-              <Copy className="w-2.5 h-2.5 opacity-40 group-hover:opacity-80" />
+              <Copy className="w-2.5 h-2.5 opacity-20 group-hover:opacity-70 transition-opacity" />
             )}
           </button>
-          <span className="text-[11px] text-gray-400 font-mono tracking-tight" title={item.created_at ? formatDate(item.created_at) : 'Дата не указана'}>
-            {dateFormatted}
-          </span>
-        </div>
+        </Tooltip>
       </td>
 
-      {/* Название, категория и кнопка «Заказ» */}
-      <td className={`py-3 px-3 ${isChildInCollection ? 'pl-5 sm:pl-7' : ''}`}>
-        <div className="flex items-center justify-between gap-3">
-          {/* Левая часть: название и теги */}
-          <div className="flex flex-col gap-1 min-w-0">
-            <div className="flex items-center gap-1.5 min-w-0">
-              {isChildInCollection && (
-                <>
-                  <span className="text-purple-400 font-mono text-sm select-none font-bold mr-0.5">
-                    └─
-                  </span>
-                  <span className="px-1.5 py-0.2 rounded bg-purple-500/25 text-purple-300 border border-purple-500/40 text-[9px] font-bold font-mono shrink-0 uppercase tracking-wider">
-                    Вариант
-                  </span>
-                </>
-              )}
-
-              <span
-                className={`font-semibold transition-colors truncate block text-xs sm:text-[13px] cursor-pointer ${
-                  isChildInCollection ? 'text-purple-100 hover:text-purple-300 font-bold' : 'text-white hover:text-amber-400'
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onStartRename(item);
-                }}
-                title="Нажмите, чтобы переименовать"
-              >
-                {item.name}
-              </span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenCategoryModal(item);
-                }}
-                className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-semibold border ${catBadgeStyle} cursor-pointer hover:border-amber-500/50 transition-all`}
-                title="Изменить категорию"
-              >
-                <CatIcon className="w-3 h-3 shrink-0" />
-                <span>{catLabel}</span>
-                <Edit2 size={9} className="text-amber-400 ml-0.5 opacity-70" />
-              </span>
-
-              {salesStat && salesStat.soldQty > 0 && (
-                <span
-                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                    salesStat.isBestseller
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse'
-                      : 'bg-[#1a1d26] text-amber-300 border border-[#242930]'
-                  }`}
-                >
-                  <Flame size={10} className="text-amber-400" />
-                  <span>{salesStat.soldQty} шт</span>
-                </span>
-              )}
-
-              {item.tags && item.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 items-center">
-                  {item.tags.map((tag, idx) => (
-                    <span
-                      key={idx}
-                      className="px-1.5 py-0.2 bg-[#1a1d26] border border-[#262a36] text-gray-400 text-[10px] rounded"
-                    >
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Правая часть: Выделенная главная кнопка «Заказ» */}
+      {/* 3. Категория */}
+      <td className="py-2.5 px-3 text-neutral-300 font-sans whitespace-nowrap">
+        <Tooltip content="Сменить категорию">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              onCreateOrder(item);
+              onOpenCategoryModal(item);
             }}
-            className="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-extrabold rounded-xl shadow-md shadow-emerald-500/25 flex items-center gap-1.5 text-xs transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
-            title="Создать заказ из этого товара"
+            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-mono bg-neutral-900 text-neutral-300 border border-white/10 hover:border-white/20 transition-colors cursor-pointer"
           >
-            <ShoppingCart size={13} strokeWidth={2.5} />
-            <span>Заказ</span>
+            <CatIcon className="w-3 h-3 text-cyan-400 shrink-0" />
+            <span className="truncate max-w-[120px]">{catLabel}</span>
           </button>
+        </Tooltip>
+      </td>
+
+      {/* 4. Изделие / Детали */}
+      <td className={`py-2.5 px-3 text-neutral-200 font-sans ${isChildInCollection ? 'pl-6' : ''}`}>
+        <div className="flex items-center gap-2 min-w-0">
+          {isChildInCollection && (
+            <span className="text-purple-400 font-mono text-xs font-bold select-none shrink-0">
+              └─
+            </span>
+          )}
+
+          <span
+            className="font-bold text-white group-hover:text-cyan-300 transition-colors truncate text-xs sm:text-[13px]"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectForDrawer(item);
+            }}
+          >
+            {item.name}
+          </span>
+
+          {/* Быстрое переименование */}
+          <Tooltip content="Переименовать">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onStartRename(item);
+              }}
+              className="opacity-0 group-hover:opacity-60 hover:opacity-100! text-neutral-400 hover:text-white transition-opacity p-0.5"
+            >
+              <Edit2 className="w-2.5 h-2.5" />
+            </button>
+          </Tooltip>
+
+          {/* STL метка */}
+          {hasStl && (
+            <Tooltip content="Открыть 3D STL">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenStlModal(item);
+                }}
+                className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 inline-flex items-center gap-1 cursor-pointer hover:bg-cyan-900/80"
+              >
+                <FileCode className="w-2.5 h-2.5" />
+                <span>STL</span>
+              </button>
+            </Tooltip>
+          )}
         </div>
       </td>
 
-      {/* Материал и принтер */}
-      <td className="py-3 px-3 min-w-[130px]">
-        <div className="flex flex-col gap-0.5">
-          <div className="flex items-center gap-1.5 max-w-[140px]">
-            <div
-              className="w-3 h-3 rounded-full border border-black/30 shrink-0 shadow-inner"
-              style={{ backgroundColor: filColor }}
-            />
-            <span className="truncate font-medium text-xs text-gray-200" title={item.filament_name || 'Не указан'}>
+      {/* 5. Статус склада (CockpitStatusPill) */}
+      <td className="py-2.5 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2">
+          {isOutOfStock ? (
+            <CockpitStatusPill label="Под заказ" tone="neutral" dot={false} />
+          ) : isLowStock ? (
+            <CockpitStatusPill label={`Мало (${stock} шт)`} tone="yellow" pulse />
+          ) : (
+            <CockpitStatusPill label={`В наличии (${stock} шт)`} tone="emerald" dot />
+          )}
+
+          {/* Кнопки регулировки остатка */}
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 bg-neutral-900 border border-white/10 rounded-md p-0.5">
+            <Tooltip content="Уменьшить">
+              <button
+                type="button"
+                onClick={() => onSetStock(item, Math.max(0, stock - 1))}
+                disabled={stock <= 0}
+                className="w-3.5 h-3.5 rounded flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 disabled:opacity-30 cursor-pointer"
+              >
+                <Minus className="w-2 h-2" />
+              </button>
+            </Tooltip>
+            <span className="font-mono text-[10px] px-1 text-white font-bold">{stock}</span>
+            <Tooltip content="Увеличить">
+              <button
+                type="button"
+                onClick={() => onSetStock(item, stock + 1)}
+                className="w-3.5 h-3.5 rounded flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 cursor-pointer"
+              >
+                <Plus className="w-2 h-2" />
+              </button>
+            </Tooltip>
+          </div>
+        </div>
+      </td>
+
+      {/* 6. Пластик */}
+      <td className="py-2.5 px-3 text-neutral-400 font-mono whitespace-nowrap">
+        <div className="flex items-center gap-1.5">
+          <span
+            className="w-2 h-2 rounded-full border border-white/20 shrink-0"
+            style={{ backgroundColor: filColor }}
+          />
+          <Tooltip content={`Филамент: ${item.filament_name || 'Не указан'}`}>
+            <span className="truncate max-w-[130px]">
               {item.filament_name || '—'}
             </span>
-          </div>
-          {item.printer_name && (
-            <div className="flex items-center gap-1 text-[10px] text-gray-400 font-mono">
-              <PrinterIcon size={10} className="text-gray-500" />
-              <span className="truncate max-w-[120px]">{item.printer_name}</span>
-            </div>
-          )}
+          </Tooltip>
         </div>
       </td>
 
-      {/* Параметры печати */}
-      <td className="py-3 px-3 min-w-[125px]">
-        <div className="flex flex-col gap-0.5 font-mono text-xs">
-          <span className="text-white font-semibold">
-            {item.weight_g || 0} г
-          </span>
-          <span className="text-gray-400 text-[11px]">
-            {item.hours || 0}ч {item.minutes || 0}м
-          </span>
-        </div>
+      {/* 7. Параметры (Вес / Время) */}
+      <td className="py-2.5 px-3 text-neutral-400 font-mono whitespace-nowrap">
+        {item.weight_g || 0}г · {item.hours || 0}ч {item.minutes || 0}м
       </td>
 
-      {/* Наличие на складе */}
-      <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
-        <div className="flex flex-col items-center justify-center gap-1">
-          <NumberCounter
-            value={stock}
-            min={0}
-            onChange={(val) => onSetStock(item, val)}
-          />
-          {isOutOfStock ? (
-            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-red-500/15 border border-red-500/30 text-red-400">
-              Нет на складе
-            </span>
-          ) : isLowStock ? (
-            <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-400">
-              Заканчивается
-            </span>
-          ) : (
-            <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
-              В наличии
-            </span>
-          )}
-        </div>
+      {/* 8. Себестоимость */}
+      <td className="py-2.5 px-3 text-right font-mono text-neutral-400 whitespace-nowrap">
+        {formatCurrency(item.base_cost, currencySymbol)}
       </td>
 
-      {/* Цены */}
-      <td className="py-3 px-3 text-right">
-        <div className="flex flex-col items-end justify-center font-mono whitespace-nowrap min-w-[95px] leading-tight">
-          <span className="text-amber-400 font-extrabold text-sm">
-            {formatCurrency(item.final_price, currencySymbol)}
-          </span>
-          <span className="text-[11px] text-gray-400 mt-0.5">
-            себ: {formatCurrency(item.base_cost, currencySymbol)}
-          </span>
-        </div>
+      {/* 9. Цена */}
+      <td className="py-2.5 px-3 text-right font-bold text-white font-mono whitespace-nowrap">
+        {formatCurrency(item.final_price, currencySymbol)}
       </td>
 
-      {/* Прибыль */}
-      <td className="py-3 px-3 text-center">
-        <div className="flex flex-col items-center justify-center gap-0.5 font-mono leading-tight whitespace-nowrap">
-          <span className={`font-extrabold text-xs sm:text-sm ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
-            {isPositive ? '+' : ''}
-            {formatCurrency(profit, currencySymbol)}
-          </span>
-          <span className={`text-xs font-bold ${isPositive ? 'text-emerald-400/90' : 'text-red-400/90'}`}>
-            {isPositive ? '▲' : '▼'}
-            {marginPercent}%
-          </span>
-        </div>
+      {/* 10. Маржа / Прибыль */}
+      <td className="py-2.5 px-3 text-right text-emerald-400 font-mono whitespace-nowrap">
+        {isPositive ? '+' : ''}{formatCurrency(profit, currencySymbol)}
+        <span className="text-[10px] text-neutral-500 ml-1">({marginPercent}%)</span>
       </td>
 
-      {/* 3D STL */}
-      <td className="py-3 px-2 text-center" onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          onClick={() => onOpenStlModal(item)}
-          className={`px-2 py-1 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition-all cursor-pointer border select-none ${
-            hasStl
-              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/30'
-              : 'bg-[#242930]/40 text-gray-400 border-[#242930] hover:text-white hover:bg-[#242930]'
-          }`}
-          title={hasStl ? (hasUrl && hasFile ? 'STL файл + Ссылка' : hasUrl ? 'Ссылка на 3D-модель' : 'Скачать STL файл') : 'Добавить 3D-модель'}
-        >
-          <FileCode size={13} className={hasStl ? 'text-emerald-400' : 'text-gray-400'} />
-          <span>{hasStl ? (hasUrl && hasFile ? 'STL+' : hasUrl ? 'Ссылка' : 'Файл') : '+ STL'}</span>
-        </button>
+      {/* 11. Действия */}
+      <td className="py-2.5 px-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-end gap-1">
+          {/* Создать заказ */}
+          <Tooltip content="Создать заказ в CRM">
+            <button
+              type="button"
+              onClick={() => onCreateOrder(item)}
+              className="px-2 py-1 rounded-md font-mono text-[11px] font-bold bg-white text-neutral-950 hover:bg-neutral-200 active:scale-95 transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+            >
+              <ShoppingCart className="w-3 h-3" />
+              <span>Заказ</span>
+            </button>
+          </Tooltip>
+
+          {/* В Калькулятор */}
+          <Tooltip content="Открыть в Калькуляторе">
+            <button
+              type="button"
+              onClick={() => onLoadIntoCalculator(item)}
+              className="p-1 rounded-md border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white transition-colors cursor-pointer"
+            >
+              <Calculator className="w-3 h-3" />
+            </button>
+          </Tooltip>
+
+          {/* В Сборку */}
+          <Tooltip content={isStagedInAssembly ? `В черновике сборки (${stagedQty} шт)` : 'Добавить в сборку'}>
+            <button
+              type="button"
+              onClick={() => onStageForAssembly(item)}
+              className={`p-1 rounded-md border transition-colors cursor-pointer ${
+                isStagedInAssembly
+                  ? 'bg-cyan-950 text-cyan-300 border-cyan-500/60'
+                  : 'border-white/10 bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white'
+              }`}
+            >
+              <Layers className="w-3 h-3" />
+            </button>
+          </Tooltip>
+
+          {/* Меню */}
+          <Tooltip content="Опции">
+            <button
+              type="button"
+              onClick={(e) => {
+                if (onContextMenu) onContextMenu(e);
+              }}
+              className="p-1 rounded-md hover:bg-white/10 text-neutral-500 hover:text-white transition-colors cursor-pointer"
+            >
+              <MoreVertical className="w-3 h-3" />
+            </button>
+          </Tooltip>
+        </div>
       </td>
     </tr>
   );
 });
+

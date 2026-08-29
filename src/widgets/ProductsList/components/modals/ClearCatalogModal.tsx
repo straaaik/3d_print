@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal } from '../../../../shared/ui/Modal';
-import { Button } from '../../../../shared/ui/Button';
+import { CockpitButton } from '../../../../shared/ui/CockpitButton';
 import { AlertTriangle } from 'lucide-react';
 
 interface ClearCatalogModalProps {
@@ -23,30 +23,34 @@ export function ClearCatalogModal({ isOpen, onClose, onConfirm }: ClearCatalogMo
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Очистка каталога товаров" maxWidth="md">
-      <div className="space-y-4 pt-1 text-xs text-gray-300">
-        <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-2.5 text-red-300">
-          <AlertTriangle size={18} className="text-red-400 shrink-0 mt-0.5" />
-          <p className="leading-relaxed">
-            Внимание! Будут удалены <strong>все товары, сборки и коллекции</strong>.
-            <br />
-            (Вы сможете отменить это действие по комбинации <strong>Ctrl+Z</strong>).
-          </p>
-        </div>
-
-        <div className="flex justify-end gap-2 pt-2 border-t border-[#242930]">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isDeleting}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="§ 3D-LABS // CLEAR_CATALOG"
+      maxWidth="md"
+      variant="error"
+      footer={
+        <div className="flex justify-end gap-2 w-full font-mono text-xs">
+          <CockpitButton type="button" onClick={onClose} disabled={isDeleting}>
             Отмена
-          </Button>
-          <Button
+          </CockpitButton>
+          <CockpitButton
             type="button"
-            size="sm"
             disabled={isDeleting}
             onClick={handleConfirm}
-            className="bg-red-600 hover:bg-red-500 text-white font-bold border-none"
+            className="bg-rose-950/60 text-rose-300 border-rose-800/40 hover:bg-rose-900/80 hover:text-white font-bold"
           >
             {isDeleting ? 'Очистка...' : 'Очистить каталог'}
-          </Button>
+          </CockpitButton>
+        </div>
+      }
+    >
+      <div className="space-y-3 pt-1 text-xs text-neutral-300 font-mono">
+        <div className="p-3 bg-rose-950/40 border border-rose-800/40 rounded-xl flex items-start gap-2.5 text-rose-300 font-sans">
+          <AlertTriangle size={16} className="text-rose-400 shrink-0 mt-0.5" />
+          <p className="leading-relaxed">
+            Внимание! Будут удалены <strong>все товары, сборки и коллекции</strong> из каталога.
+          </p>
         </div>
       </div>
     </Modal>

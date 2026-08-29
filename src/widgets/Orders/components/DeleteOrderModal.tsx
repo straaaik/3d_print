@@ -1,7 +1,9 @@
+'use client';
+
 import React from 'react';
 import { Order } from '../types';
-import { Modal } from '../../../shared/ui/Modal';
-import { Button } from '../../../shared/ui/Button';
+import { CockpitModal } from '../../../shared/ui/CockpitModal';
+import { CockpitButton } from '../../../shared/ui/CockpitButton';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 import { formatMoney } from '../helpers';
 
@@ -16,47 +18,69 @@ export function DeleteOrderModal({
   onClose,
   onConfirm,
 }: DeleteOrderModalProps) {
+  if (!order) return null;
+
+  const isExpense = order.type === 'expense';
+
   return (
-    <Modal
+    <CockpitModal
       isOpen={!!order}
       onClose={onClose}
-      title="Подтверждение удаления"
+      stamp="DELETE_CONFIRMATION"
       variant="error"
       maxWidth="sm"
+      title={
+        <span className="text-rose-400 font-mono text-sm uppercase tracking-wider flex items-center gap-2">
+          <Trash2 className="w-4 h-4 text-rose-400" />
+          <span>Подтверждение удаления</span>
+        </span>
+      }
+      footer={
+        <div className="flex items-center justify-between w-full">
+          <span className="text-[10px] text-neutral-500 font-mono">
+            Действие необратимо
+          </span>
+          <div className="flex items-center gap-2">
+            <CockpitButton type="button" onClick={onClose}>
+              Отмена
+            </CockpitButton>
+            <CockpitButton
+              type="button"
+              onClick={onConfirm}
+              icon={Trash2}
+              className="text-rose-300 hover:text-white border-rose-500/40 hover:border-rose-500/70 bg-rose-950/60 hover:bg-rose-900/80 font-bold"
+            >
+              Удалить запись
+            </CockpitButton>
+          </div>
+        </div>
+      }
     >
-      {order && (
-        <div className="space-y-4">
-        <div className="flex items-start gap-3 p-3.5 bg-rose-500/10 border border-rose-500/25 rounded-2xl">
+      <div className="space-y-4 font-mono text-xs">
+        {/* Карточка предупреждения */}
+        <div className="flex items-start gap-3 p-3.5 bg-rose-500/10 border border-rose-500/25 rounded-xl">
           <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-          <div className="text-xs sm:text-sm text-gray-300 leading-relaxed">
-            Вы уверены, что хотите удалить {order.type === 'expense' ? 'операционный расход' : 'заказ'}{' '}
-            <strong className="text-white">#{order.order_number || ''} «{order.title}»</strong> на сумму{' '}
-            <span className="font-mono font-bold text-rose-400">{formatMoney(order.amount)}</span>?
+          <div className="text-xs text-neutral-300 leading-relaxed font-sans">
+            Вы действительно хотите удалить {isExpense ? 'операционный расход' : 'заказ'}{' '}
+            <strong className="text-white font-bold font-mono">
+              #{order.order_number || ''} «{order.title}»
+            </strong>{' '}
+            на сумму{' '}
+            <span className="font-mono font-bold text-rose-400">
+              {formatMoney(order.amount)}
+            </span>
+            ?
           </div>
         </div>
 
-        <p className="text-xs text-gray-400 select-none">
-          Это действие можно будет отменить нажатием клавиш <kbd className="px-1.5 py-0.5 bg-[#242930] rounded text-gray-300 font-mono">Alt + Z</kbd>.
-        </p>
-
-        <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[#242930]">
-          <Button variant="outline" size="sm" type="button" onClick={onClose}>
-            Отмена
-          </Button>
-
-          <Button
-            variant="primary"
-            size="sm"
-            type="button"
-            onClick={onConfirm}
-            className="bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white border-none shadow-lg shadow-rose-950/50 font-bold px-4 py-2 cursor-pointer"
-          >
-            <Trash2 className="w-4 h-4 mr-1.5" />
-            Удалить запись
-          </Button>
+        {/* Подсказка об отмене действия */}
+        <div className="p-3 rounded-xl bg-white/[0.02] border border-white/10 text-[11px] text-neutral-400 flex items-center justify-between">
+          <span>Горячие клавиши отмены:</span>
+          <kbd className="px-2 py-0.5 bg-neutral-900 border border-white/15 rounded text-neutral-200 font-mono text-[10px] font-bold">
+            Alt + Z
+          </kbd>
         </div>
       </div>
-      )}
-    </Modal>
+    </CockpitModal>
   );
 }
