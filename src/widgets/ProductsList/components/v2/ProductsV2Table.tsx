@@ -41,11 +41,13 @@ import {
   CheckCircle2,
   AlertTriangle,
   Boxes,
+  Search,
   X
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip } from '@/shared/ui/Tooltip';
 import { CockpitStatusPill } from '@/shared/ui/CockpitTable/CockpitStatusPill';
+import { CockpitDropdown, CockpitDropdownOption } from '@/shared/ui/CockpitDropdown';
 
 interface ProductsV2TableProps {
   rows: CatalogTableRow[];
@@ -58,6 +60,9 @@ interface ProductsV2TableProps {
   sortOrder: SortOrder;
   onSort: (field: SortField) => void;
   searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  selectedCategories: string[];
+  setSelectedCategories: (cats: string[]) => void;
   isExpanded?: boolean;
 
   // Фильтрация внутри шапки таблицы
@@ -65,6 +70,8 @@ interface ProductsV2TableProps {
   setProductFilter: (filter: ProductFilter) => void;
   stockFilter: StockFilter;
   setStockFilter: (stock: StockFilter) => void;
+  onlyBestsellers: boolean;
+  setOnlyBestsellers: (val: boolean) => void;
   counts: {
     all: number;
     single: number;
@@ -72,6 +79,7 @@ interface ProductsV2TableProps {
     collections: number;
     inStock: number;
     lowStock: number;
+    outOfStock: number;
     bestsellers: number;
   };
 
@@ -88,8 +96,9 @@ interface ProductsV2TableProps {
   isInlineNameShaking?: boolean;
   onStartRename: (itemOrCol: SavedCalculation | ProductCollection) => void;
 
-  // Действия
-  onSelectForDrawer: (item: SavedCalculation) => void;
+  // Действия и инлайн-обновление
+  onInlineUpdateProduct?: (productId: string, updates: Partial<SavedCalculation>) => void;
+  onInlineUpdateCollection?: (collectionId: string, updates: Partial<ProductCollection>) => void;
   onSetStock: (item: SavedCalculation, newStock: number) => void;
   onOpenCategoryModal: (item: SavedCalculation) => void;
   onOpenQuickEditModal: (item: SavedCalculation) => void;
@@ -117,6 +126,8 @@ interface ProductsV2TableProps {
   contextMenuRef: React.RefObject<HTMLDivElement | null>;
 }
 
+export type EditableProductField = 'name' | 'weight_g' | 'hours' | 'minutes' | 'stock_quantity' | 'base_cost' | 'final_price';
+
 export const ProductsV2Table = React.memo(function ProductsV2Table({
   rows,
   visibleRows,
@@ -128,11 +139,16 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
   sortOrder,
   onSort,
   searchQuery,
+  setSearchQuery,
+  selectedCategories,
+  setSelectedCategories,
   isExpanded = false,
   productFilter,
   setProductFilter,
   stockFilter,
   setStockFilter,
+  onlyBestsellers,
+  setOnlyBestsellers,
   counts,
   expandedItemIds,
   onToggleExpand,
@@ -143,7 +159,8 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
   onCancelRename,
   isInlineNameShaking,
   onStartRename,
-  onSelectForDrawer,
+  onInlineUpdateProduct,
+  onInlineUpdateCollection,
   onSetStock,
   onOpenCategoryModal,
   onOpenQuickEditModal,
@@ -168,6 +185,124 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
 }: ProductsV2TableProps) {
   const sentinelRef = useRef<HTMLTableRowElement | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const isSearchActive = isSearchFocused || Boolean(searchQuery);
+
+  // Инлайн-редактирование ячеек
+  const [editingCell, setEditingCell] = useState<{
+    rowId: string;
+    field: EditableProductField;
+  } | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
+
+  // Быстрые всплывающие меню выбора (Категория / Пластик)
+  const [activeCategoryMenuId, setActiveCategoryMenuId] = useState<string | null>(null);
+  const [activeFilamentMenuId, setActiveFilamentMenuId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (editingCell && inputRef.current) {
+      inputRef.current.focus();
+      if ('select' in inputRef.current) {
+        inputRef.current.select();
+      }
+    }
+  }, [editingCell]);
+
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setActiveCategoryMenuId(null);
+      setActiveFilamentMenuId(null);
+    };
+    window.addEventListener('click', handleClickOutside);
+    window.addEventListener('scroll', handleClickOutside);
+    return () => {
+      window.removeEventListener('click', handleClickOutside);
+      window.removeEventListener('scroll', handleClickOutside);
+    };
+  }, []);
+
+  const startEditing = (rowId: string, field: EditableProductField, initialValue: any) => {
+    setEditingCell({ rowId, field });
+    setEditValue(initialValue === undefined || initialValue === null ? '' : String(initialValue));
+    setActiveCategoryMenuId(null);
+    setActiveFilamentMenuId(null);
+  };
+
+  const commitEdit = (row: CatalogTableRow, field: EditableProductField, value: string) => {
+    if (!editingCell || editingCell.rowId !== row.id || editingCell.field !== field) return;
+    setEditingCell(null);
+    const trimmed = value.trim();
+
+    if (row.rowKind === 'product') {
+      const item = row.item;
+      const updates: Partial<SavedCalculation> = {};
+
+      if (field === 'name') {
+        if (trimmed && trimmed !== item.name) updates.name = trimmed;
+      } else if (field === 'weight_g') {
+        const num = parseFloat(trimmed.replace(',', '.').replace(/[^\d.]/g, ''));
+        if (!isNaN(num) && num >= 0 && num !== item.weight_g) updates.weight_g = num;
+      } else if (field === 'hours') {
+        const num = parseInt(trimmed.replace(/[^\d]/g, ''), 10);
+        if (!isNaN(num) && num >= 0 && num !== item.hours) updates.hours = num;
+      } else if (field === 'minutes') {
+        const num = parseInt(trimmed.replace(/[^\d]/g, ''), 10);
+        if (!isNaN(num) && num >= 0 && num !== item.minutes) updates.minutes = num;
+      } else if (field === 'stock_quantity') {
+        const num = parseInt(trimmed.replace(/[^\d]/g, ''), 10);
+        if (!isNaN(num) && num >= 0 && num !== item.stock_quantity) updates.stock_quantity = num;
+      } else if (field === 'base_cost') {
+        const num = parseFloat(trimmed.replace(',', '.').replace(/[^\d.]/g, ''));
+        if (!isNaN(num) && num >= 0 && num !== item.base_cost) updates.base_cost = num;
+      } else if (field === 'final_price') {
+        const num = parseFloat(trimmed.replace(',', '.').replace(/[^\d.]/g, ''));
+        if (!isNaN(num) && num >= 0 && num !== item.final_price) updates.final_price = num;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        onInlineUpdateProduct?.(item.id, updates);
+      }
+    } else if (row.rowKind === 'collection') {
+      const col = row.collection;
+      const updates: Partial<ProductCollection> = {};
+      if (field === 'name') {
+        if (trimmed && trimmed !== col.name) updates.name = trimmed;
+      }
+      if (Object.keys(updates).length > 0) {
+        onInlineUpdateCollection?.(col.id, updates);
+      }
+    }
+  };
+
+  const handleKeyDown = (
+    e: React.KeyboardEvent,
+    row: CatalogTableRow,
+    field: EditableProductField
+  ) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitEdit(row, field, editValue);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setEditingCell(null);
+    }
+  };
+
+  // Опции категорий для CockpitDropdown
+  const categoryDropdownOptions: CockpitDropdownOption[] = useMemo(() => {
+    const opts: CockpitDropdownOption[] = [
+      { value: 'all', label: 'Все категории', statusDotColor: 'gray' },
+    ];
+    categoriesList.forEach((cat) => {
+      opts.push({
+        value: cat.id,
+        label: cat.label,
+        statusDotColor: 'cyan',
+      });
+    });
+    return opts;
+  }, [categoriesList]);
 
   // Sentinel для бесконечной подгрузки
   useEffect(() => {
@@ -230,175 +365,294 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
   };
 
   return (
-    <div className="border border-white/10 rounded-xl overflow-hidden flex flex-col font-sans select-none bg-neutral-950/40">
+    <div className="border border-white/10 rounded-xl flex flex-col font-sans select-none bg-neutral-950/40 relative z-20">
       
-      {/* 1. ШАПКА-ТУЛБАР ТАБЛИЦЫ (ПРОДОЛЖЕНИЕ ТАБЛИЦЫ С СЕГМЕНТИРОВАННЫМИ ВКЛАДКАМИ) */}
-      <div className="bg-neutral-900/90 border-b border-white/10 px-3 py-2 flex flex-wrap items-center justify-between gap-2.5">
+      {/* 1. ШАПКА-ТУЛБАР ТАБЛИЦЫ: ВЕРХНИЙ РЯД (ПОИСК НА ВСЮ ШИРИНУ) + НИЖНИЙ РЯД (ВСЕ ОСТАЛЬНЫЕ КНОПКИ) */}
+      <div className="bg-neutral-900/90 border-b border-white/10 p-2.5 sm:p-3 flex flex-col gap-2.5 rounded-t-xl relative z-30">
         
-        {/* Сегментированные переключатели категорий/типов */}
-        <div className="bg-neutral-950/80 border border-white/10 p-1 rounded-xl h-10 flex items-center gap-1 shadow-inner overflow-x-auto custom-scrollbar">
-          {/* Все */}
-          <button
-            type="button"
-            onClick={() => setProductFilter('all')}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 h-full rounded-lg text-xs font-medium transition-all cursor-pointer group ${
-              productFilter === 'all'
+        {/* 1. ВЕРХНИЙ РЯД: ПОИСК НА ВСЮ ШИРИНУ */}
+        <div className="w-full bg-neutral-950/80 border border-white/10 p-1 rounded-xl h-10 shadow-inner flex items-center">
+          <div
+            className={`flex items-center w-full h-full px-3 rounded-lg text-xs font-mono transition-all ${
+              isSearchActive
                 ? 'bg-neutral-800 border border-white/15 text-white shadow-sm'
-                : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
+                : 'bg-transparent border border-transparent text-neutral-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            <Package className={`w-3.5 h-3.5 transition-colors ${
-              productFilter === 'all' ? 'text-cyan-400' : 'text-neutral-400 group-hover:text-white'
-            }`} />
-            <span>Все</span>
-            <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono transition-colors ${
-              productFilter === 'all' ? 'bg-cyan-500/20 text-cyan-300' : 'bg-white/5 text-neutral-400 group-hover:text-neutral-300'
-            }`}>
-              {counts.all}
-            </span>
-          </button>
-
-          {/* Поштучно */}
-          <button
-            type="button"
-            onClick={() => setProductFilter('single')}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 h-full rounded-lg text-xs font-medium transition-all cursor-pointer group ${
-              productFilter === 'single'
-                ? 'bg-neutral-800 border border-white/15 text-white shadow-sm'
-                : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
-            }`}
-          >
-            <Tag className={`w-3.5 h-3.5 transition-colors ${
-              productFilter === 'single' ? 'text-cyan-400' : 'text-neutral-400 group-hover:text-white'
-            }`} />
-            <span>Поштучно</span>
-            <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono transition-colors ${
-              productFilter === 'single' ? 'bg-cyan-500/20 text-cyan-300' : 'bg-white/5 text-neutral-400 group-hover:text-neutral-300'
-            }`}>
-              {counts.single}
-            </span>
-          </button>
-
-          {/* Сборки */}
-          <button
-            type="button"
-            onClick={() => setProductFilter('assembly')}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 h-full rounded-lg text-xs font-medium transition-all cursor-pointer group ${
-              productFilter === 'assembly'
-                ? 'bg-neutral-800 border border-white/15 text-white shadow-sm'
-                : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
-            }`}
-          >
-            <Layers className={`w-3.5 h-3.5 transition-colors ${
-              productFilter === 'assembly' ? 'text-cyan-400' : 'text-neutral-400 group-hover:text-white'
-            }`} />
-            <span>Сборки</span>
-            <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono transition-colors ${
-              productFilter === 'assembly' ? 'bg-cyan-500/20 text-cyan-300' : 'bg-white/5 text-neutral-400 group-hover:text-neutral-300'
-            }`}>
-              {counts.assembly}
-            </span>
-          </button>
-
-          {/* Коллекции */}
-          <button
-            type="button"
-            onClick={() => setProductFilter('collections')}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 h-full rounded-lg text-xs font-medium transition-all cursor-pointer group ${
-              productFilter === 'collections'
-                ? 'bg-neutral-800 border border-white/15 text-white shadow-sm'
-                : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
-            }`}
-          >
-            <FolderPlus className={`w-3.5 h-3.5 transition-colors ${
-              productFilter === 'collections' ? 'text-purple-400' : 'text-neutral-400 group-hover:text-white'
-            }`} />
-            <span>Коллекции</span>
-            <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono transition-colors ${
-              productFilter === 'collections' ? 'bg-purple-500/20 text-purple-300' : 'bg-white/5 text-neutral-400 group-hover:text-neutral-300'
-            }`}>
-              {counts.collections}
-            </span>
-          </button>
-
-          {/* В наличии */}
-          <button
-            type="button"
-            onClick={() => setStockFilter(stockFilter === 'in_stock' ? 'all' : 'in_stock')}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 h-full rounded-lg text-xs font-medium transition-all cursor-pointer group ${
-              stockFilter === 'in_stock'
-                ? 'bg-neutral-800 border border-white/15 text-white shadow-sm'
-                : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
-            }`}
-          >
-            <CheckCircle2 className={`w-3.5 h-3.5 transition-colors ${
-              stockFilter === 'in_stock' ? 'text-emerald-400' : 'text-neutral-400 group-hover:text-white'
-            }`} />
-            <span>В наличии</span>
-            <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono transition-colors ${
-              stockFilter === 'in_stock' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/5 text-neutral-400 group-hover:text-neutral-300'
-            }`}>
-              {counts.inStock}
-            </span>
-          </button>
-
-          {/* Мало */}
-          <button
-            type="button"
-            onClick={() => setProductFilter(productFilter === 'low_stock' ? 'all' : 'low_stock')}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 h-full rounded-lg text-xs font-medium transition-all cursor-pointer group ${
-              productFilter === 'low_stock'
-                ? 'bg-neutral-800 border border-white/15 text-white shadow-sm'
-                : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
-            }`}
-          >
-            <AlertTriangle className={`w-3.5 h-3.5 transition-colors ${
-              productFilter === 'low_stock' ? 'text-amber-400' : 'text-neutral-400 group-hover:text-white'
-            }`} />
-            <span>Мало</span>
-            <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono transition-colors ${
-              productFilter === 'low_stock' ? 'bg-amber-500/20 text-amber-300' : 'bg-white/5 text-neutral-400 group-hover:text-neutral-300'
-            }`}>
-              {counts.lowStock}
-            </span>
-          </button>
-
-          {/* Хиты */}
-          <button
-            type="button"
-            onClick={() => setProductFilter(productFilter === 'bestsellers' ? 'all' : 'bestsellers')}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 h-full rounded-lg text-xs font-medium transition-all cursor-pointer group ${
-              productFilter === 'bestsellers'
-                ? 'bg-neutral-800 border border-white/15 text-white shadow-sm'
-                : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
-            }`}
-          >
-            <Flame className={`w-3.5 h-3.5 transition-colors ${
-              productFilter === 'bestsellers' ? 'text-amber-400' : 'text-neutral-400 group-hover:text-white'
-            }`} />
-            <span>Хиты</span>
-            <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono transition-colors ${
-              productFilter === 'bestsellers' ? 'bg-amber-500/20 text-amber-300' : 'bg-white/5 text-neutral-400 group-hover:text-neutral-300'
-            }`}>
-              {counts.bestsellers}
-            </span>
-          </button>
+            <Search className="w-4 h-4 text-neutral-400 mr-2.5 shrink-0 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setIsSearchFocused(false)}
+              placeholder="Поиск по каталогу..."
+              className="w-full h-full bg-transparent text-xs font-mono text-white placeholder:text-neutral-500 outline-none"
+            />
+            {searchQuery && (
+              <Tooltip content="Очистить поиск">
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="text-neutral-400 hover:text-white p-1 rounded-md cursor-pointer transition-colors shrink-0 ml-1 hover:bg-white/10"
+                >
+                  <X size={13} />
+                </button>
+              </Tooltip>
+            )}
+          </div>
         </div>
 
-        {/* Правая часть тулбара таблицы: Индикатор видимых строк */}
-        <div className="flex items-center gap-2 font-mono text-[11px] text-neutral-400">
-          <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-            <span className="text-neutral-300 font-semibold">ПОЗИЦИЙ:</span>
-            <span className="font-bold text-white bg-white/10 px-2 py-0.5 rounded border border-white/10">
-              {rows.length}
-            </span>
-          </span>
+        {/* 2. НИЖНИЙ РЯД: СЛЕВА (ТИПЫ + ОПЦИИ С ЧЕКБОКСАМИ), СПРАВА (ВЫБОР КАТЕГОРИИ) */}
+        <div className="w-full flex flex-wrap items-center justify-between gap-2.5">
+          {/* Левая группа: 1. Сегмент типов + 2. Опции с чекбоксами */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* 1. Сегмент типов (Все, Поштучно, Сборки, Коллекции) */}
+            <div className="bg-neutral-950/80 border border-white/10 p-1 rounded-xl h-10 flex items-center gap-1 shadow-inner overflow-x-auto custom-scrollbar shrink-0">
+              {/* Все */}
+              <button
+                type="button"
+                onClick={() => setProductFilter('all')}
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 h-full rounded-lg text-xs font-medium transition-all cursor-pointer group ${
+                  productFilter === 'all'
+                    ? 'bg-neutral-800 border border-white/15 text-white shadow-sm'
+                    : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
+                }`}
+              >
+                <Package className={`w-3.5 h-3.5 transition-colors ${
+                  productFilter === 'all' ? 'text-cyan-400' : 'text-neutral-400 group-hover:text-white'
+                }`} />
+                <span>Все</span>
+                <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono transition-colors ${
+                  productFilter === 'all' ? 'bg-cyan-500/20 text-cyan-300 font-semibold' : 'bg-white/5 text-neutral-400 group-hover:text-neutral-300'
+                }`}>
+                  {counts.all}
+                </span>
+              </button>
+
+              {/* Поштучно */}
+              <button
+                type="button"
+                onClick={() => setProductFilter('single')}
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 h-full rounded-lg text-xs font-medium transition-all cursor-pointer group ${
+                  productFilter === 'single'
+                    ? 'bg-neutral-800 border border-white/15 text-white shadow-sm'
+                    : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
+                }`}
+              >
+                <Tag className={`w-3.5 h-3.5 transition-colors ${
+                  productFilter === 'single' ? 'text-cyan-400' : 'text-neutral-400 group-hover:text-white'
+                }`} />
+                <span>Поштучно</span>
+                <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono transition-colors ${
+                  productFilter === 'single' ? 'bg-cyan-500/20 text-cyan-300 font-semibold' : 'bg-white/5 text-neutral-400 group-hover:text-neutral-300'
+                }`}>
+                  {counts.single}
+                </span>
+              </button>
+
+              {/* Сборки */}
+              <button
+                type="button"
+                onClick={() => setProductFilter('assembly')}
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 h-full rounded-lg text-xs font-medium transition-all cursor-pointer group ${
+                  productFilter === 'assembly'
+                    ? 'bg-neutral-800 border border-white/15 text-white shadow-sm'
+                    : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
+                }`}
+              >
+                <Layers className={`w-3.5 h-3.5 transition-colors ${
+                  productFilter === 'assembly' ? 'text-cyan-400' : 'text-neutral-400 group-hover:text-white'
+                }`} />
+                <span>Сборки</span>
+                <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono transition-colors ${
+                  productFilter === 'assembly' ? 'bg-cyan-500/20 text-cyan-300 font-semibold' : 'bg-white/5 text-neutral-400 group-hover:text-neutral-300'
+                }`}>
+                  {counts.assembly}
+                </span>
+              </button>
+
+              {/* Коллекции */}
+              <button
+                type="button"
+                onClick={() => setProductFilter('collections')}
+                className={`flex items-center gap-1.5 px-2.5 sm:px-3 h-full rounded-lg text-xs font-medium transition-all cursor-pointer group ${
+                  productFilter === 'collections'
+                    ? 'bg-neutral-800 border border-white/15 text-white shadow-sm'
+                    : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
+                }`}
+              >
+                <FolderPlus className={`w-3.5 h-3.5 transition-colors ${
+                  productFilter === 'collections' ? 'text-purple-400' : 'text-neutral-400 group-hover:text-white'
+                }`} />
+                <span>Коллекции</span>
+                <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono transition-colors ${
+                  productFilter === 'collections' ? 'bg-purple-500/20 text-purple-300 font-semibold' : 'bg-white/5 text-neutral-400 group-hover:text-neutral-300'
+                }`}>
+                  {counts.collections}
+                </span>
+              </button>
+            </div>
+
+            {/* 2. Блок опций с галочками (В наличии, Мало, Нет в наличии, Хиты) */}
+            <div className="bg-neutral-950/80 border border-white/10 p-1 rounded-xl h-10 flex items-center gap-1 shadow-inner overflow-x-auto custom-scrollbar shrink-0">
+              {/* Чекбокс-опция: В наличии */}
+              <button
+                type="button"
+                onClick={() => setStockFilter(stockFilter === 'in_stock' ? 'all' : 'in_stock')}
+                className={`flex items-center gap-2 px-2.5 sm:px-3 h-full rounded-lg text-xs font-medium transition-all cursor-pointer select-none group border ${
+                  stockFilter === 'in_stock'
+                    ? 'bg-white/10 border-white/20 text-white'
+                    : 'text-neutral-400 hover:text-white hover:bg-white/5 border-transparent'
+                }`}
+                title="Показать только товары в наличии"
+              >
+                <div
+                  className={`w-3.5 h-3.5 rounded flex items-center justify-center transition-all shrink-0 ${
+                    stockFilter === 'in_stock'
+                      ? 'bg-white text-neutral-950'
+                      : 'border border-white/20 bg-white/5 group-hover:border-white/40'
+                  }`}
+                >
+                  {stockFilter === 'in_stock' && (
+                    <Check className="w-2.5 h-2.5 stroke-[3.5]" />
+                  )}
+                </div>
+                <span>В наличии</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded text-[10px] font-mono transition-colors ${
+                    stockFilter === 'in_stock'
+                      ? 'bg-white/20 text-white font-semibold'
+                      : 'bg-white/5 text-neutral-400 group-hover:text-neutral-300'
+                  }`}
+                >
+                  {counts.inStock}
+                </span>
+              </button>
+
+              {/* Чекбокс-опция: Мало */}
+              <button
+                type="button"
+                onClick={() => setStockFilter(stockFilter === 'low_stock' ? 'all' : 'low_stock')}
+                className={`flex items-center gap-2 px-2.5 sm:px-3 h-full rounded-lg text-xs font-medium transition-all cursor-pointer select-none group border ${
+                  stockFilter === 'low_stock'
+                    ? 'bg-white/10 border-white/20 text-white'
+                    : 'text-neutral-400 hover:text-white hover:bg-white/5 border-transparent'
+                }`}
+                title="Показать товары с низким остатком (≤2 шт)"
+              >
+                <div
+                  className={`w-3.5 h-3.5 rounded flex items-center justify-center transition-all shrink-0 ${
+                    stockFilter === 'low_stock'
+                      ? 'bg-white text-neutral-950'
+                      : 'border border-white/20 bg-white/5 group-hover:border-white/40'
+                  }`}
+                >
+                  {stockFilter === 'low_stock' && (
+                    <Check className="w-2.5 h-2.5 stroke-[3.5]" />
+                  )}
+                </div>
+                <span>Мало</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded text-[10px] font-mono transition-colors ${
+                    stockFilter === 'low_stock'
+                      ? 'bg-white/20 text-white font-semibold'
+                      : 'bg-white/5 text-neutral-400 group-hover:text-neutral-300'
+                  }`}
+                >
+                  {counts.lowStock}
+                </span>
+              </button>
+
+              {/* Чекбокс-опция: Нет в наличии */}
+              <button
+                type="button"
+                onClick={() => setStockFilter(stockFilter === 'out_of_stock' ? 'all' : 'out_of_stock')}
+                className={`flex items-center gap-2 px-2.5 sm:px-3 h-full rounded-lg text-xs font-medium transition-all cursor-pointer select-none group border ${
+                  stockFilter === 'out_of_stock'
+                    ? 'bg-white/10 border-white/20 text-white'
+                    : 'text-neutral-400 hover:text-white hover:bg-white/5 border-transparent'
+                }`}
+                title="Показать товары, которых нет в наличии (0 шт)"
+              >
+                <div
+                  className={`w-3.5 h-3.5 rounded flex items-center justify-center transition-all shrink-0 ${
+                    stockFilter === 'out_of_stock'
+                      ? 'bg-white text-neutral-950'
+                      : 'border border-white/20 bg-white/5 group-hover:border-white/40'
+                  }`}
+                >
+                  {stockFilter === 'out_of_stock' && (
+                    <Check className="w-2.5 h-2.5 stroke-[3.5]" />
+                  )}
+                </div>
+                <span>Нет в наличии</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded text-[10px] font-mono transition-colors ${
+                    stockFilter === 'out_of_stock'
+                      ? 'bg-white/20 text-white font-semibold'
+                      : 'bg-white/5 text-neutral-400 group-hover:text-neutral-300'
+                  }`}
+                >
+                  {counts.outOfStock}
+                </span>
+              </button>
+
+              {/* Чекбокс-опция: Хиты */}
+              <button
+                type="button"
+                onClick={() => setOnlyBestsellers(!onlyBestsellers)}
+                className={`flex items-center gap-2 px-2.5 sm:px-3 h-full rounded-lg text-xs font-medium transition-all cursor-pointer select-none group border ${
+                  onlyBestsellers
+                    ? 'bg-white/10 border-white/20 text-white'
+                    : 'text-neutral-400 hover:text-white hover:bg-white/5 border-transparent'
+                }`}
+                title="Показать только хиты продаж"
+              >
+                <div
+                  className={`w-3.5 h-3.5 rounded flex items-center justify-center transition-all shrink-0 ${
+                    onlyBestsellers
+                      ? 'bg-white text-neutral-950'
+                      : 'border border-white/20 bg-white/5 group-hover:border-white/40'
+                  }`}
+                >
+                  {onlyBestsellers && (
+                    <Check className="w-2.5 h-2.5 stroke-[3.5]" />
+                  )}
+                </div>
+                <span>Хиты</span>
+                <span
+                  className={`px-1.5 py-0.2 rounded text-[10px] font-mono transition-colors ${
+                    onlyBestsellers
+                      ? 'bg-white/20 text-white font-semibold'
+                      : 'bg-white/5 text-neutral-400 group-hover:text-neutral-300'
+                  }`}
+                >
+                  {counts.bestsellers}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Правая группа: 3. Фильтр по категории (выровнен по правому краю) */}
+          <div className="bg-neutral-950/80 border border-white/10 p-1 rounded-xl w-[150px] sm:w-[160px] h-10 shrink-0 shadow-inner flex items-center">
+            <CockpitDropdown
+              multiSelect={true}
+              values={selectedCategories}
+              onMultiChange={setSelectedCategories}
+              options={categoryDropdownOptions}
+              variant="filter"
+              align="right"
+              className="w-full h-full"
+              placeholder="Все категории"
+              hideStatusDot
+            />
+          </div>
         </div>
       </div>
 
       {/* 2. ОСНОВНОЕ ТЕЛО ТАБЛИЦЫ */}
-      <div className="overflow-x-auto w-full custom-scrollbar">
+      <div className="overflow-x-auto w-full custom-scrollbar rounded-b-xl relative z-10">
         {isExpanded ? (
           /* ========================================================================= */
           /* РАЗВЁРНУТЫЙ РЕЖИМ (14 РАЗДЕЛЬНЫХ СТОЛБЦОВ С МАКСИМАЛЬНОЙ ДЕТАЛИЗАЦИЕЙ)       */
@@ -589,23 +843,16 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                     <React.Fragment key={row.id}>
                       <tr
                         onContextMenu={(e) => handleContextMenu(e, row)}
-                        onClick={() => {
-                          if (row.rowKind === 'product') {
-                            onSelectForDrawer(row.item);
-                          } else {
-                            onToggleExpand(row.id);
-                          }
-                        }}
-                        className="hover:bg-white/[0.04] transition-colors cursor-pointer group relative"
+                        className="hover:bg-white/[0.04] transition-colors group relative"
                       >
                         {/* 1. АРТИКУЛ (ЗАКРЕПЛЕНО СЛЕВА) */}
-                        <td className="py-2.5 px-3 whitespace-nowrap font-bold text-neutral-300 group-hover:text-cyan-300 sticky left-0 bg-neutral-950/95 z-10 shadow-[2px_0_8px_rgba(0,0,0,0.4)] border-r border-white/10">
+                        <td className="py-2.5 px-3 whitespace-nowrap font-bold text-neutral-300 group-hover:text-cyan-300 sticky left-0 bg-neutral-950/95 group-hover:bg-neutral-900/95 transition-colors z-10 shadow-[2px_0_8px_rgba(0,0,0,0.4)] border-r border-white/10">
                           <div className="flex flex-col gap-1 leading-tight">
                             <Tooltip content={`ID: ${row.id} (Клик для копирования)`}>
                               <button
                                 type="button"
                                 onClick={(e) => handleCopyId(e, row.id)}
-                                className={`px-2 py-0.5 rounded text-[11px] font-mono w-fit font-bold border transition-colors flex items-center gap-1 ${
+                                className={`px-2 py-0.5 rounded text-[11px] font-mono w-fit font-bold border transition-colors flex items-center gap-1 cursor-pointer ${
                                   isCol
                                     ? 'bg-purple-950/50 text-purple-300 border-purple-800/40 hover:bg-purple-900/60'
                                     : isAsm
@@ -645,56 +892,74 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                         </td>
 
                         {/* 3. КАТЕГОРИЯ */}
-                        <td className="py-2.5 px-3 whitespace-nowrap">
-                          <Tooltip content="Сменить категорию">
+                        <td className="py-2.5 px-3 whitespace-nowrap relative" onClick={(e) => e.stopPropagation()}>
+                          <div className="relative">
                             <button
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (row.rowKind === 'product') {
-                                  onOpenCategoryModal(row.item);
-                                } else {
-                                  onOpenEditCollection(row.collection);
-                                }
+                                setActiveCategoryMenuId(activeCategoryMenuId === row.id ? null : row.id);
+                                setActiveFilamentMenuId(null);
                               }}
-                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-mono bg-neutral-900 text-neutral-300 border border-white/10 hover:border-white/20 transition-colors cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-mono bg-neutral-900 text-neutral-300 hover:text-neutral-400 border border-white/10 hover:border-white/20 transition-colors cursor-pointer"
+                              title="Клик для смены категории"
                             >
                               <CatIcon className={`w-3 h-3 ${isCol ? 'text-purple-400' : 'text-cyan-400'} shrink-0`} />
                               <span className="truncate max-w-[100px]">{catLabel}</span>
                             </button>
-                          </Tooltip>
+
+                            {/* Dropdown меню выбора категории */}
+                            <AnimatePresence>
+                              {activeCategoryMenuId === row.id && (
+                                <motion.div
+                                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                                  className="absolute left-0 top-7 z-50 w-44 bg-neutral-950 border border-white/15 rounded-xl shadow-2xl p-1.5 space-y-1 font-mono text-xs backdrop-blur-2xl max-h-56 overflow-y-auto"
+                                >
+                                  {categoriesList.map((cat) => {
+                                    const Icon = getCategoryLucideIcon(cat.label);
+                                    return (
+                                      <button
+                                        key={cat.id}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (row.rowKind === 'product') {
+                                            onInlineUpdateProduct?.(row.item.id, { category: cat.label });
+                                          } else {
+                                            onInlineUpdateCollection?.(row.collection.id, { category: cat.label });
+                                          }
+                                          setActiveCategoryMenuId(null);
+                                        }}
+                                        className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center gap-2 hover:bg-white/10 transition-colors ${
+                                          catName === cat.label || catName === cat.id ? 'bg-white/15 text-white font-bold' : 'text-neutral-300'
+                                        }`}
+                                      >
+                                        <Icon className="w-3 h-3 text-cyan-400 shrink-0" />
+                                        <span className="truncate">{cat.label}</span>
+                                      </button>
+                                    );
+                                  })}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
                         </td>
 
-                        {/* 4. НАИМЕНОВАНИЕ / ДЕТАЛИ */}
+                        {/* 4. НАИМЕНОВАНИЕ / ДЕТАЛИ (ИНЛАЙН-РЕДАКТИРОВАНИЕ) */}
                         <td className="py-2.5 px-3">
-                          {isRenaming ? (
-                            <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                              <input
-                                type="text"
-                                value={editingNameValue}
-                                onChange={(e) => setEditingNameValue(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') onSaveRename();
-                                  if (e.key === 'Escape') onCancelRename();
-                                }}
-                                autoFocus
-                                className="px-2 py-0.5 bg-neutral-900 border border-cyan-400 text-white rounded text-xs font-sans outline-none w-full max-w-sm"
-                              />
-                              <button
-                                type="button"
-                                onClick={onSaveRename}
-                                className="p-1 rounded bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 cursor-pointer"
-                              >
-                                <Check size={12} />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={onCancelRename}
-                                className="p-1 rounded bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 cursor-pointer"
-                              >
-                                <X size={12} />
-                              </button>
-                            </div>
+                          {editingCell?.rowId === row.id && editingCell?.field === 'name' ? (
+                            <input
+                              ref={inputRef as React.RefObject<HTMLInputElement>}
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => commitEdit(row, 'name', editValue)}
+                              onKeyDown={(e) => handleKeyDown(e, row, 'name')}
+                              className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-neutral-400 font-bold text-xs p-0 m-0 w-full shadow-none"
+                              placeholder="Название товара"
+                            />
                           ) : (
                             <div className="flex items-center gap-2 min-w-0 font-sans max-w-[240px]">
                               {(isCol || isAsm) && (
@@ -721,31 +986,21 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                               )}
 
                               <span
-                                className="font-bold text-white group-hover:text-cyan-300 transition-colors truncate text-xs sm:text-[13px] cursor-pointer"
-                                title={row.name}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  startEditing(row.id, 'name', row.name);
+                                }}
+                                className="font-bold text-white hover:text-neutral-400 transition-colors truncate text-xs sm:text-[13px] cursor-text"
+                                title="Клик для изменения наименования"
                               >
                                 {row.name}
                               </span>
-
-                              {/* Кнопка быстрого переименования */}
-                              <Tooltip content="Переименовать">
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onStartRename(row.rowKind === 'product' ? row.item : row.collection);
-                                  }}
-                                  className="opacity-0 group-hover:opacity-60 hover:opacity-100! text-neutral-400 hover:text-white transition-opacity p-0.5 cursor-pointer shrink-0"
-                                >
-                                  <Edit2 className="w-2.5 h-2.5" />
-                                </button>
-                              </Tooltip>
                             </div>
                           )}
                         </td>
 
-                        {/* 5. ПЛАСТИК / МАТЕРИАЛ */}
-                        <td className="py-2.5 px-3 whitespace-nowrap">
+                        {/* 5. ПЛАСТИК / МАТЕРИАЛ (ИНЛАЙН ВЫБОР) */}
+                        <td className="py-2.5 px-3 whitespace-nowrap relative" onClick={(e) => e.stopPropagation()}>
                           {isCol ? (
                             <div className="flex items-center gap-1 font-mono text-neutral-400">
                               {row.materialsColors.slice(0, 3).map((c, i) => (
@@ -764,17 +1019,67 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                               {(row.item.assembly_parts || []).length} дет.
                             </span>
                           ) : (
-                            <div className="flex items-center gap-1.5 font-mono text-neutral-300">
-                              <span
-                                className="w-2 h-2 rounded-full border border-white/20 shrink-0"
-                                style={{ backgroundColor: filColor }}
-                              />
-                              <span className="truncate max-w-[110px]">{filName}</span>
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveFilamentMenuId(activeFilamentMenuId === row.id ? null : row.id);
+                                  setActiveCategoryMenuId(null);
+                                }}
+                                className="flex items-center gap-1.5 font-mono text-neutral-300 hover:text-neutral-400 transition-colors cursor-pointer"
+                                title="Клик для смены пластика"
+                              >
+                                <span
+                                  className="w-2 h-2 rounded-full border border-white/20 shrink-0"
+                                  style={{ backgroundColor: filColor }}
+                                />
+                                <span className="truncate max-w-[110px]">{filName}</span>
+                              </button>
+
+                              {/* Dropdown меню выбора пластика */}
+                              <AnimatePresence>
+                                {activeFilamentMenuId === row.id && (
+                                  <motion.div
+                                    initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                                    className="absolute left-0 top-7 z-50 w-44 bg-neutral-950 border border-white/15 rounded-xl shadow-2xl p-1.5 space-y-1 font-mono text-xs backdrop-blur-2xl max-h-56 overflow-y-auto"
+                                  >
+                                    {filaments.map((fil) => (
+                                      <button
+                                        key={fil.id}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (row.rowKind === 'product') {
+                                            onInlineUpdateProduct?.(row.item.id, {
+                                              filament_id: fil.id,
+                                              filament_name: fil.name,
+                                              filament_color: fil.color,
+                                            });
+                                          }
+                                          setActiveFilamentMenuId(null);
+                                        }}
+                                        className={`w-full text-left px-2 py-1.5 rounded-lg flex items-center gap-2 hover:bg-white/10 transition-colors ${
+                                          filName === fil.name ? 'bg-white/15 text-white font-bold' : 'text-neutral-300'
+                                        }`}
+                                      >
+                                        <span
+                                          className="w-2.5 h-2.5 rounded-full border border-white/20 shrink-0"
+                                          style={{ backgroundColor: fil.color || '#3b82f6' }}
+                                        />
+                                        <span className="truncate">{fil.name}</span>
+                                      </button>
+                                    ))}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
                             </div>
                           )}
                         </td>
 
-                        {/* 6. ВЕС И ВРЕМЯ */}
+                        {/* 6. ВЕС И ВРЕМЯ (ИНЛАЙН-РЕДАКТИРОВАНИЕ) */}
                         <td className="py-2.5 px-3 whitespace-nowrap font-mono text-xs">
                           {isCol ? (
                             <span className="text-neutral-400">
@@ -782,23 +1087,95 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                             </span>
                           ) : (
                             <div className="flex flex-col gap-0.5 leading-tight">
-                              <span className="text-neutral-200 font-medium">{row.weight_g || 0} г</span>
-                              <span className="text-[10px] text-neutral-500 font-semibold">
-                                {row.hours || 0}ч {row.minutes || 0}м
-                              </span>
+                              {editingCell?.rowId === row.id && editingCell?.field === 'weight_g' ? (
+                                <input
+                                  ref={inputRef as React.RefObject<HTMLInputElement>}
+                                  type="text"
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  onBlur={() => commitEdit(row, 'weight_g', editValue)}
+                                  onKeyDown={(e) => handleKeyDown(e, row, 'weight_g')}
+                                  className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-neutral-400 font-mono font-medium text-xs p-0 m-0 w-16 shadow-none"
+                                  placeholder="0"
+                                />
+                              ) : (
+                                <span
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startEditing(row.id, 'weight_g', row.weight_g || 0);
+                                  }}
+                                  className="text-neutral-200 hover:text-neutral-400 font-medium cursor-text transition-colors"
+                                  title="Клик для изменения веса"
+                                >
+                                  {row.weight_g || 0} г
+                                </span>
+                              )}
+
+                              {editingCell?.rowId === row.id && editingCell?.field === 'hours' ? (
+                                <input
+                                  ref={inputRef as React.RefObject<HTMLInputElement>}
+                                  type="text"
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  onBlur={() => commitEdit(row, 'hours', editValue)}
+                                  onKeyDown={(e) => handleKeyDown(e, row, 'hours')}
+                                  className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-neutral-400 font-mono text-[10px] p-0 m-0 w-16 shadow-none"
+                                  placeholder="0"
+                                />
+                              ) : (
+                                <span
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startEditing(row.id, 'hours', row.hours || 0);
+                                  }}
+                                  className="text-[10px] text-neutral-500 hover:text-neutral-400 font-semibold cursor-text transition-colors"
+                                  title="Клик для изменения часов печати"
+                                >
+                                  {row.hours || 0}ч {row.minutes || 0}м
+                                </span>
+                              )}
                             </div>
                           )}
                         </td>
 
-                        {/* 7. ОСТАТОК СКЛАДА */}
+                        {/* 7. ОСТАТОК СКЛАДА (ИНЛАЙН-РЕДАКТИРОВАНИЕ) */}
                         <td className="py-2.5 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-2">
-                            {isOutOfStock ? (
-                              <CockpitStatusPill label="0 шт (под заказ)" tone="neutral" dot={false} />
+                            {editingCell?.rowId === row.id && editingCell?.field === 'stock_quantity' ? (
+                              <input
+                                ref={inputRef as React.RefObject<HTMLInputElement>}
+                                type="text"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => commitEdit(row, 'stock_quantity', editValue)}
+                                onKeyDown={(e) => handleKeyDown(e, row, 'stock_quantity')}
+                                className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-neutral-400 font-mono text-xs p-0 m-0 w-16 shadow-none"
+                                placeholder="0"
+                              />
+                            ) : isOutOfStock ? (
+                              <div
+                                onClick={() => row.rowKind === 'product' && startEditing(row.id, 'stock_quantity', 0)}
+                                className="cursor-text"
+                                title="Клик для изменения остатка"
+                              >
+                                <CockpitStatusPill label="0 шт (под заказ)" tone="neutral" dot={false} />
+                              </div>
                             ) : isLowStock ? (
-                              <CockpitStatusPill label={`Мало (${stock} шт)`} tone="yellow" pulse />
+                              <div
+                                onClick={() => row.rowKind === 'product' && startEditing(row.id, 'stock_quantity', stock)}
+                                className="cursor-text"
+                                title="Клик для изменения остатка"
+                              >
+                                <CockpitStatusPill label={`Мало (${stock} шт)`} tone="yellow" pulse />
+                              </div>
                             ) : (
-                              <CockpitStatusPill label={`В наличии (${stock} шт)`} tone={isAsm ? 'cyan' : isCol ? 'purple' : 'emerald'} dot />
+                              <div
+                                onClick={() => row.rowKind === 'product' && startEditing(row.id, 'stock_quantity', stock)}
+                                className="cursor-text"
+                                title="Клик для изменения остатка"
+                              >
+                                <CockpitStatusPill label={`В наличии (${stock} шт)`} tone={isAsm ? 'cyan' : isCol ? 'purple' : 'emerald'} dot />
+                              </div>
                             )}
 
                             {/* Кнопки быстрой регулировки остатка */}
@@ -814,7 +1191,12 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                     <Minus className="w-2.5 h-2.5" />
                                   </button>
                                 </Tooltip>
-                                <span className="font-mono text-[10px] px-1 text-white font-bold">{stock}</span>
+                                <span
+                                  onClick={() => startEditing(row.id, 'stock_quantity', stock)}
+                                  className="font-mono text-[10px] px-1 text-white hover:text-neutral-400 font-bold cursor-text transition-colors"
+                                >
+                                  {stock}
+                                </span>
                                 <Tooltip content="Увеличить остаток">
                                   <button
                                     type="button"
@@ -829,31 +1211,67 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           </div>
                         </td>
 
-                        {/* 8. СЕБЕСТОИМОСТЬ */}
+                        {/* 8. СЕБЕСТОИМОСТЬ (ИНЛАЙН-РЕДАКТИРОВАНИЕ) */}
                         <td className="py-2.5 px-3 whitespace-nowrap text-right font-mono text-xs">
-                          {isCol ? (
+                          {editingCell?.rowId === row.id && editingCell?.field === 'base_cost' ? (
+                            <input
+                              ref={inputRef as React.RefObject<HTMLInputElement>}
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => commitEdit(row, 'base_cost', editValue)}
+                              onKeyDown={(e) => handleKeyDown(e, row, 'base_cost')}
+                              className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-neutral-400 font-mono font-bold text-xs text-right p-0 m-0 w-24 shadow-none"
+                              placeholder="0"
+                            />
+                          ) : isCol ? (
                             <span className="text-neutral-400">
                               {row.minCost === row.maxCost
                                 ? formatCurrency(row.minCost, currencySymbol)
                                 : `${formatCurrency(row.minCost, currencySymbol)}–${formatCurrency(row.maxCost, currencySymbol)}`}
                             </span>
                           ) : (
-                            <span className="font-bold text-neutral-200 text-xs">
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startEditing(row.id, 'base_cost', baseCost);
+                              }}
+                              className="font-bold text-neutral-200 hover:text-neutral-400 text-xs cursor-text transition-colors"
+                              title="Клик для изменения себестоимости"
+                            >
                               {formatCurrency(baseCost, currencySymbol)}
                             </span>
                           )}
                         </td>
 
-                        {/* 9. ЦЕНА ПРОДАЖИ */}
+                        {/* 9. ЦЕНА ПРОДАЖИ (ИНЛАЙН-РЕДАКТИРОВАНИЕ) */}
                         <td className="py-2.5 px-3 whitespace-nowrap text-right font-mono text-xs">
-                          {isCol ? (
+                          {editingCell?.rowId === row.id && editingCell?.field === 'final_price' ? (
+                            <input
+                              ref={inputRef as React.RefObject<HTMLInputElement>}
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => commitEdit(row, 'final_price', editValue)}
+                              onKeyDown={(e) => handleKeyDown(e, row, 'final_price')}
+                              className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-neutral-400 font-mono font-bold text-sm text-right p-0 m-0 w-24 shadow-none"
+                              placeholder="0"
+                            />
+                          ) : isCol ? (
                             <span className="font-bold text-purple-300 text-sm">
                               {row.minPrice === row.maxPrice
                                 ? formatCurrency(row.minPrice, currencySymbol)
                                 : `${formatCurrency(row.minPrice, currencySymbol)}–${formatCurrency(row.maxPrice, currencySymbol)}`}
                             </span>
                           ) : (
-                            <span className={`font-bold text-sm ${isAsm ? 'text-cyan-300' : 'text-white'}`}>
+                            <span
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                startEditing(row.id, 'final_price', finalPrice);
+                              }}
+                              className={`font-bold text-sm cursor-text hover:text-neutral-400 transition-colors ${isAsm ? 'text-cyan-300' : 'text-white'}`}
+                              title="Клик для изменения цены продажи"
+                            >
                               {formatCurrency(finalPrice, currencySymbol)}
                             </span>
                           )}
@@ -1022,8 +1440,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                     return (
                                       <div
                                         key={child.id}
-                                        onClick={() => onSelectForDrawer(child)}
-                                        className="py-2 flex items-center justify-between gap-3 hover:bg-white/[0.02] px-2 rounded-lg cursor-pointer transition-colors"
+                                        className="py-2 flex items-center justify-between gap-3 hover:bg-white/[0.02] px-2 rounded-lg transition-colors"
                                       >
                                         <div className="flex items-center gap-2 min-w-0">
                                           <span className="text-purple-400 font-bold select-none">└─</span>
@@ -1256,17 +1673,10 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                     <React.Fragment key={row.id}>
                       <tr
                         onContextMenu={(e) => handleContextMenu(e, row)}
-                        onClick={() => {
-                          if (row.rowKind === 'product') {
-                            onSelectForDrawer(row.item);
-                          } else {
-                            onToggleExpand(row.id);
-                          }
-                        }}
-                        className="hover:bg-white/[0.03] transition-colors cursor-pointer group relative"
+                        className="hover:bg-white/[0.03] transition-colors group relative"
                       >
                         {/* 1. АРТИКУЛ И ТИП */}
-                        <td className="py-2 px-3 whitespace-nowrap font-bold text-neutral-300 group-hover:text-cyan-300 sticky left-0 bg-neutral-950/90 z-10">
+                        <td className="py-2 px-3 whitespace-nowrap font-bold text-neutral-300 group-hover:text-cyan-300 sticky left-0 bg-neutral-950/90 group-hover:bg-neutral-900/90 transition-colors z-10">
                           <div className="flex flex-col gap-0.5 leading-tight">
                             <span className={`px-1.5 py-0.2 rounded text-[11px] font-mono w-fit font-bold border ${
                               isCol
@@ -1284,66 +1694,261 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                         </td>
 
                         {/* 2. КАТЕГОРИЯ */}
-                        <td className="py-2 px-3 whitespace-nowrap">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-neutral-900 text-neutral-300 border border-white/10">
-                            <CatIcon className={`w-2.5 h-2.5 ${isCol ? 'text-purple-400' : 'text-cyan-400'} shrink-0`} />
-                            <span className="truncate max-w-[90px]">{catLabel}</span>
-                          </span>
-                        </td>
+                        <td className="py-2 px-3 whitespace-nowrap relative" onClick={(e) => e.stopPropagation()}>
+                          <div className="relative">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveCategoryMenuId(activeCategoryMenuId === row.id ? null : row.id);
+                                setActiveFilamentMenuId(null);
+                              }}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono bg-neutral-900 text-neutral-300 hover:text-neutral-400 border border-white/10 hover:border-white/20 transition-colors cursor-pointer"
+                              title="Клик для смены категории"
+                            >
+                              <CatIcon className={`w-2.5 h-2.5 ${isCol ? 'text-purple-400' : 'text-cyan-400'} shrink-0`} />
+                              <span className="truncate max-w-[90px]">{catLabel}</span>
+                            </button>
 
-                        {/* 3. НАИМЕНОВАНИЕ / ДЕТАЛИ */}
-                        <td className="py-2 px-3 font-sans font-medium text-white">
-                          <div className="flex items-center gap-1.5 max-w-[220px]">
-                            {(isCol || isAsm) && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onToggleExpand(row.id);
-                                }}
-                                className="p-0.5 text-neutral-400 hover:text-white"
-                              >
-                                <ChevronRight size={11} className={`transform transition-transform ${isExpandedRow ? 'rotate-90 text-cyan-400' : ''}`} />
-                              </button>
-                            )}
-                            <span className="font-semibold text-neutral-200 text-xs truncate" title={row.name}>
-                              {row.name}
-                            </span>
+                            {/* Dropdown меню выбора категории */}
+                            <AnimatePresence>
+                              {activeCategoryMenuId === row.id && (
+                                <motion.div
+                                  initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                                  exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                                  className="absolute left-0 top-7 z-50 w-40 bg-neutral-950 border border-white/15 rounded-xl shadow-2xl p-1.5 space-y-1 font-mono text-xs backdrop-blur-2xl max-h-56 overflow-y-auto"
+                                >
+                                  {categoriesList.map((cat) => {
+                                    const Icon = getCategoryLucideIcon(cat.label);
+                                    return (
+                                      <button
+                                        key={cat.id}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (row.rowKind === 'product') {
+                                            onInlineUpdateProduct?.(row.item.id, { category: cat.label });
+                                          } else {
+                                            onInlineUpdateCollection?.(row.collection.id, { category: cat.label });
+                                          }
+                                          setActiveCategoryMenuId(null);
+                                        }}
+                                        className={`w-full text-left px-2 py-1 rounded flex items-center gap-1.5 hover:bg-white/10 transition-colors ${
+                                          catName === cat.label || catName === cat.id ? 'bg-white/15 text-white font-bold' : 'text-neutral-300'
+                                        }`}
+                                      >
+                                        <Icon className="w-3 h-3 text-cyan-400 shrink-0" />
+                                        <span className="truncate">{cat.label}</span>
+                                      </button>
+                                    );
+                                  })}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
                           </div>
                         </td>
 
-                        {/* 4. ПЛАСТИК */}
-                        <td className="py-2 px-3 whitespace-nowrap font-mono text-xs">
+                        {/* 3. НАИМЕНОВАНИЕ / ДЕТАЛИ (ИНЛАЙН-РЕДАКТИРОВАНИЕ) */}
+                        <td className="py-2 px-3 font-sans font-medium text-white">
+                          {editingCell?.rowId === row.id && editingCell?.field === 'name' ? (
+                            <input
+                              ref={inputRef as React.RefObject<HTMLInputElement>}
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={() => commitEdit(row, 'name', editValue)}
+                              onKeyDown={(e) => handleKeyDown(e, row, 'name')}
+                              className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-neutral-400 font-semibold text-xs p-0 m-0 w-full shadow-none"
+                              placeholder="Название товара"
+                            />
+                          ) : (
+                            <div className="flex items-center gap-1.5 max-w-[220px]">
+                              {(isCol || isAsm) && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onToggleExpand(row.id);
+                                  }}
+                                  className="p-0.5 text-neutral-400 hover:text-white cursor-pointer"
+                                >
+                                  <ChevronRight size={11} className={`transform transition-transform ${isExpandedRow ? 'rotate-90 text-cyan-400' : ''}`} />
+                                </button>
+                              )}
+                              <span
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  startEditing(row.id, 'name', row.name);
+                                }}
+                                className="font-semibold text-neutral-200 hover:text-neutral-400 transition-colors text-xs truncate cursor-text"
+                                title="Клик для изменения наименования"
+                              >
+                                {row.name}
+                              </span>
+                            </div>
+                          )}
+                        </td>
+
+                        {/* 4. ПЛАСТИК (ИНЛАЙН ВЫБОР) */}
+                        <td className="py-2 px-3 whitespace-nowrap font-mono text-xs relative" onClick={(e) => e.stopPropagation()}>
                           {isCol ? (
                             <span className="text-neutral-400">{row.materialsList.length} мат.</span>
                           ) : isAsm ? (
                             <span className="text-cyan-300">{(row.item.assembly_parts || []).length} дет.</span>
                           ) : (
-                            <div className="flex items-center gap-1 text-neutral-300">
-                              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: filColor }} />
-                              <span className="truncate max-w-[90px]">{filName}</span>
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveFilamentMenuId(activeFilamentMenuId === row.id ? null : row.id);
+                                  setActiveCategoryMenuId(null);
+                                }}
+                                className="flex items-center gap-1 text-neutral-300 hover:text-neutral-400 transition-colors cursor-pointer"
+                                title="Клик для смены пластика"
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: filColor }} />
+                                <span className="truncate max-w-[90px]">{filName}</span>
+                              </button>
+
+                              {/* Dropdown меню выбора пластика */}
+                              <AnimatePresence>
+                                {activeFilamentMenuId === row.id && (
+                                  <motion.div
+                                    initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                                    className="absolute left-0 top-7 z-50 w-40 bg-neutral-950 border border-white/15 rounded-xl shadow-2xl p-1.5 space-y-1 font-mono text-xs backdrop-blur-2xl max-h-56 overflow-y-auto"
+                                  >
+                                    {filaments.map((fil) => (
+                                      <button
+                                        key={fil.id}
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (row.rowKind === 'product') {
+                                            onInlineUpdateProduct?.(row.item.id, {
+                                              filament_id: fil.id,
+                                              filament_name: fil.name,
+                                              filament_color: fil.color,
+                                            });
+                                          }
+                                          setActiveFilamentMenuId(null);
+                                        }}
+                                        className={`w-full text-left px-2 py-1 rounded flex items-center gap-1.5 hover:bg-white/10 transition-colors ${
+                                          filName === fil.name ? 'bg-white/15 text-white font-bold' : 'text-neutral-300'
+                                        }`}
+                                      >
+                                        <span
+                                          className="w-2 h-2 rounded-full border border-white/20 shrink-0"
+                                          style={{ backgroundColor: fil.color || '#3b82f6' }}
+                                        />
+                                        <span className="truncate">{fil.name}</span>
+                                      </button>
+                                    ))}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
                             </div>
                           )}
                         </td>
 
-                        {/* 5. ВЕС / ВРЕМЯ */}
+                        {/* 5. ВЕС / ВРЕМЯ (ИНЛАЙН-РЕДАКТИРОВАНИЕ) */}
                         <td className="py-2 px-3 whitespace-nowrap font-mono text-xs text-neutral-400">
                           {isCol ? (
                             <span>{row.minWeight}–{row.maxWeight}г</span>
                           ) : (
-                            <span>{row.weight_g || 0}г · {row.hours || 0}ч</span>
+                            <div className="flex items-center gap-1">
+                              {editingCell?.rowId === row.id && editingCell?.field === 'weight_g' ? (
+                                <input
+                                  ref={inputRef as React.RefObject<HTMLInputElement>}
+                                  type="text"
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  onBlur={() => commitEdit(row, 'weight_g', editValue)}
+                                  onKeyDown={(e) => handleKeyDown(e, row, 'weight_g')}
+                                  className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-neutral-400 font-mono text-xs p-0 m-0 w-12 shadow-none"
+                                  placeholder="0"
+                                />
+                              ) : (
+                                <span
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startEditing(row.id, 'weight_g', row.weight_g || 0);
+                                  }}
+                                  className="hover:text-neutral-300 cursor-text transition-colors"
+                                  title="Клик для изменения веса"
+                                >
+                                  {row.weight_g || 0}г
+                                </span>
+                              )}
+                              <span>·</span>
+                              {editingCell?.rowId === row.id && editingCell?.field === 'hours' ? (
+                                <input
+                                  ref={inputRef as React.RefObject<HTMLInputElement>}
+                                  type="text"
+                                  value={editValue}
+                                  onChange={(e) => setEditValue(e.target.value)}
+                                  onBlur={() => commitEdit(row, 'hours', editValue)}
+                                  onKeyDown={(e) => handleKeyDown(e, row, 'hours')}
+                                  className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-neutral-400 font-mono text-xs p-0 m-0 w-10 shadow-none"
+                                  placeholder="0"
+                                />
+                              ) : (
+                                <span
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    startEditing(row.id, 'hours', row.hours || 0);
+                                  }}
+                                  className="hover:text-neutral-300 cursor-text transition-colors"
+                                  title="Клик для изменения часов"
+                                >
+                                  {row.hours || 0}ч
+                                </span>
+                              )}
+                            </div>
                           )}
                         </td>
 
-                        {/* 6. ОСТАТОК СКЛАДА */}
+                        {/* 6. ОСТАТОК СКЛАДА (ИНЛАЙН-РЕДАКТИРОВАНИЕ) */}
                         <td className="py-2 px-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-1.5">
-                            {isOutOfStock ? (
-                              <CockpitStatusPill label="0 шт" tone="neutral" dot={false} />
+                            {editingCell?.rowId === row.id && editingCell?.field === 'stock_quantity' ? (
+                              <input
+                                ref={inputRef as React.RefObject<HTMLInputElement>}
+                                type="text"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => commitEdit(row, 'stock_quantity', editValue)}
+                                onKeyDown={(e) => handleKeyDown(e, row, 'stock_quantity')}
+                                className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-neutral-400 font-mono text-xs p-0 m-0 w-12 shadow-none"
+                                placeholder="0"
+                              />
+                            ) : isOutOfStock ? (
+                              <div
+                                onClick={() => row.rowKind === 'product' && startEditing(row.id, 'stock_quantity', 0)}
+                                className="cursor-text"
+                                title="Клик для изменения остатка"
+                              >
+                                <CockpitStatusPill label="0 шт" tone="neutral" dot={false} />
+                              </div>
                             ) : isLowStock ? (
-                              <CockpitStatusPill label={`${stock} шт`} tone="yellow" pulse />
+                              <div
+                                onClick={() => row.rowKind === 'product' && startEditing(row.id, 'stock_quantity', stock)}
+                                className="cursor-text"
+                                title="Клик для изменения остатка"
+                              >
+                                <CockpitStatusPill label={`${stock} шт`} tone="yellow" pulse />
+                              </div>
                             ) : (
-                              <CockpitStatusPill label={`${stock} шт`} tone={isAsm ? 'cyan' : isCol ? 'purple' : 'emerald'} dot />
+                              <div
+                                onClick={() => row.rowKind === 'product' && startEditing(row.id, 'stock_quantity', stock)}
+                                className="cursor-text"
+                                title="Клик для изменения остатка"
+                              >
+                                <CockpitStatusPill label={`${stock} шт`} tone={isAsm ? 'cyan' : isCol ? 'purple' : 'emerald'} dot />
+                              </div>
                             )}
                             {row.rowKind === 'product' && (
                               <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1367,15 +1972,56 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           </div>
                         </td>
 
-                        {/* 7. СЕБЕСТ. / ЦЕНА */}
+                        {/* 7. СЕБЕСТ. / ЦЕНА (ИНЛАЙН-РЕДАКТИРОВАНИЕ) */}
                         <td className="py-2 px-3 whitespace-nowrap text-right font-mono text-xs">
                           <div className="flex flex-col items-end gap-0.5 leading-tight">
-                            <span className="font-bold text-white text-xs sm:text-sm">
-                              {formatCurrency(finalPrice, currencySymbol)}
-                            </span>
-                            <span className="text-[10px] text-neutral-400 font-mono">
-                              себест. {formatCurrency(baseCost, currencySymbol)}
-                            </span>
+                            {editingCell?.rowId === row.id && editingCell?.field === 'final_price' ? (
+                              <input
+                                ref={inputRef as React.RefObject<HTMLInputElement>}
+                                type="text"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => commitEdit(row, 'final_price', editValue)}
+                                onKeyDown={(e) => handleKeyDown(e, row, 'final_price')}
+                                className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-neutral-400 font-bold font-mono text-xs text-right p-0 m-0 w-20 shadow-none"
+                                placeholder="0"
+                              />
+                            ) : (
+                              <span
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  startEditing(row.id, 'final_price', finalPrice);
+                                }}
+                                className="font-bold text-white hover:text-neutral-400 cursor-text transition-colors text-xs sm:text-sm"
+                                title="Клик для изменения цены продажи"
+                              >
+                                {formatCurrency(finalPrice, currencySymbol)}
+                              </span>
+                            )}
+
+                            {editingCell?.rowId === row.id && editingCell?.field === 'base_cost' ? (
+                              <input
+                                ref={inputRef as React.RefObject<HTMLInputElement>}
+                                type="text"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={() => commitEdit(row, 'base_cost', editValue)}
+                                onKeyDown={(e) => handleKeyDown(e, row, 'base_cost')}
+                                className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-neutral-400 font-mono text-[10px] text-right p-0 m-0 w-20 shadow-none"
+                                placeholder="0"
+                              />
+                            ) : (
+                              <span
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  startEditing(row.id, 'base_cost', baseCost);
+                                }}
+                                className="text-[10px] text-neutral-400 hover:text-neutral-300 cursor-text font-mono transition-colors"
+                                title="Клик для изменения себестоимости"
+                              >
+                                себест. {formatCurrency(baseCost, currencySymbol)}
+                              </span>
+                            )}
                           </div>
                         </td>
 
@@ -1428,8 +2074,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 {row.childItems.map((child) => (
                                   <div
                                     key={child.id}
-                                    onClick={() => onSelectForDrawer(child)}
-                                    className="py-1 flex items-center justify-between gap-2 hover:bg-white/[0.02] px-2 rounded cursor-pointer"
+                                    className="py-1 flex items-center justify-between gap-2 hover:bg-white/[0.02] px-2 rounded"
                                   >
                                     <div className="flex items-center gap-1.5">
                                       <span className="text-purple-400">└─</span>
@@ -1495,14 +2140,14 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                   type="button"
                   onClick={() => {
                     if (contextMenu.row.rowKind === 'product') {
-                      onSelectForDrawer(contextMenu.row.item);
+                      onOpenQuickEditModal(contextMenu.row.item);
                     }
                     setContextMenu(null);
                   }}
                   className="w-full text-left px-2 py-1 rounded flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 >
-                  <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Карточка товара</span>
+                  <Edit2 className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Параметры и состав</span>
                 </button>
 
                 <button

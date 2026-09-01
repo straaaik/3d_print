@@ -1,5 +1,5 @@
 import React, { InputHTMLAttributes } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 
 interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'label'> {
   label?: React.ReactNode;

@@ -6,7 +6,6 @@ import { Input } from '../../../shared/ui/Input';
 import { Select } from '../../../shared/ui/Select';
 import { QuickStepper } from './QuickStepper';
 import { Printer } from '../../../shared/types';
-import { Zap, Coins, Cpu, ShieldCheck, HelpCircle } from 'lucide-react';
 
 interface GeneralSettingsTabProps {
   currency: string;
@@ -73,7 +72,7 @@ export function GeneralSettingsTab({
       {/* 1. Валюта мастерской */}
       <Card
         title="Валюта расчетов и отображения"
-        stepNumber="💰"
+        stepNumber="CFG 01"
       >
         <div className="flex flex-col gap-4">
           <p className="text-xs text-neutral-400 font-sans leading-relaxed">
@@ -126,7 +125,7 @@ export function GeneralSettingsTab({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card
           title="Тариф электроэнергии"
-          stepNumber="⚡"
+          stepNumber="CFG 02"
           className="flex flex-col justify-between"
         >
           <div className="flex flex-col gap-3">
@@ -177,7 +176,7 @@ export function GeneralSettingsTab({
 
         <Card
           title="Принтер по умолчанию"
-          stepNumber="🖨️"
+          stepNumber="CFG 03"
           className="flex flex-col justify-between"
         >
           <div className="flex flex-col gap-3">
@@ -225,7 +224,7 @@ export function GeneralSettingsTab({
       {/* 3. Минимальная стоимость заказа */}
       <Card
         title="Минимальная стоимость заказа (Порог чека)"
-        stepNumber="🛡️"
+        stepNumber="CFG 04"
       >
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
           <div className="md:col-span-7 flex flex-col gap-2">

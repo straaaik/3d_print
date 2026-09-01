@@ -18,7 +18,6 @@ import {
 } from '@/shared/types';
 import { ProductCategory } from '@/shared/lib/categories';
 import { ProductsV2KpiCards } from './ProductsV2KpiCards';
-import { ProductsV2FilterBar } from './ProductsV2FilterBar';
 import { ProductsV2Table } from './ProductsV2Table';
 import { formatCurrency } from '@/shared/lib/format';
 import { 
@@ -30,10 +29,14 @@ import {
   ChevronLeft, 
   ChevronRight, 
   RefreshCw, 
-  Calculator as CalculatorIcon 
+  Calculator as CalculatorIcon,
+  Package,
+  HelpCircle
 } from 'lucide-react';
 import { CockpitButton } from '@/shared/ui/CockpitButton';
 import { Tooltip } from '@/shared/ui/Tooltip';
+import { usePixelCurtain } from '@/shared/ui/PixelCurtain';
+import { CockpitContentTransition } from '@/shared/ui/CockpitContentTransition';
 
 interface ProductsV2ViewProps {
   rows: CatalogTableRow[];
@@ -67,8 +70,11 @@ interface ProductsV2ViewProps {
   stockFilter: StockFilter;
   setStockFilter: (stock: StockFilter) => void;
 
-  selectedCategory: string;
-  setSelectedCategory: (cat: string) => void;
+  onlyBestsellers: boolean;
+  setOnlyBestsellers: (val: boolean) => void;
+
+  selectedCategories: string[];
+  setSelectedCategories: (cats: string[]) => void;
   categoriesList: ProductCategory[];
 
   counts: {
@@ -78,6 +84,7 @@ interface ProductsV2ViewProps {
     collections: number;
     inStock: number;
     lowStock: number;
+    outOfStock: number;
     bestsellers: number;
   };
 
@@ -103,8 +110,9 @@ interface ProductsV2ViewProps {
   onUndo: () => void;
   canUndo: boolean;
 
-  // Действия и модальные окна
-  onSelectForDrawer: (item: SavedCalculation) => void;
+  // Инлайн-обновление и действия
+  onInlineUpdateProduct?: (productId: string, updates: Partial<SavedCalculation>) => void;
+  onInlineUpdateCollection?: (collectionId: string, updates: Partial<ProductCollection>) => void;
   onSetStock: (item: SavedCalculation, newStock: number) => void;
   onOpenCategoryModal: (item: SavedCalculation) => void;
   onOpenQuickEditModal: (item: SavedCalculation) => void;
@@ -165,8 +173,10 @@ export const ProductsV2View = React.memo(function ProductsV2View({
   setProductFilter,
   stockFilter,
   setStockFilter,
-  selectedCategory,
-  setSelectedCategory,
+  onlyBestsellers,
+  setOnlyBestsellers,
+  selectedCategories,
+  setSelectedCategories,
   categoriesList,
   counts,
   sortField,
@@ -183,7 +193,8 @@ export const ProductsV2View = React.memo(function ProductsV2View({
   onStartRename,
   onUndo,
   canUndo,
-  onSelectForDrawer,
+  onInlineUpdateProduct,
+  onInlineUpdateCollection,
   onSetStock,
   onOpenCategoryModal,
   onOpenQuickEditModal,
@@ -213,6 +224,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
   contextMenuRef,
 }: ProductsV2ViewProps) {
   const router = useRouter();
+  const { navigate: curtainNavigate } = usePixelCurtain();
   const [isSideWingOpen, setIsSideWingOpen] = React.useState(true);
 
   return (
@@ -366,7 +378,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
               <Tooltip content="Закрыть каталог и перейти на главную">
                 <button
                   type="button"
-                  onClick={() => router.push('/')}
+                  onClick={() => curtainNavigate('/')}
                   className="w-3 h-3 rounded-full bg-red-500/80 border border-red-400/40 hover:bg-red-500 hover:scale-125 active:scale-95 transition-all duration-150 cursor-pointer outline-none shadow-sm shadow-red-500/30"
                 />
               </Tooltip>
@@ -413,8 +425,27 @@ export const ProductsV2View = React.memo(function ProductsV2View({
             </div>
           </div>
 
-          {/* Правая часть: Действия (Отменить) */}
-          <div className="flex items-center gap-2 text-xs font-mono shrink-0">
+          {/* Правая часть: Бейдж позиций и Кнопка отмены */}
+          <div className="flex items-center gap-2.5 text-xs font-mono shrink-0">
+            {/* Бейдж количества позиций в монохромном стиле */}
+            <div className="flex items-center gap-1.5 bg-white/[0.03] border border-white/10 px-2.5 py-1 rounded-lg">
+              <Package className="w-3.5 h-3.5 text-neutral-400" />
+              <span className="text-neutral-400">Позиций:</span>
+              <span className="text-white font-bold">{totalRowsCount}</span>
+              {totalRowsCount !== totalProductsCount && (
+                <span className="text-neutral-500 font-normal">/{totalProductsCount}</span>
+              )}
+              <Tooltip 
+                content={
+                  totalRowsCount !== totalProductsCount 
+                    ? `Отображается ${totalRowsCount} из ${totalProductsCount} позиций с учётом активных фильтров` 
+                    : `Всего позиций в каталоге: ${totalProductsCount}`
+                }
+              >
+                <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white transition-colors ml-0.5 shrink-0 cursor-help" />
+              </Tooltip>
+            </div>
+
             {/* Кнопка отмены */}
             <CockpitButton
               onClick={onUndo}
@@ -428,8 +459,9 @@ export const ProductsV2View = React.memo(function ProductsV2View({
 
         </div>
 
-        {/* Внутреннее содержимое консоли товаров */}
-        <div className="p-3.5 sm:p-4 md:p-5 space-y-3 sm:space-y-3.5">
+        {/* Внутреннее содержимое консоли товаров с анимацией перехода */}
+        <CockpitContentTransition>
+          <div className="p-3.5 sm:p-4 md:p-5 space-y-3 sm:space-y-3.5">
           
           {/* 1. РЯД ИЗ 5-ТИ КОМПАКТНЫХ KPI КАРТОЧЕК */}
           <ProductsV2KpiCards
@@ -461,7 +493,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
                 </span>
                 <span className="text-neutral-600 hidden sm:inline">|</span>
                 <span className="text-neutral-400 text-xs font-mono hidden md:inline">
-                  {selectedCategory === 'all' ? 'Все категории' : selectedCategory} ({totalProductsCount} позиций)
+                  {selectedCategories.length === 0 || selectedCategories.includes('all') ? 'Все категории' : selectedCategories.length === 1 ? selectedCategories[0] : `Категории (${selectedCategories.length})`} ({totalProductsCount} позиций)
                 </span>
               </div>
 
@@ -527,23 +559,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
             </div>
           )}
 
-          {/* 3. ПАНЕЛЬ ФИЛЬТРОВ, ПОИСКА И ОСТАТКОВ */}
-          <div className="relative z-20">
-            <ProductsV2FilterBar
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              stockFilter={stockFilter}
-              setStockFilter={setStockFilter}
-              selectedCategory={selectedCategory}
-              setSelectedCategory={setSelectedCategory}
-              categoriesList={categoriesList}
-              sortField={sortField}
-              sortOrder={sortOrder}
-              onSort={onSort}
-            />
-          </div>
-
-          {/* 4. ТАБЛИЦА РЕЕСТРА ТОВАРОВ (КОМПАКТНАЯ / РАЗВЕРНУТАЯ С РАЗДЕЛЕННЫМИ КОЛОНКАМИ) */}
+          {/* 3. ТАБЛИЦА РЕЕСТРА ТОВАРОВ С ИНТЕГРИРОВАННЫМ ТУЛБАРОМ (ПОИСК, КАТЕГОРИИ, ОПЦИИ) */}
           <div className="relative z-10">
             <ProductsV2Table
               rows={sortedRows}
@@ -556,11 +572,16 @@ export const ProductsV2View = React.memo(function ProductsV2View({
               sortOrder={sortOrder}
               onSort={onSort}
               searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              selectedCategories={selectedCategories}
+              setSelectedCategories={setSelectedCategories}
               isExpanded={isExpanded}
               productFilter={productFilter}
               setProductFilter={setProductFilter}
               stockFilter={stockFilter}
               setStockFilter={setStockFilter}
+              onlyBestsellers={onlyBestsellers}
+              setOnlyBestsellers={setOnlyBestsellers}
               counts={counts}
               expandedItemIds={expandedItemIds}
               onToggleExpand={onToggleExpandRow}
@@ -571,7 +592,8 @@ export const ProductsV2View = React.memo(function ProductsV2View({
               onCancelRename={onCancelRename}
               isInlineNameShaking={isInlineNameShaking}
               onStartRename={onStartRename}
-              onSelectForDrawer={onSelectForDrawer}
+              onInlineUpdateProduct={onInlineUpdateProduct}
+              onInlineUpdateCollection={onInlineUpdateCollection}
               onSetStock={onSetStock}
               onOpenCategoryModal={onOpenCategoryModal}
               onOpenQuickEditModal={onOpenQuickEditModal}
@@ -597,6 +619,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
           </div>
 
         </div>
+        </CockpitContentTransition>
 
         {/* 5. ПОДВАЛ КОНСОЛИ */}
         <div className="border-t border-white/10 px-5 py-2.5 bg-neutral-950 flex items-center justify-between text-[11px] font-mono text-neutral-500">

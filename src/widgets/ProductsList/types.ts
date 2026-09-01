@@ -1,6 +1,6 @@
 import { SavedCalculation, ProductCollection, AssemblyPrintedPart, AssemblyHardwareItem } from '../../shared/types';
 
-export type ProductFilter = 'all' | 'single' | 'assembly' | 'collections' | 'low_stock' | 'bestsellers';
+export type ProductFilter = 'all' | 'single' | 'assembly' | 'collections';
 export type StockFilter = 'all' | 'in_stock' | 'low_stock' | 'out_of_stock';
 
 export type CatalogTableRow =

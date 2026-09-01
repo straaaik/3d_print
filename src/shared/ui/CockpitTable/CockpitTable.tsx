@@ -18,7 +18,7 @@ import {
   Activity,
   Layers
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { usePersistentState } from '../../lib/usePersistentState';
 
 export function CockpitTable<T>({

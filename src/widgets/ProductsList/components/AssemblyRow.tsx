@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { SavedCalculation, AssemblyPrintedPart } from '../../../shared/types';
 import { Checkbox } from '../../../shared/ui/Checkbox';
 import { CockpitStatusPill } from '../../../shared/ui/CockpitTable/CockpitStatusPill';

@@ -3,15 +3,15 @@
 import React, { useRef } from 'react';
 import { Card } from '../../../shared/ui/Card';
 import { CockpitButton } from '../../../shared/ui/CockpitButton';
-import { Modal } from '../../../shared/ui/Modal';
+import { CockpitModal } from '../../../shared/ui/CockpitModal';
 import { useToast } from '../../../entities/model/ToastProvider';
 import { useData } from '../../../entities/model/DataProvider';
+import { STORAGE_KEYS } from '../../../shared/api/db';
 import { 
   Download, 
   Upload, 
   Sparkles, 
   Trash2, 
-  Database, 
   Cpu, 
   Layers, 
   Package, 
@@ -39,7 +39,7 @@ export function DataManagementTab({
   isConfirmSeedModalOpen,
   setIsConfirmSeedModalOpen,
 }: DataManagementTabProps) {
-  const { filaments, printers, savedCalculations, collections, seedRandomData, clearAllData } = useData();
+  const { filaments, printers, settings, savedCalculations, collections, seedRandomData, clearAllData } = useData();
   const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -50,11 +50,11 @@ export function DataManagementTab({
 
     try {
       const backup = {
-        filaments: localStorage.getItem('3d_calc_filaments') ? JSON.parse(localStorage.getItem('3d_calc_filaments')!) : filaments,
-        printers: localStorage.getItem('3d_calc_printers') ? JSON.parse(localStorage.getItem('3d_calc_printers')!) : printers,
-        settings: localStorage.getItem('3d_calc_settings') ? JSON.parse(localStorage.getItem('3d_calc_settings')!) : null,
-        savedCalculations: localStorage.getItem('3d_calc_saved_calculations') ? JSON.parse(localStorage.getItem('3d_calc_saved_calculations')!) : savedCalculations,
-        collections: localStorage.getItem('3d_calc_collections') ? JSON.parse(localStorage.getItem('3d_calc_collections')!) : collections,
+        filaments,
+        printers,
+        settings,
+        savedCalculations,
+        collections,
         exportedAt: new Date().toISOString(),
       };
 
@@ -106,13 +106,17 @@ export function DataManagementTab({
           showToast('Ошибка: поле savedCalculations имеет неверный формат.', 'error');
           return;
         }
+        if (parsed.collections && !isValidArray(parsed.collections)) {
+          showToast('Ошибка: поле collections имеет неверный формат.', 'error');
+          return;
+        }
 
         if (parsed.filaments || parsed.printers || parsed.settings || parsed.savedCalculations || parsed.collections) {
-          if (parsed.filaments) localStorage.setItem('3d_calc_filaments', JSON.stringify(parsed.filaments));
-          if (parsed.printers) localStorage.setItem('3d_calc_printers', JSON.stringify(parsed.printers));
-          if (parsed.settings) localStorage.setItem('3d_calc_settings', JSON.stringify(parsed.settings));
-          if (parsed.savedCalculations) localStorage.setItem('3d_calc_saved_calculations', JSON.stringify(parsed.savedCalculations));
-          if (parsed.collections) localStorage.setItem('3d_calc_collections', JSON.stringify(parsed.collections));
+          if (parsed.filaments) localStorage.setItem(STORAGE_KEYS.FILAMENTS, JSON.stringify(parsed.filaments));
+          if (parsed.printers) localStorage.setItem(STORAGE_KEYS.PRINTERS, JSON.stringify(parsed.printers));
+          if (parsed.settings) localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(parsed.settings));
+          if (parsed.savedCalculations) localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(parsed.savedCalculations));
+          if (parsed.collections) localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(parsed.collections));
 
           showToast('Данные успешно импортированы! Перезагрузка страницы...', 'success');
           setTimeout(() => window.location.reload(), 1200);
@@ -142,7 +146,7 @@ export function DataManagementTab({
         </div>
 
         <div className="p-3.5 rounded-xl bg-neutral-950/90 border border-white/10 flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-purple-950/60 text-purple-300 border border-purple-800/40">
+          <div className="p-2 rounded-lg bg-neutral-900 text-neutral-300 border border-white/10">
             <Layers size={16} />
           </div>
           <div>
@@ -175,7 +179,7 @@ export function DataManagementTab({
       {/* 2. Резервное копирование и Восстановление */}
       <Card
         title="Резервное копирование и экспорт в файл"
-        stepNumber="💾"
+        stepNumber="MOD 05"
       >
         <div className="flex flex-col gap-4">
           <p className="text-xs text-neutral-400 font-sans leading-relaxed">
@@ -240,7 +244,7 @@ export function DataManagementTab({
                 DEV
               </span>
             }
-            stepNumber="🎲"
+            stepNumber="DEV"
             className="flex flex-col justify-between"
           >
             <div className="flex flex-col gap-3">
@@ -263,7 +267,7 @@ export function DataManagementTab({
 
         <Card
           title="Опасная зона: Сброс базы"
-          stepNumber="⚠️"
+          stepNumber="DANGER"
           className="border-rose-800/30 flex flex-col justify-between"
         >
           <div className="flex flex-col gap-3">
@@ -286,10 +290,12 @@ export function DataManagementTab({
 
       {/* Модальное окно подтверждения генерации */}
       {isDev && (
-        <Modal
+        <CockpitModal
           isOpen={isConfirmSeedModalOpen}
           onClose={() => !isSeeding && setIsConfirmSeedModalOpen(false)}
-          title="§ 3D-LABS // GENERATE_DEMO_DATA"
+          stamp="GENERATE_DEMO_DATA"
+          title="Сгенерировать демонстрационные данные?"
+          subtitle="Операция добавит тестовые сущности во все рабочие разделы."
           variant="warning"
           maxWidth="sm"
           footer={
@@ -325,14 +331,16 @@ export function DataManagementTab({
               Все текущие таблицы будут наполнены новым случайно сгенерированным набором оборудования, пластика, каталога товаров и заказов.
             </p>
           </div>
-        </Modal>
+        </CockpitModal>
       )}
 
       {/* Модальное окно подтверждения полной очистки */}
-      <Modal
+      <CockpitModal
         isOpen={isConfirmClearModalOpen}
         onClose={() => !isClearing && setIsConfirmClearModalOpen(false)}
-        title="§ 3D-LABS // CLEAR_DATABASE"
+        stamp="CLEAR_DATABASE"
+        title="Полностью очистить рабочие данные?"
+        subtitle="Удаление затронет облачные записи и локальный кэш."
         variant="error"
         maxWidth="sm"
         footer={
@@ -365,7 +373,7 @@ export function DataManagementTab({
         <p className="text-xs text-neutral-300 font-sans">
           Вы действительно хотите полностью удалить все данные из всех таблиц? База данных и локальное хранилище станут пустыми.
         </p>
-      </Modal>
+      </CockpitModal>
     </div>
   );
 }

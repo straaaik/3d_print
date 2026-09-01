@@ -1,25 +1,23 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { motion, Variants } from 'framer-motion';
+import Image from 'next/image';
+import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../entities/model/DataProvider';
 import { UserProfileMenu } from '../widgets/UserMenu/UserProfileMenu';
-import { 
-  ShoppingBag, 
-  TrendingUp, 
-  Calculator, 
-  Package, 
-  Layers, 
-  Printer 
-} from 'lucide-react';
+import { usePixelCurtain } from '../shared/ui/PixelCurtain';
+import { HubSkeleton } from '../shared/ui/CockpitSkeleton';
 
 interface HubSection {
   id: string;
   label: string;
   code: string;
   href: string;
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  image: string;
+  floatDuration: number;
+  floatDelay: number;
+  floatOffset: number;
 }
 
 const SECTIONS: HubSection[] = [
@@ -28,140 +26,230 @@ const SECTIONS: HubSection[] = [
     label: 'Заказы',
     code: 'ORD',
     href: '/orders',
-    icon: ShoppingBag,
+    image: '/images/hub/orders.png',
+    floatDuration: 4.2,
+    floatDelay: 0,
+    floatOffset: -8,
   },
   {
     id: 'stats',
     label: 'Статистика',
     code: 'STAT',
     href: '/stats',
-    icon: TrendingUp,
+    image: '/images/hub/stats.png',
+    floatDuration: 3.8,
+    floatDelay: 0.7,
+    floatOffset: 8,
   },
   {
     id: 'calculator',
     label: 'Калькулятор',
     code: 'CALC',
     href: '/calculator',
-    icon: Calculator,
+    image: '/images/hub/calculator.png',
+    floatDuration: 4.6,
+    floatDelay: 1.4,
+    floatOffset: -9,
   },
   {
     id: 'products',
     label: 'Товары',
     code: 'PROD',
     href: '/products',
-    icon: Package,
+    image: '/images/hub/products.png',
+    floatDuration: 4.0,
+    floatDelay: 0.4,
+    floatOffset: 8,
   },
   {
     id: 'filaments',
     label: 'Филамент',
     code: 'FIL',
     href: '/filaments',
-    icon: Layers,
+    image: '/images/hub/filaments.png',
+    floatDuration: 3.6,
+    floatDelay: 1.1,
+    floatOffset: -8,
   },
   {
     id: 'printers',
     label: 'Принтеры',
     code: 'PRN',
     href: '/printers',
-    icon: Printer,
+    image: '/images/hub/printers.png',
+    floatDuration: 4.4,
+    floatDelay: 1.8,
+    floatOffset: 9,
   },
 ];
 
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 20, scale: 0.95 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      type: 'spring',
-      stiffness: 300,
-      damping: 24,
-    },
-  },
-};
-
 export default function HomePage() {
   const { isLoading } = useData();
+  const { navigate: curtainNavigate } = usePixelCurtain();
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const itemRefs = React.useRef<(HTMLDivElement | null)[]>([]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const clientX = e.clientX;
+    let closestIndex = 0;
+    let minDistance = Infinity;
+
+    itemRefs.current.forEach((ref, idx) => {
+      if (!ref) return;
+      const rect = ref.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const dist = Math.abs(clientX - centerX);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestIndex = idx;
+      }
+    });
+
+    if (hoveredIndex !== closestIndex) {
+      setHoveredIndex(closestIndex);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredIndex(null);
+  };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center font-sans">
-        <div className="flex flex-col items-center gap-4 select-none">
-          <div className="w-9 h-9 rounded-full border-2 border-white/10 border-t-white animate-spin" />
-          <p className="text-neutral-400 text-xs font-mono font-semibold">
-            Инициализация 3D Labs...
-          </p>
-        </div>
-      </div>
-    );
+    return <HubSkeleton />;
   }
 
   return (
-    <div className="min-h-screen w-full relative flex items-center justify-center p-4 sm:p-8 select-none">
-      {/* Иконка / меню пользователя в верхнем правом углу */}
-      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
+    <div className="min-h-screen w-full relative flex flex-col justify-between p-4 sm:p-8 select-none overflow-hidden">
+      {/* Верхний бар: штамп системы и меню пользователя */}
+      <div className="w-full flex items-center justify-between z-20">
+        <div className="flex items-center gap-2 font-mono text-xs text-neutral-400 tracking-wider">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="font-semibold text-neutral-300">§ 3D-LABS</span>
+          <span className="text-neutral-600">//</span>
+          <span className="text-neutral-400">OPERATIONS HUB</span>
+        </div>
         <UserProfileMenu />
       </div>
 
-      <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center">
-        <motion.div
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6 w-full"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
+      {/* Центральный блок: парящие 3D иконки в плотной связке */}
+      <div className="w-full flex-1 flex flex-col items-center justify-center py-6 sm:py-12 z-10">
+        {/* Контейнер иконок с точным расчётом хитбокса */}
+        <div 
+          className="flex flex-wrap sm:flex-nowrap items-center justify-center -space-x-10 sm:-space-x-16 md:-space-x-20 lg:-space-x-24 xl:-space-x-28 px-4 py-12"
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
         >
-          {SECTIONS.map((section) => {
-            const Icon = section.icon;
+          {SECTIONS.map((section, index) => {
+            const isHovered = hoveredIndex === index;
+
+            // Базовый порядок наложения: слева направо (левые поверх правых), при наведении активный выходит на самый верх
+            const zIndex = isHovered ? 50 : SECTIONS.length - index;
 
             return (
               <motion.div
                 key={section.id}
-                variants={itemVariants}
-                whileHover={{ scale: 1.06, y: -6 }}
-                whileTap={{ scale: 0.95 }}
-                className="w-full"
+                ref={(el) => {
+                  itemRefs.current[index] = el;
+                }}
+                className="relative flex flex-col items-center cursor-pointer"
+                style={{
+                  zIndex,
+                  pointerEvents: hoveredIndex === null || isHovered ? 'auto' : 'none',
+                }}
+                animate={{
+                  scale: isHovered ? 1.18 : 1,
+                  y: isHovered ? -12 : 0,
+                }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 380,
+                  damping: 24,
+                  mass: 0.7,
+                }}
               >
                 <Link
                   href={section.href}
-                  className="group relative flex flex-col items-center justify-center p-6 sm:p-7 rounded-2xl sm:rounded-3xl border border-white/10 bg-neutral-950/80 hover:bg-white/[0.05] hover:border-white/30 backdrop-blur-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.8)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.95)] transition-all duration-300 cursor-pointer text-center w-full aspect-square"
+                  onClick={(e) => {
+                    // Разрешаем открытие в новой вкладке по Ctrl/Cmd/Shift клику
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                    e.preventDefault();
+                    curtainNavigate(section.href);
+                  }}
+                  className="relative flex flex-col items-center outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/50 rounded-3xl"
                 >
-                  {/* Фоновое субтильное свечение при наведении */}
-                  <div className="absolute inset-0 rounded-2xl sm:rounded-3xl bg-gradient-to-b from-white/[0.04] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                  {/* Парящая оболочка с непрерывной органической левитацией */}
+                  <motion.div
+                    className="relative w-32 h-32 sm:w-44 sm:h-44 md:w-52 md:h-52 lg:w-60 lg:h-60 xl:w-64 xl:h-64 flex items-center justify-center"
+                    animate={{
+                      y: isHovered ? 0 : [0, section.floatOffset, 0],
+                    }}
+                    transition={
+                      isHovered
+                        ? { duration: 0.2 }
+                        : {
+                            duration: section.floatDuration,
+                            repeat: Infinity,
+                            repeatType: 'reverse',
+                            ease: 'easeInOut',
+                            delay: section.floatDelay,
+                          }
+                    }
+                  >
+                    {/* 3D Иконка без рамок, карточек и свечений */}
+                    <div className="relative w-full h-full drop-shadow-[0_16px_32px_rgba(0,0,0,0.85)] pointer-events-none">
+                      <Image
+                        src={section.image}
+                        alt={section.label}
+                        fill
+                        sizes="(max-width: 640px) 128px, (max-width: 768px) 176px, (max-width: 1024px) 208px, (max-width: 1280px) 240px, 256px"
+                        priority
+                        className="object-contain select-none"
+                      />
+                    </div>
+                  </motion.div>
 
-                  {/* Иконка раздела */}
-                  <Icon 
-                    className="w-10 h-10 sm:w-12 sm:h-12 text-neutral-400 group-hover:text-white transition-colors duration-300 mb-3 sm:mb-4 group-hover:scale-110 transform transition-transform" 
-                    strokeWidth={1.5}
-                  />
-
-                  {/* Название раздела */}
-                  <span className="font-sans text-xs sm:text-sm font-semibold tracking-wide text-neutral-300 group-hover:text-white transition-colors duration-300 block">
-                    {section.label}
-                  </span>
-
-                  {/* Микро-штамп кода раздела */}
-                  <span className="text-[10px] font-mono text-neutral-600 group-hover:text-cyan-400 transition-colors duration-300 mt-1 block">
-                    [{section.code}]
-                  </span>
+                  {/* Всплывающая подсказка: появляется ТОЛЬКО при наведении (без точки) */}
+                  <AnimatePresence>
+                    {isHovered && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.92 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.92 }}
+                        transition={{ duration: 0.15, ease: 'easeOut' }}
+                        className="absolute -bottom-10 sm:-bottom-12 left-1/2 -translate-x-1/2 pointer-events-none whitespace-nowrap z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-900/95 border border-white/20 shadow-2xl backdrop-blur-xl"
+                      >
+                        <span className="text-xs sm:text-sm font-sans font-semibold text-white tracking-wide">
+                          {section.label}
+                        </span>
+                        <span className="text-[10px] sm:text-[11px] font-mono text-cyan-400 font-bold">
+                          [{section.code}]
+                        </span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </Link>
               </motion.div>
             );
           })}
-        </motion.div>
+        </div>
+      </div>
+
+      {/* Нижняя телеметрия */}
+      <div className="w-full flex items-center justify-between text-[11px] font-mono text-neutral-600 z-20 pt-4 border-t border-white/5">
+        <div className="flex items-center gap-2">
+          <span>§ 3D LABS</span>
+          <span>·</span>
+          <span>SYSTEM RUNTIME 2.4</span>
+        </div>
+        <div className="hidden sm:flex items-center gap-3 text-neutral-500">
+          <span>6 MODULES ONLINE</span>
+          <span>·</span>
+          <span>LOCAL + CLOUD SYNC</span>
+        </div>
       </div>
     </div>
   );
 }
+
+
 

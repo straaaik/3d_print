@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { Order } from '../types';
 import { getOrderMonthKey, formatMonthKeyLabel, formatMoney } from '../helpers';

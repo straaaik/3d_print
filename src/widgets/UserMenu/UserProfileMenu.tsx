@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   User as UserIcon, 
   ShieldCheck, 
@@ -10,17 +10,20 @@ import {
   LogOut, 
   ChevronDown, 
   Edit3, 
-  Sparkles
+  Sparkles,
+  LayoutGrid
 } from 'lucide-react';
 import { useAuth } from '../../entities/model/AuthProvider';
 import { EditProfileModal } from './EditProfileModal';
 import { Modal } from '../../shared/ui/Modal';
 import { CockpitButton } from '../../shared/ui/CockpitButton';
+import { usePixelCurtain } from '../../shared/ui/PixelCurtain';
 
 export function UserProfileMenu() {
   const { currentUser, isAdmin, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const { navigate: curtainNavigate } = usePixelCurtain();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -132,6 +135,20 @@ export function UserProfileMenu() {
 
             {/* Пункты меню */}
             <div className="space-y-0.5">
+              {pathname !== '/' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    curtainNavigate('/');
+                  }}
+                  className="w-full px-2.5 py-1.5 rounded-lg text-xs font-mono text-neutral-300 hover:text-white hover:bg-white/10 flex items-center gap-2 transition-all cursor-pointer"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Главный хаб (Меню)</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => {

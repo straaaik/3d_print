@@ -7,6 +7,8 @@ import { AuthProvider } from "../entities/model/AuthProvider";
 import { OrderModalProvider } from "../entities/model/OrderModalContext";
 import { AuthGuard } from "../shared/ui/AuthGuard";
 import { InteractiveDotGrid } from "../shared/ui/InteractiveDotGrid";
+import { PixelCurtainProvider } from "../shared/ui/PixelCurtain";
+import { CockpitTransitionProvider } from "../shared/ui/CockpitContentTransition";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -38,7 +40,11 @@ export default function RootLayout({
               <DataProvider>
                 <OrderModalProvider>
                   <AuthGuard>
-                    {children}
+                    <PixelCurtainProvider>
+                      <CockpitTransitionProvider>
+                        {children}
+                      </CockpitTransitionProvider>
+                    </PixelCurtainProvider>
                   </AuthGuard>
                 </OrderModalProvider>
               </DataProvider>
@@ -49,3 +55,4 @@ export default function RootLayout({
     </html>
   );
 }
+

@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Search, Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 export interface SelectOption {
   value: string;
@@ -261,7 +261,7 @@ export function Select({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: coords.isTop ? 6 : -6, scale: 0.96 }}
                 transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-                className={`bg-neutral-950 border border-white/15 rounded-xl shadow-2xl max-h-[80vh] overflow-x-hidden overflow-y-auto p-1 focus:outline-none flex flex-col backdrop-blur-2xl custom-scrollbar font-mono text-xs ${dropdownClassName}`}
+                className={`bg-neutral-950 border border-white/15 rounded-xl shadow-2xl max-h-[80vh] overflow-x-hidden overflow-y-auto p-1 focus:outline-none flex flex-col backdrop-blur-2xl scrollbar-none font-mono text-xs ${dropdownClassName}`}
               >
                 {isSearchable && (
                   <div className="p-1 border-b border-white/10 mb-1 sticky top-0 bg-neutral-950 z-10 flex items-center gap-1.5">
@@ -280,7 +280,7 @@ export function Select({
                   </div>
                 )}
 
-                <div className="overflow-x-hidden overflow-y-auto flex-1 max-h-[75vh] space-y-0.5 custom-scrollbar">
+                <div className="overflow-x-hidden overflow-y-auto flex-1 max-h-[75vh] space-y-0.5 scrollbar-none">
                   {filteredOptions.length === 0 ? (
                     <li className="px-3 py-2 text-neutral-500 text-xs select-none text-center font-mono">
                       [ Ничего не найдено ]

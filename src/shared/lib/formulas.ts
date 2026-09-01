@@ -8,7 +8,7 @@
  * и снабжены подробными комментариями и JSDoc.
  */
 
-import { 
+import type {
   Filament, 
   Printer, 
   Settings, 
@@ -20,7 +20,8 @@ import {
   OrderStatus 
 } from '../types';
 import { timeToHours } from './format';
-import { detectMaterialDifficulty, MaterialDifficultyConfig } from './materialDifficulty';
+import { detectMaterialDifficulty } from './materialDifficulty';
+import type { MaterialDifficultyConfig } from './materialDifficulty';
 
 // ============================================================================
 // 1. БАЗОВЫЕ УТИЛИТЫ ОКРУГЛЕНИЯ
@@ -30,8 +31,9 @@ import { detectMaterialDifficulty, MaterialDifficultyConfig } from './materialDi
  * Округление числа до 2 знаков после запятой (копейки)
  */
 export function round2(num: number | undefined | null): number {
-  if (num === undefined || num === null || isNaN(num)) return 0;
-  return Math.round(num * 100) / 100;
+  if (num === undefined || num === null || !Number.isFinite(num)) return 0;
+  const sign = Math.sign(num) || 1;
+  return sign * Math.round((Math.abs(num) + Number.EPSILON) * 100) / 100;
 }
 
 /**

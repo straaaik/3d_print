@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Box, CheckCircle2, AlertTriangle, Clock, Activity, Cpu, Layers, DollarSign } from 'lucide-react';
 
 export function DynamicIslandPreview() {

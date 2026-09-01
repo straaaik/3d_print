@@ -58,7 +58,7 @@ import {
   Zap,
   Calculator as CalculatorIcon
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 const STATUS_DROPDOWN_OPTIONS: CockpitDropdownOption[] = ALL_STATUSES.map(st => {
   const cfg = STATUS_CONFIG[st];
@@ -482,8 +482,10 @@ function NativeEmbeddedCalendar({
     if (value) {
       const parts = value.split('.');
       if (parts.length >= 3) {
-        setViewYear(Number(parts[2]));
-        setViewMonth(Number(parts[1]) - 1);
+        queueMicrotask(() => {
+          setViewYear(Number(parts[2]));
+          setViewMonth(Number(parts[1]) - 1);
+        });
       }
     }
   }, [value]);
@@ -744,9 +746,9 @@ function NativeDualDateCalendar({
 
   useEffect(() => {
     if (durationDays !== null && durationDays >= 0) {
-      setDaysInput(String(durationDays));
+      queueMicrotask(() => setDaysInput(String(durationDays)));
     } else if (!endDate) {
-      setDaysInput('');
+      queueMicrotask(() => setDaysInput(''));
     }
   }, [durationDays, endDate]);
 
@@ -1033,7 +1035,7 @@ interface OrderFormModalProps {
   onMinimize?: () => void;
   order: Partial<Order> | null;
   setOrder: React.Dispatch<React.SetStateAction<Partial<Order> | null>>;
-  onSave: (e: React.FormEvent) => void;
+  onSave: (e: React.FormEvent) => Promise<Order | null>;
   savedCalculations: SavedCalculation[];
   allOrders?: Order[];
 }
@@ -1056,6 +1058,7 @@ export function OrderFormModal({
   const [expenseHistorySearchQuery, setExpenseHistorySearchQuery] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
   const [formErrors, setFormErrors] = useState<Record<string, boolean>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
   const [currentTimeStr, setCurrentTimeStr] = useState('');
 
@@ -1248,22 +1251,26 @@ export function OrderFormModal({
     });
   };
 
-  const initialSnapshotRef = useRef<string>('');
+  const [initialSnapshot, setInitialSnapshot] = useState('');
   const isClosingRef = useRef(false);
 
   // Живые часы в шапке
   useEffect(() => {
+    if (!isOpen) return;
+    const formatter = new Intl.DateTimeFormat('ru-RU', {
+      timeZone: 'Europe/Moscow',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
     const updateTime = () => {
-      const d = new Date();
-      const hours = String(d.getHours()).padStart(2, '0');
-      const mins = String(d.getMinutes()).padStart(2, '0');
-      const secs = String(d.getSeconds()).padStart(2, '0');
-      setCurrentTimeStr(`${hours}:${mins}:${secs} MSK`);
+      setCurrentTimeStr(`${formatter.format(new Date())} MSK`);
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isOpen]);
 
   // Блокировка прокрутки фона
   useEffect(() => {
@@ -1279,6 +1286,7 @@ export function OrderFormModal({
   useEffect(() => {
     if (isOpen) {
       isClosingRef.current = false;
+      queueMicrotask(() => {
       setActiveTab('item');
       setIsMiniCalcOpen(false);
       setIsProductSelectorOpen(false);
@@ -1301,7 +1309,7 @@ export function OrderFormModal({
       setCalcAppliedFeedback(false);
 
       if (order) {
-        initialSnapshotRef.current = JSON.stringify(order);
+        setInitialSnapshot(JSON.stringify(order));
 
         // Инициализация базовой себестоимости и доп. расходов
         if (order.cost_items && order.cost_items.length > 0) {
@@ -1345,11 +1353,13 @@ export function OrderFormModal({
           setSelectedFilament(matchedF ? matchedF.name : '');
         }
       } else {
+        setInitialSnapshot('');
         setSelectedPrinter('');
         setSelectedFilament('');
         setManualBaseCost('0');
         setExtraCostItems([]);
       }
+      });
     }
   }, [isOpen, order?.id, printers, filaments, settings]);
 
@@ -1442,9 +1452,9 @@ export function OrderFormModal({
   }, [filaments, filamentSearch]);
 
   const hasUnsavedChanges = useMemo(() => {
-    if (!isOpen || !order || !initialSnapshotRef.current) return false;
-    return JSON.stringify(order) !== initialSnapshotRef.current;
-  }, [isOpen, order]);
+    if (!isOpen || !order || !initialSnapshot) return false;
+    return JSON.stringify(order) !== initialSnapshot;
+  }, [initialSnapshot, isOpen, order]);
 
   const handleAttemptClose = () => {
     if (isClosingRef.current) return;
@@ -1473,7 +1483,7 @@ export function OrderFormModal({
     const diffTime = d2.getTime() - d1.getTime();
     const days = Math.round(diffTime / (1000 * 60 * 60 * 24));
     return Math.max(0, days);
-  }, [order?.date, order?.deadline]);
+  }, [order]);
 
   // Навигация по разделам колёсиком мыши
   const lastWheelTimeRef = useRef<number>(0);
@@ -1522,7 +1532,7 @@ export function OrderFormModal({
         handleAttemptClose();
       } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
-        handleSubmit(e as any);
+        document.getElementById('order-modal-save')?.click();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -1569,21 +1579,18 @@ export function OrderFormModal({
   const handleUpdateBaseAmount = (valStr: string) => {
     const cleanStr = valStr.replace(/^0+([1-9])/, '$1');
     const newBase = cleanStr === '' ? 0 : roundTo2(Number(cleanStr));
-    const wasFullyPaid = (order.payment || 0) >= (order.amount || 0) && (order.amount || 0) > 0;
 
     const newFin = calculateOrderFinancials({
       ...order,
       base_amount: newBase,
     });
 
-    const newPayment = wasFullyPaid ? newFin.finalAmount : (order.payment || 0);
-
     setOrder({
       ...order,
       base_amount: newBase,
       amount: newFin.finalAmount,
-      payment: newPayment,
-      payments: wasFullyPaid ? [newPayment] : order.payments,
+      payment: order.payment || 0,
+      payments: order.payments,
     });
   };
 
@@ -1599,14 +1606,11 @@ export function OrderFormModal({
       urgency_amount: isFixed ? targetVal : 0,
     };
     const newFin = calculateOrderFinancials(updated);
-    const wasFullyPaid = (order.payment || 0) >= (order.amount || 0) && (order.amount || 0) > 0;
-    const newPayment = wasFullyPaid ? newFin.finalAmount : (order.payment || 0);
-
     setOrder({
       ...updated,
       amount: newFin.finalAmount,
-      payment: newPayment,
-      payments: wasFullyPaid ? [newPayment] : order.payments,
+      payment: order.payment || 0,
+      payments: order.payments,
     });
   };
 
@@ -1622,14 +1626,11 @@ export function OrderFormModal({
       discount_amount: isFixed ? targetVal : 0,
     };
     const newFin = calculateOrderFinancials(updated);
-    const wasFullyPaid = (order.payment || 0) >= (order.amount || 0) && (order.amount || 0) > 0;
-    const newPayment = wasFullyPaid ? newFin.finalAmount : (order.payment || 0);
-
     setOrder({
       ...updated,
       amount: newFin.finalAmount,
-      payment: newPayment,
-      payments: wasFullyPaid ? [newPayment] : order.payments,
+      payment: order.payment || 0,
+      payments: order.payments,
     });
   };
 
@@ -1645,17 +1646,13 @@ export function OrderFormModal({
     const newFin = calculateOrderFinancials({
       ...order,
       base_amount: newBase,
-      urgency_amount: order.urgency_type === 'fixed' ? roundTo2((order.urgency_amount || 0) * ratio) : order.urgency_amount,
-      discount_amount: order.discount_type === 'fixed' ? roundTo2((order.discount_amount || 0) * ratio) : order.discount_amount,
+      urgency_amount: order.urgency_amount,
+      discount_amount: order.discount_amount,
     });
 
     const newAmount = newFin.finalAmount;
     const currentCost = order.cost || 0;
-    const currentPayment = order.payment || 0;
     const newCost = roundTo2(currentCost * ratio);
-    const wasFullyPaid = currentPayment >= (order.amount || 0) && (order.amount || 0) > 0;
-    const newPayment = wasFullyPaid ? newAmount : roundTo2(currentPayment * ratio);
-    const newPayments = (order.payments || []).map(p => roundTo2(p * ratio));
 
     const newCostItems = (order.cost_items || []).map(ci => ({
       ...ci,
@@ -1668,8 +1665,8 @@ export function OrderFormModal({
       base_amount: newBase,
       amount: newAmount,
       cost: newCost,
-      payment: newPayment,
-      payments: newPayments.length > 0 ? newPayments : (newPayment > 0 ? [newPayment] : []),
+      payment: order.payment || 0,
+      payments: order.payments,
       cost_items: newCostItems,
     });
   };
@@ -1683,11 +1680,30 @@ export function OrderFormModal({
 
   const handleApplyPaymentPreset = (ratio: number) => {
     const targetPayment = roundTo2(totalAmount * ratio);
+    const payments = [...(order.payments || [])];
+    if (payments.length === 0) {
+      if (targetPayment !== 0) payments.push(targetPayment);
+    } else {
+      const priorTotal = payments.reduce((sum, value) => sum + value, 0);
+      payments[payments.length - 1] = roundTo2(payments[payments.length - 1] + targetPayment - priorTotal);
+    }
     setOrder({
       ...order,
       payment: targetPayment,
-      payments: targetPayment > 0 ? [targetPayment] : [],
+      payments,
     });
+  };
+
+  const handlePaymentTotalChange = (targetPayment: number) => {
+    const safePayment = Math.max(0, roundTo2(targetPayment));
+    const payments = [...(order.payments || [])];
+    if (payments.length === 0) {
+      if (safePayment !== 0) payments.push(safePayment);
+    } else {
+      const priorTotal = payments.reduce((sum, value) => sum + value, 0);
+      payments[payments.length - 1] = roundTo2(payments[payments.length - 1] + safePayment - priorTotal);
+    }
+    setOrder({ ...order, payment: safePayment, payments });
   };
 
   const handleSelectProduct = (prod: SavedCalculation) => {
@@ -1701,7 +1717,7 @@ export function OrderFormModal({
     const populatedCostItems: CostItem[] = [];
     if (cost > 0) {
       populatedCostItems.push({
-        id: typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Math.random()),
+        id: crypto.randomUUID(),
         category: 'Печать',
         amount: cost,
         note: `Товар «${prod.name}» (${prod.filament_name || 'Пластик'})`,
@@ -1732,8 +1748,8 @@ export function OrderFormModal({
       amount: newFin.finalAmount,
       cost,
       cost_items: populatedCostItems,
-      payments: [0],
-      payment: 0,
+      payments: order.payments || [],
+      payment: order.payment || 0,
       deadline: order.deadline || deadlineStr,
       notes: `Товар: ${prod.name} (${prod.filament_name || 'Пластик'}, ${orderQty} шт)`,
     });
@@ -1745,7 +1761,7 @@ export function OrderFormModal({
     if (num <= 0) return;
 
     const newItem: CostItem = {
-      id: typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Math.random()),
+      id: crypto.randomUUID(),
       category: newCostCategory,
       amount: num,
       note: newCostNote.trim() || undefined,
@@ -1850,7 +1866,7 @@ export function OrderFormModal({
       updated = extraCostItems.filter((_, idx) => idx !== existingIndex);
     } else {
       const newItem: CostItem = {
-        id: typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Math.random()),
+        id: crypto.randomUUID(),
         category,
         amount: defaultAmount,
       };
@@ -1896,7 +1912,7 @@ export function OrderFormModal({
 
     if (amt > 0) {
       const newItem: CostItem = {
-        id: typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Math.random()),
+        id: crypto.randomUUID(),
         category: cat,
         amount: amt,
       };
@@ -1987,8 +2003,9 @@ export function OrderFormModal({
     setTimeout(() => setCalcAppliedFeedback(false), 2500);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     if (e && e.preventDefault) e.preventDefault();
+    if (isSubmitting) return;
     const errors: Record<string, boolean> = {};
 
     if (!order.title || !order.title.trim()) {
@@ -2009,7 +2026,13 @@ export function OrderFormModal({
     }
 
     setFormErrors({});
-    onSave(e);
+    setIsSubmitting(true);
+    try {
+      const saved = await onSave(e);
+      if (!saved) isClosingRef.current = false;
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const isTabCompleted = (tabId: OrderModalTab): boolean => {
@@ -2024,7 +2047,7 @@ export function OrderFormModal({
       return Boolean(order.status || order.deadline);
     }
     if (tabId === 'client') {
-      return Boolean(order.contact && order.contact.trim().length > 0);
+      return Boolean((order.client_name || order.contact || '').trim().length > 0);
     }
     if (tabId === 'tech') {
       return Boolean(order.notes && order.notes.trim().length > 0);
@@ -2056,6 +2079,9 @@ export function OrderFormModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: 12 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="order-modal-title"
             className="relative w-full max-w-[1240px] h-[92vh] max-h-[860px] min-h-[580px] my-auto rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl overflow-hidden z-10 flex flex-col font-mono"
           >
             {/* 1. Верхняя панель (Cockpit Topbar: LEDs + Title + Type Switcher + live time) */}
@@ -2064,15 +2090,18 @@ export function OrderFormModal({
               <div className="flex items-center gap-4 min-w-0">
                 <div className="flex items-center gap-2 shrink-0">
                   <button
+                    id="order-modal-save"
                     type="button"
                     onClick={handleAttemptClose}
                     title="Закрыть окно"
+                    aria-label="Закрыть окно заказа"
                     className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] hover:scale-125 active:scale-95 transition-all duration-150 cursor-pointer border-none outline-none"
                   />
                   <button
                     type="button"
                     onClick={onMinimize ? onMinimize : undefined}
                     title="Свернуть черновик"
+                    aria-label="Свернуть черновик заказа"
                     className={`w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#fbbf24] hover:scale-125 active:scale-95 transition-all duration-150 border-none outline-none ${
                       onMinimize ? 'cursor-pointer' : 'cursor-default'
                     }`}
@@ -2080,7 +2109,7 @@ export function OrderFormModal({
                 </div>
 
                 <div className="flex items-center gap-2 font-mono text-xs text-[#d4d4d8] min-w-0">
-                  <span className="text-[#d4d4d8] font-normal truncate">
+                  <span id="order-modal-title" className="text-[#d4d4d8] font-normal truncate">
                     {order?.id
                       ? (isIncome ? 'Редактирование заказа' : 'Редактирование расхода')
                       : (isIncome ? 'Новый заказ' : 'Новый расход')}
@@ -2165,19 +2194,31 @@ export function OrderFormModal({
                             key={tab.id}
                             type="button"
                             onClick={() => setActiveTab(tab.id)}
-                            className={`w-full flex items-center justify-between px-3 py-2 rounded-lg font-mono text-xs transition-all cursor-pointer text-left ${
+                            className={`relative w-full flex items-center justify-between px-3 py-2 rounded-lg font-mono text-xs transition-colors cursor-pointer text-left select-none ${
                               isActive
-                                ? 'bg-[#1e1e22] text-white font-semibold shadow-sm'
+                                ? 'text-white font-semibold'
                                 : 'text-[#8e8e93] hover:text-white hover:bg-[#161619]'
                             }`}
                           >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-[#71717a]'}`} />
+                            {isActive && (
+                              <motion.div
+                                layoutId="activeOrderFormModalTab"
+                                className="absolute inset-0 rounded-lg bg-[#1e1e22] shadow-sm"
+                                transition={{
+                                  type: 'spring',
+                                  stiffness: 450,
+                                  damping: 32,
+                                  mass: 0.8,
+                                }}
+                              />
+                            )}
+                            <div className="relative z-10 flex items-center gap-2.5 min-w-0">
+                              <Icon className={`w-3.5 h-3.5 shrink-0 transition-colors ${isActive ? 'text-white' : 'text-[#71717a]'}`} />
                               <span className="truncate">{tab.code}</span>
                             </div>
 
                             {/* Индикаторная точка: зеленая если блок заполнен, серая если не заполнен */}
-                            <span className={`w-2 h-2 rounded-full shrink-0 ml-2 transition-colors ${
+                            <span className={`relative z-10 w-2 h-2 rounded-full shrink-0 ml-2 transition-colors ${
                               isCompleted
                                 ? 'bg-[#34d399]'
                                 : 'bg-[#36363c]'
@@ -2493,8 +2534,8 @@ export function OrderFormModal({
                                     )}
                                   </div>
 
-                                  {/* Список принтеров со стильной полосатой вертикальной полосой прокрутки */}
-                                  <div className="flex flex-col items-start gap-1 pt-0.5 max-h-[285px] md:max-h-[300px] overflow-y-auto segmented-scrollbar pr-2 w-full">
+                                  {/* Список принтеров */}
+                                  <div className="flex flex-col items-start gap-1 pt-0.5 max-h-[285px] md:max-h-[300px] overflow-y-auto scrollbar-none pr-2 w-full">
                                     {filteredPrinters.length > 0 ? (
                                       filteredPrinters.map(p => {
                                         const isSelected = isPrinterSelected(p.name);
@@ -2581,8 +2622,8 @@ export function OrderFormModal({
                                     )}
                                   </div>
 
-                                  {/* Список пластика со стильной полосатой вертикальной полосой прокрутки */}
-                                  <div className="flex flex-col items-start gap-1 pt-0.5 max-h-[285px] md:max-h-[300px] overflow-y-auto segmented-scrollbar pr-2 w-full">
+                                  {/* Список пластика */}
+                                  <div className="flex flex-col items-start gap-1 pt-0.5 max-h-[285px] md:max-h-[300px] overflow-y-auto scrollbar-none pr-2 w-full">
                                     {filteredFilaments.length > 0 ? (
                                       filteredFilaments.map(f => {
                                         const isSelected = isFilamentSelected(f.name);
@@ -3151,12 +3192,7 @@ export function OrderFormModal({
                                               placeholder="0"
                                               value={order.payment || ''}
                                               onChange={e => {
-                                                const num = parseFloat(e.target.value) || 0;
-                                                setOrder({
-                                                  ...order,
-                                                  payment: num,
-                                                  payments: [num],
-                                                });
+                                                handlePaymentTotalChange(parseFloat(e.target.value) || 0);
                                               }}
                                               className="text-3xl sm:text-4xl font-light font-mono text-white tracking-tight bg-transparent border-none focus:outline-none p-0 inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text selection:bg-white/20"
                                               style={{ width: `${Math.max(1, String(order.payment || 0).length) * 0.65 + 0.15}em` }}
@@ -3787,8 +3823,8 @@ export function OrderFormModal({
                                 <input
                                   type="text"
                                   placeholder="Введите имя клиента..."
-                                  value={order.contact || ''}
-                                  onChange={e => setOrder({ ...order, contact: e.target.value })}
+                                  value={order.client_name ?? order.contact ?? ''}
+                                  onChange={e => setOrder({ ...order, client_name: e.target.value, contact: e.target.value })}
                                   className="bg-transparent border-none focus:outline-none p-0 text-xl sm:text-2xl font-light font-mono text-white placeholder-[#52525b] w-full tracking-tight"
                                 />
                               </div>
@@ -4130,7 +4166,7 @@ export function OrderFormModal({
                       </div>
                       <div className="flex items-center justify-between text-[#71717a]">
                         <span>Имя:</span>
-                        <span className="text-white truncate max-w-[160px]">{order.contact || 'Не указано'}</span>
+                        <span className="text-white truncate max-w-[160px]">{order.client_name || order.contact || 'Не указано'}</span>
                       </div>
 
                       {(order.contacts || []).filter(c => c.value && c.value.trim().length > 0).map((c, idx) => (
@@ -4307,9 +4343,10 @@ export function OrderFormModal({
                   <button
                     type="button"
                     onClick={handleSubmit}
-                    className="w-full py-2 rounded-lg bg-white hover:bg-[#e4e4e7] active:scale-[0.99] text-black font-semibold text-xs font-mono transition-all cursor-pointer shadow-sm"
+                    disabled={isSubmitting}
+                    className="w-full py-2 rounded-lg bg-white hover:bg-[#e4e4e7] active:scale-[0.99] text-black font-semibold text-xs font-mono transition-all cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-wait"
                   >
-                    {order.id 
+                    {isSubmitting ? 'Сохранение…' : order.id
                       ? (isIncome ? 'Сохранить изменения' : 'Сохранить расход') 
                       : (isIncome ? 'Создать заказ' : 'Записать расход')}
                   </button>

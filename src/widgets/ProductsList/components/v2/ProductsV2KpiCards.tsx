@@ -2,6 +2,7 @@ import React from 'react';
 import { formatCurrency } from '@/shared/lib/format';
 import { TrendingUp, TrendingDown, Layers, ArrowUpRight, Package, Box, Boxes, Sparkles } from 'lucide-react';
 import { Tooltip } from '@/shared/ui/Tooltip';
+import { CockpitTiltCard } from '@/shared/ui/CockpitTiltCard';
 
 interface ProductsV2KpiCardsProps {
   totalRetailValue: number;
@@ -49,11 +50,36 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3 select-none">
       
       {/* КАРТОЧКА 1: РОЗНИЧНАЯ СТОИМОСТЬ */}
-      <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 rounded-xl p-3 sm:p-3.5 transition-all flex flex-col justify-between shadow-sm">
+      <CockpitTiltCard
+        tone="cyan"
+        className="p-3 sm:p-3.5 flex flex-col justify-between"
+        backContent={(
+          <div className="flex h-full flex-col justify-between font-mono text-[10px]">
+            <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
+                РОЗНИЦА СКЛАДА
+              </span>
+            </div>
+            <div className="my-auto space-y-2 py-1">
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Ср. цена позиции:</span>
+                <span className="font-bold text-white tabular-nums">{formatCurrency(averagePrice, currencySymbol)}</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Всего единиц:</span>
+                <span className="font-semibold text-emerald-400 tabular-nums">{totalUnits} шт.</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Всего позиций:</span>
+                <span className="font-bold text-cyan-300 tabular-nums">{totalProductsCount} поз.</span>
+              </div>
+            </div>
+          </div>
+        )}
+      >
         <div>
           <div className="flex items-center justify-between text-neutral-400 mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
               РОЗНИЦА СКЛАДА
             </span>
             <div className="p-1 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
@@ -92,14 +118,39 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
             </span>
           </div>
         )}
-      </div>
+      </CockpitTiltCard>
 
       {/* КАРТОЧКА 2: СЕБЕСТОИМОСТЬ СКЛАДА */}
-      <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 rounded-xl p-3 sm:p-3.5 transition-all flex flex-col justify-between shadow-sm">
+      <CockpitTiltCard
+        tone="rose"
+        className="p-3 sm:p-3.5 flex flex-col justify-between"
+        backContent={(
+          <div className="flex h-full flex-col justify-between font-mono text-[10px]">
+            <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
+                СЕБЕСТОИМОСТЬ
+              </span>
+            </div>
+            <div className="my-auto space-y-2 py-1">
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Доля от розницы:</span>
+                <span className="font-bold text-rose-400 tabular-nums">{costRatio.toFixed(1)}%</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Ср. затраты на шт:</span>
+                <span className="font-semibold text-white tabular-nums">{formatCurrency(averageCost, currencySymbol)}</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Рентабельность:</span>
+                <span className="font-bold text-emerald-400 tabular-nums">{(100 - costRatio).toFixed(1)}%</span>
+              </div>
+            </div>
+          </div>
+        )}
+      >
         <div>
           <div className="flex items-center justify-between text-neutral-400 mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
               СЕБЕСТОИМОСТЬ
             </span>
             <div className="p-1 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">
@@ -138,14 +189,39 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
             </span>
           </div>
         )}
-      </div>
+      </CockpitTiltCard>
 
       {/* КАРТОЧКА 3: ПОТЕНЦИАЛЬНАЯ ПРИБЫЛЬ */}
-      <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 rounded-xl p-3 sm:p-3.5 transition-all flex flex-col justify-between shadow-sm">
+      <CockpitTiltCard
+        tone="emerald"
+        className="p-3 sm:p-3.5 flex flex-col justify-between"
+        backContent={(
+          <div className="flex h-full flex-col justify-between font-mono text-[10px]">
+            <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
+                ПРИБЫЛЬ СКЛАДА
+              </span>
+            </div>
+            <div className="my-auto space-y-2 py-1">
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Маржинальность:</span>
+                <span className="font-bold text-emerald-400 tabular-nums">{profitMargin.toFixed(1)}%</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Ср. прибыль/шт:</span>
+                <span className="font-semibold text-white tabular-nums">+{formatCurrency(averageProfit, currencySymbol)}</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Оценка прибыли:</span>
+                <span className="font-bold text-emerald-400 tabular-nums">+{formatCurrency(potentialProfit, currencySymbol)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      >
         <div>
           <div className="flex items-center justify-between text-neutral-400 mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
               ПРИБЫЛЬ СКЛАДА
             </span>
             <div className="p-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -198,14 +274,39 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
             </div>
           )}
         </div>
-      </div>
+      </CockpitTiltCard>
 
       {/* КАРТОЧКА 4: ОСТАТКИ НА СКЛАДЕ */}
-      <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 rounded-xl p-3 sm:p-3.5 transition-all flex flex-col justify-between shadow-sm">
+      <CockpitTiltCard
+        tone="amber"
+        className="p-3 sm:p-3.5 flex flex-col justify-between"
+        backContent={(
+          <div className="flex h-full flex-col justify-between font-mono text-[10px]">
+            <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
+                ОСТАТКИ ГОТОВОГО
+              </span>
+            </div>
+            <div className="my-auto space-y-2 py-1">
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">В наличии:</span>
+                <span className="font-bold text-emerald-400 tabular-nums">{inStockCount} поз.</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Мало (≤ 2 шт):</span>
+                <span className="font-semibold text-amber-300 tabular-nums">{lowStockCount} поз.</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Под заказ:</span>
+                <span className="font-bold text-neutral-400 tabular-nums">{outOfStockCount} поз.</span>
+              </div>
+            </div>
+          </div>
+        )}
+      >
         <div>
           <div className="flex items-center justify-between text-neutral-400 mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
               ОСТАТКИ ГОТОВОГО
             </span>
             <div className="p-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
@@ -244,14 +345,39 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
             </span>
           </div>
         )}
-      </div>
+      </CockpitTiltCard>
 
       {/* КАРТОЧКА 5: СТРУКТУРА КАТАЛОГА */}
-      <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 rounded-xl p-3 sm:p-3.5 transition-all flex flex-col justify-between shadow-sm">
+      <CockpitTiltCard
+        tone="sky"
+        className="p-3 sm:p-3.5 flex flex-col justify-between"
+        backContent={(
+          <div className="flex h-full flex-col justify-between font-mono text-[10px]">
+            <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
+                СТРУКТУРА КАТАЛОГА
+              </span>
+            </div>
+            <div className="my-auto space-y-2 py-1">
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Сборок:</span>
+                <span className="font-bold text-cyan-300 tabular-nums">{assemblyCount} шт.</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Коллекций:</span>
+                <span className="font-semibold text-purple-300 tabular-nums">{collectionCount} шт.</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">STL моделей:</span>
+                <span className="font-bold text-emerald-400 tabular-nums">{stlCount} шт.</span>
+              </div>
+            </div>
+          </div>
+        )}
+      >
         <div>
           <div className="flex items-center justify-between text-neutral-400 mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
               СТРУКТУРА КАТАЛОГА
             </span>
             <div className="p-1 rounded bg-white/5 text-neutral-300 border border-white/10">
@@ -294,7 +420,7 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
             </div>
           </div>
         )}
-      </div>
+      </CockpitTiltCard>
 
     </div>
   );

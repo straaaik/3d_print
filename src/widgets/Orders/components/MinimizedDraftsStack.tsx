@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { formatMoney } from '../helpers';
 import { Order } from '../types';
 import { Tooltip } from '../../../shared/ui/Tooltip';
@@ -33,7 +33,7 @@ export function MinimizedDraftsStack({
           const title = draft.order.title?.trim() || (isIncome ? 'Новый заказ' : 'Новый расход');
           const amount = draft.order.amount || 0;
           const subtitle = isIncome 
-            ? (draft.order.client || 'Клиент') 
+            ? (draft.order.client_name || draft.order.contact || draft.order.client || 'Клиент') 
             : (draft.order.client || 'Расход');
 
           return (

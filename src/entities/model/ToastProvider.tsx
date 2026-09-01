@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip } from '../../shared/ui/Tooltip';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';

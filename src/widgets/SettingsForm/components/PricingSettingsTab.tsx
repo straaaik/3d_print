@@ -3,7 +3,6 @@
 import React from 'react';
 import { Card } from '../../../shared/ui/Card';
 import { QuickStepper } from './QuickStepper';
-import { Percent, Flame, AlertTriangle, TrendingUp, Info } from 'lucide-react';
 
 interface PricingSettingsTabProps {
   currency: string;
@@ -44,7 +43,7 @@ export function PricingSettingsTab({
         {/* Базовая наценка */}
         <Card
           title="Базовая наценка"
-          stepNumber="📈"
+          stepNumber="PRICE 01"
           className="flex flex-col justify-between"
         >
           <div className="flex flex-col gap-3">
@@ -87,7 +86,7 @@ export function PricingSettingsTab({
         {/* Надбавка за срочность */}
         <Card
           title="Надбавка за срочность"
-          stepNumber="⚡"
+          stepNumber="PRICE 02"
           className="flex flex-col justify-between"
         >
           <div className="flex flex-col gap-3">
@@ -115,7 +114,7 @@ export function PricingSettingsTab({
             />
 
             <div className="p-2.5 rounded-xl bg-neutral-900 border border-white/10 text-[11px] text-neutral-400 font-sans">
-              🔥 При надбавке <strong>+{defaultUrgencyPercent}%</strong> заказ стоимостью 1000 {currency} станет стоить <strong>{(1000 * (1 + (parseFloat(defaultUrgencyPercent) || 0) / 100)).toFixed(0)} {currency}</strong>.
+              При надбавке <strong>+{defaultUrgencyPercent}%</strong> заказ стоимостью 1000 {currency} станет стоить <strong>{(1000 * (1 + (parseFloat(defaultUrgencyPercent) || 0) / 100)).toFixed(0)} {currency}</strong>.
             </div>
           </div>
         </Card>
@@ -123,7 +122,7 @@ export function PricingSettingsTab({
         {/* Учет брака */}
         <Card
           title="Резерв на брак и отходы"
-          stepNumber="🛡️"
+          stepNumber="PRICE 03"
           className="flex flex-col justify-between"
         >
           <div className="flex flex-col gap-3">
@@ -160,7 +159,7 @@ export function PricingSettingsTab({
       {/* 2. Шпаргалка */}
       <Card
         title="Шпаргалка: Как наценка переводится в маржинальность"
-        stepNumber="💡"
+        stepNumber="PRICE 04"
       >
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center font-mono">
           <div className="p-3 rounded-xl bg-neutral-900 border border-white/10">

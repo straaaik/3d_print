@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Search, Check, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 export interface TableSelectOption {
   value: string;
@@ -294,7 +294,7 @@ export function TableSelect({
                 </div>
               )}
 
-              <div className="overflow-y-auto max-h-60 space-y-0.5 pr-0.5 custom-scrollbar">
+              <div className="overflow-y-auto max-h-60 space-y-0.5 pr-0.5 scrollbar-none">
                 {filteredOptions.length === 0 ? (
                   <div className="px-3 py-3 text-center text-xs text-neutral-500 select-none font-mono">
                     [ Не найдено ]

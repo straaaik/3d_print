@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 export interface MeridianModalProps {
   isOpen: boolean;

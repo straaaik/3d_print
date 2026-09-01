@@ -7,10 +7,9 @@ import { useToast } from '../../entities/model/ToastProvider';
 import { 
   SavedCalculation, 
   ProductCollection, 
-  AssemblyPrintedPart, 
-  Order 
+  AssemblyPrintedPart
 } from '../../shared/types';
-import { getOrders, restoreAllCollections } from '../../shared/api/db';
+import { restoreAllCollections } from '../../shared/api/db';
 import { 
   getStoredCategories, 
   saveNewCategory, 
@@ -21,7 +20,7 @@ import { recalculateAllProducts } from '../../features/calculate-cost/model/calc
 import { SelectOption } from '../../shared/ui/Select';
 import { usePersistentState } from '../../shared/lib/usePersistentState';
 import { Package } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'motion/react';
 
 import { 
   CatalogTableRow, 
@@ -36,7 +35,6 @@ import {
   prepareDraftOrderFromProduct 
 } from './helpers';
 import { ProductsV2View } from './components/v2/ProductsV2View';
-import { ProductDrawer } from './components/ProductDrawer';
 
 // Modals
 import { CollectionModal } from './components/modals/CollectionModal';
@@ -90,6 +88,7 @@ export function ProductsList({
     setCalcIsOwnerLabor,
     setCalcIsLaborPerUnit,
     setCalcCustomCostItems,
+    orders,
   } = useData();
 
   const currencySymbol = settings?.currency ?? '₽';
@@ -102,7 +101,7 @@ export function ProductsList({
 
   // 2. Категории
   const [categoriesList, setCategoriesList] = useState<ProductCategory[]>([]);
-  const [selectedCategory, setSelectedCategory] = usePersistentState<string>('3d_products_selected_category', 'all');
+  const [selectedCategories, setSelectedCategories] = usePersistentState<string[]>('3d_products_selected_categories', ['all']);
   const [searchQuery, setSearchQuery] = usePersistentState<string>('3d_products_search_query', '');
 
   useEffect(() => {
@@ -127,30 +126,6 @@ export function ProductsList({
   }, [categoriesList]);
 
   // 3. Заказы и статистика продаж
-  const [orders, setOrders] = useState<Order[]>([]);
-
-  useEffect(() => {
-    const loadOrdersData = async () => {
-      try {
-        const data = await getOrders();
-        setOrders(data);
-      } catch (err) {
-        console.error('Ошибка загрузки заказов:', err);
-      }
-    };
-    loadOrdersData();
-
-    const handleRefresh = () => loadOrdersData();
-    window.addEventListener('saved_calculations_updated', handleRefresh);
-    window.addEventListener('orders_updated', handleRefresh);
-    window.addEventListener('storage', handleRefresh);
-    return () => {
-      window.removeEventListener('saved_calculations_updated', handleRefresh);
-      window.removeEventListener('orders_updated', handleRefresh);
-      window.removeEventListener('storage', handleRefresh);
-    };
-  }, []);
-
   const { map: salesStatsMap } = useMemo(() => {
     return getSalesStats(orders, savedCalculations);
   }, [orders, savedCalculations]);
@@ -163,6 +138,7 @@ export function ProductsList({
   // 5. Фильтры и сортировка
   const [productFilter, setProductFilter] = usePersistentState<ProductFilter>('3d_products_product_filter', 'all');
   const [stockFilter, setStockFilter] = usePersistentState<StockFilter>('3d_products_stock_filter', 'all');
+  const [onlyBestsellers, setOnlyBestsellers] = usePersistentState<boolean>('3d_products_only_bestsellers', false);
   const [sortField, setSortField] = usePersistentState<SortField>('3d_products_sort_field', 'name');
   const [sortOrder, setSortOrder] = usePersistentState<SortOrder>('3d_products_sort_order', 'asc');
 
@@ -182,7 +158,7 @@ export function ProductsList({
   // Сброс порции при смене фильтров
   useEffect(() => {
     setVisibleCount(PRODUCTS_CHUNK_SIZE);
-  }, [searchQuery, productFilter, stockFilter, selectedCategory]);
+  }, [searchQuery, productFilter, stockFilter, onlyBestsellers, selectedCategories]);
 
   // 7. Раскрытие коллекций и сборок
   const [expandedItemIds, setExpandedItemIds] = usePersistentState<Record<string, boolean>>('3d_products_expanded_ids', {});
@@ -367,7 +343,23 @@ export function ProductsList({
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
 
   const [quickEditProductItem, setQuickEditProductItem] = useState<SavedCalculation | null>(null);
-  const [activeDrawerItem, setActiveDrawerItem] = useState<SavedCalculation | null>(null);
+
+  // Инлайн-обновление товара и коллекции
+  const handleInlineUpdateProduct = async (productId: string, updates: Partial<SavedCalculation>) => {
+    const existing = savedCalculations.find((p) => p.id === productId);
+    if (!existing) return;
+    pushHistory();
+    const updated = { ...existing, ...updates };
+    await updateSavedCalculation(updated);
+  };
+
+  const handleInlineUpdateCollection = async (collectionId: string, updates: Partial<ProductCollection>) => {
+    const existing = collections.find((c) => c.id === collectionId);
+    if (!existing) return;
+    pushHistory();
+    const updated = { ...existing, ...updates };
+    await updateCollection(updated);
+  };
 
   // Контекстное меню
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; row: CatalogTableRow } | null>(null);
@@ -632,9 +624,6 @@ export function ProductsList({
     pushHistory();
     await updateSavedCalculation(updated);
     showSuccess(`Товар «${updated.name}» успешно обновлен!`, 'Успешно');
-    if (activeDrawerItem?.id === updated.id) {
-      setActiveDrawerItem(updated);
-    }
   };
 
   // 16. Преобразование данных в строки таблицы (CatalogTableRow)
@@ -643,123 +632,120 @@ export function ProductsList({
     const query = searchQuery.toLowerCase().trim();
 
     // 1. Коллекции
-    collections.forEach((col) => {
-      let childs = savedCalculations.filter(
-        (c) => c.collection_id === col.id || (Boolean(col.name) && Boolean(c.collection_name) && c.collection_name === col.name)
-      );
-
-      if (productFilter === 'single') childs = childs.filter((c) => c.type !== 'assembly');
-      if (productFilter === 'assembly') childs = childs.filter((c) => c.type === 'assembly');
-      if (productFilter === 'low_stock') childs = childs.filter((c) => (c.stock_quantity || 0) <= 2 && (c.stock_quantity || 0) > 0);
-      if (productFilter === 'bestsellers') {
-        childs = childs.filter((c) => {
-          const st = salesStatsMap.get(c.id);
-          return st && st.soldQty > 0;
-        });
-      }
-
-      // Фильтр по остаткам
-      if (stockFilter === 'in_stock') childs = childs.filter((c) => (c.stock_quantity || 0) > 0);
-      if (stockFilter === 'low_stock') childs = childs.filter((c) => (c.stock_quantity || 0) <= 2 && (c.stock_quantity || 0) > 0);
-      if (stockFilter === 'out_of_stock') childs = childs.filter((c) => (c.stock_quantity || 0) === 0);
-
-      // Фильтр по категории
-      if (selectedCategory !== 'all' && (col.category || 'Разное') !== selectedCategory) {
-        const hasMatchingChild = childs.some((c) => (c.category || 'Разное') === selectedCategory);
-        if (!hasMatchingChild) return;
-      }
-
-      // Поиск
-      if (query) {
-        const matchCol =
-          col.name.toLowerCase().includes(query) ||
-          (col.tags || []).some((t) => t.toLowerCase().includes(query));
-        const matchedChilds = childs.filter(
-          (c) =>
-            c.name.toLowerCase().includes(query) ||
-            (c.filament_name || '').toLowerCase().includes(query) ||
-            (c.tags || []).some((t) => t.toLowerCase().includes(query))
+    if (productFilter === 'all' || productFilter === 'collections') {
+      collections.forEach((col) => {
+        let childs = savedCalculations.filter(
+          (c) => c.collection_id === col.id || (Boolean(col.name) && Boolean(c.collection_name) && c.collection_name === col.name)
         );
-        if (!matchCol && matchedChilds.length === 0) return;
-        if (!matchCol && matchedChilds.length > 0) childs = matchedChilds;
-      }
 
-      if (
-        (productFilter === 'single' ||
-          productFilter === 'assembly' ||
-          productFilter === 'low_stock' ||
-          productFilter === 'bestsellers' ||
-          stockFilter !== 'all') &&
-        childs.length === 0
-      ) {
-        return;
-      }
+        if (onlyBestsellers) {
+          childs = childs.filter((c) => {
+            const st = salesStatsMap.get(c.id);
+            return st && st.soldQty > 0;
+          });
+        }
 
-      const prices = childs.map((c) => c.final_price || c.base_cost || 0);
-      const costs = childs.map((c) => c.base_cost || 0);
-      const weights = childs.map((c) => c.weight_g || 0);
-      const minutesTotal = childs.map((c) => (c.hours || 0) * 60 + (c.minutes || 0));
+        // Фильтр по остаткам
+        if (stockFilter === 'in_stock') childs = childs.filter((c) => (c.stock_quantity || 0) > 0);
+        if (stockFilter === 'low_stock') childs = childs.filter((c) => (c.stock_quantity || 0) <= 2 && (c.stock_quantity || 0) > 0);
+        if (stockFilter === 'out_of_stock') childs = childs.filter((c) => (c.stock_quantity || 0) === 0);
 
-      const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
-      const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
-      const minCost = costs.length > 0 ? Math.min(...costs) : 0;
-      const maxCost = costs.length > 0 ? Math.max(...costs) : 0;
+        // Фильтр по категории
+        if (selectedCategories && selectedCategories.length > 0 && !selectedCategories.includes('all')) {
+          const colCat = col.category || 'Разное';
+          const matchCol = selectedCategories.includes(colCat);
+          const hasMatchingChild = childs.some((c) => selectedCategories.includes(c.category || 'Разное'));
+          if (!matchCol && !hasMatchingChild) return;
+          if (!matchCol && hasMatchingChild) {
+            childs = childs.filter((c) => selectedCategories.includes(c.category || 'Разное'));
+          }
+        }
 
-      const minWeight = weights.length > 0 ? Math.min(...weights) : 0;
-      const maxWeight = weights.length > 0 ? Math.max(...weights) : 0;
+        // Поиск
+        if (query) {
+          const matchCol =
+            col.name.toLowerCase().includes(query) ||
+            (col.tags || []).some((t) => t.toLowerCase().includes(query));
+          const matchedChilds = childs.filter(
+            (c) =>
+              c.name.toLowerCase().includes(query) ||
+              (c.filament_name || '').toLowerCase().includes(query) ||
+              (c.tags || []).some((t) => t.toLowerCase().includes(query))
+          );
+          if (!matchCol && matchedChilds.length === 0) return;
+          if (!matchCol && matchedChilds.length > 0) childs = matchedChilds;
+        }
 
-      const minTimeMins = minutesTotal.length > 0 ? Math.min(...minutesTotal) : 0;
-      const maxTimeMins = minutesTotal.length > 0 ? Math.max(...minutesTotal) : 0;
+        if ((onlyBestsellers || stockFilter !== 'all') && childs.length === 0) {
+          return;
+        }
 
-      const totalStock = childs.reduce((sum, c) => sum + (c.stock_quantity || 0), 0);
-      const totalProfit = childs.reduce(
-        (sum, c) => sum + ((c.final_price || 0) - (c.base_cost || 0)) * (c.stock_quantity || 1),
-        0
-      );
+        const prices = childs.map((c) => c.final_price || c.base_cost || 0);
+        const costs = childs.map((c) => c.base_cost || 0);
+        const weights = childs.map((c) => c.weight_g || 0);
+        const minutesTotal = childs.map((c) => (c.hours || 0) * 60 + (c.minutes || 0));
 
-      const matNames = Array.from(new Set(childs.map((c) => c.filament_name).filter(Boolean)));
-      const matColors = Array.from(
-        new Set(childs.map((c) => c.filament_color).filter(Boolean))
-      ) as string[];
-      const stlCount = childs.filter((c) => c.stl_url || c.stl_file_data).length;
+        const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+        const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+        const minCost = costs.length > 0 ? Math.min(...costs) : 0;
+        const maxCost = costs.length > 0 ? Math.max(...costs) : 0;
 
-      const colRow: CatalogTableRow = {
-        rowKind: 'collection',
-        id: col.id,
-        collection: col,
-        childItems: childs,
-        name: col.name,
-        category: col.category || 'Разное',
-        tags: col.tags || [],
-        itemsCount: childs.length,
-        singleCount: childs.filter((c) => c.type !== 'assembly').length,
-        assemblyCount: childs.filter((c) => c.type === 'assembly').length,
-        totalStock,
-        minPrice,
-        maxPrice,
-        minCost,
-        maxCost,
-        totalProfit,
-        materialsList: matNames,
-        materialsColors: matColors,
-        minWeight,
-        maxWeight,
-        minHours: Math.floor(minTimeMins / 60),
-        maxHours: Math.floor(maxTimeMins / 60),
-        minMins: minTimeMins % 60,
-        maxMins: maxTimeMins % 60,
-        stlCount,
-        final_price: minPrice,
-        base_cost: minCost,
-        stock_quantity: totalStock,
-        weight_g: minWeight,
-        hours: Math.floor(minTimeMins / 60),
-        minutes: minTimeMins % 60,
-        created_at: col.created_at,
-      };
+        const minWeight = weights.length > 0 ? Math.min(...weights) : 0;
+        const maxWeight = weights.length > 0 ? Math.max(...weights) : 0;
 
-      rowsList.push(colRow);
-    });
+        const minTimeMins = minutesTotal.length > 0 ? Math.min(...minutesTotal) : 0;
+        const maxTimeMins = minutesTotal.length > 0 ? Math.max(...minutesTotal) : 0;
+
+        const totalStock = childs.reduce((sum, c) => sum + (c.stock_quantity || 0), 0);
+        const totalProfit = childs.reduce(
+          (sum, c) => sum + ((c.final_price || 0) - (c.base_cost || 0)) * (c.stock_quantity || 1),
+          0
+        );
+
+        const matNames = Array.from(new Set(childs.map((c) => c.filament_name).filter(Boolean)));
+        const matColors = Array.from(
+          new Set(childs.map((c) => c.filament_color).filter(Boolean))
+        ) as string[];
+        const stlCount = childs.filter((c) => c.stl_url || c.stl_file_data).length;
+
+        const colRow: CatalogTableRow = {
+          rowKind: 'collection',
+          id: col.id,
+          collection: col,
+          childItems: childs,
+          name: col.name,
+          category: col.category || 'Разное',
+          tags: col.tags || [],
+          itemsCount: childs.length,
+          singleCount: childs.filter((c) => c.type !== 'assembly').length,
+          assemblyCount: childs.filter((c) => c.type === 'assembly').length,
+          totalStock,
+          minPrice,
+          maxPrice,
+          minCost,
+          maxCost,
+          totalProfit,
+          materialsList: matNames,
+          materialsColors: matColors,
+          minWeight,
+          maxWeight,
+          minHours: Math.floor(minTimeMins / 60),
+          maxHours: Math.floor(maxTimeMins / 60),
+          minMins: minTimeMins % 60,
+          maxMins: maxTimeMins % 60,
+          stlCount,
+          final_price: minPrice,
+          base_cost: minCost,
+          stock_quantity: totalStock,
+          weight_g: minWeight,
+          hours: Math.floor(minTimeMins / 60),
+          minutes: minTimeMins % 60,
+          created_at: col.created_at,
+        };
+
+        rowsList.push(colRow);
+      });
+    }
 
     // 2. Одиночные товары и сборки
     if (productFilter !== 'collections') {
@@ -772,8 +758,7 @@ export function ProductsList({
       const filtered = standalone.filter((calc) => {
         if (productFilter === 'single' && calc.type === 'assembly') return false;
         if (productFilter === 'assembly' && calc.type !== 'assembly') return false;
-        if (productFilter === 'low_stock' && ((calc.stock_quantity || 0) > 2 || (calc.stock_quantity || 0) === 0)) return false;
-        if (productFilter === 'bestsellers') {
+        if (onlyBestsellers) {
           const st = salesStatsMap.get(calc.id);
           if (!st || st.soldQty <= 0) return false;
         }
@@ -784,7 +769,10 @@ export function ProductsList({
         if (stockFilter === 'out_of_stock' && (calc.stock_quantity || 0) > 0) return false;
 
         // Категория
-        if (selectedCategory !== 'all' && (calc.category || 'Разное') !== selectedCategory) return false;
+        if (selectedCategories && selectedCategories.length > 0 && !selectedCategories.includes('all')) {
+          const calcCat = calc.category || 'Разное';
+          if (!selectedCategories.includes(calcCat)) return false;
+        }
 
         // Поиск
         if (query) {
@@ -821,7 +809,8 @@ export function ProductsList({
     savedCalculations,
     productFilter,
     stockFilter,
-    selectedCategory,
+    onlyBestsellers,
+    selectedCategories,
     searchQuery,
     salesStatsMap,
   ]);
@@ -872,6 +861,7 @@ export function ProductsList({
       collections: collections.length,
       inStock: savedCalculations.filter((c) => (c.stock_quantity || 0) > 0).length,
       lowStock: savedCalculations.filter((c) => (c.stock_quantity || 0) <= 2 && (c.stock_quantity || 0) > 0).length,
+      outOfStock: savedCalculations.filter((c) => (c.stock_quantity || 0) === 0).length,
       bestsellers: savedCalculations.filter((c) => (salesStatsMap.get(c.id)?.soldQty || 0) > 0).length,
     };
   }, [savedCalculations, collections, salesStatsMap]);
@@ -904,8 +894,10 @@ export function ProductsList({
         setProductFilter={setProductFilter}
         stockFilter={stockFilter}
         setStockFilter={setStockFilter}
-        selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
+        onlyBestsellers={onlyBestsellers}
+        setOnlyBestsellers={setOnlyBestsellers}
+        selectedCategories={selectedCategories}
+        setSelectedCategories={setSelectedCategories}
         categoriesList={categoriesList}
         counts={counts}
         sortField={sortField}
@@ -922,7 +914,8 @@ export function ProductsList({
         onStartRename={handleStartRename}
         onUndo={handleUndo}
         canUndo={historyStack.length > 0}
-        onSelectForDrawer={(item) => setActiveDrawerItem(item)}
+        onInlineUpdateProduct={handleInlineUpdateProduct}
+        onInlineUpdateCollection={handleInlineUpdateCollection}
         onSetStock={handleSetStock}
         onOpenCategoryModal={(item) => setEditingCategoryItem(item)}
         onOpenQuickEditModal={(item) => {
@@ -971,36 +964,6 @@ export function ProductsList({
         setContextMenu={setContextMenu}
         contextMenuRef={contextMenuRef}
       />
-
-      {/* Slide-Over Detail Drawer */}
-      <AnimatePresence>
-        {activeDrawerItem && (
-          <ProductDrawer
-            item={activeDrawerItem}
-            onClose={() => setActiveDrawerItem(null)}
-            onSetStock={handleSetStock}
-            onCreateOrder={handleCreateOrder}
-            onLoadIntoCalculator={handleLoadIntoCalculator}
-            onOpenQuickEdit={(item) => {
-              if (item.type === 'assembly') {
-                setEditingAssembly(item);
-                setIsAssemblyModalOpen(true);
-              } else {
-                setQuickEditProductItem(item);
-              }
-            }}
-            onOpenMoveProduct={(item) => setMovingProduct(item)}
-            onOpenStlModal={(item) => setEditingStlItem(item)}
-            onDelete={(id, name, type) => setDeletingProductItem({ id, name, type })}
-            salesStat={salesStatsMap.get(activeDrawerItem.id)}
-            currencySymbol={currencySymbol}
-            categoriesList={categoriesList}
-            filaments={filaments}
-            printers={printers}
-            settings={settings}
-          />
-        )}
-      </AnimatePresence>
 
       {/* Модальные окна */}
       {isCollectionModalOpen && (

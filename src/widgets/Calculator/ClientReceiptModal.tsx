@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { X, Copy, Download, Printer, Check, Sparkles } from 'lucide-react';
-import { toPng, toBlob } from 'html-to-image';
 import { formatCurrency } from '../../shared/lib/format';
 import { usePersistentState } from '../../shared/lib/usePersistentState';
 import { Tooltip } from '../../shared/ui/Tooltip';
@@ -50,6 +49,9 @@ export function ClientReceiptModal({
   result,
 }: ClientReceiptModalProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const [orderNumber, setOrderNumber] = useState('');
+  const [orderDate, setOrderDate] = useState('');
   const [customItemName, setCustomItemName] = usePersistentState('3d_calc_receipt_item_name', '');
   const [copiedImage, setCopiedImage] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -58,21 +60,32 @@ export function ClientReceiptModal({
   // Изначально все доп. услуги выключены
   useEffect(() => {
     if (isOpen) {
-      setSelectedServiceIds([]);
+      const nextOrderNumber = `3DL-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
+      const nextOrderDate = new Date().toLocaleString('ru-RU', {
+        timeZone: 'Europe/Moscow',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+      queueMicrotask(() => {
+        setSelectedServiceIds([]);
+        setOrderNumber(nextOrderNumber);
+        setOrderDate(nextOrderDate);
+      });
+      requestAnimationFrame(() => closeButtonRef.current?.focus());
     }
   }, [isOpen]);
 
-  // Фиксированные метаданные квитанции
-  const orderNumberRef = useRef(`3DL-${Math.floor(1000 + Math.random() * 9000)}`);
-  const orderDateRef = useRef(
-    new Date().toLocaleDateString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  );
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   // Фильтрация выбранных пользователем доп. услуг для отображения в чеке
   const activeCustomServices = useMemo(() => {
@@ -107,6 +120,7 @@ export function ClientReceiptModal({
     if (!receiptRef.current) return;
     setIsExporting(true);
     try {
+      const { toBlob } = await import('html-to-image');
       const blob = await toBlob(receiptRef.current, {
         pixelRatio: 3,
         cacheBust: true,
@@ -134,12 +148,13 @@ export function ClientReceiptModal({
     if (!receiptRef.current) return;
     setIsExporting(true);
     try {
+      const { toPng } = await import('html-to-image');
       const dataUrl = await toPng(receiptRef.current, {
         pixelRatio: 3,
         cacheBust: true,
       });
       const link = document.createElement('a');
-      link.download = `3D_Labs_Check_${orderNumberRef.current}.png`;
+      link.download = `3D_Labs_Check_${orderNumber}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -150,10 +165,14 @@ export function ClientReceiptModal({
   };
 
   // Печать / Сохранить в PDF
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (!receiptRef.current) return;
+    setIsExporting(true);
+    const { toPng } = await import('html-to-image');
+    const imageUrl = await toPng(receiptRef.current, { pixelRatio: 3, cacheBust: true });
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
+      setIsExporting(false);
       window.print();
       return;
     }
@@ -162,8 +181,7 @@ export function ClientReceiptModal({
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Товарный чек ${orderNumberRef.current} - 3D Labs</title>
-          <script src="https://cdn.tailwindcss.com"></script>
+          <title>Товарный чек ${orderNumber} - 3D Labs</title>
           <style>
             @page { margin: 10mm; size: auto; }
             body { 
@@ -175,25 +193,23 @@ export function ClientReceiptModal({
               font-family: var(--font-jetbrains-mono), monospace;
               margin: 0;
             }
+            img { width: 300px; max-width: 100%; height: auto; }
             @media print {
               body { background: transparent; }
             }
           </style>
         </head>
         <body>
-          <div style="width: 300px;">
-            ${receiptRef.current.outerHTML}
-          </div>
-          <script>
-            setTimeout(() => {
-              window.print();
-              window.close();
-            }, 300);
-          </script>
+          <img src="${imageUrl}" alt="Товарный чек" />
         </body>
       </html>
     `);
     printWindow.document.close();
+    printWindow.addEventListener('load', () => {
+      printWindow.print();
+      printWindow.close();
+    }, { once: true });
+    setIsExporting(false);
   };
 
   if (!isOpen) return null;
@@ -215,6 +231,9 @@ export function ClientReceiptModal({
           initial={{ opacity: 0, scale: 0.96, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.96, y: 15 }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="client-receipt-title"
           className="relative w-full max-w-6xl rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl overflow-hidden z-10 my-auto flex flex-col max-h-[94vh]"
         >
           {/* 1. ВЕРХНЯЯ ПАНЕЛЬ (ШАПКА ОКНА В ТОЧНОСТИ КАК В КАЛЬКУЛЯТОРЕ) */}
@@ -223,8 +242,10 @@ export function ClientReceiptModal({
               {/* Только одна красная точка - закрытие при нажатии */}
               <Tooltip content="Закрыть окно">
                 <button
+                  ref={closeButtonRef}
                   type="button"
                   onClick={onClose}
+                  aria-label="Закрыть чек"
                   className="w-3 h-3 rounded-full bg-red-500/80 border border-red-400/40 hover:bg-red-500 hover:scale-110 active:scale-95 transition-all cursor-pointer shadow-sm flex items-center justify-center group"
                 >
                   <X className="w-2 h-2 text-red-950 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -233,8 +254,8 @@ export function ClientReceiptModal({
 
               <div className="flex items-center gap-2 pl-3 border-l border-white/10 font-mono text-xs text-neutral-300">
                 <span className="text-white font-bold">§ 3D-LABS</span>
-                <span className="text-neutral-600">//</span>
-                <span className="text-neutral-400">ЧЕК ДЛЯ КЛИЕНТА</span>
+                <span className="text-neutral-600">{'//'}</span>
+                <span id="client-receipt-title" className="text-neutral-400">ЧЕК ДЛЯ КЛИЕНТА</span>
                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-mono ml-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   <span>Клиентский вид</span>
@@ -271,6 +292,7 @@ export function ClientReceiptModal({
                     </div>
 
                     <input
+                      aria-label="Название товара в чеке"
                       type="text"
                       placeholder="напр. Корпус прибора / Шестерня редуктора / Кронштейн"
                       value={customItemName}
@@ -423,12 +445,12 @@ export function ClientReceiptModal({
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#262626', fontWeight: 600, letterSpacing: '0.05em', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
                       <span style={{ fontWeight: 'bold', color: '#0a0a0a' }}>3D LABS · PRODUCTION</span>
-                      <span>№ {orderNumberRef.current}</span>
+                      <span>№ {orderNumber}</span>
                     </div>
                     
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#525252', paddingTop: '3px', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
                       <span>ТОВАРНЫЙ ЧЕК</span>
-                      <span>{orderDateRef.current}</span>
+                      <span>{orderDate}</span>
                     </div>
 
                     {/* Пунктирный разделитель */}
@@ -599,11 +621,11 @@ export function ClientReceiptModal({
           {/* 3. ПОДВАЛ ОКНА МОДАЛКИ (КАК В КАЛЬКУЛЯТОРЕ) */}
           <div className="border-t border-white/10 px-4 sm:px-6 py-2.5 bg-neutral-950 flex items-center justify-between text-[11px] font-mono text-neutral-500 shrink-0">
             <div className="flex items-center gap-3">
-              <span>DATABASE: SUPABASE CLOUD</span>
+              <span>EXPORT: LOCAL DEVICE</span>
               <span className="hidden sm:inline">•</span>
-              <span className="hidden sm:inline">CACHE: LOCALSTORAGE SYNCED</span>
+              <span className="hidden sm:inline">FORMAT: PNG / PRINT</span>
             </div>
-            <div>FPS: 60 · RESPONSE: 18ms</div>
+            <div>{isExporting ? 'STATUS: EXPORTING' : 'STATUS: READY'}</div>
           </div>
 
         </motion.div>

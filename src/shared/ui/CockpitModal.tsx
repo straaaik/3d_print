@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 export interface CockpitModalProps {
   isOpen: boolean;
@@ -42,26 +42,58 @@ export function CockpitModal({
   variant = 'default',
   showLeds = true,
 }: CockpitModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
   // Блокировка прокрутки фона при открытой модалке
   useEffect(() => {
     if (isOpen) {
       const originalOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
       return () => {
-        document.body.style.overflow = originalOverflow || 'unset';
+        document.body.style.overflow = originalOverflow;
       };
     }
   }, [isOpen]);
 
-  // Закрытие по клавише Escape
   useEffect(() => {
+    if (!isOpen) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = dialogRef.current;
+    const focusableSelector = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
         onClose();
+        return;
+      }
+      if (e.key !== 'Tab' || !dialog) return;
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector))
+        .filter((element) => element.getClientRects().length > 0);
+      if (focusable.length === 0) {
+        e.preventDefault();
+        dialog.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === dialog)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', handleKeyDown, true);
+    window.requestAnimationFrame(() => {
+      const firstFocusable = dialog?.querySelector<HTMLElement>(focusableSelector);
+      (firstFocusable ?? dialog)?.focus();
+    });
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown, true);
+      previousFocus?.focus();
+    };
   }, [isOpen, onClose]);
 
   const sizeClass = maxWidthClasses[maxWidth] || maxWidthClasses.lg;
@@ -87,6 +119,7 @@ export function CockpitModal({
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 lg:p-6 overflow-y-auto select-none">
           {/* Стеклянный темный бэкдроп */}
           <motion.div
+            aria-hidden="true"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -97,6 +130,13 @@ export function CockpitModal({
 
           {/* Главное окно в стиле Cockpit Console */}
           <motion.div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={title ? titleId : undefined}
+            aria-label={title ? undefined : stamp}
+            data-cockpit-modal="true"
+            tabIndex={-1}
             initial={{ opacity: 0, scale: 0.96, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 10 }}
@@ -118,7 +158,7 @@ export function CockpitModal({
                 {/* Инженерный штамп */}
                 <div className={`flex items-center gap-2 font-mono text-xs text-neutral-300 min-w-0 ${showLeds ? 'pl-3 border-l border-white/10' : ''}`}>
                   <span className="text-white font-bold shrink-0">§ 3D-LABS</span>
-                  <span className="text-neutral-600 shrink-0">//</span>
+                  <span className="text-neutral-600 shrink-0">{'//'}</span>
                   <span className="text-neutral-400 truncate uppercase tracking-wider font-semibold">
                     {stamp}
                   </span>
@@ -141,7 +181,7 @@ export function CockpitModal({
             {(title || subtitle) && (
               <div className="px-4 sm:px-6 pt-4 pb-2 shrink-0">
                 {title && (
-                  <h3 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                  <h3 id={titleId} className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
                     {title}
                   </h3>
                 )}

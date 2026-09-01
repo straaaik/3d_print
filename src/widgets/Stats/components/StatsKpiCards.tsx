@@ -1,37 +1,37 @@
 'use client';
 
 import React from 'react';
-import { 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  DollarSign, 
-  Wallet, 
-  HelpCircle, 
-  Layers, 
-  Printer, 
+import NumberFlow from '@number-flow/react';
+import { motion } from 'motion/react';
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  CircleDollarSign,
+  Percent,
+  ReceiptText,
+  Target,
   TrendingUp,
-  CheckCircle2
+  WalletCards,
 } from 'lucide-react';
-import { StatsKPI } from '../helpers/statsCalculator';
-import { CustomTooltip } from '../../../shared/ui/Tooltip';
+import type { LucideIcon } from 'lucide-react';
+import { Tooltip } from '../../../shared/ui/Tooltip';
+import { CockpitTiltCard } from '../../../shared/ui/CockpitTiltCard';
+import type { FinancialMode, MetricDelta, StatsReportKpi } from '../types';
+import { getFinancialLabels } from '../helpers/statsCalculator';
 
 interface StatsKpiCardsProps {
-  kpi: StatsKPI;
+  kpi: StatsReportKpi;
+  deltas: Record<'revenue' | 'expenses' | 'result' | 'margin' | 'averageCheck', MetricDelta>;
+  mode: FinancialMode;
+  goal?: { target: number; actual: number; progressPercent: number | null };
 }
 
 export function formatMoney(num: number | undefined | null): string {
-  const val = num || 0;
-  return `${val.toLocaleString('ru-RU', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  })} ₽`;
+  return `${(Number(num) || 0).toLocaleString('ru-RU', { maximumFractionDigits: 0 })} ₽`;
 }
 
 export function formatWeight(grams: number): string {
-  if (grams >= 1000) {
-    return `${(grams / 1000).toFixed(2)} кг`;
-  }
-  return `${Math.round(grams)} г`;
+  return grams >= 1000 ? `${(grams / 1000).toFixed(2)} кг` : `${Math.round(grams)} г`;
 }
 
 export function formatPrintTime(decimalHours: number): string {
@@ -39,272 +39,162 @@ export function formatPrintTime(decimalHours: number): string {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   if (hours === 0) return `${minutes} мин`;
-  if (minutes === 0) return `${hours} ч`;
-  return `${hours} ч ${minutes} мин`;
+  return minutes === 0 ? `${hours} ч` : `${hours} ч ${minutes} мин`;
 }
 
-export function StatsKpiCards({ kpi }: StatsKpiCardsProps) {
-  const isProfitPositive = kpi.netProfit >= 0;
+const TONES = {
+  cyan: 'text-cyan-300 bg-cyan-950/60 border-cyan-800/40',
+  rose: 'text-rose-300 bg-rose-950/60 border-rose-800/40',
+  emerald: 'text-emerald-300 bg-emerald-950/60 border-emerald-800/40',
+  amber: 'text-amber-300 bg-amber-950/60 border-amber-800/40',
+  violet: 'text-violet-300 bg-violet-950/60 border-violet-800/40',
+  neutral: 'text-neutral-300 bg-white/5 border-white/10',
+} as const;
+
+type Tone = keyof typeof TONES;
+
+type KpiCard = {
+  id: string;
+  label: string;
+  value: number;
+  unit: string;
+  icon: LucideIcon;
+  tone: Tone;
+  formula: string;
+  footer: string;
+  delta: MetricDelta | null;
+  customDeltaText?: string;
+  customDeltaColor?: string;
+};
+
+export function StatsKpiCards({ kpi, deltas, mode, goal }: StatsKpiCardsProps) {
+  const labels = getFinancialLabels(mode);
+  const resultTone: Tone = kpi.result >= 0 ? 'emerald' : 'rose';
+
+  const isGoalSet = goal && goal.progressPercent !== null && goal.target > 0;
+  const isGoalMet = isGoalSet && goal.actual >= goal.target;
+
+  const cards: KpiCard[] = [
+    {
+      id: 'revenue', label: labels.revenue, value: kpi.revenue, unit: '₽', icon: ArrowUpRight, tone: 'cyan' as const,
+      formula: mode === 'cash' ? 'Сумма фактически полученных оплат' : 'Сумма всех доходных заказов',
+      footer: `${kpi.incomeOrders} доходных заказов`, delta: deltas.revenue,
+    },
+    {
+      id: 'expenses', label: 'Расходы', value: kpi.expenses, unit: '₽', icon: ArrowDownRight, tone: 'rose' as const,
+      formula: 'Себестоимость заказов + прямые расходы', footer: `${kpi.expenseOrders} прямых расходов`, delta: deltas.expenses,
+    },
+    {
+      id: 'result', label: labels.result, value: kpi.result, unit: '₽', icon: TrendingUp, tone: resultTone,
+      formula: `${labels.revenue} − расходы`, footer: kpi.result >= 0 ? 'Положительный результат' : 'Расходы выше дохода', delta: deltas.result,
+    },
+    {
+      id: 'plan', label: 'План', value: goal?.target || 0, unit: '₽', icon: Target,
+      tone: isGoalMet ? ('emerald' as const) : isGoalSet ? ('cyan' as const) : ('neutral' as const),
+      formula: `Целевая сумма (${labels.result}) на выбранный период`,
+      footer: isGoalSet
+        ? (isGoalMet ? 'Цель достигнута' : `${formatMoney(Math.max(0, (goal?.target ?? 0) - (goal?.actual ?? 0)))} осталось`)
+        : 'Цель не задана',
+      delta: null,
+      customDeltaText: isGoalSet ? `${goal.progressPercent?.toFixed(0)}%` : '—',
+      customDeltaColor: isGoalMet ? 'text-emerald-400' : isGoalSet ? 'text-cyan-400' : 'text-neutral-700',
+    },
+    {
+      id: 'margin', label: 'Маржинальность', value: kpi.margin, unit: '%', icon: Percent, tone: kpi.margin >= 20 ? 'emerald' as const : 'amber' as const,
+      formula: `${labels.result} / ${labels.revenue} × 100`, footer: kpi.margin >= 20 ? 'Рабочий диапазон' : 'Ниже контрольных 20%', delta: deltas.margin,
+    },
+    {
+      id: 'averageCheck', label: 'Средний чек', value: kpi.averageCheck, unit: '₽', icon: ReceiptText, tone: 'violet' as const,
+      formula: `${labels.revenue} / количество доходных заказов`, footer: `${kpi.completedOrders} завершено`, delta: deltas.averageCheck,
+    },
+    {
+      id: 'receivables', label: 'К получению', value: kpi.receivables, unit: '₽', icon: WalletCards, tone: kpi.receivables > 0 ? 'amber' as const : 'neutral' as const,
+      formula: 'Сумма заказов − полученные оплаты', footer: `${kpi.unpaidOrders} неоплаченных заказов`, delta: null,
+    },
+  ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 select-none font-mono">
-      {/* 1. Выручка */}
-      <div className="bg-neutral-950/90 border border-white/10 hover:border-white/20 rounded-xl p-4 transition-all duration-200 shadow-lg relative overflow-hidden group flex flex-col justify-between min-h-[148px]">
-        {/* Шапка карточки */}
-        <div className="flex items-center justify-between gap-1.5 h-7">
-          <div className="flex items-center gap-1 min-w-0 flex-1 pr-1">
-            <span className="text-[10px] xl:text-[11px] font-bold uppercase tracking-wider text-neutral-400 truncate">
-              Выручка
-            </span>
-            <CustomTooltip
-              title="Выручка (Оборот)"
-              description="Суммарный объем продаж по всем заказам на 3D-печать и услуги за выбранный период."
-              formula="Сумма всех (Сумма заказа) по доходным операциям"
-              accentColor="emerald"
-              align="left"
-            >
-              <HelpCircle className="w-3.5 h-3.5 text-neutral-600 hover:text-emerald-400 transition-colors cursor-help shrink-0" />
-            </CustomTooltip>
-          </div>
-          <div className="w-7 h-7 rounded-lg bg-emerald-950/60 text-emerald-400 border border-emerald-800/40 flex items-center justify-center shrink-0">
-            <ArrowUpRight className="w-4 h-4" />
-          </div>
-        </div>
-
-        {/* Главное число */}
-        <div className="my-auto py-1">
-          <div className="text-xl xl:text-2xl font-bold font-mono text-emerald-400 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
-            {formatMoney(kpi.totalRevenue)}
-          </div>
-        </div>
-
-        {/* Подвал карточки */}
-        <div className="border-t border-white/10 pt-2.5 pb-0.5 flex items-center justify-between text-[11px] text-neutral-500 whitespace-nowrap">
-          <span>Сделок: <strong className="text-neutral-300 font-mono">{kpi.incomeOrdersCount}</strong></span>
-          {kpi.incomeOrdersCount > 0 ? (
-            <span>Ср. чек: <strong className="text-emerald-400 font-mono">{formatMoney(kpi.averageCheck)}</strong></span>
-          ) : (
-            <span className="text-neutral-600">—</span>
-          )}
-        </div>
-      </div>
-
-      {/* 2. Расходы */}
-      <div className="bg-neutral-950/90 border border-white/10 hover:border-white/20 rounded-xl p-4 transition-all duration-200 shadow-lg relative overflow-hidden group flex flex-col justify-between min-h-[148px]">
-        {/* Шапка карточки */}
-        <div className="flex items-center justify-between gap-1.5 h-7">
-          <div className="flex items-center gap-1 min-w-0 flex-1 pr-1">
-            <span className="text-[10px] xl:text-[11px] font-bold uppercase tracking-wider text-neutral-400 truncate">
-              Расходы
-            </span>
-            <CustomTooltip
-              title="Затраты и себестоимость"
-              description="Себестоимость пластика, амортизация принтеров, электроэнергия, фурнитура и прямые расходы."
-              formula="Себестоимость заказов + Прямые расходы"
-              accentColor="rose"
-              align="center"
-            >
-              <HelpCircle className="w-3.5 h-3.5 text-neutral-600 hover:text-rose-400 transition-colors cursor-help shrink-0" />
-            </CustomTooltip>
-          </div>
-          <div className="w-7 h-7 rounded-lg bg-rose-950/60 text-rose-400 border border-rose-800/40 flex items-center justify-center shrink-0">
-            <ArrowDownRight className="w-4 h-4" />
-          </div>
-        </div>
-
-        {/* Главное число */}
-        <div className="my-auto py-1">
-          <div className="text-xl xl:text-2xl font-bold font-mono text-rose-400 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
-            {formatMoney(kpi.totalExpenses)}
-          </div>
-        </div>
-
-        {/* Подвал карточки */}
-        <div className="border-t border-white/10 pt-2.5 pb-0.5 flex items-center justify-between text-[11px] text-neutral-500 whitespace-nowrap">
-          <span>Себестоимость</span>
-          <span>Прямых: <strong className="text-neutral-300 font-mono">{kpi.expenseOrdersCount}</strong></span>
-        </div>
-      </div>
-
-      {/* 3. Чистая прибыль */}
-      <div className="bg-neutral-950/90 border border-white/10 hover:border-white/20 rounded-xl p-4 transition-all duration-200 shadow-lg relative overflow-hidden group flex flex-col justify-between min-h-[148px]">
-        {/* Шапка карточки */}
-        <div className="flex items-center justify-between gap-1.5 h-7">
-          <div className="flex items-center gap-1 min-w-0 flex-1 pr-1">
-            <span className="text-[10px] xl:text-[11px] font-bold uppercase tracking-wider text-neutral-400 truncate">
-              Чистая прибыль
-            </span>
-            <CustomTooltip
-              title="Чистая прибыль"
-              description="Чистый финансовый доход мастерской после вычета себестоимости и всех прямых издержек."
-              formula="Выручка − Все расходы. Маржа = (Прибыль / Выручка) × 100%"
-              accentColor="orange"
-              align="center"
-            >
-              <HelpCircle className="w-3.5 h-3.5 text-neutral-600 hover:text-amber-400 transition-colors cursor-help shrink-0" />
-            </CustomTooltip>
-          </div>
-          <div className="w-7 h-7 rounded-lg bg-amber-950/60 text-amber-400 border border-amber-800/40 flex items-center justify-center shrink-0">
-            <DollarSign className="w-4 h-4" />
-          </div>
-        </div>
-
-        {/* Главное число */}
-        <div className="my-auto py-1">
-          <div className={`text-xl xl:text-2xl font-bold font-mono tracking-tight whitespace-nowrap overflow-hidden text-ellipsis ${
-            isProfitPositive ? 'text-emerald-400' : 'text-rose-400'
-          }`}>
-            {isProfitPositive ? `+${formatMoney(kpi.netProfit)}` : formatMoney(kpi.netProfit)}
-          </div>
-        </div>
-
-        {/* Подвал карточки */}
-        <div className="border-t border-white/10 pt-2.5 pb-0.5 flex items-center justify-between text-[11px] text-neutral-500 whitespace-nowrap">
-          {kpi.totalRevenue > 0 ? (
-            <>
-              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border ${
-                kpi.marginPercent >= 50
-                  ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800/40'
-                  : kpi.marginPercent >= 20
-                  ? 'bg-amber-950/60 text-amber-300 border-amber-800/40'
-                  : 'bg-rose-950/60 text-rose-300 border-rose-800/40'
-              }`}>
-                маржа {kpi.marginPercent.toFixed(1)}%
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
+      {cards.map((card, index) => {
+        const Icon = card.icon;
+        const isNegative = card.value < 0;
+        return (
+          <CockpitTiltCard
+            key={card.id}
+            tone={card.tone}
+            as="article"
+            initial={{ opacity: 0, transform: 'translateY(10px)' }}
+            animate={{ opacity: 1, transform: 'translateY(0px)' }}
+            transition={{ duration: 0.28, delay: index * 0.045 }}
+            className="flex min-h-36 flex-col justify-between p-4"
+            backContent={(
+              <div className="flex h-full flex-col justify-between font-mono text-[10px]">
+                <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+                  <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400 truncate">
+                    {card.label}
+                  </span>
+                </div>
+                <div className="my-auto space-y-1.5 py-1">
+                  <div>
+                    <span className="text-neutral-500 block text-[9px] uppercase">Формула:</span>
+                    <span className="text-neutral-300 text-[10px] leading-tight block">{card.formula}</span>
+                  </div>
+                  {card.delta && (
+                    <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                      <span className="text-neutral-500">Динамика:</span>
+                      <span className={`font-bold tabular-nums ${card.delta.value >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {card.delta.value >= 0 ? '+' : ''}{formatMoney(card.delta.value)} ({card.delta.percent !== null ? `${card.delta.percent >= 0 ? '+' : ''}${card.delta.percent.toFixed(1)}%` : '—'})
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                    <span className="text-neutral-500">Контекст:</span>
+                    <span className="text-white font-semibold truncate">{card.footer}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-neutral-400">{card.label}</span>
+                <Tooltip content={card.formula}>
+                  <CircleDollarSign aria-label={`Формула: ${card.formula}`} className="h-3.5 w-3.5 cursor-help text-neutral-600 hover:text-cyan-400" />
+                </Tooltip>
+              </div>
+              <span className={`flex h-7 w-7 items-center justify-center rounded-lg border ${TONES[card.tone]}`}>
+                <Icon aria-hidden="true" className="h-4 w-4" />
               </span>
-              <span className="text-[10px] text-neutral-500">
-                наценка {kpi.markupPercent.toFixed(0)}%
-              </span>
-            </>
-          ) : (
-            <span className="text-neutral-600">Нет операций</span>
-          )}
-        </div>
-      </div>
+            </div>
 
-      {/* 4. Остаток к оплате */}
-      <div className="bg-neutral-950/90 border border-white/10 hover:border-white/20 rounded-xl p-4 transition-all duration-200 shadow-lg relative overflow-hidden group flex flex-col justify-between min-h-[148px]">
-        {/* Шапка карточки */}
-        <div className="flex items-center justify-between gap-1.5 h-7">
-          <div className="flex items-center gap-1 min-w-0 flex-1 pr-1">
-            <span className="text-[10px] xl:text-[11px] font-bold uppercase tracking-wider text-neutral-400 truncate">
-              Остаток к оплате
-            </span>
-            <CustomTooltip
-              title="Дебиторская задолженность"
-              description="Сумма, которую клиенты еще не доплатили по сформированным заказам за период."
-              formula="Сумма (Сумма заказа − Оплачено)"
-              accentColor="amber"
-              align="center"
-            >
-              <HelpCircle className="w-3.5 h-3.5 text-neutral-600 hover:text-amber-400 transition-colors cursor-help shrink-0" />
-            </CustomTooltip>
-          </div>
-          <div className="w-7 h-7 rounded-lg bg-amber-950/60 text-amber-400 border border-amber-800/40 flex items-center justify-center shrink-0">
-            <Wallet className="w-4 h-4" />
-          </div>
-        </div>
+            <div className={`my-3 flex items-baseline gap-1 font-mono text-2xl font-bold tabular-nums ${isNegative ? 'text-rose-400' : TONES[card.tone].split(' ')[0]}`}>
+              <NumberFlow
+                value={card.value}
+                locales="ru-RU"
+                format={{ maximumFractionDigits: card.unit === '%' ? 1 : 0 }}
+                respectMotionPreference
+              />
+              <span className="text-sm text-neutral-500">{card.unit}</span>
+            </div>
 
-        {/* Главное число */}
-        <div className="my-auto py-1">
-          <div className="text-xl xl:text-2xl font-bold font-mono text-amber-400 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
-            {formatMoney(kpi.unpaidSum)}
-          </div>
-        </div>
-
-        {/* Подвал карточки */}
-        <div className="border-t border-white/10 pt-2.5 pb-0.5 flex items-center justify-between text-[11px] text-neutral-500 whitespace-nowrap">
-          {kpi.unpaidSum > 0 ? (
-            <span className="text-amber-400 font-medium">
-              Ожидают: <strong className="font-mono text-white">{kpi.unpaidOrdersCount}</strong>
-            </span>
-          ) : (
-            <span className="text-emerald-400 font-medium flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3" /> Оплачено
-            </span>
-          )}
-          <span className="text-[10px] text-neutral-500">
-            В работе: <strong className="text-neutral-300 font-mono">{kpi.inProgressOrdersCount}</strong>
-          </span>
-        </div>
-      </div>
-
-      {/* 5. Расход сырья */}
-      <div className="bg-neutral-950/90 border border-white/10 hover:border-white/20 rounded-xl p-4 transition-all duration-200 shadow-lg relative overflow-hidden group flex flex-col justify-between min-h-[148px]">
-        {/* Шапка карточки */}
-        <div className="flex items-center justify-between gap-1.5 h-7">
-          <div className="flex items-center gap-1 min-w-0 flex-1 pr-1">
-            <span className="text-[10px] xl:text-[11px] font-bold uppercase tracking-wider text-neutral-400 truncate">
-              Расход сырья
-            </span>
-            <CustomTooltip
-              title="Расход пластика / смолы"
-              description="Общий вес затраченного филамента на изготовление изделий по заказам за выбранный период."
-              formula="Сумма (Вес модели × Тираж заказа)"
-              accentColor="cyan"
-              align="center"
-            >
-              <HelpCircle className="w-3.5 h-3.5 text-neutral-600 hover:text-cyan-400 transition-colors cursor-help shrink-0" />
-            </CustomTooltip>
-          </div>
-          <div className="w-7 h-7 rounded-lg bg-cyan-950/60 text-cyan-400 border border-cyan-800/40 flex items-center justify-center shrink-0">
-            <Layers className="w-4 h-4" />
-          </div>
-        </div>
-
-        {/* Главное число */}
-        <div className="my-auto py-1">
-          <div className="text-xl xl:text-2xl font-bold font-mono text-cyan-400 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
-            {formatWeight(kpi.totalFilamentWeightG)}
-          </div>
-        </div>
-
-        {/* Подвал карточки */}
-        <div className="border-t border-white/10 pt-2.5 pb-0.5 flex items-center justify-between text-[11px] text-neutral-500 whitespace-nowrap">
-          <span>~ {((kpi.totalFilamentWeightG || 0) / 1000).toFixed(1)} кат.</span>
-          <span className="text-cyan-300 font-mono font-medium">
-            {kpi.totalFilamentWeightG > 0 ? `${Math.round(kpi.totalFilamentWeightG)} г` : '0 г'}
-          </span>
-        </div>
-      </div>
-
-      {/* 6. Часы печати */}
-      <div className="bg-neutral-950/90 border border-white/10 hover:border-white/20 rounded-xl p-4 transition-all duration-200 shadow-lg relative overflow-hidden group flex flex-col justify-between min-h-[148px]">
-        {/* Шапка карточки */}
-        <div className="flex items-center justify-between gap-1.5 h-7">
-          <div className="flex items-center gap-1 min-w-0 flex-1 pr-1">
-            <span className="text-[10px] xl:text-[11px] font-bold uppercase tracking-wider text-neutral-400 truncate">
-              Часы печати
-            </span>
-            <CustomTooltip
-              title="Наработка оборудования (Машино-часы)"
-              description="Суммарное расчетное время работы 3D-принтеров на выполнение заказов за выбранный период."
-              formula="Сумма (Время печати изделия × Тираж)"
-              accentColor="purple"
-              align="right"
-            >
-              <HelpCircle className="w-3.5 h-3.5 text-neutral-600 hover:text-purple-400 transition-colors cursor-help shrink-0" />
-            </CustomTooltip>
-          </div>
-          <div className="w-7 h-7 rounded-lg bg-purple-950/60 text-purple-300 border border-purple-800/40 flex items-center justify-center shrink-0">
-            <Printer className="w-4 h-4" />
-          </div>
-        </div>
-
-        {/* Главное число */}
-        <div className="my-auto py-1">
-          <div className="text-xl xl:text-2xl font-bold font-mono text-purple-300 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
-            {formatPrintTime(kpi.totalPrintHours)}
-          </div>
-        </div>
-
-        {/* Подвал карточки */}
-        <div className="border-t border-white/10 pt-2.5 pb-0.5 flex items-center justify-between text-[11px] text-neutral-500 whitespace-nowrap">
-          <span>Сдано: <strong className="text-neutral-300 font-mono">{kpi.completedOrdersCount}</strong></span>
-          <span className="text-purple-300 font-mono font-medium">
-            {kpi.totalPrintHours > 0 ? `${kpi.totalPrintHours.toFixed(1)} ч` : '0 ч'}
-          </span>
-        </div>
-      </div>
+            <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-2 font-mono text-[10px] text-neutral-500">
+              <span className="truncate">{card.footer}</span>
+              {card.customDeltaText ? (
+                <span className={card.customDeltaColor || 'text-neutral-400 font-semibold'}>
+                  {card.customDeltaText}
+                </span>
+              ) : card.delta && card.delta.percent !== null ? (
+                <span className={card.delta.value >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                  {card.delta.value >= 0 ? '▲' : '▼'} {Math.abs(card.delta.percent).toFixed(1)}%
+                </span>
+              ) : (
+                <span className="text-neutral-700">—</span>
+              )}
+            </div>
+          </CockpitTiltCard>
+        );
+      })}
     </div>
   );
 }
+

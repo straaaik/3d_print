@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Minus, Plus } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import NumberFlow from '@number-flow/react';
 
 interface NumberCounterProps {
   label?: React.ReactNode;
@@ -14,30 +14,6 @@ interface NumberCounterProps {
   disabled?: boolean;
   className?: string;
   isModified?: boolean;
-}
-
-function Digit({ value, direction }: { value: string; direction: 'up' | 'down' }) {
-  return (
-    <span className="inline-block overflow-hidden relative w-[0.6em] h-5 text-center select-none pointer-events-none">
-      <AnimatePresence mode="popLayout" initial={false}>
-        <motion.span
-          key={value}
-          initial={{ y: direction === 'up' ? 14 : -14, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: direction === 'up' ? -14 : 14, opacity: 0 }}
-          transition={{ 
-            type: 'spring', 
-            stiffness: 300, 
-            damping: 25, 
-            mass: 0.8
-          }}
-          className="absolute inset-0 flex items-center justify-center font-mono text-xs text-white font-bold"
-        >
-          {value}
-        </motion.span>
-      </AnimatePresence>
-    </span>
-  );
 }
 
 export function NumberCounter({
@@ -53,19 +29,7 @@ export function NumberCounter({
 }: NumberCounterProps) {
   const [isFocused, setIsFocused] = useState(false);
   const [inputValue, setInputValue] = useState(value.toString());
-  const [prevValue, setPrevValue] = useState(value);
-  const [direction, setDirection] = useState<'up' | 'down'>('up');
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (value > prevValue) {
-      setDirection('up');
-    } else if (value < prevValue) {
-      setDirection('down');
-    }
-    setPrevValue(value);
-    setInputValue(value.toString());
-  }, [value, prevValue]);
 
   useEffect(() => {
     if (isFocused && inputRef.current) {
@@ -88,6 +52,12 @@ export function NumberCounter({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputValue(e.target.value);
+  };
+
+  const handleStartEditing = () => {
+    if (disabled) return;
+    setInputValue(value.toString());
+    setIsFocused(true);
   };
 
   const handleBlur = () => {
@@ -141,7 +111,7 @@ export function NumberCounter({
         </button>
 
         <div 
-          onClick={() => !disabled && setIsFocused(true)}
+          onClick={handleStartEditing}
           className={`flex-1 h-full flex items-center justify-center px-2 min-w-[40px] relative overflow-hidden ${
             disabled ? 'cursor-not-allowed' : 'cursor-text'
           }`}
@@ -160,19 +130,13 @@ export function NumberCounter({
             />
           ) : (
             <div className="h-full flex items-center justify-center overflow-hidden">
-              <div className="flex flex-row-reverse items-center justify-center h-full">
-                {value
-                  .toString()
-                  .split('')
-                  .reverse()
-                  .map((digit, index) => (
-                    <Digit 
-                      key={index} 
-                      value={digit} 
-                      direction={direction} 
-                    />
-                  ))}
-              </div>
+              <NumberFlow
+                value={value}
+                locales="ru-RU"
+                format={{ maximumFractionDigits: 0, useGrouping: false }}
+                respectMotionPreference
+                className="font-mono text-xs font-bold text-white tabular-nums"
+              />
             </div>
           )}
         </div>

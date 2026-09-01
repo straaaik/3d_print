@@ -3,18 +3,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
 import { useAuth } from '../../entities/model/AuthProvider';
 import { 
   ChevronDown, 
   Settings, 
   ShieldCheck, 
   Info, 
-  LogOut 
+  LogOut,
+  LayoutGrid
 } from 'lucide-react';
+import { StableNavLabel } from './StableNavLabel';
 
 export interface MainNavbarProps {
   className?: string;
+  activeTab?: string;
+  onTabChange?: (tabId: string) => void;
   /** Если задан — вызывается перед переходом. Вернуть false чтобы отменить навигацию. */
   onNavigate?: (href: string) => boolean | Promise<boolean>;
 }
@@ -53,7 +57,7 @@ const NAV_ITEMS = [
   },
 ];
 
-export function MainNavbar({ className = '', onNavigate }: MainNavbarProps) {
+export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate }: MainNavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { currentUser, isAdmin, logout } = useAuth();
@@ -61,7 +65,7 @@ export function MainNavbar({ className = '', onNavigate }: MainNavbarProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  const activeId = NAV_ITEMS.find((item) => pathname?.startsWith(item.href))?.id ?? 'orders';
+  const activeId = activeTab || (NAV_ITEMS.find((item) => pathname?.startsWith(item.href))?.id ?? 'orders');
 
   // Закрытие меню профиля при клике вне
   useEffect(() => {
@@ -139,6 +143,16 @@ export function MainNavbar({ className = '', onNavigate }: MainNavbarProps) {
                   <div className="text-[11px] text-neutral-400 truncate">{currentUser?.email || 'user@3dlabs.local'}</div>
                 </div>
 
+                {/* Пункт: Главный хаб */}
+                <Link
+                  href="/"
+                  onClick={() => setIsProfileOpen(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-neutral-300 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <LayoutGrid className="w-4 h-4 text-emerald-400" />
+                  <span className="font-sans font-medium text-xs">Главный хаб</span>
+                </Link>
+
                 {/* Пункт: Настройки */}
                 <Link
                   href="/settings"
@@ -212,13 +226,7 @@ export function MainNavbar({ className = '', onNavigate }: MainNavbarProps) {
                 </span>
 
                 {/* Текст ссылки (меняет только цвет и жирность) */}
-                <span
-                  className={`font-sans whitespace-nowrap text-xs transition-colors duration-150 ${
-                    isActive ? 'text-white font-bold' : 'text-neutral-400 group-hover:text-white font-normal'
-                  }`}
-                >
-                  {item.label}
-                </span>
+                <StableNavLabel isActive={isActive}>{item.label}</StableNavLabel>
 
                 {/* Закрывающая скобка (меняет только цвет и жирность) */}
                 <span
@@ -231,16 +239,24 @@ export function MainNavbar({ className = '', onNavigate }: MainNavbarProps) {
               </>
             );
 
-            return onNavigate ? (
-              <button
-                key={item.id}
-                onClick={(e) => handleClick(e, item.href)}
+            return (
+              <Link 
+                key={item.id} 
+                href={item.href} 
+                onClick={(e) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                  if (onNavigate) {
+                    handleClick(e, item.href);
+                    return;
+                  }
+                  if (onTabChange) {
+                    e.preventDefault();
+                    onTabChange(item.id);
+                    return;
+                  }
+                }}
                 className={linkClass}
               >
-                {content}
-              </button>
-            ) : (
-              <Link key={item.id} href={item.href} className={linkClass}>
                 {content}
               </Link>
             );

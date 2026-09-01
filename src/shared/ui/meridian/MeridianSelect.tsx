@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Search, Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 export interface MeridianSelectOption {
   value: string;
@@ -108,7 +108,7 @@ export function MeridianSelect({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.98 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full left-0 right-0 mt-1.5 z-50 rounded-2xl bg-neutral-950/95 border border-white/15 p-1.5 shadow-2xl shadow-black/80 backdrop-blur-2xl max-h-64 overflow-y-auto"
+            className="absolute top-full left-0 right-0 mt-1.5 z-50 rounded-2xl bg-neutral-950/95 border border-white/15 p-1.5 shadow-2xl shadow-black/80 backdrop-blur-2xl max-h-64 overflow-y-auto scrollbar-none"
           >
             {isSearchable && (
               <div className="p-1.5 border-b border-white/10 mb-1 sticky top-0 bg-neutral-950/95 z-10">

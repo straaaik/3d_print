@@ -13,7 +13,7 @@ import {
   CheckCircle2,
   Sparkles
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface SpecItem {
   id: string;
@@ -238,10 +238,14 @@ export function SpecInteractive() {
             {/* Метрики модуля */}
             <div className="grid grid-cols-3 gap-3 pt-2">
               {selectedSpec.metrics.map((m, idx) => (
-                <div key={idx} className="border border-white/10 bg-white/[0.02] p-3 rounded-xl">
+                <motion.div
+                  key={idx}
+                  whileHover={{ transform: 'translateY(-2px)' }}
+                  className="border border-white/10 bg-white/[0.02] hover:border-white/20 transition-colors p-3 rounded-xl"
+                >
                   <div className="font-mono text-lg sm:text-xl font-bold text-cyan-400">{m.value}</div>
                   <div className="font-mono text-[10px] text-neutral-400 mt-1 uppercase">{m.label}</div>
-                </div>
+                </motion.div>
               ))}
             </div>
 

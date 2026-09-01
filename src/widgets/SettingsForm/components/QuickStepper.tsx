@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Minus, Plus } from 'lucide-react';
 import { Tooltip } from '../../../shared/ui/Tooltip';
 
@@ -39,12 +39,6 @@ export function QuickStepper({
   const [isEditing, setIsEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!isEditing) {
-      setLocalVal(value.toString());
-    }
-  }, [value, isEditing]);
-
   const handleCommit = (valStr: string) => {
     const parsed = parseFloat(valStr.replace(',', '.'));
     if (!isNaN(parsed)) {
@@ -59,7 +53,7 @@ export function QuickStepper({
 
   const handleStep = (direction: 'up' | 'down') => {
     if (disabled) return;
-    const current = parseFloat(localVal) || value || 0;
+    const current = isEditing ? (parseFloat(localVal) || 0) : value;
     const delta = direction === 'up' ? step : -step;
     const nextVal = Math.max(min, Math.min(max, Math.round((current + delta) * 100) / 100));
     onChange(nextVal);
@@ -94,15 +88,7 @@ export function QuickStepper({
           </button>
         </Tooltip>
 
-        <div
-          onClick={() => {
-            if (!disabled) {
-              setIsEditing(true);
-              setTimeout(() => inputRef.current?.select(), 20);
-            }
-          }}
-          className="flex-1 h-full flex items-center justify-center px-2 relative cursor-text font-mono text-xs font-bold text-white tracking-wide"
-        >
+        <div className="relative flex h-full flex-1 items-center justify-center px-2 font-mono text-xs font-bold tracking-wide text-white">
           {prefix && <span className="text-neutral-400 font-normal mr-1 select-none">{prefix}</span>}
           {isEditing ? (
             <input
@@ -123,7 +109,19 @@ export function QuickStepper({
               autoFocus
             />
           ) : (
-            <span>{value}</span>
+            <button
+              type="button"
+              disabled={disabled}
+              aria-label={`Редактировать значение ${value}${suffix}`}
+              onClick={() => {
+                setLocalVal(value.toString());
+                setIsEditing(true);
+                setTimeout(() => inputRef.current?.select(), 20);
+              }}
+              className="flex h-full min-w-0 flex-1 cursor-text items-center justify-center bg-transparent text-center font-mono text-xs font-bold text-white outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-400 disabled:cursor-not-allowed"
+            >
+              {value}
+            </button>
           )}
           {suffix && <span className="text-neutral-400 font-normal ml-1 select-none">{suffix}</span>}
         </div>

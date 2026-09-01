@@ -5,7 +5,7 @@ import { Card } from '../../../shared/ui/Card';
 import { Checkbox } from '../../../shared/ui/Checkbox';
 import { QuickStepper } from './QuickStepper';
 import { MATERIAL_DIFFICULTY_CONFIGS, MaterialDifficultyCategory } from '../../../shared/lib/materialDifficulty';
-import { Layers, Sparkles, AlertCircle } from 'lucide-react';
+import { Layers } from 'lucide-react';
 
 interface MaterialsSettingsTabProps {
   enableMaterialDifficulty: boolean;
@@ -32,7 +32,7 @@ export function MaterialsSettingsTab({
       {/* Главный переключатель учета сложности */}
       <Card
         title="Дифференцированные наценки по типу нити"
-        stepNumber="🧬"
+        stepNumber="MAT 01"
       >
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3.5 rounded-xl bg-neutral-900 border border-white/10">
@@ -63,7 +63,7 @@ export function MaterialsSettingsTab({
       {/* Карточки 4 групп материалов */}
       {enableMaterialDifficulty ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {categories.map((catKey) => {
+          {categories.map((catKey, index) => {
             const cfg = MATERIAL_DIFFICULTY_CONFIGS[catKey];
             const currentVal = materialMultipliers[catKey] ?? cfg.defaultMarkup;
             const isChanged = isMaterialMultiplierChanged(catKey);
@@ -80,7 +80,7 @@ export function MaterialsSettingsTab({
                 {/* Шапка карточки */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2.5">
-                    <span className="text-xl select-none">{cfg.icon}</span>
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 font-mono text-[10px] font-bold text-cyan-400">M{index + 1}</span>
                     <div className="flex flex-col">
                       <h4 className="text-xs font-bold text-white tracking-wide font-mono uppercase">{cfg.name}</h4>
                       <span className="text-[11px] text-neutral-400 mt-0.5 font-sans">

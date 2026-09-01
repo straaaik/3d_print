@@ -3,7 +3,8 @@
 import React from 'react';
 import { Card } from '../../../shared/ui/Card';
 import { QuickStepper } from './QuickStepper';
-import { Wrench, Clock, UserCheck, Users, Layers, Package } from 'lucide-react';
+import { normalizeWholeMinutes } from '../model';
+import { UserCheck, Users, Layers, Package } from 'lucide-react';
 
 interface LaborSettingsTabProps {
   currency: string;
@@ -47,7 +48,7 @@ export function LaborSettingsTab({
         {/* Почасовая ставка */}
         <Card
           title="Почасовая ставка труда"
-          stepNumber="⏱️"
+          stepNumber="LAB 01"
           className="flex flex-col justify-between"
         >
           <div className="flex flex-col gap-3">
@@ -75,7 +76,7 @@ export function LaborSettingsTab({
             />
 
             <div className="p-2.5 rounded-xl bg-neutral-900 border border-white/10 text-[11px] text-neutral-400">
-              💡 При ставке <strong>{laborRate || '0'} {currency}/ч</strong> минута ручного труда стоит <strong>{((parseFloat(laborRate) || 0) / 60).toFixed(2)} {currency}</strong>.
+              При ставке <strong>{laborRate || '0'} {currency}/ч</strong> минута ручного труда стоит <strong>{((parseFloat(laborRate) || 0) / 60).toFixed(2)} {currency}</strong>.
             </div>
           </div>
         </Card>
@@ -83,7 +84,7 @@ export function LaborSettingsTab({
         {/* Время по умолчанию */}
         <Card
           title="Время работы по умолчанию"
-          stepNumber="⏳"
+          stepNumber="LAB 02"
           className="flex flex-col justify-between"
         >
           <div className="flex flex-col gap-3">
@@ -101,7 +102,7 @@ export function LaborSettingsTab({
             <QuickStepper
               label="Минут на обработку детали"
               value={parseInt(laborTimeMinutes, 10) || 0}
-              onChange={(val) => setLaborTimeMinutes(val.toString())}
+              onChange={(val) => setLaborTimeMinutes(normalizeWholeMinutes(val).toString())}
               min={0}
               max={600}
               step={5}
@@ -120,7 +121,7 @@ export function LaborSettingsTab({
       {/* 2. Модель распределения дохода */}
       <Card
         title="Модель распределения дохода от труда"
-        stepNumber="💼"
+        stepNumber="LAB 03"
       >
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
@@ -197,7 +198,7 @@ export function LaborSettingsTab({
       {/* 3. Способ начисления времени труда при тиражах */}
       <Card
         title="Начисление времени работы при тиражах (Кол-во > 1)"
-        stepNumber="📦"
+        stepNumber="LAB 04"
       >
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">

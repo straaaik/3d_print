@@ -1,69 +1,117 @@
-# Дизайн-система Meridian Cockpit (3D Labs)
+# Meridian Cockpit Console — дизайн-система 3D Labs
 
-> **Единый золотой стандарт визуального, структурного и компонентного стиля приложения 3D Labs.**  
-> Все страницы системы (`/calculator`, `/orders`, `/stats`, `/products`, `/filaments`, `/printers`, `/settings`, `/admin`, `/about`, `/login`) должны быть построены по **точно такой же архитектуре, сетке, цветовой гамме и стилистике**, эталоном которой является страница **«Калькулятор» (`/calculator`)**.
-
----
-
-## 🚫 Главные правила и категорические запреты
-
-1. **Абсолютная идентичность страниц**:
-   - Каждая рабочая страница приложения обязана использовать единую базовую оболочку **Meridian Cockpit Container** с верхним статус-баром телеметрии, терминальными светодиодами, инженерным штампом, индикатором базы данных (Supabase/LocalStorage) и нижним статус-баром.
-   - Запрещено создавать произвольные шапки страниц с цветными неоновыми пятнами (`blur-3xl`, `bg-[#16181d]`).
-2. **БЕЗ КИСЛОТНОГО НЕОНА И КИБЕРПАНКА**:
-   - Запрещены: цветные радужные кнопки (`bg-gradient-to-r from-sky-600 to-sky-400`, `from-purple-500 to-indigo-600` и т.д.), фоновые цветные размытия (`blur-[140px]`), разноцветные рамки карточек и декоративные неоновые ореолы.
-3. **Главный принцип**:
-   - **Монохромная сдержанность, глубокий матовый графит, швейцарская точность, высокая контрастность и моноширинная инженерная телеметрия (`JetBrains Mono / tabular-nums`)**.
+> Обязательный стандарт для **любых новых страниц и компонентов**, а также для **любого визуального обновления существующего интерфейса**.
+>
+> Два равноправных эталона: **«Калькулятор» (`/calculator`)** и **«Заказы» (`/orders`)**. Новый интерфейс должен выглядеть так, будто он всегда был частью этих двух страниц.
 
 ---
 
-## 📐 1. Анатомия и каркас любой страницы (Page Anatomy)
+## 1. Главный принцип
 
-Каждая страница (`app/*/page.tsx`) обязана повторять точный каркас страницы Калькулятора:
+3D Labs — это единая инженерная консоль: глубокий матовый графит, точная сетка, компактная телеметрия, спокойные функциональные акценты и высокая плотность полезной информации.
+
+Все страницы должны наследовать:
+
+- от **«Калькулятора»** — каркас страницы, cockpit-контейнер, карточки параметров, формы, dropdown-компоненты, технические подсказки и ledger/receipt-сводки;
+- от **«Заказов»** — KPI-карточки, панели фильтров, таблицы, статусные бейджи, массовые действия, drawer/modal-паттерны и адаптивную работу с плотными данными;
+- от обеих страниц — одинаковые поверхности, рамки, радиусы, типографику, микроштампы, состояния загрузки, футеры и характер взаимодействия.
+
+Страница не должна получать отдельный «авторский стиль». Отличаться могут только содержание, компоновка под задачу и один сдержанный акцент раздела.
+
+---
+
+## 2. Источники истины
+
+Перед созданием или визуальным изменением страницы/компонента обязательно:
+
+1. Прочитать этот файл полностью.
+2. Открыть фактическую реализацию подходящего эталона:
+   - формы, расчёты, параметры: `src/app/calculator/page.tsx` и `src/widgets/Calculator/Calculator.tsx`;
+   - реестры, KPI, фильтры, таблицы: `src/app/orders/page.tsx` и `src/widgets/Orders/components/v2/*`.
+3. Проверить готовые общие компоненты в `src/shared/ui/` и переиспользовать их.
+4. Проверить тему раздела в `src/shared/theme/pages/` и не создавать локальную конкурирующую палитру.
+
+При расхождении приоритет такой:
+
+1. обязательные правила и запреты этого документа;
+2. общие компоненты `src/shared/ui/`;
+3. актуальные страницы `/orders` и `/calculator` как практические примеры;
+4. старые компоненты остальных разделов.
+
+Если в эталонной странице сохранился единичный legacy-паттерн, противоречащий этому документу, его нельзя копировать в новый UI.
+
+Старый UI не является прецедентом. Если обновляется старый компонент, вся затронутая визуальная область переводится на Meridian Cockpit Console без изменения бизнес-логики.
+
+---
+
+## 3. Неприкосновенные правила
+
+### Обязательно
+
+- Фон страницы: `bg-dot-grid`.
+- Основная поверхность: матовый `neutral-950`, белые полупрозрачные границы и мягкое размытие.
+- Рабочая область: единый **Meridian Cockpit Container**.
+- Верхняя панель контейнера: три терминальные точки, штамп `§ 3D-LABS // НАЗВАНИЕ`, полезный статус и действия.
+- Нижняя панель контейнера: техническая телеметрия.
+- Глобальный футер: `§ 3D LABS · [SECTION] RUNTIME` и статус хранения данных.
+- `font-mono` и `tabular-nums` для чисел, цен, времени, процентов, артикулов, фильтров, статусов и технических меток.
+- Карточки: `bg-white/[0.03] border border-white/10 hover:border-white/20 rounded-xl`.
+- Действия внутри тёмной консоли: прежде всего `<CockpitButton>` со скобочной нотацией `[ действие ]`.
+- Выбор из вариантов: `<CockpitDropdown>`, если нет веской причины использовать другой контрол.
+- Полные состояния: loading, empty, error, disabled, hover, focus, active и success.
+- Адаптивность от мобильного экрана до широкого рабочего монитора.
+
+### Запрещено
+
+- `PageHeader` или отдельная hero-шапка, визуально не связанная с cockpit-контейнером.
+- Декоративные неоновые пятна, `blur-3xl`, `blur-[140px]`, цветные ореолы и cyberpunk-декор.
+- Радужные и многоцветные градиентные кнопки.
+- Случайные яркие рамки у каждой карточки.
+- Большие маркетинговые заголовки там, где нужна рабочая консоль.
+- Эмодзи как основные иконки интерфейса; использовать `lucide-react`.
+- Нативный `<select>` при наличии `CockpitDropdown`.
+- Новая локальная кнопка, dropdown, tooltip, modal или badge, дублирующие уже существующий shared-компонент.
+- Цвет как единственный носитель смысла: статус всегда сопровождается текстом, иконкой или формой маркера.
+- Постоянная пульсация декоративных элементов. `animate-pulse` допустим только для живого статуса.
+
+---
+
+## 4. Каркас страницы
+
+Рабочая страница повторяет оболочку `/calculator` и `/orders`:
 
 ```tsx
 'use client';
 
-import React from 'react';
-import { useData } from '../../entities/model/DataProvider';
-import { MainNavbar } from '../../shared/ui/MainNavbar';
-import { SectionWidget } from '../../widgets/SectionWidget';
-
 export default function SectionPage() {
   const { isLoading } = useData();
 
-  // 1. Единый экран загрузки (Unified Loading Skeleton)
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dot-grid flex items-center justify-center font-sans">
-        <div className="flex flex-col items-center gap-4 select-none">
-          <div className="w-9 h-9 rounded-full border-2 border-white/10 border-t-white animate-spin" />
-          <p className="text-neutral-400 text-xs font-mono font-semibold">
-            Инициализация [Название раздела] 3D Labs...
-          </p>
-        </div>
+      <div className="min-h-screen bg-dot-grid text-white flex flex-col justify-between font-sans">
+        <main className="w-full mx-auto px-3 sm:px-6 py-4 md:py-6 space-y-6">
+          <div className="flex justify-center">
+            <MainNavbar />
+          </div>
+          <SectionSkeleton />
+        </main>
       </div>
     );
   }
 
-  // 2. Основной каркас рабочей страницы
   return (
     <div className="min-h-screen bg-dot-grid text-white flex flex-col justify-between font-sans selection:bg-white/20 selection:text-white">
-      
       <main className="w-full mx-auto px-3 sm:px-6 py-4 md:py-6 max-w-none space-y-6">
-        {/* Главный верхний таббар навигации */}
         <div className="flex justify-center">
           <MainNavbar />
         </div>
 
-        {/* Главный виджет раздела */}
         <SectionWidget />
       </main>
 
-      {/* 3. Единый глобальный подвал страницы */}
       <footer className="w-full text-center py-6 border-t border-white/10 select-none bg-neutral-950/80 backdrop-blur-md font-mono text-xs text-neutral-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>§ 3D LABS · ENGINE v2.4 · [SECTION_NAME] RUNTIME</span>
+          <span>§ 3D LABS · [SECTION] RUNTIME v2.4</span>
           <span>ДАННЫЕ СОХРАНЯЮТСЯ В LOCALSTORAGE И SUPABASE</span>
         </div>
       </footer>
@@ -72,250 +120,390 @@ export default function SectionPage() {
 }
 ```
 
+Допустимое исключение — полноэкранный рабочий режим по образцу `/orders`: навигация и глобальный футер могут скрываться, но сам cockpit-контейнер, его topbar и status bar сохраняются.
+
 ---
 
-## 🎛️ 2. Базовый контейнер — Meridian Cockpit Container
+## 5. Meridian Cockpit Container
 
-Весь рабочий контент страницы (виджет) упаковывается в единый контейнер консоли:
+Каждый основной виджет страницы помещается в одну визуальную консоль:
 
 ```tsx
 <div className="w-full max-w-[1500px] mx-auto select-none font-sans">
   <div className="relative mx-auto rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl overflow-hidden">
-    
-    {/* 1. Верхняя панель телеметрии и статуса (Cockpit Topbar) */}
-    <div className="flex flex-wrap items-center justify-between border-b border-white/10 px-4 py-3 bg-neutral-900/60 gap-3">
-      {/* Левая часть: Терминальные точки + Инженерный штамп + Статус облака */}
-      <div className="flex items-center gap-3">
-        {/* Светодиоды терминала */}
-        <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-red-500/80 border border-red-400/40 inline-block" />
-          <span className="w-3 h-3 rounded-full bg-yellow-500/80 border border-yellow-400/40 inline-block" />
-          <span className="w-3 h-3 rounded-full bg-emerald-500/80 border border-emerald-400/40 inline-block" />
-        </div>
+    {/* Верхняя панель: точки + штамп + статус + действия */}
 
-        {/* Штамп раздела */}
-        <div className="flex items-center gap-2 pl-3 border-l border-white/10 font-mono text-xs text-neutral-300">
-          <span className="text-white font-bold">§ 3D-LABS</span>
-          <span className="text-neutral-600">//</span>
-          <span className="text-neutral-400 hidden sm:inline">НАЗВАНИЕ РАЗДЕЛА</span>
-          
-          {/* Индикатор синхронизации */}
-          {isOnline ? (
-            <span className="flex items-center gap-1 text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Supabase Cloud
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 text-[10px] font-mono text-neutral-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded">
-              <span className="w-1.5 h-1.5 rounded-full bg-neutral-400" />
-              LocalStorage
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Правая часть: Телеметрические бейджи и быстрые инженерные кнопки */}
-      <div className="flex items-center gap-2.5 text-xs font-mono">
-        {/* Информационный бейдж */}
-        <div className="flex items-center gap-1.5 bg-white/[0.03] border border-white/10 px-2.5 py-1 rounded-lg">
-          <span className="text-neutral-400">Метрика:</span>
-          <span className="text-white font-bold">Значение</span>
-        </div>
-
-        {/* Скобочная кнопка действия */}
-        <button
-          type="button"
-          onClick={handleAction}
-          className="px-2.5 py-1 rounded-lg font-mono text-xs flex items-center gap-1.5 transition-all cursor-pointer border bg-white/5 text-neutral-400 border-white/10 hover:text-white hover:bg-white/15"
-        >
-          <RotateCcw className="w-3 h-3" />
-          <span>[ Действие ]</span>
-        </button>
-      </div>
+    <div className="p-3.5 sm:p-4 md:p-5 space-y-3 sm:space-y-3.5">
+      {/* Контент */}
     </div>
 
-    {/* 2. Тело консоли (Cockpit Canvas) */}
-    <div className="p-5 sm:p-6 bg-gradient-to-b from-neutral-950 to-neutral-900/90">
-      {/* Рабочий контент раздела (сетка 2 колонки или таблица) */}
-    </div>
-
-    {/* 3. Подвал консоли (Cockpit Status Bar) */}
-    <div className="border-t border-white/10 px-5 py-2.5 bg-neutral-950 flex items-center justify-between text-[11px] font-mono text-neutral-500">
-      <div className="flex items-center gap-3">
-        <span>DATABASE: SUPABASE CLOUD</span>
-        <span className="hidden sm:inline">•</span>
-        <span className="hidden sm:inline">CACHE: LOCALSTORAGE SYNCED</span>
-      </div>
-      <div>FPS: 60 · RECORDS: 42</div>
-    </div>
-
+    {/* Нижняя панель телеметрии */}
   </div>
 </div>
 ```
 
----
+Для форм и калькуляторов тело может быть просторнее: `p-5 sm:p-6`. Для таблиц и реестров используйте более плотный ритм `/orders`: `p-3.5 sm:p-4 md:p-5`.
 
-## 🎨 3. Цветовая палитра и материалы (Materials & Colors)
+### Верхняя панель
 
-### 🌑 Поверхности и фоны (Surfaces)
-- **Основной фон страницы**: `#0a0a0a` с субтильной микросеткой `.bg-dot-grid`.
-- **Каркас консоли**: `bg-neutral-950/90` с рамкой `border-white/15` и тенью `shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)]`.
-- **Верхние и нижние панели консоли**: `bg-neutral-900/60` и `bg-neutral-950`.
-- **Интерактивные карточки / тайлы метрик**: `bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all rounded-xl p-3.5`.
-- **Вложенные разделители и подстроки внутри карточек**: `border-t border-white/5 pt-2 mt-2`.
-- **Поля ввода и выпадающие списки**: `bg-neutral-950/80` или `bg-neutral-900`, рамка `border-white/15`, при фокусе `focus:border-cyan-400 ring-1 ring-cyan-400/30`.
+Topbar содержит только полезные элементы:
 
-### ⚪ Контраст текста и функциональные акценты
-- **Заголовки и первичный текст**: `text-white font-bold`.
-- **Вторичный текст и пояснения**: `text-neutral-300` и `text-neutral-400`.
-- **Подписи, штампы и метаданные**: `text-neutral-500 font-mono text-[10px] / text-[11px]`.
-- **Приглушенный Cyan (активные опции, кастомные расходы, инфо-чипы)**:
-  - Текст: `text-cyan-300` / `text-cyan-400`
-  - Фон: `bg-cyan-950/40`
-  - Рамка: `border-cyan-500/40`
-- **Сдержанный Emerald (прибыль, наценка, успех, статус «Готово»)**:
-  - Текст: `text-emerald-400` / `text-emerald-300`
-  - Фон: `bg-emerald-950/40`
-  - Рамка: `border-emerald-800/40`
-- **Приглушенный Amber (предупреждения, скидки, в обработке)**:
-  - Текст: `text-amber-400` / `text-amber-300`
-  - Фон: `bg-amber-950/40`
-  - Рамка: `border-amber-800/40`
-- **Сдержанный Rose (ошибки, удаление, списание)**:
-  - Текст: `text-rose-400` / `text-rose-300`
-  - Фон: `bg-rose-950/40`
-  - Рамка: `border-rose-800/40`
+- слева — красная, жёлтая и зелёная точки размером `w-3 h-3`;
+- далее — разделитель `border-l border-white/10`;
+- штамп `§ 3D-LABS // НАЗВАНИЕ_РАЗДЕЛА`;
+- статус режима или хранения: `Supabase Cloud`, `LocalStorage`, `COMPACT`, `FULLSCREEN`, `LIVE`;
+- справа — одна важная метрика и/или компактные действия через `CockpitButton`.
+
+Если терминальные точки интерактивны, их смысл должен соответствовать `/orders`: красная — закрыть/вернуться, жёлтая — свернуть, зелёная — развернуть. Обязательно добавить tooltip, disabled-состояние и клавиатурную доступность. Если действий нет, точки остаются декоративными, как в `/calculator`.
+
+### Нижняя панель
+
+```tsx
+<div className="border-t border-white/10 px-5 py-2.5 bg-neutral-950 flex items-center justify-between text-[11px] font-mono text-neutral-500">
+  <div className="flex items-center gap-3">
+    <span>DATABASE: {isOnline ? 'SUPABASE CLOUD' : 'OFFLINE'}</span>
+    <span className="hidden sm:inline">•</span>
+    <span className="hidden sm:inline">CACHE: LOCALSTORAGE</span>
+  </div>
+  <div>RECORDS: {recordsCount}</div>
+</div>
+```
+
+Телеметрия должна отражать реальные или честно обозначенные данные. Не выводить вымышленные системные показатели как фактические.
 
 ---
 
-## 🔤 4. Типографика и микро-штампы (Typography & Stamps)
+## 6. Материалы, цвет и контраст
 
-1. **Шрифты**:
-   - Текстовый интерфейс, заголовки, описания: `DM Sans` / `Inter` / `font-sans`.
-   - **Все цифры, цены, таймкоды, вес, мощности, штампы и артикулы**: `JetBrains Mono` / `font-mono` (`tabular-nums`).
-2. **Заголовки секций (Section Headers)**:
-   ```tsx
-   <div className="flex items-center justify-between border-b border-white/10 pb-2">
-     <span className="font-mono text-xs text-neutral-400 uppercase tracking-wider">
-       // ПАРАМЕТРЫ ОБОРУДОВАНИЯ
-     </span>
-     <span className="font-mono text-xs text-cyan-400 font-bold">
-       3 АКТИВНЫХ
-     </span>
-   </div>
-   ```
-3. **Инженерные микро-штампы**:
-   - `§ 3D-LABS // ORDERS_ENGINE_V2.4`
-   - `[ MOD 01 // MATERIAL_MATRIX ]`
-   - `[ LIVE ]`, `[ Сбросить ]`, `[ + Сборка ]`
-4. **Тултипы с формулами (`CustomTooltip`)**:
-   Все важные параметры и метрики снабжаются иконкой `<HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white transition-colors cursor-help" />` с описанием и математической формулой расчета.
+### Базовые поверхности
+
+| Роль | Классы |
+|---|---|
+| Фон страницы | `bg-dot-grid` на базе `#0a0a0a` |
+| Cockpit | `bg-neutral-950/90 border-white/15 backdrop-blur-2xl` |
+| Topbar | `bg-neutral-900/60 border-b border-white/10` |
+| Status bar | `bg-neutral-950 border-t border-white/10` |
+| Карточка | `bg-white/[0.03] border border-white/10 rounded-xl` |
+| Hover карточки | `hover:border-white/20` и при необходимости `hover:bg-white/[0.05]` |
+| Поле ввода | `bg-neutral-950/80 border border-white/15 rounded-lg` |
+| Вложенная строка | `border-t border-white/5` |
+| Overlay | `bg-black/80 backdrop-blur-md` |
+
+### Текст
+
+| Роль | Классы |
+|---|---|
+| Главный текст | `text-white` |
+| Вторичный текст | `text-neutral-300` |
+| Пояснения | `text-neutral-400` |
+| Телеметрия | `text-neutral-500` |
+| Неактивное/disabled | `text-neutral-600` |
+
+### Акценты
+
+Цвет используется семантически и локально:
+
+- `cyan/sky` — активный выбор, печать, вычисление, ссылка, информационный статус;
+- `emerald` — прибыль, готовность, успех, онлайн;
+- `amber/orange` — ожидание, неполная оплата, внимание, акцент раздела заказов;
+- `rose/red` — ошибка, убыток, удаление, критическое действие;
+- `neutral/white` — основной интерфейс и действия без статуса.
+
+Акцент раздела не должен перекрашивать всю страницу. Допустимы точка, иконка, активный badge, progress bar, focus-ring или небольшая подложка с низкой прозрачностью. В одном локальном блоке — один ведущий акцент.
+
+Существующие темы `calculatorTheme` и `ordersTheme` можно использовать как источник акцента, но их градиентные поля не являются разрешением создавать новые градиентные кнопки в контенте. Навигация может сохранять уже утверждённое текущее оформление.
 
 ---
 
-## 🧩 5. Компонентная база UI Kit (Стандарты Калькулятора)
+## 7. Типографика и инженерный язык
 
-### 1. Карточка параметра / метрики (Parameter Tile)
-Базовая единица ввода и отображения параметров:
+- `font-sans` — названия, поясняющий текст, длинные описания, заголовки модальных окон.
+- `font-mono` — метки, фильтры, кнопки cockpit, статусы, даты, цены, формулы, единицы измерения и технические данные.
+- Для чисел всегда использовать `tabular-nums`.
+- Заголовки рабочих секций: `text-xs font-mono uppercase tracking-wider text-neutral-400`.
+- Микрометки: `text-[9px]`, `text-[10px]` или `text-[11px]`; не уменьшать основной пользовательский текст ниже читаемого размера.
+- Заголовок KPI/параметра: `text-[10px] sm:text-[11px] font-mono uppercase tracking-wider`.
+- Значение KPI: `text-xl sm:text-2xl font-bold font-mono tracking-tight tabular-nums`.
+
+Формат штампов:
+
+- `§ 3D-LABS // КАЛЬКУЛЯТОР`
+- `§ 3D-LABS // ЗАКАЗЫ`
+- `§ 3D-LABS // FILAMENT_STORAGE`
+- `[ MOD 01 // MATERIAL_MATRIX ]`
+- `[ LIVE ]`, `[ Сбросить ]`, `[ + Новый заказ ]`
+
+Текст должен быть коротким, техническим и понятным. Не превращать весь интерфейс в псевдотерминал: инженерные штампы дополняют обычный русский язык, а не заменяют его.
+
+---
+
+## 8. Сетка и адаптивность
+
+Базовые правила:
+
+- страница: `px-3 sm:px-6 py-4 md:py-6`;
+- cockpit: `max-w-[1500px]`;
+- контентная сетка начинается с одной колонки;
+- параметры калькулятора: `grid-cols-1 sm:grid-cols-2` или `grid-cols-2`, только если поля остаются читаемыми;
+- форма + сводка: `grid-cols-1 lg:grid-cols-[1fr_360px]`;
+- KPI: число колонок растёт по брейкпоинтам, без горизонтального переполнения;
+- toolbar: `flex-wrap`, действия не должны выталкивать заголовок;
+- таблица: сохраняет ключевые колонки, второстепенные скрываются или переходят в drawer; горизонтальный скролл — последний вариант;
+- на мобильном важное действие остаётся видимым и доступным пальцем;
+- размеры интерактивной области не должны зависеть только от маленькой иконки.
+
+Проверять минимум на ширинах 375, 768, 1280 и 1536 px.
+
+---
+
+## 9. Компонентные паттерны
+
+### 9.1. Карточка параметра
+
+Эталон — плитки `/calculator`:
+
 ```tsx
 <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all p-3.5 rounded-xl flex flex-col justify-between">
-  <div>
-    <div className="flex items-center justify-between">
-      <label className="text-[11px] font-mono text-neutral-400 block uppercase">
-        Мощность нагрева
-      </label>
-      <CustomTooltip title="Мощность" description="..." formula="...">
-        <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white cursor-help" />
-      </CustomTooltip>
-    </div>
-    <div className="mt-1 flex items-baseline gap-1">
-      <input
-        type="number"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        className="text-xl sm:text-2xl font-bold font-mono text-white bg-transparent focus:outline-none"
-      />
-      <span className="text-sm font-mono text-neutral-400">Вт</span>
-    </div>
+  <div className="flex items-center justify-between">
+    <label className="text-[11px] font-mono text-neutral-400">Вес детали</label>
+    <CustomTooltip>{/* HelpCircle */}</CustomTooltip>
   </div>
 
-  {/* Нижняя встроенная подстрока с пресетами или быстрым контролом */}
-  <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono">
-    <span className="text-neutral-500">Пресет:</span>
-    <div className="flex gap-1">
-      <button className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30">
-        350W
-      </button>
-    </div>
+  <div className="mt-1 flex items-baseline gap-1">
+    <input className="text-xl sm:text-2xl font-bold font-mono text-white bg-transparent focus:outline-none tabular-nums" />
+    <span className="text-sm font-mono text-neutral-400">г</span>
+  </div>
+
+  <div className="mt-2 pt-2 border-t border-white/5">
+    {/* Пресет, dropdown или дополнительная метрика */}
   </div>
 </div>
 ```
 
-### 2. Выпадающие списки (`CockpitDropdown`)
-Заменяют любые стандартные HTML-селекты во всем приложении:
-- Варианты: `ghost` (для шапки), `card` (внутри карточки), `input` (для форм), `pill` (капсула).
-- Свойства: темное меню `bg-neutral-950 border border-white/15 rounded-2xl shadow-2xl`, встроенный поиск, цветные статус-точки (`cyan`, `green`, `orange`, `red`), моно-футер подсчета строк.
+### 9.2. KPI-карточка
 
-### 3. Интерактивные чипы услуг и опций (Expandable Chips)
-- **Неактивный**: компактная кнопка `bg-white/[0.02] hover:bg-white/[0.06] text-neutral-400 border border-white/10 px-2.5 py-1.5 rounded-lg text-xs font-mono`.
-- **Активный**: раскрывающийся чип `bg-cyan-950/40 border border-cyan-500/40 text-cyan-300 px-2.5 py-1 rounded-lg text-xs font-mono` с инлайн-полем редактирования цены и тумблером `за шт / за заказ`.
-- **Добавление расхода**: кнопка с пунктирной рамкой `border-dashed border-white/20`.
+Эталон — `OrdersV2KpiCards`:
 
-### 4. Швейцарская сводка / Чек (Matte Receipt / Ledger Summary)
-Используется в правой колонке калькулятора, сводках заказов, деталях партии:
-- Матовый контрастный фон `#b8b6ae` или темный графит с точечными линиями-лидерами:
-  ```tsx
-  <div className="flex items-baseline justify-between font-mono text-xs">
-    <span className="shrink-0">• Пластик (120 г)</span>
-    <span className="flex-1 mx-2 border-b border-dotted border-neutral-600/40" />
-    <span className="font-bold shrink-0">450 ₽</span>
-  </div>
-  ```
-- Перфорация билета (Ticket punch circular cutouts).
-- Штрихкод и хеш аутентификации `AUTH · 0X3DLABS2026`.
+- матовая нейтральная карточка;
+- семантическая точка или иконка в шапке;
+- одно крупное значение;
+- одна компактная строка контекста внизу;
+- цвет применяется к значению только когда несёт смысл;
+- расширенная детализация показывается по запросу, а не перегружает компактный режим.
 
-### 5. Кнопки действий (Cockpit Buttons)
-- **Primary (Главное действие)**: Белая капсула — `bg-white text-neutral-950 hover:bg-neutral-200 active:scale-[0.98] font-bold text-xs py-3 px-5 rounded-full shadow-md cursor-pointer transition-all`.
-- **Action Dark (Вторичное крупное)**: `bg-neutral-950/10 hover:bg-neutral-950/20 border border-neutral-950/30 text-neutral-950 font-bold text-xs py-2.5 rounded-xl cursor-pointer`.
-- **Secondary (Консольная)**: `bg-white/5 hover:bg-white/15 border border-white/10 text-neutral-300 font-semibold text-xs py-2 px-3 rounded-xl cursor-pointer`.
-- **Bracket Quick (Инженерная)**: `font-mono text-xs text-neutral-400 hover:text-white px-2.5 py-1 rounded-lg bg-white/5 border border-white/10`.
+### 9.3. Фильтры и поиск
 
-### 6. Модальные окна (Cockpit Modals)
-- Фон: `fixed inset-0 bg-black/80 backdrop-blur-md z-50`.
-- Окно: `bg-neutral-950 border border-white/15 rounded-2xl p-6 shadow-2xl space-y-4 max-w-lg`.
-- Шапка: штамп `§ 3D-LABS // REGISTRY_NAME` с кнопкой `X`.
-- Инпуты: `bg-neutral-900 border border-white/15 rounded-xl px-3 h-10 text-xs text-white font-mono`.
+Эталон — `OrdersV2FilterBar`:
+
+- вся панель — одна карточка `bg-white/[0.03] border-white/10 rounded-xl`;
+- контролы компактные, одинаковой высоты;
+- активный фильтр заметен фоном, рамкой и текстом;
+- сброс фильтров доступен и явно показывает disabled-состояние;
+- на узком экране панель переносится или сворачивается без потери выбранных значений.
+
+### 9.4. Таблицы и реестры
+
+Эталон — `OrdersV2Table`:
+
+- заголовки колонок — компактный uppercase `font-mono`;
+- числа и даты — `tabular-nums`;
+- строки отделяются тонкими `border-white/5` или `border-white/10`;
+- hover помогает читать строку, но не превращается в яркую заливку;
+- статусы — текстовые badge с семантической точкой/иконкой;
+- сортировка визуально показывает поле и направление;
+- действия строки компактны, destructive-действие отделено цветом и подтверждением;
+- подробности открываются в drawer/modal, если не помещаются без ущерба плотности.
+
+### 9.5. Кнопки
+
+Внутри тёмной консоли использовать `src/shared/ui/CockpitButton.tsx`:
+
+- обычная — нейтральная, скобочная;
+- активная — `isActive`;
+- иконка — через `icon`;
+- подсказка — через `title`/`tooltip`;
+- disabled должен быть видим и блокировать действие.
+
+Белая primary-кнопка допустима для единственного ключевого подтверждения, особенно на контрастной receipt-поверхности или в modal. Destructive-кнопка использует приглушённые rose-классы, а не сплошную ярко-красную заливку.
+
+### 9.6. Dropdown
+
+Использовать `src/shared/ui/CockpitDropdown.tsx`:
+
+- `ghost` — topbar и заголовки секций;
+- `card` — внутри карточки параметра;
+- `input` — формы;
+- `pill` — компактный самостоятельный выбор;
+- `filter` — панель фильтров.
+
+Длинные списки должны иметь поиск. Меню сохраняет `bg-neutral-950`, `border-white/15`, `rounded-xl`, монотипографику и нижний счётчик опций.
+
+### 9.7. Формы
+
+- label располагается над полем и не исчезает после ввода;
+- высота компактного поля — около `h-9`/`h-10`;
+- фон `bg-neutral-950/80` или `bg-neutral-900`;
+- рамка `border-white/15`, hover `border-white/25`, focus `border-white/30 ring-1 ring-white/10` либо локальный акцент;
+- ошибка сопровождается понятным сообщением, не только красной рамкой;
+- единицы измерения видны рядом со значением;
+- числовые поля используют `font-mono tabular-nums`.
+
+### 9.8. Tooltip
+
+Важные расчётные параметры снабжаются `CustomTooltip` с:
+
+- коротким названием;
+- понятным описанием;
+- формулой, если значение вычисляемое;
+- иконкой `HelpCircle` размером около `w-3 h-3`.
+
+Обычные действия используют общий `Tooltip`. Tooltip не заменяет label и не содержит критически важную единственную инструкцию.
+
+### 9.9. Ledger / receipt
+
+Эталон — правая сводка `/calculator`. Использовать для расчётов, итогов, смет и детализации стоимости:
+
+- контрастная матовая поверхность;
+- строки с точечными лидерами;
+- моноширинные суммы и единицы;
+- чёткая иерархия subtotal → корректировки → total;
+- декоративная перфорация и штрихкод допустимы только для сущности «чек/смета», а не для обычной карточки.
+
+### 9.10. Modal и drawer
+
+- overlay: `fixed inset-0 bg-black/80 backdrop-blur-md`;
+- поверхность: `bg-neutral-950 border border-white/15 rounded-2xl shadow-2xl`;
+- шапка: штамп `§ 3D-LABS // ...`, заголовок и явная кнопка закрытия;
+- footer: вторичное действие слева/первым, подтверждение справа/последним;
+- закрытие по Escape и клику по overlay — если это безопасно;
+- destructive-операции требуют подтверждения;
+- длинная детализация записи предпочтительно открывается в drawer.
+
+### 9.11. Пустые состояния и «В разработке»
+
+Пустой экран остаётся частью cockpit-контейнера и содержит:
+
+- спокойную иконку;
+- короткий заголовок;
+- одно объяснение;
+- одно следующее полезное действие через `CockpitButton`.
+
+Заглушка раздела использует badge:
+
+```tsx
+className="text-amber-400 bg-amber-950/60 border border-amber-800/40"
+```
+
+Планируемые возможности показываются нейтральными плитками параметров, без hero-блоков и неонового декора.
 
 ---
 
-## 🗺️ 6. Матрица унификации всех страниц системы
+## 10. Доступность и взаимодействие
 
-| Раздел | URL | Требуемый стиль и архитектура |
-| :--- | :--- | :--- |
-| **Калькулятор** | `/calculator` | **ЭТАЛОН СТИЛЯ**. Двухколоночный Cockpit Container, 6 плиток параметров, раскрывающиеся чипы опций, швейцарский чек справа. |
-| **Заказы** | `/orders` | Единый Cockpit Container. В шапке: терминальные точки, штамп `§ 3D-LABS // ORDERS_PIPELINE`, счетчик активных заказов, кнопка `[ + Новый заказ ]`. Таблица заказов в моно-стиле с бейджами статусов. Сводка месяца справа/снизу в стиле Ledger Row. |
-| **Статистика** | `/stats` | Единый Cockpit Container. В шапке: штамп `§ 3D-LABS // STATS_ENGINE`, бейдж `В разработке`. Карточки планируемых модулей аналитики, P&L, загрузки оборудования и расхода сырья. |
-| **Каталог товаров** | `/products` | Единый Cockpit Container. В шапке: штамп `§ 3D-LABS // CATALOG_REGISTRY`, тулбар действий `[ + Сборка ]`, `[ + Коллекция ]`, `[ Пересчитать ]`. Фильтры по категориям в виде чипов калькулятора. Таблица товаров с моно-ценами и материалами. |
-| **Филаменты** | `/filaments` | Единый Cockpit Container. В шапке: штамп `§ 3D-LABS // FILAMENT_STORAGE`, суммарный вес катушек на складе, кнопка `[ + Добавить катушку ]`. Плитки пластиков со сквирклами цветов, расчетом `₽/г` и остатка в граммах. |
-| **Принтеры** | `/printers` | Единый Cockpit Container. В шапке: штамп `§ 3D-LABS // HARDWARE_FLEET`, статус `N ОНЛАЙН`, кнопка `[ + Добавить принтер ]`. Плитки оборудования в стиле параметров калькулятора: мощность (W), тариф, износ и амортизация в час (`₽/ч`). |
-| **Настройки** | `/settings` | Единый Cockpit Container. В шапке: штамп `§ 3D-LABS // SYSTEM_CONFIG`. Матовые плитки настроек тарифов (электричество, ставка мастера, брак, наценка) с моно-инпутами и тултипами. |
-| **Админ-панель** | `/admin` | Единый Cockpit Container. В шапке: штамп `§ 3D-LABS // ADMIN_SECURITY`. Таблица пользователей мастерской, роли и аудит логов в матовом стиле. |
-| **О проекте** | `/about` | Единый Cockpit Container. В шапке: штамп `§ 3D-LABS // ABOUT_MANIFEST`. Спецификация системы, технический стек и журнал версий в стиле швейцарской инженерной документации. |
-| **Вход / Авторизация** | `/login` | Центрированная карточка Cockpit Card `border border-white/15 bg-neutral-950/90 shadow-2xl rounded-2xl p-6` со штампом и белой Primary-кнопкой входа. |
+- Все интерактивные элементы доступны с клавиатуры.
+- Видимый focus-state обязателен.
+- Иконки без текста получают `aria-label` и tooltip.
+- Использовать `button`, `label`, `input`, заголовки и таблицы по назначению.
+- Контраст текста должен оставаться читаемым на матовых поверхностях.
+- Анимации короткие и функциональные: обычно `transition-all duration-150/300`.
+- Учитывать `prefers-reduced-motion`, особенно для сложных переходов.
+- Не блокировать выделение текста глобально, если пользователю может понадобиться копирование значения; `select-none` применять только к управляющей оболочке.
+- Ошибка, успех и ожидание должны быть понятны без цвета.
+
+### 10.1. Meridian Motion
+
+Анимация в 3D Labs объясняет изменение состояния, сохраняет пространственный контекст или подтверждает действие. Декоративное движение, которое не помогает понять интерфейс, не добавляется.
+
+**Выбор инструмента:**
+
+- CSS/Tailwind — hover, focus, смена цвета и простые локальные переходы;
+- `motion/react` — появление/исчезновение, layout-переходы, modal/drawer, drag и прерываемые пружины;
+- `@number-flow/react` — изменяющиеся KPI, цены, проценты и технические счётчики;
+- GSAP, Rive, Three.js/R3F и Lenis — только под отдельную подтверждённую задачу и после обязательного согласования зависимости по `AGENTS.md`.
+
+**Базовые интервалы:**
+
+| Сценарий | Длительность |
+|---|---|
+| Нажатие, hover, компактный feedback | `120–160ms` |
+| Dropdown, toggle, небольшая панель | `180–260ms` |
+| Modal, drawer, перестройка рабочего блока | `260–420ms` |
+| Сложная последовательность | до `700ms`, без блокировки управления |
+
+Для инженерных и финансовых данных использовать спокойное замедление или пружину без заметного overshoot. Анимировать прежде всего `transform` и `opacity`; не оставлять постоянный `will-change` и не запускать непрерывный render loop ради статичной поверхности.
+
+**Доступность и производительность:**
+
+- `MotionConfig` должен использовать `reducedMotion="user"` на общей клиентской границе либо компонент обязан учитывать `useReducedMotion`;
+- NumberFlow используется с `respectMotionPreference`; при Reduced Motion конечное значение остаётся тем же, отключается только движение;
+- крупный parallax, autoplay и перемещение больших областей отключаются при `prefers-reduced-motion`;
+- бесконечная анимация допустима только для честного live/loading-статуса;
+- файлы с `motion/react` или NumberFlow остаются узкими Client Components, чтобы не расширять клиентский bundle без необходимости;
+- проверять отсутствие скачков layout, обратный порядок текста в DOM и потерю клавиатурного focus.
 
 ---
 
-## ✅ 7. Чеклист проверки соответствия страницы (Design QA)
+## 11. Как выбирать эталон для новой задачи
 
-Перед завершением работы над любой страницей проверьте:
-- [ ] Обернута ли страница в стандартный `min-h-screen bg-dot-grid text-white flex flex-col justify-between font-sans`?
-- [ ] Используется ли единый спиннер загрузки `w-9 h-9 border-2 border-white/10 border-t-white animate-spin` с моно-текстом?
-- [ ] Установлен ли единый центрированный навбар `<MainNavbar />`?
-- [ ] Упакован ли виджет в **Meridian Cockpit Container** с 3 светодиодами терминала, штампом `§ 3D-LABS // ...` и статусом Supabase/LocalStorage?
-- [ ] Имеются ли внизу консоли статус-бар с телеметрией и глобальный футер страницы со штампом runtime?
-- [ ] Все ли числовые значения, цены, даты и артикулы оформлены шрифтом `JetBrains Mono / tabular-nums`?
-- [ ] Отсутствуют ли любые цветные радужные кнопки, неоновые пятна `blur-3xl` и разнородные рамки?
-- [ ] Заменены ли все стандартные `select` на компонент `CockpitDropdown`?
-- [ ] Имеют ли карточки параметров стандартные отступы `p-3.5`, скругление `rounded-xl` и матовый фон `bg-white/[0.03] border-white/10`?
-- [ ] Оформлены ли модальные окна в строгом стиле Cockpit Modal?
+| Задача | Основной эталон | Обязательные паттерны |
+|---|---|---|
+| Параметры, настройки, расчёты | `/calculator` | Parameter Tiles, tooltip с формулой, dropdown, ledger |
+| Реестр сущностей | `/orders` | KPI, filter bar, table, row actions, drawer |
+| Dashboard | `/orders` | KPI-сетка, компактная телеметрия, semantic status |
+| Мастер создания | `/calculator` + modal-паттерны | Плитки полей, пошаговая сводка, одно primary-действие |
+| Детальная карточка | `/orders` drawer + `/calculator` ledger | Метаданные, статус, финансовая/техническая сводка |
+| «В разработке» | Cockpit shell обеих страниц | Amber badge, нейтральные tiles, CockpitButton |
 
+Гибридная страница может сочетать оба эталона: например, KPI и таблица из `/orders`, а боковая расчётная сводка — из `/calculator`.
+
+---
+
+## 12. Правило обновления старых компонентов
+
+Любое визуальное изменение старого компонента означает:
+
+1. сохранить бизнес-логику и данные;
+2. определить ближайший паттерн `/orders` или `/calculator`;
+3. заменить локальные дубликаты на shared-компоненты;
+4. привести затронутый блок к общей поверхности, типографике, радиусам и состояниям;
+5. удалить несовместимый декор в затронутой области;
+6. проверить соседние состояния этого же компонента: loading, empty, error, modal/drawer и mobile;
+7. не оставлять внутри одного блока смесь старого и нового визуального языка.
+
+Не требуется переписывать всю страницу при точечной задаче, если незатронутые области не мешают результату. Но граница обновлённого блока не должна выглядеть как вставка из другого приложения.
+
+---
+
+## 13. Design QA перед завершением
+
+### Каркас
+
+- [ ] Есть `bg-dot-grid`, `MainNavbar`, cockpit-контейнер и runtime-футер.
+- [ ] Loading-state совпадает с `/orders` и `/calculator`.
+- [ ] Cockpit имеет topbar, рабочее тело и status bar.
+- [ ] В topbar есть точки, штамп и честный статус режима/хранилища.
+
+### Визуальный язык
+
+- [ ] Поверхности, рамки и радиусы взяты из этого стандарта.
+- [ ] Нет `PageHeader`, неоновых пятен и радужных кнопок.
+- [ ] Акцент один, сдержанный и семантический.
+- [ ] Числа, цены, даты и статусы используют `font-mono tabular-nums`.
+- [ ] Карточки соответствуют `bg-white/[0.03] border-white/10 rounded-xl`.
+
+### Компоненты
+
+- [ ] Используются `CockpitButton`, `CockpitDropdown` и существующие tooltip-компоненты.
+- [ ] Таблицы и KPI сверены с `/orders`.
+- [ ] Формы, параметры и сводки сверены с `/calculator`.
+- [ ] Modal/drawer оформлены как часть той же консоли.
+
+### Поведение
+
+- [ ] Есть hover, focus, active и disabled.
+- [ ] Проверены loading, empty, error и success.
+- [ ] Интерфейс работает с клавиатуры и не полагается только на цвет.
+- [ ] Проверены ширины 375, 768, 1280 и 1536 px.
+- [ ] Длинные тексты, большие числа и пустые данные не ломают сетку.
+
+Если хотя бы один пункт не выполнен, визуальная задача не считается завершённой.

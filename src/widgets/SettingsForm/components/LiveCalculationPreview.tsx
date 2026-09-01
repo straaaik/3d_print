@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { MaterialDifficultyCategory, MATERIAL_DIFFICULTY_CONFIGS } from '../../../shared/lib/materialDifficulty';
 import { Calculator } from 'lucide-react';
+import { QuickStepper } from './QuickStepper';
 
 interface LiveCalculationPreviewProps {
   currency: string;
@@ -102,7 +103,7 @@ export function LiveCalculationPreview({
                     : 'text-neutral-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <span>{cfg.icon}</span>
+                <span className="text-[9px] text-neutral-500">M</span>
                 <span className="hidden sm:inline">{cfg.shortLabel}</span>
               </button>
             );
@@ -112,15 +113,9 @@ export function LiveCalculationPreview({
 
       {/* Параметры тестовой модели */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-        <div className="p-2.5 rounded-xl bg-neutral-900 border border-white/10 flex flex-col">
-          <span className="text-neutral-500 text-[10px] uppercase">Вес модели:</span>
-          <span className="font-mono font-bold text-white mt-0.5">{testWeight} г</span>
-        </div>
+        <QuickStepper label="Вес модели" value={testWeight} onChange={setTestWeight} min={1} max={5000} step={10} suffix=" г" />
 
-        <div className="p-2.5 rounded-xl bg-neutral-900 border border-white/10 flex flex-col">
-          <span className="text-neutral-500 text-[10px] uppercase">Время печати:</span>
-          <span className="font-mono font-bold text-white mt-0.5">{testHours} ч</span>
-        </div>
+        <QuickStepper label="Время печати" value={testHours} onChange={setTestHours} min={1} max={240} step={1} suffix=" ч" />
 
         <div className="p-2.5 rounded-xl bg-neutral-900 border border-white/10 flex flex-col">
           <span className="text-neutral-500 text-[10px] uppercase">Пластик ({testCategory.toUpperCase()}):</span>

@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Modal } from '../../../shared/ui/Modal';
+import { CockpitModal } from '../../../shared/ui/CockpitModal';
 import { CockpitButton } from '../../../shared/ui/CockpitButton';
 import { CockpitDropdown } from '../../../shared/ui/CockpitDropdown';
+import { Input } from '../../../shared/ui/Input';
 import { UserRole, RegistrationKey } from '../../../shared/types';
 import { useAuth } from '../../../entities/model/AuthProvider';
 import { useToast } from '../../../entities/model/ToastProvider';
 import { 
-  KeyRound, 
   Sparkles, 
   Copy, 
   Check, 
@@ -99,11 +99,15 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
   };
 
   return (
-    <Modal
+    <CockpitModal
       isOpen={isOpen}
       onClose={handleClose}
-      title="§ 3D-LABS // ACCESS_KEY_GENERATOR"
-      maxWidth="md"
+      stamp="ACCESS_KEY_GENERATOR"
+      title="Генератор ключей доступа"
+      subtitle="Создавайте один или несколько одноразовых ключей с ролью и сроком действия."
+      variant="cyan"
+      maxWidth="lg"
+      badge={<span className="rounded border border-cyan-800/40 bg-cyan-950/60 px-2 py-0.5 text-[9px] font-bold text-cyan-400">SECURE</span>}
     >
       {!generatedKeys ? (
         <div className="space-y-4 pt-1 font-mono text-xs">
@@ -161,11 +165,11 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
                 onClick={() => setRole('admin')}
                 className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
                   role === 'admin'
-                    ? 'bg-purple-950/60 border-purple-500/50 text-white shadow-sm'
+                    ? 'bg-amber-950/50 border-amber-500/40 text-white shadow-sm'
                     : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white'
                 }`}
               >
-                <div className="flex items-center gap-1.5 text-xs font-bold text-purple-300">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
                   <ShieldCheck className="w-3.5 h-3.5" />
                   Администратор
                 </div>
@@ -206,12 +210,10 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
               <FileText className="w-3.5 h-3.5 text-cyan-400" />
               Заметка / Назначение:
             </label>
-            <input
-              type="text"
+            <Input
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Например: Для оператора цеха, Мастер Иван..."
-              className="w-full h-9 bg-neutral-900 border border-white/15 hover:border-white/25 focus:border-cyan-400 rounded-xl px-3 text-xs text-white focus:outline-none transition-colors font-sans"
             />
           </div>
 
@@ -265,7 +267,7 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
                       {keyItem.key}
                     </div>
                     <div className="flex items-center gap-2 text-[10px] text-neutral-400 mt-0.5">
-                      <span className={keyItem.role_to_grant === 'admin' ? 'text-purple-400 font-semibold' : 'text-cyan-400'}>
+                      <span className={keyItem.role_to_grant === 'admin' ? 'text-amber-400 font-semibold' : 'text-cyan-400'}>
                         {keyItem.role_to_grant === 'admin' ? 'Администратор' : 'Пользователь'}
                       </span>
                       {keyItem.note && (
@@ -334,6 +336,6 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
           </div>
         </div>
       )}
-    </Modal>
+    </CockpitModal>
   );
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { forwardRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 export type CheckboxVariant = 'primary' | 'cyan' | 'amber' | 'orange' | 'emerald' | 'purple' | 'rose';
 export type CheckboxSize = 'sm' | 'md' | 'lg';
@@ -107,7 +107,7 @@ const sizeStyles: Record<
     strokeWidth: 3.2,
     text: 'text-xs',
     gap: 'gap-2',
-    radius: 'rounded-[5px]',
+    radius: 'rounded-[3.5px]',
   },
   md: {
     box: 'w-5 h-5 min-w-[20px] min-h-[20px]',
@@ -115,7 +115,7 @@ const sizeStyles: Record<
     strokeWidth: 3,
     text: 'text-sm',
     gap: 'gap-2.5',
-    radius: 'rounded-[6px]',
+    radius: 'rounded-[4px]',
   },
   lg: {
     box: 'w-6 h-6 min-w-[24px] min-h-[24px]',
@@ -123,7 +123,7 @@ const sizeStyles: Record<
     strokeWidth: 2.8,
     text: 'text-base',
     gap: 'gap-3',
-    radius: 'rounded-[7px]',
+    radius: 'rounded-[5px]',
   },
 };
 

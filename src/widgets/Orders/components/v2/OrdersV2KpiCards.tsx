@@ -2,6 +2,7 @@ import React from 'react';
 import { formatMoney } from '../../helpers';
 import { TrendingUp, TrendingDown, Layers, ArrowUpRight, Printer, CreditCard, Settings } from 'lucide-react';
 import { Tooltip } from '@/shared/ui/Tooltip';
+import { CockpitTiltCard } from '@/shared/ui/CockpitTiltCard';
 
 interface OrdersV2KpiCardsProps {
   totalIncome: number;
@@ -55,11 +56,36 @@ export const OrdersV2KpiCards = React.memo(function OrdersV2KpiCards({
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3 select-none">
       
       {/* КАРТОЧКА 1: ВЫРУЧКА */}
-      <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 rounded-xl p-3 sm:p-3.5 transition-all flex flex-col justify-between shadow-sm">
+      <CockpitTiltCard
+        tone="cyan"
+        className="p-3 sm:p-3.5 flex flex-col justify-between"
+        backContent={(
+          <div className="flex h-full flex-col justify-between font-mono text-[10px]">
+            <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
+                ВЫРУЧКА
+              </span>
+            </div>
+            <div className="my-auto space-y-2 py-1">
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Ср. чек:</span>
+                <span className="font-bold text-white tabular-nums">{formatMoney(averageCheck)}</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Собрано оплат:</span>
+                <span className="font-semibold text-emerald-400 tabular-nums">{formatMoney(totalPaid)} ({paidRatio.toFixed(0)}%)</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Всего заказов:</span>
+                <span className="font-bold text-cyan-300 tabular-nums">{incomeOrdersCount} шт.</span>
+              </div>
+            </div>
+          </div>
+        )}
+      >
         <div>
           <div className="flex items-center justify-between text-neutral-400 mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
               ВЫРУЧКА
             </span>
             <div className="p-1 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
@@ -98,14 +124,39 @@ export const OrdersV2KpiCards = React.memo(function OrdersV2KpiCards({
             </span>
           </div>
         )}
-      </div>
+      </CockpitTiltCard>
 
       {/* КАРТОЧКА 2: РАСХОДЫ */}
-      <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 rounded-xl p-3 sm:p-3.5 transition-all flex flex-col justify-between shadow-sm">
+      <CockpitTiltCard
+        tone="rose"
+        className="p-3 sm:p-3.5 flex flex-col justify-between"
+        backContent={(
+          <div className="flex h-full flex-col justify-between font-mono text-[10px]">
+            <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
+                РАСХОДЫ
+              </span>
+            </div>
+            <div className="my-auto space-y-2 py-1">
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Доля от выручки:</span>
+                <span className="font-bold text-rose-400 tabular-nums">{expenseRatio.toFixed(1)}%</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Ср. расход на заказ:</span>
+                <span className="font-semibold text-white tabular-nums">{formatMoney(averageCost)}</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Рентабельность:</span>
+                <span className="font-bold text-emerald-400 tabular-nums">{(100 - expenseRatio).toFixed(1)}%</span>
+              </div>
+            </div>
+          </div>
+        )}
+      >
         <div>
           <div className="flex items-center justify-between text-neutral-400 mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
               РАСХОДЫ
             </span>
             <div className="p-1 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">
@@ -144,14 +195,41 @@ export const OrdersV2KpiCards = React.memo(function OrdersV2KpiCards({
             </span>
           </div>
         )}
-      </div>
+      </CockpitTiltCard>
 
       {/* КАРТОЧКА 3: ЧИСТАЯ ПРИБЫЛЬ С ПОЛОСОЙ ЦЕЛИ */}
-      <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 rounded-xl p-3 sm:p-3.5 transition-all flex flex-col justify-between shadow-sm">
+      <CockpitTiltCard
+        tone="emerald"
+        className="p-3 sm:p-3.5 flex flex-col justify-between"
+        backContent={(
+          <div className="flex h-full flex-col justify-between font-mono text-[10px]">
+            <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
+                ЧИСТАЯ ПРИБЫЛЬ
+              </span>
+            </div>
+            <div className="my-auto space-y-2 py-1">
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Маржинальность:</span>
+                <span className="font-bold text-emerald-400 tabular-nums">{totalMarginPercent.toFixed(1)}%</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Ср. прибыль/зак:</span>
+                <span className="font-semibold text-white tabular-nums">+{formatMoney(averageProfit)}</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Цель периода:</span>
+                <span className="font-bold text-cyan-300 tabular-nums">
+                  {hasGoal ? `${progressPercent.toFixed(0)}%` : 'Не задана'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      >
         <div>
           <div className="flex items-center justify-between text-neutral-400 mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
               ЧИСТАЯ ПРИБЫЛЬ
             </span>
             <div className="p-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -217,14 +295,39 @@ export const OrdersV2KpiCards = React.memo(function OrdersV2KpiCards({
             </div>
           )}
         </div>
-      </div>
+      </CockpitTiltCard>
 
       {/* КАРТОЧКА 4: ОСТАТОК К ОПЛАТЕ */}
-      <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 rounded-xl p-3 sm:p-3.5 transition-all flex flex-col justify-between shadow-sm">
+      <CockpitTiltCard
+        tone="amber"
+        className="p-3 sm:p-3.5 flex flex-col justify-between"
+        backContent={(
+          <div className="flex h-full flex-col justify-between font-mono text-[10px]">
+            <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
+                ОСТАТОК К ОПЛАТЕ
+              </span>
+            </div>
+            <div className="my-auto space-y-2 py-1">
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Сбор выручки:</span>
+                <span className="font-bold text-emerald-400 tabular-nums">{paidRatio.toFixed(1)}%</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Заказов с долгом:</span>
+                <span className="font-semibold text-amber-300 tabular-nums">{unpaidOrdersCount} из {incomeOrdersCount}</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">К получению:</span>
+                <span className="font-bold text-amber-400 tabular-nums">{formatMoney(unpaidSum)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      >
         <div>
           <div className="flex items-center justify-between text-neutral-400 mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
               ОСТАТОК К ОПЛАТЕ
             </span>
             <div className="p-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
@@ -262,14 +365,39 @@ export const OrdersV2KpiCards = React.memo(function OrdersV2KpiCards({
             </span>
           </div>
         )}
-      </div>
+      </CockpitTiltCard>
 
       {/* КАРТОЧКА 5: ЗАКАЗОВ В РАБОТЕ */}
-      <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 rounded-xl p-3 sm:p-3.5 transition-all flex flex-col justify-between shadow-sm">
+      <CockpitTiltCard
+        tone="sky"
+        className="p-3 sm:p-3.5 flex flex-col justify-between"
+        backContent={(
+          <div className="flex h-full flex-col justify-between font-mono text-[10px]">
+            <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
+              <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
+                ЗАКАЗОВ В РАБОТЕ
+              </span>
+            </div>
+            <div className="my-auto space-y-2 py-1">
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">В очереди печати:</span>
+                <span className="font-bold text-amber-300 tabular-nums">{waitingCount} шт.</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">В печати сейчас:</span>
+                <span className="font-bold text-cyan-300 tabular-nums">{printingCount} шт.</span>
+              </div>
+              <div className="flex items-center justify-between text-neutral-300">
+                <span className="text-neutral-400">Сдано заказов:</span>
+                <span className="font-semibold text-emerald-400 tabular-nums">{completedCount} ({completedRatio}%)</span>
+              </div>
+            </div>
+          </div>
+        )}
+      >
         <div>
           <div className="flex items-center justify-between text-neutral-400 mb-1.5">
-            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
+            <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
               ЗАКАЗОВ В РАБОТЕ
             </span>
             <div className="p-1 rounded bg-white/5 text-neutral-300 border border-white/10">
@@ -312,7 +440,7 @@ export const OrdersV2KpiCards = React.memo(function OrdersV2KpiCards({
             </div>
           </div>
         )}
-      </div>
+      </CockpitTiltCard>
 
     </div>
   );

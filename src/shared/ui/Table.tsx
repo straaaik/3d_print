@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronUp, ChevronDown, Search, X, ChevronLeft, ChevronRight, Package } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { usePersistentState } from '../lib/usePersistentState';
 
 export interface TableColumn<T> {

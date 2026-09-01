@@ -195,9 +195,10 @@ export interface Order {
   cost_items?: CostItem[]; // Детализированный список пунктов расхода
   payments?: number[]; // Список отдельных транзакций оплаты
   payment: number; // Сумма всех транзакций оплаты
-  client: string;
+  client: string; // Канал продаж / Источник (Авито, Telegram, Сайт и т.д.) или категория расхода
+  client_name?: string; // Имя клиента / Заказчика (напр. «Иван Иванов», «ИП Алексеев»)
   contacts?: ContactItem[]; // Список контактов клиента (телефон, телеграм, whatsapp и др.)
-  contact: string; // Основной контакт для обратной совместимости
+  contact: string; // Основной контакт / имя для обратной совместимости
   deadline: string;
   status: OrderStatus;
   notes: string;

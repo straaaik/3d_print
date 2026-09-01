@@ -1,9 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { Filament, Printer, Settings, SavedCalculation, CustomCostItem, ProductCollection } from '../../shared/types';
+import React, { createContext, useCallback, useContext, useState, useEffect, useRef } from 'react';
+import { Filament, Printer, Settings, SavedCalculation, CustomCostItem, ProductCollection, Order } from '../../shared/types';
 import * as api from '../../shared/api/db';
 import { useToast } from './ToastProvider';
+import { useAuth } from './AuthProvider';
 
 import { usePersistentState } from '../../shared/lib/usePersistentState';
 
@@ -13,6 +14,10 @@ interface DataContextType {
   settings: Settings | null;
   savedCalculations: SavedCalculation[];
   collections: ProductCollection[];
+  orders: Order[];
+  setOrders: React.Dispatch<React.SetStateAction<Order[]>>;
+  monthlyGoals: api.MonthlyGoalsConfig;
+  setMonthlyGoals: React.Dispatch<React.SetStateAction<api.MonthlyGoalsConfig>>;
   isLoading: boolean;
   isOnline: boolean;
   
@@ -98,11 +103,14 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const { showSuccess, showWarning } = useToast();
+  const { currentUser, isLoading: isAuthLoading } = useAuth();
   const [filaments, setFilaments] = useState<Filament[]>([]);
   const [printers, setPrinters] = useState<Printer[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [savedCalculations, setSavedCalculations] = useState<SavedCalculation[]>([]);
   const [collections, setCollections] = useState<ProductCollection[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [monthlyGoals, setMonthlyGoals] = useState<api.MonthlyGoalsConfig>(api.DEFAULT_MONTHLY_GOALS_CONFIG);
   const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(false);
   const [isSettingsDirty, setIsSettingsDirty] = useState(false);
@@ -155,7 +163,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Инициализация данных
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
       // 1. Проверяем соединение с Supabase
@@ -163,12 +171,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setIsOnline(onlineStatus);
 
       // 2. Параллельно загружаем все данные
-      const [loadedSettings, loadedFilaments, loadedPrinters, loadedSavedCalculations, loadedCollections] = await Promise.all([
+      const [loadedSettings, loadedFilaments, loadedPrinters, loadedSavedCalculations, loadedCollections, loadedOrders, loadedMonthlyGoals] = await Promise.all([
         api.getSettings(),
         api.getFilaments(),
         api.getPrinters(),
         api.getSavedCalculations(),
         api.getCollections(),
+        api.getOrders(),
+        api.getMonthlyGoalsConfig(),
       ]);
 
       setSettings(loadedSettings);
@@ -176,15 +186,35 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setPrinters(loadedPrinters);
       setSavedCalculations(loadedSavedCalculations);
       setCollections(loadedCollections);
+      setOrders(loadedOrders);
+      setMonthlyGoals(loadedMonthlyGoals);
     } catch (error) {
       console.error('Ошибка инициализации данных:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadData();
+    if (isAuthLoading) return;
+    if (!currentUser) {
+      let cancelled = false;
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setFilaments([]);
+        setPrinters([]);
+        setSettings(null);
+        setSavedCalculations([]);
+        setCollections([]);
+        setOrders([]);
+        setMonthlyGoals(api.DEFAULT_MONTHLY_GOALS_CONFIG);
+        setIsOnline(false);
+        setIsLoading(false);
+      });
+      return () => { cancelled = true; };
+    }
+
+    void Promise.resolve().then(loadData);
 
     const handleRefreshCalcs = async () => {
       try {
@@ -199,17 +229,53 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    const handleRefreshOrders = async () => {
+      try {
+        const [nextOrders, calcs, cols] = await Promise.all([
+          api.getOrders(),
+          api.getSavedCalculations(),
+          api.getCollections(),
+        ]);
+        setOrders(nextOrders);
+        setSavedCalculations(calcs);
+        setCollections(cols);
+      } catch (err) {
+        console.error('Ошибка обновления заказов в DataProvider:', err);
+      }
+    };
+
+    const handleRefreshGoals = async () => {
+      try {
+        setMonthlyGoals(await api.getMonthlyGoalsConfig());
+      } catch (err) {
+        console.error('Ошибка обновления целей в DataProvider:', err);
+      }
+    };
+
+    const handleStorage = () => {
+      void handleRefreshOrders();
+      void handleRefreshGoals();
+    };
+
     window.addEventListener('saved_calculations_updated', handleRefreshCalcs);
-    window.addEventListener('storage', handleRefreshCalcs);
+    window.addEventListener('orders_updated', handleRefreshOrders);
+    window.addEventListener('refresh-orders-data', handleRefreshOrders);
+    window.addEventListener('monthly_goals_updated', handleRefreshGoals);
+    window.addEventListener('storage', handleStorage);
     return () => {
       window.removeEventListener('saved_calculations_updated', handleRefreshCalcs);
-      window.removeEventListener('storage', handleRefreshCalcs);
+      window.removeEventListener('orders_updated', handleRefreshOrders);
+      window.removeEventListener('refresh-orders-data', handleRefreshOrders);
+      window.removeEventListener('monthly_goals_updated', handleRefreshGoals);
+      window.removeEventListener('storage', handleStorage);
     };
-  }, []);
+  }, [currentUser, isAuthLoading, loadData]);
 
   // Автоматическое отслеживание статуса сети и автосинхронизация при восстановлении соединения
   useEffect(() => {
-    let wasOffline = false;
+    if (isAuthLoading || !currentUser) return;
+    let wasOffline = !isOnline;
+    let isChecking = false;
 
     const handleOnline = async () => {
       const isConnected = await api.checkSupabaseConnection();
@@ -224,13 +290,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             setPrinters(syncResult.printers);
             setSavedCalculations(syncResult.savedCalculations);
             setCollections(syncResult.collections);
-            if (typeof window !== 'undefined') {
-              window.dispatchEvent(new Event('saved_calculations_updated'));
-              window.dispatchEvent(new Event('orders_updated'));
-              window.dispatchEvent(new Event('refresh-orders-data'));
-              window.dispatchEvent(new Event('storage'));
-              window.dispatchEvent(new Event('monthly_goals_updated'));
-            }
+            setOrders(syncResult.orders);
+            setMonthlyGoals(syncResult.goals);
+            window.dispatchEvent(new Event('3d-data-synchronized'));
             showSuccess('Связь с сервером восстановлена, данные синхронизированы.');
           }
         } catch (e) {
@@ -250,16 +312,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     // Периодическая проверка раз в 25 секунд
     const interval = setInterval(async () => {
-      const currentOnline = await api.checkSupabaseConnection();
-      setIsOnline((prev) => {
-        if (!prev && currentOnline) {
+      if (isChecking || document.visibilityState !== 'visible') return;
+      isChecking = true;
+      try {
+        const currentOnline = await api.checkSupabaseConnection();
+        if (currentOnline && !isOnline) {
           wasOffline = true;
-          handleOnline();
-        } else if (prev && !currentOnline) {
+          await handleOnline();
+        } else if (!currentOnline && isOnline) {
           handleOffline();
+        } else {
+          setIsOnline(currentOnline);
         }
-        return currentOnline;
-      });
+      } finally {
+        isChecking = false;
+      }
     }, 25000);
 
     return () => {
@@ -267,7 +334,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('offline', handleOffline);
       clearInterval(interval);
     };
-  }, [showSuccess, showWarning]);
+  }, [currentUser, isAuthLoading, isOnline, showSuccess, showWarning]);
 
   // Филаменты
   const addFilament = async (filamentData: Omit<Filament, 'id'>) => {
@@ -285,10 +352,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const handleDeleteFilament = async (id: string) => {
     await api.deleteFilament(id);
     setFilaments(prev => prev.filter(f => f.id !== id));
-    // Если удалили принтер по умолчанию, сбрасываем его в настройках
-    if (settings && settings.default_printer_id === id) {
-      await updateSettings({ ...settings, default_printer_id: null });
-    }
   };
 
   // Принтеры
@@ -383,13 +446,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setPrinters(syncResult.printers);
         setSavedCalculations(syncResult.savedCalculations);
         setCollections(syncResult.collections);
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new Event('saved_calculations_updated'));
-          window.dispatchEvent(new Event('orders_updated'));
-          window.dispatchEvent(new Event('refresh-orders-data'));
-          window.dispatchEvent(new Event('storage'));
-          window.dispatchEvent(new Event('monthly_goals_updated'));
-        }
+        setOrders(syncResult.orders);
+        setMonthlyGoals(syncResult.goals);
+        window.dispatchEvent(new Event('3d-data-synchronized'));
         showSuccess('Связь с сервером восстановлена, данные синхронизированы.');
       }
     } else {
@@ -411,13 +470,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setPrinters(result.printers);
     setSavedCalculations(result.savedCalculations);
     setCollections(result.collections);
+    setOrders(result.orders);
     if (result.settings) setSettings(result.settings);
 
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('saved_calculations_updated'));
-      window.dispatchEvent(new Event('orders_updated'));
-      window.dispatchEvent(new Event('refresh-orders-data'));
-      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new Event('3d-data-synchronized'));
     }
   };
 
@@ -427,13 +484,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setPrinters([]);
     setSavedCalculations([]);
     setCollections([]);
+    setOrders([]);
+    setMonthlyGoals(api.DEFAULT_MONTHLY_GOALS_CONFIG);
     setSettings(null);
 
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new Event('saved_calculations_updated'));
-      window.dispatchEvent(new Event('orders_updated'));
-      window.dispatchEvent(new Event('refresh-orders-data'));
-      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new Event('3d-data-synchronized'));
     }
   };
 
@@ -445,6 +501,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         settings,
         savedCalculations,
         collections,
+        orders,
+        setOrders,
+        monthlyGoals,
+        setMonthlyGoals,
         isLoading,
         isOnline,
         isSettingsDirty,

@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useId } from 'react';
+import { motion } from 'motion/react';
 import { Search, X, LucideIcon } from 'lucide-react';
 import { Tooltip } from './Tooltip';
 
@@ -37,6 +38,7 @@ export function TableFilterBar<T extends string = string>({
   actions,
   className = '',
 }: TableFilterBarProps<T>) {
+  const generatedId = useId();
   return (
     <div
       className={`flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2 bg-neutral-950/80 border border-white/10 p-2 rounded-xl select-none font-mono text-xs ${className}`}
@@ -77,22 +79,34 @@ export function TableFilterBar<T extends string = string>({
                 key={tab.id}
                 type="button"
                 onClick={() => onTabChange && onTabChange(tab.id)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold border transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                className={`relative px-2.5 py-1 rounded-lg text-xs font-mono font-semibold transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 select-none ${
                   isActive
-                    ? 'bg-white/15 text-white border-white/30 font-bold shadow-sm'
-                    : 'bg-neutral-900/60 text-neutral-400 border-white/10 hover:text-white hover:bg-white/5'
+                    ? 'text-white font-bold'
+                    : 'text-neutral-400 hover:text-white hover:bg-white/5'
                 }`}
               >
+                {isActive && (
+                  <motion.div
+                    layoutId={`tableFilterTabActive-${generatedId}`}
+                    className="absolute inset-0 bg-white/15 border border-white/30 rounded-lg shadow-sm"
+                    transition={{
+                      type: 'spring',
+                      stiffness: 450,
+                      damping: 32,
+                      mass: 0.8,
+                    }}
+                  />
+                )}
                 {Icon && (
                   <Icon
                     size={13}
-                    className={isActive ? 'text-cyan-400' : 'text-neutral-500'}
+                    className={`relative z-10 transition-colors ${isActive ? 'text-cyan-400' : 'text-neutral-500'}`}
                   />
                 )}
-                <span>{tab.label}</span>
+                <span className="relative z-10">{tab.label}</span>
                 {typeof tab.count === 'number' && (
                   <span
-                    className={`px-1.5 py-0.2 rounded text-[10px] font-mono ${
+                    className={`relative z-10 px-1.5 py-0.2 rounded text-[10px] font-mono transition-colors ${
                       isActive ? 'bg-white/20 text-white font-bold' : 'bg-white/5 text-neutral-500'
                     }`}
                   >

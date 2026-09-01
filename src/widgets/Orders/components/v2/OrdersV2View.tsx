@@ -9,7 +9,6 @@ import {
   OrderTypeFilter, 
   PaymentFilter 
 } from '../../types';
-import { DrawerTab } from '../OrderDrawer';
 import { OrdersV2KpiCards } from './OrdersV2KpiCards';
 import { OrdersV2FilterBar } from './OrdersV2FilterBar';
 import { OrdersV2Table } from './OrdersV2Table';
@@ -17,8 +16,11 @@ import { formatMonthKeyLabel } from '../../helpers';
 import { RotateCcw, CalendarPlus, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CockpitButton } from '@/shared/ui/CockpitButton';
 import { Tooltip } from '@/shared/ui/Tooltip';
+import { usePixelCurtain } from '@/shared/ui/PixelCurtain';
+import { CockpitContentTransition } from '@/shared/ui/CockpitContentTransition';
 
 interface OrdersV2ViewProps {
+  isOnline: boolean;
   orders: Order[];
   sortedOrders: Order[];
   visibleOrders: Order[];
@@ -77,13 +79,13 @@ interface OrdersV2ViewProps {
   canUndo: boolean;
 
   // Действия и модальные окна
-  onOpenDrawer: (order: Order, tab?: DrawerTab) => void;
-  onOpenEditModal: (order: Order, initialTab?: DrawerTab) => void;
+  onOpenEditModal: (order: Order) => void;
   onOpenAddModal: () => void;
   onUpdateStatus: (order: Order, newStatus: OrderStatus) => void;
   onToggleType: (order: Order) => void;
   onDuplicateOrder: (order: Order) => void;
   onRequestDelete: (order: Order) => void;
+  onInlineUpdate: (orderId: string, updates: Partial<Order>) => void;
   savedCalculations?: SavedCalculation[];
 
   // Расширенный режим (Full-screen)
@@ -99,11 +101,11 @@ interface OrdersV2ViewProps {
 }
 
 export const OrdersV2View = React.memo(function OrdersV2View({
+  isOnline,
   orders,
   sortedOrders,
   visibleOrders,
   visibleCount,
-  totalOrdersCount,
   onLoadMore,
   onShowAll,
   onOpenNewMonthModal,
@@ -142,23 +144,23 @@ export const OrdersV2View = React.memo(function OrdersV2View({
   onSort,
   onUndo,
   canUndo,
-  onOpenDrawer,
   onOpenEditModal,
   onOpenAddModal,
   onUpdateStatus,
   onToggleType,
   onDuplicateOrder,
   onRequestDelete,
+  onInlineUpdate,
   savedCalculations,
   isExpanded = false,
   onToggleExpand,
-  onResetFilters,
   contextMenu,
   setContextMenu,
   contextMenuRef,
   onCopyContact,
 }: OrdersV2ViewProps) {
   const router = useRouter();
+  const { navigate: curtainNavigate } = usePixelCurtain();
   const monthLabel = formatMonthKeyLabel(selectedMonthKey);
   const [isSideWingOpen, setIsSideWingOpen] = React.useState(true);
 
@@ -287,7 +289,7 @@ export const OrdersV2View = React.memo(function OrdersV2View({
               <Tooltip content="Закрыть реестр и перейти на главную">
                 <button
                   type="button"
-                  onClick={() => router.push('/')}
+                  onClick={() => curtainNavigate('/')}
                   className="w-3 h-3 rounded-full bg-red-500/80 border border-red-400/40 hover:bg-red-500 hover:scale-125 active:scale-95 transition-all duration-150 cursor-pointer outline-none shadow-sm shadow-red-500/30"
                 />
               </Tooltip>
@@ -323,7 +325,7 @@ export const OrdersV2View = React.memo(function OrdersV2View({
 
             <div className="flex items-center gap-2 pl-3 border-l border-white/10 font-mono text-xs text-neutral-300">
               <span className="text-white font-bold">§ 3D-LABS</span>
-              <span className="text-neutral-600">//</span>
+              <span className="text-neutral-600">{'//'}</span>
               <span className="text-neutral-400 hidden sm:inline">ЗАКАЗЫ</span>
               
               {/* Динамический зеленый бейдж режима: FULLSCREEN / COMPACT */}
@@ -349,8 +351,9 @@ export const OrdersV2View = React.memo(function OrdersV2View({
 
         </div>
 
-        {/* Внутреннее содержимое консоли заказов */}
-        <div className="p-3.5 sm:p-4 md:p-5 space-y-3 sm:space-y-3.5">
+        {/* Внутреннее содержимое консоли заказов с анимацией перехода */}
+        <CockpitContentTransition>
+          <div className="p-3.5 sm:p-4 md:p-5 space-y-3 sm:space-y-3.5">
           
           {/* 1. РЯД ИЗ 5-ТИ КОМПАКТНЫХ KPI КАРТОЧЕК */}
           <OrdersV2KpiCards
@@ -471,13 +474,13 @@ export const OrdersV2View = React.memo(function OrdersV2View({
               sortField={sortField}
               sortOrder={sortOrder}
               onSort={onSort}
-              onOpenDrawer={onOpenDrawer}
               onOpenEditModal={onOpenEditModal}
               onOpenAddModal={onOpenAddModal}
               onUpdateStatus={onUpdateStatus}
               onToggleType={onToggleType}
               onDuplicateOrder={onDuplicateOrder}
               onRequestDelete={onRequestDelete}
+              onInlineUpdate={onInlineUpdate}
               searchQuery={searchQuery}
               savedCalculations={savedCalculations}
               isExpanded={isExpanded}
@@ -489,13 +492,14 @@ export const OrdersV2View = React.memo(function OrdersV2View({
           </div>
 
         </div>
+        </CockpitContentTransition>
 
         {/* 3. ПОДВАЛ КОНСОЛИ (В ТОЧНОСТИ КАК НА СКРИНШОТЕ КАЛЬКУЛЯТОРА) */}
         <div className="border-t border-white/10 px-5 py-2.5 bg-neutral-950 flex items-center justify-between text-[11px] font-mono text-neutral-500">
           <div className="flex items-center gap-3">
-            <span>DATABASE: SUPABASE CLOUD</span>
+            <span>DATABASE: {isOnline ? 'SUPABASE CLOUD' : 'LOCALSTORAGE'}</span>
             <span className="hidden sm:inline">•</span>
-            <span className="hidden sm:inline">CACHE: LOCALSTORAGE SYNCED</span>
+            <span className="hidden sm:inline">CACHE: {isOnline ? 'SYNCED' : 'PENDING SYNC'}</span>
             {isExpanded && (
               <>
                 <span className="hidden md:inline">•</span>
@@ -503,7 +507,7 @@ export const OrdersV2View = React.memo(function OrdersV2View({
               </>
             )}
           </div>
-          <div>FPS: 60 · RESPONSE: 18ms</div>
+          <div>{isOnline ? 'SYNC: ONLINE' : 'SYNC: OFFLINE QUEUE'}</div>
         </div>
 
       </div>

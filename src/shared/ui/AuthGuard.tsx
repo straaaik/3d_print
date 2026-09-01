@@ -7,6 +7,14 @@ import { ShieldAlert, Lock } from 'lucide-react';
 import { Button } from './Button';
 import { UserProfileMenu } from '../../widgets/UserMenu/UserProfileMenu';
 
+import { 
+  CockpitWorkspaceSkeleton, 
+  HubSkeleton, 
+  SettingsSkeleton, 
+  OrdersSkeleton 
+} from './CockpitSkeleton';
+import { MainNavbar } from './MainNavbar';
+
 interface AuthGuardProps {
   children: React.ReactNode;
 }
@@ -42,16 +50,47 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }
   }, [isLoading, isAuthenticated, isAdmin, isLoginPage, isPublicPage, isAdminPage, router]);
 
-  // Во время первоначальной проверки аутентификации
+  // Во время первоначальной проверки аутентификации показываем скелетон раздела
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-dot-grid flex items-center justify-center font-sans">
-        <div className="flex flex-col items-center gap-4 select-none">
-          <div className="w-9 h-9 rounded-full border-2 border-white/10 border-t-white animate-spin" />
-          <p className="text-neutral-400 text-xs font-mono font-semibold">
-            Проверка авторизации 3D Labs...
-          </p>
+    const rawTab = pathname?.replace('/', '') || '';
+    if (['orders', 'stats', 'calculator', 'products', 'filaments', 'printers'].includes(rawTab)) {
+      return <CockpitWorkspaceSkeleton initialTab={rawTab as 'orders' | 'stats' | 'calculator' | 'products' | 'filaments' | 'printers'} />;
+    }
+
+    if (pathname === '/') {
+      return <HubSkeleton />;
+    }
+
+    if (pathname === '/settings') {
+      return (
+        <div className="flex min-h-screen flex-col justify-between bg-dot-grid font-sans text-white selection:bg-white/20 selection:text-white">
+          <main className="mx-auto w-full max-w-none space-y-6 px-3 py-4 sm:px-6 md:py-6">
+            <div className="flex justify-center"><MainNavbar /></div>
+            <SettingsSkeleton />
+          </main>
+          <footer className="w-full select-none border-t border-white/10 bg-neutral-950/80 py-6 font-mono text-[11px] text-neutral-500 backdrop-blur-md">
+            <div className="mx-auto flex max-w-[1500px] flex-col items-center justify-between gap-2 px-4 sm:flex-row">
+              <span>§ 3D LABS · SETTINGS RUNTIME v2.4</span>
+              <span>CONFIG: LOCALSTORAGE + SUPABASE CLOUD</span>
+            </div>
+          </footer>
         </div>
+      );
+    }
+
+    if (isPublicPage) {
+      return null;
+    }
+
+    // Fallback скелетон для любых других разделов
+    return (
+      <div className="min-h-screen bg-dot-grid text-white flex flex-col justify-between font-sans">
+        <main className="w-full mx-auto max-w-none px-3 sm:px-6 py-4 md:py-6 space-y-6">
+          <div className="flex justify-center">
+            <MainNavbar />
+          </div>
+          <OrdersSkeleton />
+        </main>
       </div>
     );
   }

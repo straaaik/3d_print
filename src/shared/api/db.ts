@@ -1,8 +1,10 @@
 import { Filament, Printer, Settings, SavedCalculation, Order, ProductCollection } from '../types';
+/* eslint-disable @typescript-eslint/no-explicit-any -- Supabase schema types are not generated in this project yet. */
 import { generateRandomSeedData, SeedDataResult } from '../lib/seedGenerator';
 import { createClient } from '@/lib/supabase/client';
+import { getScopedStorageKey, getStorageScope } from '../lib/storageScope';
 
-export const STORAGE_KEYS = {
+const STORAGE_BASE_KEYS = {
   FILAMENTS: '3d_calc_filaments',
   PRINTERS: '3d_calc_printers',
   SETTINGS: '3d_calc_settings',
@@ -10,7 +12,109 @@ export const STORAGE_KEYS = {
   ORDERS: '3d_calc_orders',
   COLLECTIONS: '3d_calc_collections',
   MONTHLY_GOALS: '3d_calc_monthly_goals',
+  SYNC_QUEUE: '3d_calc_sync_queue',
+} as const;
+
+export const STORAGE_KEYS = {
+  get FILAMENTS() { return getScopedStorageKey(STORAGE_BASE_KEYS.FILAMENTS); },
+  get PRINTERS() { return getScopedStorageKey(STORAGE_BASE_KEYS.PRINTERS); },
+  get SETTINGS() { return getScopedStorageKey(STORAGE_BASE_KEYS.SETTINGS); },
+  get SAVED_CALCULATIONS() { return getScopedStorageKey(STORAGE_BASE_KEYS.SAVED_CALCULATIONS); },
+  get ORDERS() { return getScopedStorageKey(STORAGE_BASE_KEYS.ORDERS); },
+  get COLLECTIONS() { return getScopedStorageKey(STORAGE_BASE_KEYS.COLLECTIONS); },
+  get MONTHLY_GOALS() { return getScopedStorageKey(STORAGE_BASE_KEYS.MONTHLY_GOALS); },
+  get SYNC_QUEUE() { return getScopedStorageKey(STORAGE_BASE_KEYS.SYNC_QUEUE); },
 };
+
+type SyncEntity = 'filaments' | 'printers' | 'settings' | 'saved_calculations' | 'orders' | 'collections' | 'monthly_goals';
+type SyncAction = 'upsert' | 'delete';
+
+interface SyncOperation {
+  entity: SyncEntity;
+  action: SyncAction;
+  id: string;
+  payload?: Record<string, unknown>;
+  queuedAt: string;
+}
+
+export class DatabaseOperationError extends Error {
+  constructor(operation: string, readonly causeData?: unknown) {
+    super(`Supabase отклонил операцию: ${operation}`);
+    this.name = 'DatabaseOperationError';
+  }
+}
+
+function readLocalJson<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback;
+  const raw = localStorage.getItem(key);
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch (error) {
+    console.warn(`Повреждён локальный кэш «${key}», использовано безопасное значение.`, error);
+    localStorage.removeItem(key);
+    return fallback;
+  }
+}
+
+function writeLocalJson<T>(key: string, value: T): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+function upsertLocalItem<T extends { id: string }>(key: string, item: T): T[] {
+  const current = readLocalJson<T[]>(key, []);
+  const next = current.map(existing => existing.id === item.id ? item : existing);
+  if (!current.some(existing => existing.id === item.id)) next.unshift(item);
+  writeLocalJson(key, next);
+  return next;
+}
+
+function deleteLocalItem<T extends { id: string }>(key: string, id: string): T[] {
+  const next = readLocalJson<T[]>(key, []).filter(item => item.id !== id);
+  writeLocalJson(key, next);
+  return next;
+}
+
+function withoutStlPayload(calculation: SavedCalculation): SavedCalculation {
+  const safeCalculation = { ...calculation };
+  delete safeCalculation.stl_file_data;
+  return safeCalculation;
+}
+
+function enqueueSyncOperation(operation: Omit<SyncOperation, 'queuedAt'>): void {
+  if (typeof window === 'undefined' || getStorageScope() === 'anonymous') return;
+  const queue = readLocalJson<SyncOperation[]>(STORAGE_KEYS.SYNC_QUEUE, []);
+  const withoutOlderVersion = queue.filter(item => !(item.entity === operation.entity && item.id === operation.id));
+  withoutOlderVersion.push({ ...operation, queuedAt: new Date().toISOString() });
+  writeLocalJson(STORAGE_KEYS.SYNC_QUEUE, withoutOlderVersion);
+}
+
+function removeSyncOperation(entity: SyncEntity, id: string): void {
+  if (typeof window === 'undefined') return;
+  const queue = readLocalJson<SyncOperation[]>(STORAGE_KEYS.SYNC_QUEUE, []);
+  writeLocalJson(STORAGE_KEYS.SYNC_QUEUE, queue.filter(item => !(item.entity === entity && item.id === id)));
+}
+
+function removeAllSyncOperations(entity: SyncEntity): void {
+  if (typeof window === 'undefined') return;
+  const queue = readLocalJson<SyncOperation[]>(STORAGE_KEYS.SYNC_QUEUE, []);
+  writeLocalJson(STORAGE_KEYS.SYNC_QUEUE, queue.filter(item => item.entity !== entity));
+}
+
+function isOfflineFailure(error: unknown): boolean {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return true;
+  if (!(error instanceof Error)) return false;
+  return error.name === 'TypeError' || /fetch|network|failed to fetch|load failed/i.test(error.message);
+}
+
+function throwDatabaseError(operation: string, error: unknown): never {
+  throw new DatabaseOperationError(operation, error);
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
 
 const DEFAULT_SETTINGS: Settings = {
   currency: '₽',
@@ -36,7 +140,10 @@ const DEFAULT_SETTINGS: Settings = {
 const DEFAULT_PRINTERS: Printer[] = [];
 const DEFAULT_FILAMENTS: Filament[] = [];
 const DEFAULT_SAVED_CALCULATIONS: SavedCalculation[] = [];
-const DEFAULT_ORDERS: Order[] = [
+const DEFAULT_ORDERS: Order[] = [];
+/* Legacy demo dataset intentionally disabled: production/offline users must
+   never receive synthetic orders or contact data.
+[
   {
     id: 'ord-sample-1',
     order_number: 1045,
@@ -165,7 +272,8 @@ const DEFAULT_ORDERS: Order[] = [
     status: 'Готово',
     notes: 'Закупка расходников для мастерской (Ozon).',
   }
-];
+]
+*/
 const DEFAULT_COLLECTIONS: ProductCollection[] = [];
 
 // Инициализация клиента Supabase (базовый)
@@ -179,8 +287,8 @@ export async function getAuthenticatedSupabaseClient() {
   if (!client) return null;
 
   try {
-    const { data } = await client.auth.getSession();
-    if (!data?.session?.user) {
+    const { data, error } = await client.auth.getUser();
+    if (error || !data?.user) {
       return null;
     }
     return client;
@@ -205,7 +313,7 @@ export async function checkSupabaseConnection(): Promise<boolean> {
 
 export async function getFilaments(): Promise<Filament[]> {
   const client = await getAuthenticatedSupabaseClient();
-  
+
   if (client) {
     try {
       const { data, error } = await (client as any)
@@ -213,27 +321,16 @@ export async function getFilaments(): Promise<Filament[]> {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        // Синхронизируем локальный кэш
-        localStorage.setItem(STORAGE_KEYS.FILAMENTS, JSON.stringify(data));
-        return data as Filament[];
-      }
-      console.warn('Ошибка получения филаментов из Supabase, используем кэш:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+      if (error) throwDatabaseError('загрузка филаментов', error);
+      const filaments = (data || []) as Filament[];
+      writeLocalJson(STORAGE_KEYS.FILAMENTS, filaments);
+      return filaments;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  // Fallback на LocalStorage
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem(STORAGE_KEYS.FILAMENTS);
-    if (local) {
-      return JSON.parse(local);
-    }
-    localStorage.setItem(STORAGE_KEYS.FILAMENTS, JSON.stringify(DEFAULT_FILAMENTS));
-    return DEFAULT_FILAMENTS;
-  }
-  return [];
+  return readLocalJson<Filament[]>(STORAGE_KEYS.FILAMENTS, DEFAULT_FILAMENTS);
 }
 
 export async function saveFilament(filament: Omit<Filament, 'id'> & { id?: string }): Promise<Filament> {
@@ -249,37 +346,20 @@ export async function saveFilament(filament: Omit<Filament, 'id'> & { id?: strin
         .select()
         .single();
 
-      if (!error && data) {
-        // Обновляем локальный кэш без повторного запроса к БД
-        const local = localStorage.getItem(STORAGE_KEYS.FILAMENTS);
-        const cached: Filament[] = local ? JSON.parse(local) : [];
-        const updated = cached.map(f => f.id === id ? (data as Filament) : f);
-        if (!cached.some(f => f.id === id)) updated.unshift(data as Filament);
-        localStorage.setItem(STORAGE_KEYS.FILAMENTS, JSON.stringify(updated));
-        return data as Filament;
-      }
-      console.warn('Ошибка сохранения филамента в Supabase, сохраняем локально:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+      if (error || !data) throwDatabaseError('сохранение филамента', error);
+      const saved = data as Filament;
+      upsertLocalItem(STORAGE_KEYS.FILAMENTS, saved);
+      removeSyncOperation('filaments', saved.id);
+      return saved;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  // Fallback на LocalStorage
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem(STORAGE_KEYS.FILAMENTS);
-    const filaments: Filament[] = local ? JSON.parse(local) : [];
-    const index = filaments.findIndex(f => f.id === id);
-    
-    if (index >= 0) {
-      filaments[index] = newFilament as Filament;
-    } else {
-      filaments.unshift(newFilament as Filament);
-    }
-    
-    localStorage.setItem(STORAGE_KEYS.FILAMENTS, JSON.stringify(filaments));
-  }
-  
-  return newFilament as Filament;
+  const saved = newFilament as Filament;
+  upsertLocalItem(STORAGE_KEYS.FILAMENTS, saved);
+  enqueueSyncOperation({ entity: 'filaments', action: 'upsert', id, payload: saved as unknown as Record<string, unknown> });
+  return saved;
 }
 
 export async function deleteFilament(id: string): Promise<void> {
@@ -288,30 +368,17 @@ export async function deleteFilament(id: string): Promise<void> {
   if (client) {
     try {
       const { error } = await (client as any).from('filaments').delete().eq('id', id);
-      if (!error) {
-        const local = localStorage.getItem(STORAGE_KEYS.FILAMENTS);
-        if (local) {
-          const filaments: Filament[] = JSON.parse(local);
-          const filtered = filaments.filter(f => f.id !== id);
-          localStorage.setItem(STORAGE_KEYS.FILAMENTS, JSON.stringify(filtered));
-        }
-        return;
-      }
-      console.warn('Ошибка удаления филамента из Supabase, удаляем локально:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+      if (error) throwDatabaseError('удаление филамента', error);
+      deleteLocalItem<Filament>(STORAGE_KEYS.FILAMENTS, id);
+      removeSyncOperation('filaments', id);
+      return;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  // Fallback на LocalStorage
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem(STORAGE_KEYS.FILAMENTS);
-    if (local) {
-      const filaments: Filament[] = JSON.parse(local);
-      const filtered = filaments.filter(f => f.id !== id);
-      localStorage.setItem(STORAGE_KEYS.FILAMENTS, JSON.stringify(filtered));
-    }
-  }
+  deleteLocalItem<Filament>(STORAGE_KEYS.FILAMENTS, id);
+  if (isUuid(id)) enqueueSyncOperation({ entity: 'filaments', action: 'delete', id });
 }
 
 // ==========================================
@@ -328,25 +395,16 @@ export async function getPrinters(): Promise<Printer[]> {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        localStorage.setItem(STORAGE_KEYS.PRINTERS, JSON.stringify(data));
-        return data as Printer[];
-      }
-      console.warn('Ошибка получения принтеров из Supabase, используем кэш:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+      if (error) throwDatabaseError('загрузка принтеров', error);
+      const printers = (data || []) as Printer[];
+      writeLocalJson(STORAGE_KEYS.PRINTERS, printers);
+      return printers;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem(STORAGE_KEYS.PRINTERS);
-    if (local) {
-      return JSON.parse(local);
-    }
-    localStorage.setItem(STORAGE_KEYS.PRINTERS, JSON.stringify(DEFAULT_PRINTERS));
-    return DEFAULT_PRINTERS;
-  }
-  return [];
+  return readLocalJson<Printer[]>(STORAGE_KEYS.PRINTERS, DEFAULT_PRINTERS);
 }
 
 export async function savePrinter(printer: Omit<Printer, 'id'> & { id?: string }): Promise<Printer> {
@@ -362,36 +420,20 @@ export async function savePrinter(printer: Omit<Printer, 'id'> & { id?: string }
         .select()
         .single();
 
-      if (!error && data) {
-        // Обновляем локальный кэш без повторного запроса к БД
-        const local = localStorage.getItem(STORAGE_KEYS.PRINTERS);
-        const cached: Printer[] = local ? JSON.parse(local) : [];
-        const updated = cached.map(p => p.id === id ? (data as Printer) : p);
-        if (!cached.some(p => p.id === id)) updated.unshift(data as Printer);
-        localStorage.setItem(STORAGE_KEYS.PRINTERS, JSON.stringify(updated));
-        return data as Printer;
-      }
-      console.warn('Ошибка сохранения принтера в Supabase, сохраняем локально:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+      if (error || !data) throwDatabaseError('сохранение принтера', error);
+      const saved = data as Printer;
+      upsertLocalItem(STORAGE_KEYS.PRINTERS, saved);
+      removeSyncOperation('printers', saved.id);
+      return saved;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem(STORAGE_KEYS.PRINTERS);
-    const printers: Printer[] = local ? JSON.parse(local) : [];
-    const index = printers.findIndex(p => p.id === id);
-
-    if (index >= 0) {
-      printers[index] = newPrinter as Printer;
-    } else {
-      printers.unshift(newPrinter as Printer);
-    }
-
-    localStorage.setItem(STORAGE_KEYS.PRINTERS, JSON.stringify(printers));
-  }
-
-  return newPrinter as Printer;
+  const saved = newPrinter as Printer;
+  upsertLocalItem(STORAGE_KEYS.PRINTERS, saved);
+  enqueueSyncOperation({ entity: 'printers', action: 'upsert', id, payload: saved as unknown as Record<string, unknown> });
+  return saved;
 }
 
 export async function deletePrinter(id: string): Promise<void> {
@@ -400,29 +442,17 @@ export async function deletePrinter(id: string): Promise<void> {
   if (client) {
     try {
       const { error } = await (client as any).from('printers').delete().eq('id', id);
-      if (!error) {
-        const local = localStorage.getItem(STORAGE_KEYS.PRINTERS);
-        if (local) {
-          const printers: Printer[] = JSON.parse(local);
-          const filtered = printers.filter(p => p.id !== id);
-          localStorage.setItem(STORAGE_KEYS.PRINTERS, JSON.stringify(filtered));
-        }
-        return;
-      }
-      console.warn('Ошибка удаления принтера из Supabase, удаляем локально:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+      if (error) throwDatabaseError('удаление принтера', error);
+      deleteLocalItem<Printer>(STORAGE_KEYS.PRINTERS, id);
+      removeSyncOperation('printers', id);
+      return;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem(STORAGE_KEYS.PRINTERS);
-    if (local) {
-      const printers: Printer[] = JSON.parse(local);
-      const filtered = printers.filter(p => p.id !== id);
-      localStorage.setItem(STORAGE_KEYS.PRINTERS, JSON.stringify(filtered));
-    }
-  }
+  deleteLocalItem<Printer>(STORAGE_KEYS.PRINTERS, id);
+  if (isUuid(id)) enqueueSyncOperation({ entity: 'printers', action: 'delete', id });
 }
 
 // ==========================================
@@ -437,55 +467,37 @@ export async function getSettings(): Promise<Settings> {
       const { data, error } = await (client as any)
         .from('settings')
         .select('*')
-        .limit(1);
+        .maybeSingle();
 
-      if (!error && data && data.length > 0) {
+      if (error) throwDatabaseError('загрузка настроек', error);
+      if (data) {
         const fullSettings: Settings = {
           ...DEFAULT_SETTINGS,
-          ...data[0],
+          ...data,
           material_multipliers: {
             ...DEFAULT_SETTINGS.material_multipliers,
-            ...(data[0].material_multipliers || {}),
+            ...(data.material_multipliers || {}),
           },
         };
-        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(fullSettings));
+        writeLocalJson(STORAGE_KEYS.SETTINGS, fullSettings);
         return fullSettings;
       }
-      
-      // Если таблицы настроек нет или она пуста в Supabase
-      if (!error && (!data || data.length === 0)) {
-        // Создаем дефолтные настройки
-        const created = await saveSettings(DEFAULT_SETTINGS);
-        return created;
-      }
-      console.warn('Ошибка получения настроек из Supabase, используем кэш:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+
+      return saveSettings(DEFAULT_SETTINGS);
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-    if (local) {
-      try {
-        const parsed = JSON.parse(local);
-        return {
-          ...DEFAULT_SETTINGS,
-          ...parsed,
-          material_multipliers: {
-            ...DEFAULT_SETTINGS.material_multipliers,
-            ...(parsed.material_multipliers || {}),
-          },
-        };
-      } catch {
-        // Игнорируем
-      }
-    }
-    // Если в LocalStorage тоже пусто, сохраняем дефолт
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
-    return DEFAULT_SETTINGS;
-  }
-  return DEFAULT_SETTINGS;
+  const cached = readLocalJson<Settings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+  return {
+    ...DEFAULT_SETTINGS,
+    ...cached,
+    material_multipliers: {
+      ...DEFAULT_SETTINGS.material_multipliers,
+      ...(cached.material_multipliers || {}),
+    },
+  };
 }
 
 export async function saveSettings(settings: Settings): Promise<Settings> {
@@ -493,39 +505,31 @@ export async function saveSettings(settings: Settings): Promise<Settings> {
 
   if (client) {
     try {
-      // Ищем ID настроек в LocalStorage, чтобы обновить ту же строку
-      const local = localStorage.getItem(STORAGE_KEYS.SETTINGS);
-      let id = settings.id;
-      if (!id && local) {
-        try {
-          id = JSON.parse(local).id;
-        } catch {
-          // Игнорируем
-        }
-      }
-
-      const settingsToSave = { ...settings, updated_at: new Date().toISOString() };
-      if (id) settingsToSave.id = id;
+      const { data: authData, error: authError } = await client.auth.getUser();
+      if (authError || !authData.user) throwDatabaseError('проверка пользователя настроек', authError);
+      const settingsToSave = {
+        ...settings,
+        user_id: authData.user.id,
+        updated_at: new Date().toISOString(),
+      };
 
       const { data, error } = await (client as any)
         .from('settings')
-        .upsert(settingsToSave)
+        .upsert(settingsToSave, { onConflict: 'user_id' })
         .select()
         .single();
 
-      if (!error && data) {
-        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(data));
-        return data as Settings;
-      }
-      console.warn('Ошибка сохранения настроек в Supabase, сохраняем локально:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+      if (error || !data) throwDatabaseError('сохранение настроек', error);
+      writeLocalJson(STORAGE_KEYS.SETTINGS, data);
+      removeSyncOperation('settings', 'current');
+      return data as Settings;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-  }
+  writeLocalJson(STORAGE_KEYS.SETTINGS, settings);
+  enqueueSyncOperation({ entity: 'settings', action: 'upsert', id: 'current', payload: settings as unknown as Record<string, unknown> });
   return settings;
 }
 
@@ -543,41 +547,23 @@ export async function getSavedCalculations(): Promise<SavedCalculation[]> {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        const safeData = (data as SavedCalculation[]).map(({ stl_file_data, ...rest }) => rest);
-        try {
-          localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(safeData));
-        } catch (e) {
-          console.warn('localStorage setItem limit warning:', e);
-        }
-        return data as SavedCalculation[];
-      }
-      console.warn('Ошибка получения расчетов из Supabase, используем кэш:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+      if (error) throwDatabaseError('загрузка расчётов', error);
+      const calculations = (data || []) as SavedCalculation[];
+      writeLocalJson(STORAGE_KEYS.SAVED_CALCULATIONS, calculations.map(withoutStlPayload));
+      return calculations;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem(STORAGE_KEYS.SAVED_CALCULATIONS);
-    if (local) {
-      try {
-        return JSON.parse(local);
-      } catch (e) {
-        console.error('Ошибка чтения localStorage:', e);
-      }
-    }
-    localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(DEFAULT_SAVED_CALCULATIONS));
-    return DEFAULT_SAVED_CALCULATIONS;
-  }
-  return [];
+  return readLocalJson<SavedCalculation[]>(STORAGE_KEYS.SAVED_CALCULATIONS, DEFAULT_SAVED_CALCULATIONS);
 }
 
 export async function addSavedCalculation(
   calc: Omit<SavedCalculation, 'id' | 'created_at'>
 ): Promise<SavedCalculation> {
   const client = await getAuthenticatedSupabaseClient();
-  const id = typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9);
+  const id = crypto.randomUUID();
   const newCalc: SavedCalculation = {
     ...calc,
     id,
@@ -592,33 +578,19 @@ export async function addSavedCalculation(
         .select()
         .single();
 
-      if (!error && data) {
-        const localList = await getSavedCalculations();
-        const updatedList = [data as SavedCalculation, ...localList.filter(item => item.id !== data.id)];
-        const safeList = updatedList.map(({ stl_file_data, ...rest }) => rest);
-        try {
-          localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(safeList));
-        } catch (e) {
-          console.warn('localStorage warning:', e);
-        }
-        return data as SavedCalculation;
-      }
-      console.warn('Ошибка сохранения расчета в Supabase, сохраняем локально:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+      if (error || !data) throwDatabaseError('сохранение расчёта', error);
+      const saved = data as SavedCalculation;
+      upsertLocalItem(STORAGE_KEYS.SAVED_CALCULATIONS, withoutStlPayload(saved));
+      removeSyncOperation('saved_calculations', saved.id);
+      return saved;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  if (typeof window !== 'undefined') {
-    const localList = await getSavedCalculations();
-    const updatedList = [newCalc, ...localList];
-    const safeList = updatedList.map(({ stl_file_data, ...rest }) => rest);
-    try {
-      localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(safeList));
-    } catch (e) {
-      console.warn('localStorage warning:', e);
-    }
-  }
+  const safe = withoutStlPayload(newCalc);
+  upsertLocalItem(STORAGE_KEYS.SAVED_CALCULATIONS, safe);
+  enqueueSyncOperation({ entity: 'saved_calculations', action: 'upsert', id, payload: safe as unknown as Record<string, unknown> });
   return newCalc;
 }
 
@@ -635,33 +607,19 @@ export async function updateSavedCalculation(
         .select()
         .single();
 
-      if (!error && data) {
-        const localList = await getSavedCalculations();
-        const updatedList = localList.map(item => item.id === calc.id ? (data as SavedCalculation) : item);
-        const safeList = updatedList.map(({ stl_file_data, ...rest }) => rest);
-        try {
-          localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(safeList));
-        } catch (e) {
-          console.warn('localStorage warning:', e);
-        }
-        return data as SavedCalculation;
-      }
-      console.warn('Ошибка обновления расчета в Supabase, сохраняем локально:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+      if (error || !data) throwDatabaseError('обновление расчёта', error);
+      const saved = data as SavedCalculation;
+      upsertLocalItem(STORAGE_KEYS.SAVED_CALCULATIONS, withoutStlPayload(saved));
+      removeSyncOperation('saved_calculations', saved.id);
+      return saved;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  if (typeof window !== 'undefined') {
-    const localList = await getSavedCalculations();
-    const updatedList = localList.map(item => item.id === calc.id ? calc : item);
-    const safeList = updatedList.map(({ stl_file_data, ...rest }) => rest);
-    try {
-      localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(safeList));
-    } catch (e) {
-      console.warn('localStorage warning:', e);
-    }
-  }
+  const safe = withoutStlPayload(calc);
+  upsertLocalItem(STORAGE_KEYS.SAVED_CALCULATIONS, safe);
+  enqueueSyncOperation({ entity: 'saved_calculations', action: 'upsert', id: calc.id, payload: safe as unknown as Record<string, unknown> });
   return calc;
 }
 
@@ -675,62 +633,23 @@ export async function deleteSavedCalculation(id: string): Promise<boolean> {
         .delete()
         .eq('id', id);
 
-      if (!error) {
-        const localList = await getSavedCalculations();
-        const filtered = localList.filter((item) => item.id !== id);
-        const safeList = filtered.map(({ stl_file_data, ...rest }) => rest);
-        try {
-          localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(safeList));
-        } catch (e) {
-          console.warn('localStorage warning:', e);
-        }
-        return true;
-      }
-      console.warn('Ошибка удаления расчета из Supabase, удаляем локально:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+      if (error) throwDatabaseError('удаление расчёта', error);
+      deleteLocalItem<SavedCalculation>(STORAGE_KEYS.SAVED_CALCULATIONS, id);
+      removeSyncOperation('saved_calculations', id);
+      return true;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  if (typeof window !== 'undefined') {
-    const localList = await getSavedCalculations();
-    const filtered = localList.filter((item) => item.id !== id);
-    const safeList = filtered.map(({ stl_file_data, ...rest }) => rest);
-    try {
-      localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(safeList));
-    } catch (e) {
-      console.warn('localStorage warning:', e);
-    }
-    return true;
-  }
-  return false;
+  deleteLocalItem<SavedCalculation>(STORAGE_KEYS.SAVED_CALCULATIONS, id);
+  if (isUuid(id)) enqueueSyncOperation({ entity: 'saved_calculations', action: 'delete', id });
+  return true;
 }
 
 export async function clearAllSavedCalculations(): Promise<boolean> {
-  const client = await getAuthenticatedSupabaseClient();
-
-  if (client) {
-    try {
-      const { error } = await (client as any)
-        .from('saved_calculations')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
-
-      if (!error) {
-        localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify([]));
-        return true;
-      }
-      console.warn('Ошибка очистки расчетов в Supabase, очищаем локально:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
-    }
-  }
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify([]));
-    return true;
-  }
-  return false;
+  await restoreAllSavedCalculations([]);
+  return true;
 }
 
 /**
@@ -739,32 +658,32 @@ export async function clearAllSavedCalculations(): Promise<boolean> {
  */
 export async function restoreAllSavedCalculations(calculations: SavedCalculation[]): Promise<void> {
   const client = await getAuthenticatedSupabaseClient();
-
-  // Обновляем localStorage атомарно
-  const safeList = calculations.map(({ stl_file_data, ...rest }) => rest);
-  try {
-    localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(safeList));
-  } catch (e) {
-    console.warn('localStorage warning:', e);
-  }
+  const safeList = calculations.map(withoutStlPayload);
 
   if (client) {
     try {
-      // Удаляем всё и вставляем заново одной операцией
-      await (client as any)
-        .from('saved_calculations')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
-      
-      if (calculations.length > 0) {
-        await (client as any)
-          .from('saved_calculations')
-          .insert(calculations);
-      }
-    } catch (e) {
-      console.error('Ошибка восстановления расчётов в Supabase:', e);
+      const { error } = await client.rpc('restore_saved_calculations_snapshot', { p_items: calculations });
+      if (error) throwDatabaseError('восстановление снимка расчётов', error);
+      writeLocalJson(STORAGE_KEYS.SAVED_CALCULATIONS, safeList);
+      removeAllSyncOperations('saved_calculations');
+      return;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
+
+  const current = readLocalJson<SavedCalculation[]>(STORAGE_KEYS.SAVED_CALCULATIONS, []);
+  const nextIds = new Set(safeList.map(item => item.id));
+  current.filter(item => !nextIds.has(item.id)).forEach(item => {
+    if (isUuid(item.id)) enqueueSyncOperation({ entity: 'saved_calculations', action: 'delete', id: item.id });
+  });
+  safeList.forEach(item => enqueueSyncOperation({
+    entity: 'saved_calculations',
+    action: 'upsert',
+    id: item.id,
+    payload: item as unknown as Record<string, unknown>,
+  }));
+  writeLocalJson(STORAGE_KEYS.SAVED_CALCULATIONS, safeList);
 }
 
 // ==========================================
@@ -781,36 +700,23 @@ export async function getCollections(): Promise<ProductCollection[]> {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(data));
-        return data as ProductCollection[];
-      }
-      console.warn('Ошибка получения коллекций из Supabase, используем кэш:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+      if (error) throwDatabaseError('загрузка коллекций', error);
+      const collections = (data || []) as ProductCollection[];
+      writeLocalJson(STORAGE_KEYS.COLLECTIONS, collections);
+      return collections;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem(STORAGE_KEYS.COLLECTIONS);
-    if (local) {
-      try {
-        return JSON.parse(local);
-      } catch (e) {
-        console.error('Ошибка чтения localStorage:', e);
-      }
-    }
-    localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(DEFAULT_COLLECTIONS));
-    return DEFAULT_COLLECTIONS;
-  }
-  return [];
+  return readLocalJson<ProductCollection[]>(STORAGE_KEYS.COLLECTIONS, DEFAULT_COLLECTIONS);
 }
 
 export async function saveCollection(
   col: Omit<ProductCollection, 'id' | 'created_at'> & { id?: string }
 ): Promise<ProductCollection> {
   const client = await getAuthenticatedSupabaseClient();
-  const id = col.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9));
+  const id = col.id || crypto.randomUUID();
   const newCol: ProductCollection = {
     ...col,
     id,
@@ -825,29 +731,18 @@ export async function saveCollection(
         .select()
         .single();
 
-      if (!error && data) {
-        const localList = await getCollections();
-        const updatedList = [data as ProductCollection, ...localList.filter(item => item.id !== data.id)];
-        localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(updatedList));
-        return data as ProductCollection;
-      }
-      console.warn('Ошибка сохранения коллекции в Supabase, сохраняем локально:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+      if (error || !data) throwDatabaseError('сохранение коллекции', error);
+      const saved = data as ProductCollection;
+      upsertLocalItem(STORAGE_KEYS.COLLECTIONS, saved);
+      removeSyncOperation('collections', saved.id);
+      return saved;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem(STORAGE_KEYS.COLLECTIONS);
-    const list: ProductCollection[] = local ? JSON.parse(local) : DEFAULT_COLLECTIONS;
-    const index = list.findIndex(c => c.id === id);
-    if (index >= 0) {
-      list[index] = newCol;
-    } else {
-      list.unshift(newCol);
-    }
-    localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(list));
-  }
+  upsertLocalItem(STORAGE_KEYS.COLLECTIONS, newCol);
+  enqueueSyncOperation({ entity: 'collections', action: 'upsert', id, payload: newCol as unknown as Record<string, unknown> });
   return newCol;
 }
 
@@ -862,24 +757,18 @@ export async function updateCollection(col: ProductCollection): Promise<ProductC
         .select()
         .single();
 
-      if (!error && data) {
-        const localList = await getCollections();
-        const updatedList = localList.map(item => item.id === col.id ? (data as ProductCollection) : item);
-        localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(updatedList));
-        return data as ProductCollection;
-      }
-      console.warn('Ошибка обновления коллекции в Supabase, сохраняем локально:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+      if (error || !data) throwDatabaseError('обновление коллекции', error);
+      const saved = data as ProductCollection;
+      upsertLocalItem(STORAGE_KEYS.COLLECTIONS, saved);
+      removeSyncOperation('collections', saved.id);
+      return saved;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem(STORAGE_KEYS.COLLECTIONS);
-    const list: ProductCollection[] = local ? JSON.parse(local) : DEFAULT_COLLECTIONS;
-    const updatedList = list.map(item => item.id === col.id ? col : item);
-    localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(updatedList));
-  }
+  upsertLocalItem(STORAGE_KEYS.COLLECTIONS, col);
+  enqueueSyncOperation({ entity: 'collections', action: 'upsert', id: col.id, payload: col as unknown as Record<string, unknown> });
   return col;
 }
 
@@ -903,80 +792,48 @@ export async function deleteCollection(id: string, deleteContainedProducts = fal
         .delete()
         .eq('id', id);
 
-      if (!error) {
-        const local = localStorage.getItem(STORAGE_KEYS.COLLECTIONS);
-        if (local) {
-          const list: ProductCollection[] = JSON.parse(local);
-          const filtered = list.filter(item => item.id !== id);
-          localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(filtered));
-        }
-        return true;
-      }
-      console.warn('Ошибка удаления коллекции из Supabase, удаляем локально:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+      if (error) throwDatabaseError('удаление коллекции', error);
+      deleteLocalItem<ProductCollection>(STORAGE_KEYS.COLLECTIONS, id);
+      removeSyncOperation('collections', id);
+      return true;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem(STORAGE_KEYS.COLLECTIONS);
-    if (local) {
-      const list: ProductCollection[] = JSON.parse(local);
-      const filtered = list.filter(item => item.id !== id);
-      localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(filtered));
-    }
-    return true;
-  }
-  return false;
+  deleteLocalItem<ProductCollection>(STORAGE_KEYS.COLLECTIONS, id);
+  if (isUuid(id)) enqueueSyncOperation({ entity: 'collections', action: 'delete', id });
+  return true;
 }
 
 export async function clearAllCollections(): Promise<boolean> {
-  const client = await getAuthenticatedSupabaseClient();
-
-  if (client) {
-    try {
-      const { error } = await (client as any)
-        .from('collections')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
-
-      if (!error) {
-        localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify([]));
-        return true;
-      }
-      console.warn('Ошибка очистки коллекций в Supabase:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
-    }
-  }
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify([]));
-    return true;
-  }
-  return false;
+  await restoreAllCollections([]);
+  return true;
 }
 
 export async function restoreAllCollections(collections: ProductCollection[]): Promise<void> {
-  localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(collections));
-
   const client = await getAuthenticatedSupabaseClient();
   if (client) {
     try {
-      await (client as any)
-        .from('collections')
-        .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000');
-      
-      if (collections.length > 0) {
-        await (client as any)
-          .from('collections')
-          .insert(collections);
-      }
-    } catch (e) {
-      console.error('Ошибка восстановления коллекций в Supabase:', e);
+      const { error } = await client.rpc('restore_collections_snapshot', { p_items: collections });
+      if (error) throwDatabaseError('восстановление снимка коллекций', error);
+      writeLocalJson(STORAGE_KEYS.COLLECTIONS, collections);
+      removeAllSyncOperations('collections');
+      return;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
+
+  const current = readLocalJson<ProductCollection[]>(STORAGE_KEYS.COLLECTIONS, []);
+  const nextIds = new Set(collections.map(item => item.id));
+  current.filter(item => !nextIds.has(item.id)).forEach(item => {
+    if (isUuid(item.id)) enqueueSyncOperation({ entity: 'collections', action: 'delete', id: item.id });
+  });
+  collections.forEach(item => enqueueSyncOperation({
+    entity: 'collections', action: 'upsert', id: item.id, payload: item as unknown as Record<string, unknown>,
+  }));
+  writeLocalJson(STORAGE_KEYS.COLLECTIONS, collections);
 }
 
 /**
@@ -984,18 +841,31 @@ export async function restoreAllCollections(collections: ProductCollection[]): P
  * Вместо N последовательных saveOrder вызовов — один batch upsert.
  */
 export async function restoreAllOrders(orders: Order[]): Promise<void> {
-  // Обновляем localStorage атомарно
-  localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
-
   const client = await getAuthenticatedSupabaseClient();
-  if (client && orders.length > 0) {
+  if (client) {
     try {
-      await (client as any)
-        .from('orders')
-        .upsert(orders);
-    } catch (e) {
-      console.error('Ошибка восстановления заказов в Supabase:', e);
+      const { error } = await client.rpc('restore_orders_snapshot', { p_orders: orders });
+      if (error) throwDatabaseError('восстановление снимка заказов', error);
+      writeLocalJson(STORAGE_KEYS.ORDERS, orders);
+      removeAllSyncOperations('orders');
+      return;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
+  }
+
+  const currentOrders = readLocalJson<Order[]>(STORAGE_KEYS.ORDERS, []);
+  restoreLocalInventorySnapshot(currentOrders, orders);
+  writeLocalJson(STORAGE_KEYS.ORDERS, orders);
+
+  const snapshotIds = new Set(orders.map(order => order.id));
+  for (const current of currentOrders) {
+    if (!snapshotIds.has(current.id)) {
+      enqueueSyncOperation({ entity: 'orders', action: 'delete', id: current.id });
+    }
+  }
+  for (const order of orders) {
+    enqueueSyncOperation({ entity: 'orders', action: 'upsert', id: order.id, payload: order as unknown as Record<string, unknown> });
   }
 }
 
@@ -1013,129 +883,141 @@ export async function getOrders(): Promise<Order[]> {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        // Пустой массив — валидный ответ (нет заказов)
-        localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(data));
-        return data as Order[];
-      }
-      console.warn('Ошибка получения заказов из Supabase, используем кэш:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+      if (error) throwDatabaseError('загрузка заказов', error);
+      const orders = (data || []) as Order[];
+      writeLocalJson(STORAGE_KEYS.ORDERS, orders);
+      return orders;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem(STORAGE_KEYS.ORDERS);
-    if (local) {
-      try {
-        const parsed = JSON.parse(local);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const hasModifiers = parsed.some(o => o.discount_percent || o.discount_amount || o.urgency_percent || o.urgency_amount);
-          if (!hasModifiers) {
-            const merged = [...DEFAULT_ORDERS.slice(0, 3), ...parsed];
-            localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(merged));
-            return merged;
-          }
-          return parsed;
-        }
-      } catch (e) {
-        console.error('Ошибка парсинга заказов из localStorage:', e);
-      }
+  return readLocalJson<Order[]>(STORAGE_KEYS.ORDERS, DEFAULT_ORDERS);
+}
+
+function restoreLocalInventorySnapshot(currentOrders: Order[], nextOrders: Order[]): void {
+  const calculations = readLocalJson<SavedCalculation[]>(STORAGE_KEYS.SAVED_CALCULATIONS, []);
+  if (calculations.length === 0) return;
+
+  const stockByProduct = new Map(calculations.map(product => [product.id, product.stock_quantity || 0]));
+  for (const order of currentOrders) {
+    if (order.type === 'income' && order.product_id) {
+      stockByProduct.set(order.product_id, (stockByProduct.get(order.product_id) || 0) + Math.max(0, order.quantity || 0));
     }
-    localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(DEFAULT_ORDERS));
-    return DEFAULT_ORDERS;
   }
-  return DEFAULT_ORDERS;
+  for (const order of nextOrders) {
+    if (order.type === 'income' && order.product_id) {
+      const available = stockByProduct.get(order.product_id) || 0;
+      const required = Math.max(0, order.quantity || 0);
+      if (available < required) throw new Error(`Недостаточно товара «${order.title}» для восстановления заказа`);
+      stockByProduct.set(order.product_id, available - required);
+    }
+  }
+
+  writeLocalJson(
+    STORAGE_KEYS.SAVED_CALCULATIONS,
+    calculations.map(product => ({ ...product, stock_quantity: stockByProduct.get(product.id) ?? product.stock_quantity }))
+  );
+}
+
+function applyLocalInventoryChange(previous: Order | undefined, next: Order | undefined, enforceAvailability = true): void {
+  const calculations = readLocalJson<SavedCalculation[]>(STORAGE_KEYS.SAVED_CALCULATIONS, []);
+  if (calculations.length === 0) {
+    if (enforceAvailability && next?.type === 'income' && next.product_id) {
+      throw new Error('Связанный товар не найден в локальном каталоге');
+    }
+    return;
+  }
+
+  const updated = calculations.map(product => ({ ...product }));
+  if (previous?.type === 'income' && previous.product_id) {
+    const product = updated.find(item => item.id === previous.product_id);
+    if (product) product.stock_quantity = (product.stock_quantity || 0) + Math.max(0, previous.quantity || 0);
+  }
+  if (next?.type === 'income' && next.product_id) {
+    const product = updated.find(item => item.id === next.product_id);
+    if (!product) {
+      if (enforceAvailability) throw new Error('Связанный товар не найден в локальном каталоге');
+      writeLocalJson(STORAGE_KEYS.SAVED_CALCULATIONS, updated);
+      return;
+    }
+    const required = Math.max(0, next.quantity || 0);
+    const available = product.stock_quantity || 0;
+    if (available < required && enforceAvailability) {
+      throw new Error(`На складе только ${available} шт. товара «${product.name}»`);
+    }
+    product.stock_quantity = Math.max(0, available - required);
+  }
+  writeLocalJson(STORAGE_KEYS.SAVED_CALCULATIONS, updated);
 }
 
 export async function saveOrder(order: Omit<Order, 'id'> & { id?: string }): Promise<Order> {
   const client = await getAuthenticatedSupabaseClient();
-  const id = order.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9));
+  const id = order.id || crypto.randomUUID();
+  const cachedOrders = readLocalJson<Order[]>(STORAGE_KEYS.ORDERS, []);
+  const previousOrder = cachedOrders.find(item => item.id === id);
 
   let order_number = order.order_number;
-  if (!order_number) {
-    const existingOrders = await getOrders();
-    const maxNum = existingOrders.reduce((max, o) => Math.max(max, o.order_number || 0), 1000);
-    order_number = maxNum + 1;
-  }
-
-  const newOrder: Order = { ...order, id, order_number } as Order;
+  const created_at = order.created_at || new Date().toISOString();
 
   if (client) {
     try {
-      const { data, error } = await (client as any)
-        .from('orders')
-        .upsert(newOrder)
-        .select()
-        .single();
-
-      if (!error && data) {
-        // Обновляем локальный кэш без повторного запроса к БД
-        const local = localStorage.getItem(STORAGE_KEYS.ORDERS);
-        const cached: Order[] = local ? JSON.parse(local) : [];
-        const updated = cached.map(o => o.id === id ? (data as Order) : o);
-        if (!cached.some(o => o.id === id)) updated.unshift(data as Order);
-        localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
-        return data as Order;
-      }
-      console.warn('Ошибка сохранения заказа в Supabase, сохраняем локально:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+      const payload = { ...order, id, created_at };
+      const { data, error } = await client.rpc('save_order_with_inventory', { p_order: payload });
+      if (error) throwDatabaseError('сохранение заказа', error);
+      const saved = data as unknown as Order;
+      applyLocalInventoryChange(previousOrder, saved, false);
+      const updated = cachedOrders.filter(item => item.id !== id && item.id !== saved.id);
+      updated.unshift(saved);
+      writeLocalJson(STORAGE_KEYS.ORDERS, updated);
+      removeSyncOperation('orders', saved.id);
+      return saved;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem(STORAGE_KEYS.ORDERS);
-    const orders: Order[] = local ? JSON.parse(local) : DEFAULT_ORDERS;
-    const index = orders.findIndex(o => o.id === id);
-
-    if (index >= 0) {
-      orders[index] = newOrder;
-    } else {
-      orders.unshift(newOrder);
-    }
-
-    localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(orders));
+  if (!order_number) {
+    const maxNum = cachedOrders.reduce((max, item) => Math.max(max, item.order_number || 0), 1000);
+    order_number = maxNum + 1;
   }
-
+  const newOrder = { ...order, id, created_at, order_number } as Order;
+  applyLocalInventoryChange(previousOrder, newOrder);
+  const updated = cachedOrders.map(item => item.id === id ? newOrder : item);
+  if (!cachedOrders.some(item => item.id === id)) updated.unshift(newOrder);
+  writeLocalJson(STORAGE_KEYS.ORDERS, updated);
+  enqueueSyncOperation({ entity: 'orders', action: 'upsert', id, payload: newOrder as unknown as Record<string, unknown> });
   return newOrder;
 }
 
 export async function deleteOrder(id: string): Promise<boolean> {
+  return deleteOrders([id]);
+}
+
+export async function deleteOrders(ids: string[]): Promise<boolean> {
+  if (ids.length === 0) return true;
+  const cloudIds = ids.filter(isUuid);
   const client = await getAuthenticatedSupabaseClient();
+  const cached = readLocalJson<Order[]>(STORAGE_KEYS.ORDERS, []);
+  const deletedOrders = cached.filter(order => ids.includes(order.id));
 
-  if (client) {
+  if (client && cloudIds.length > 0) {
     try {
-      const { error } = await (client as any)
-        .from('orders')
-        .delete()
-        .eq('id', id);
-
-      if (!error) {
-        const local = localStorage.getItem(STORAGE_KEYS.ORDERS);
-        if (local) {
-          const orders: Order[] = JSON.parse(local);
-          const filtered = orders.filter(o => o.id !== id);
-          localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(filtered));
-        }
-        return true;
-      }
-      console.warn('Ошибка удаления заказа из Supabase, удаляем локально:', error);
-    } catch (e) {
-      console.error('Ошибка соединения с Supabase:', e);
+      const { error } = await client.rpc('delete_orders_atomic', { p_ids: cloudIds });
+      if (error) throwDatabaseError('удаление заказов', error);
+      for (const order of deletedOrders) applyLocalInventoryChange(order, undefined, false);
+      writeLocalJson(STORAGE_KEYS.ORDERS, cached.filter(order => !ids.includes(order.id)));
+      for (const id of ids) removeSyncOperation('orders', id);
+      return true;
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  if (typeof window !== 'undefined') {
-    const local = localStorage.getItem(STORAGE_KEYS.ORDERS);
-    if (local) {
-      const orders: Order[] = JSON.parse(local);
-      const filtered = orders.filter(o => o.id !== id);
-      localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(filtered));
-    }
-    return true;
-  }
-  return false;
+  for (const order of deletedOrders) applyLocalInventoryChange(order, undefined);
+  writeLocalJson(STORAGE_KEYS.ORDERS, cached.filter(order => !ids.includes(order.id)));
+  for (const id of cloudIds) enqueueSyncOperation({ entity: 'orders', action: 'delete', id });
+  return true;
 }
 
 // ==========================================
@@ -1186,7 +1068,7 @@ export async function resetAndSeedDatabase(customSeed?: SeedDataResult): Promise
 
   // 2. Записываем в LocalStorage
   if (typeof window !== 'undefined') {
-    const safeCalcs = seedData.savedCalculations.map(({ stl_file_data, ...rest }) => rest);
+    const safeCalcs = seedData.savedCalculations.map(withoutStlPayload);
     localStorage.setItem(STORAGE_KEYS.PRINTERS, JSON.stringify(seedData.printers));
     localStorage.setItem(STORAGE_KEYS.FILAMENTS, JSON.stringify(seedData.filaments));
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(seedData.settings));
@@ -1324,7 +1206,7 @@ export async function saveMonthlyGoal(monthKey: string, targetAmount: number): P
 
   if (client) {
     try {
-      await (client as any)
+      const { error } = await (client as any)
         .from('monthly_goals')
         .upsert(
           {
@@ -1334,9 +1216,24 @@ export async function saveMonthlyGoal(monthKey: string, targetAmount: number): P
           },
           { onConflict: 'user_id,month_key' }
         );
-    } catch (e) {
-      console.error('Ошибка сохранения цели в Supabase:', e);
+      if (error) throwDatabaseError('сохранение месячной цели', error);
+      removeSyncOperation('monthly_goals', monthKey);
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
+      enqueueSyncOperation({
+        entity: 'monthly_goals',
+        action: 'upsert',
+        id: monthKey,
+        payload: { month_key: monthKey, target_amount: cleanAmount, updated_at: new Date().toISOString() },
+      });
     }
+  } else {
+    enqueueSyncOperation({
+      entity: 'monthly_goals',
+      action: 'upsert',
+      id: monthKey,
+      payload: { month_key: monthKey, target_amount: cleanAmount, updated_at: new Date().toISOString() },
+    });
   }
 
   if (typeof window !== 'undefined') {
@@ -1359,28 +1256,33 @@ export async function saveMonthlyGoal(monthKey: string, targetAmount: number): P
 
 export async function saveMonthlyGoalsConfig(config: MonthlyGoalsConfig): Promise<void> {
   const client = await getAuthenticatedSupabaseClient();
+  const rows = [
+    { month_key: 'default', target_amount: config.defaultGoal, updated_at: new Date().toISOString() },
+    ...Object.entries(config.monthlyGoals || {}).map(([monthKey, amount]) => ({
+      month_key: monthKey,
+      target_amount: amount,
+      updated_at: new Date().toISOString(),
+    })),
+  ];
 
   if (client) {
     try {
-      const rows = [
-        {
-          month_key: 'default',
-          target_amount: config.defaultGoal,
-          updated_at: new Date().toISOString(),
-        },
-        ...Object.entries(config.monthlyGoals || {}).map(([mKey, amt]) => ({
-          month_key: mKey,
-          target_amount: amt,
-          updated_at: new Date().toISOString(),
-        })),
-      ];
-
-      await (client as any)
+      const { error } = await (client as any)
         .from('monthly_goals')
         .upsert(rows, { onConflict: 'user_id,month_key' });
-    } catch (e) {
-      console.error('Ошибка сохранения конфигурации целей в Supabase:', e);
+      if (error) throwDatabaseError('сохранение конфигурации целей', error);
+      rows.forEach(row => removeSyncOperation('monthly_goals', row.month_key));
+    } catch (error) {
+      if (!isOfflineFailure(error)) throw error;
+      rows.forEach(row => enqueueSyncOperation({
+        entity: 'monthly_goals',
+        action: 'upsert',
+        id: row.month_key,
+        payload: row,
+      }));
     }
+  } else {
+    rows.forEach(row => enqueueSyncOperation({ entity: 'monthly_goals', action: 'upsert', id: row.month_key, payload: row }));
   }
 
   if (typeof window !== 'undefined') {
@@ -1416,67 +1318,48 @@ export async function syncLocalStorageToSupabase(): Promise<SyncDataResult | nul
   if (!client || typeof window === 'undefined') return null;
 
   try {
-    // 1. Считываем данные из LocalStorage
-    const localFilaments: Filament[] = localStorage.getItem(STORAGE_KEYS.FILAMENTS)
-      ? JSON.parse(localStorage.getItem(STORAGE_KEYS.FILAMENTS)!)
-      : [];
-    const localPrinters: Printer[] = localStorage.getItem(STORAGE_KEYS.PRINTERS)
-      ? JSON.parse(localStorage.getItem(STORAGE_KEYS.PRINTERS)!)
-      : [];
-    const localSettings: Settings | null = localStorage.getItem(STORAGE_KEYS.SETTINGS)
-      ? JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS)!)
-      : null;
-    const localCalcs: SavedCalculation[] = localStorage.getItem(STORAGE_KEYS.SAVED_CALCULATIONS)
-      ? JSON.parse(localStorage.getItem(STORAGE_KEYS.SAVED_CALCULATIONS)!)
-      : [];
-    const localOrders: Order[] = localStorage.getItem(STORAGE_KEYS.ORDERS)
-      ? JSON.parse(localStorage.getItem(STORAGE_KEYS.ORDERS)!)
-      : [];
-    const localCollections: ProductCollection[] = localStorage.getItem(STORAGE_KEYS.COLLECTIONS)
-      ? JSON.parse(localStorage.getItem(STORAGE_KEYS.COLLECTIONS)!)
-      : [];
-    const localGoalsConfig = getCachedMonthlyGoalsConfig();
+    const { data: authData, error: authError } = await client.auth.getUser();
+    if (authError || !authData.user) throwDatabaseError('авторизация синхронизации', authError);
 
-    // 2. Отправляем (upsert) локальные изменения в облако
-    if (localPrinters.length > 0) {
-      await (client as any).from('printers').upsert(localPrinters);
-    }
-    if (localFilaments.length > 0) {
-      await (client as any).from('filaments').upsert(localFilaments);
-    }
-    if (localSettings) {
-      await (client as any).from('settings').upsert({
-        ...localSettings,
-        updated_at: new Date().toISOString(),
-      });
-    }
-    if (localCollections.length > 0) {
-      await (client as any).from('collections').upsert(localCollections);
-    }
-    if (localCalcs.length > 0) {
-      const safeCalcs = localCalcs.map(({ stl_file_data, ...rest }) => rest);
-      await (client as any).from('saved_calculations').upsert(safeCalcs);
-    }
-    if (localOrders.length > 0) {
-      await (client as any).from('orders').upsert(localOrders);
-    }
-    if (localGoalsConfig) {
-      const rows = [
-        {
-          month_key: 'default',
-          target_amount: localGoalsConfig.defaultGoal || 0,
-          updated_at: new Date().toISOString(),
-        },
-        ...Object.entries(localGoalsConfig.monthlyGoals || {}).map(([mKey, amt]) => ({
-          month_key: mKey,
-          target_amount: amt,
-          updated_at: new Date().toISOString(),
-        })),
-      ];
-      await (client as any).from('monthly_goals').upsert(rows, { onConflict: 'user_id,month_key' });
+    // Реплицируем только реальные локальные изменения. Снимки кэша не отправляются
+    // целиком, поэтому устаревший браузер не может затереть свежие облачные данные.
+    const queue = readLocalJson<SyncOperation[]>(STORAGE_KEYS.SYNC_QUEUE, []);
+    for (const operation of queue) {
+      let error: unknown = null;
+
+      if (operation.entity === 'orders') {
+        if (operation.action === 'delete') {
+          if (isUuid(operation.id)) {
+            ({ error } = await client.rpc('delete_orders_atomic', { p_ids: [operation.id] }));
+          }
+        } else if (operation.payload) {
+          ({ error } = await client.rpc('save_order_with_inventory', { p_order: operation.payload }));
+        }
+      } else if (operation.entity === 'settings') {
+        if (operation.action === 'upsert' && operation.payload) {
+          ({ error } = await (client as any).from('settings').upsert(
+            { ...operation.payload, user_id: authData.user.id, updated_at: new Date().toISOString() },
+            { onConflict: 'user_id' }
+          ));
+        }
+      } else if (operation.action === 'delete') {
+        ({ error } = await (client as any).from(operation.entity).delete().eq('id', operation.id));
+      } else if (operation.payload) {
+        const query = (client as any).from(operation.entity);
+        const options = operation.entity === 'monthly_goals'
+          ? { onConflict: 'user_id,month_key' }
+          : undefined;
+        ({ error } = await query.upsert(
+          { ...operation.payload, user_id: authData.user.id },
+          options
+        ));
+      }
+
+      if (error) throwDatabaseError(`синхронизация ${operation.entity}/${operation.action}`, error);
+      removeSyncOperation(operation.entity, operation.id);
     }
 
-    // 3. Загружаем объединенные данные из облака
+    // После подтверждения журнала облако становится источником актуального снимка.
     const [cloudSettings, cloudFilaments, cloudPrinters, cloudCalcs, cloudCollections, cloudOrders, cloudGoals] = await Promise.all([
       getSettings(),
       getFilaments(),
@@ -1501,5 +1384,3 @@ export async function syncLocalStorageToSupabase(): Promise<SyncDataResult | nul
     return null;
   }
 }
-
-

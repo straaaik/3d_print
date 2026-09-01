@@ -1,10 +1,13 @@
 'use client';
+/* eslint-disable @typescript-eslint/no-explicit-any -- Supabase schema types are not generated in this project yet. */
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, RegistrationKey, UserRole } from '../../shared/types';
 import { createClient } from '@/lib/supabase/client';
 import * as authApi from '../../shared/api/authDb';
 import { registerAction, updateProfileAction, changePasswordAction, devLoginAction, logoutAction } from '@/app/auth/actions';
+import { setStorageScope } from '../../shared/lib/storageScope';
+import { createInitialAuthRenderState } from './authHydration';
 
 const DEV_FALLBACK_USER: User = {
   id: 'dev-admin-id',
@@ -58,68 +61,43 @@ interface AuthContextType {
   generateKey: (options?: GenerateKeyOptions) => Promise<RegistrationKey>;
   generateBatchKeys: (count: number, options?: GenerateKeyOptions) => Promise<RegistrationKey[]>;
   deleteKey: (id: string) => Promise<boolean>;
-  updateUserRole: (userId: string, role: UserRole) => Promise<void>;
-  toggleUserStatus: (userId: string) => Promise<void>;
-  deleteUser: (userId: string) => Promise<void>;
+  updateUserRole: (userId: string, role: UserRole) => Promise<boolean>;
+  toggleUserStatus: (userId: string) => Promise<boolean>;
+  deleteUser: (userId: string) => Promise<boolean>;
   refreshAuthData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const initialRenderState = createInitialAuthRenderState();
+  const [currentUser, setCurrentUser] = useState<User | null>(initialRenderState.currentUser);
   const [users, setUsers] = useState<User[]>([]);
   const [registrationKeys, setRegistrationKeys] = useState<RegistrationKey[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(initialRenderState.isLoading);
 
   const supabase = createClient();
 
   // Загрузка данных профиля текущего пользователя
   const loadProfile = useCallback(async (userId: string) => {
     try {
-      let { data: profile, error } = await (supabase as any)
+      const { data: profile, error } = await (supabase as any)
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .maybeSingle();
 
-      // Если записи профиля нет в таблице profiles, восстанавливаем из метаданных auth.user
       if (!profile) {
-        const { data: userData } = await supabase.auth.getUser();
-        const user = userData?.user;
-        if (user && user.id === userId) {
-          const userRole = (user.user_metadata?.role as UserRole) || 'user';
-          const userName = user.user_metadata?.name || user.email?.split('@')[0] || 'Пользователь';
-          const userAvatar = user.user_metadata?.avatar_color || '#8B5CF6';
-          const keyUsed = user.user_metadata?.registration_key_used || 'Системный';
-
-          const fallbackProfile: User = {
-            id: user.id,
-            email: user.email || '',
-            name: userName,
-            role: userRole,
-            is_active: true,
-            created_at: new Date().toISOString(),
-            last_login_at: new Date().toISOString(),
-            registration_key_used: keyUsed,
-            avatar_color: userAvatar,
-          };
-
-          try {
-            const { data: inserted } = await (supabase as any)
-              .from('profiles')
-              .upsert(fallbackProfile)
-              .select()
-              .single();
-            profile = inserted || fallbackProfile;
-          } catch {
-            profile = fallbackProfile;
-          }
-        }
+        console.error('Профиль пользователя отсутствует. Проверьте auth-триггер Supabase.', error);
+        setStorageScope(null);
+        setCurrentUser(null);
+        await supabase.auth.signOut();
+        return;
       }
 
       if (profile) {
         if (profile.is_active) {
+          setStorageScope(profile.id);
           setCurrentUser(profile as User);
           // Если администратор, загружаем пользователей и ключи
           if (profile.role === 'admin') {
@@ -132,14 +110,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         } else {
           // Пользователь заблокирован
+          setStorageScope(null);
           setCurrentUser(null);
           await supabase.auth.signOut();
         }
       } else {
+        setStorageScope(null);
         setCurrentUser(null);
       }
     } catch (err) {
       console.error('Ошибка загрузки профиля:', err);
+      setStorageScope(null);
       setCurrentUser(null);
     } finally {
       setIsLoading(false);
@@ -150,8 +131,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
-    const hasDevCookie = typeof document !== 'undefined' && document.cookie.includes('3d_dev_session=true');
-    const hasDevLocal = typeof window !== 'undefined' && localStorage.getItem('3d_dev_session') === 'true';
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const hasDevLocal = isDevelopment && typeof window !== 'undefined' && localStorage.getItem('3d_dev_session') === 'true';
 
     // Первоначальная проверка пользователя
     supabase.auth.getUser().then((res: any) => {
@@ -159,18 +140,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const user = res?.data?.user;
       if (user) {
         loadProfile(user.id);
-      } else if (hasDevCookie || hasDevLocal) {
+      } else if (hasDevLocal) {
+        setStorageScope(DEV_FALLBACK_USER.id);
         setCurrentUser(DEV_FALLBACK_USER);
         setIsLoading(false);
       } else {
+        setStorageScope(null);
         setCurrentUser(null);
         setIsLoading(false);
       }
     }).catch(() => {
       if (!isMounted) return;
-      if (hasDevCookie || hasDevLocal) {
+      if (hasDevLocal) {
+        setStorageScope(DEV_FALLBACK_USER.id);
         setCurrentUser(DEV_FALLBACK_USER);
       } else {
+        setStorageScope(null);
         setCurrentUser(null);
       }
       setIsLoading(false);
@@ -182,11 +167,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         loadProfile(session.user.id);
       } else {
-        const isStillDev = (typeof document !== 'undefined' && document.cookie.includes('3d_dev_session=true')) ||
-                           (typeof window !== 'undefined' && localStorage.getItem('3d_dev_session') === 'true');
+        const isStillDev = process.env.NODE_ENV === 'development' &&
+          typeof window !== 'undefined' && localStorage.getItem('3d_dev_session') === 'true';
         if (isStillDev) {
+          setStorageScope(DEV_FALLBACK_USER.id);
           setCurrentUser(DEV_FALLBACK_USER);
         } else {
+          setStorageScope(null);
           setCurrentUser(null);
           setUsers([]);
           setRegistrationKeys([]);
@@ -219,6 +206,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .single();
 
         if (freshProfile && freshProfile.is_active) {
+          setStorageScope(freshProfile.id);
           setCurrentUser(freshProfile as User);
         }
       }
@@ -271,6 +259,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', data.user.id);
 
       if (profile) {
+        setStorageScope(profile.id);
         setCurrentUser(profile as User);
       }
 
@@ -283,37 +272,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // БЫСТРЫЙ ВХОД ДЛЯ РЕЖИМА РАЗРАБОТКИ
   const devLogin = async (): Promise<{ success: boolean; error?: string }> => {
-    const DEV_EMAIL = 'dev@3dlabs.pro';
-    const DEV_PASSWORD = 'devpassword123';
-
-    try {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('3d_dev_session', 'true');
-        document.cookie = '3d_dev_session=true; path=/; max-age=2592000; SameSite=Lax';
-      }
-
-      // 1. Устанавливаем профиль сразу
-      setCurrentUser(DEV_FALLBACK_USER);
-
-      // 2. Серверное действие (ставит серверную куку и синхронизирует профиль)
-      await devLoginAction();
-
-      // 3. Фоновая попытка связать Supabase Auth на клиенте
-      try {
-        await supabase.auth.signInWithPassword({
-          email: DEV_EMAIL,
-          password: DEV_PASSWORD,
-        });
-      } catch {
-        // Safe fallback
-      }
-
-      return { success: true };
-    } catch (err) {
-      console.error('Ошибка в devLogin:', err);
-      setCurrentUser(DEV_FALLBACK_USER);
-      return { success: true };
+    if (process.env.NODE_ENV !== 'development') {
+      return { success: false, error: 'Dev-вход доступен только локально' };
     }
+
+    const result = await devLoginAction();
+    if (!result.success) return result;
+
+    localStorage.setItem('3d_dev_session', 'true');
+    setStorageScope(DEV_FALLBACK_USER.id);
+    setCurrentUser(DEV_FALLBACK_USER);
+    return { success: true };
   };
 
   // РЕГИСТРАЦИЯ ПО КЛЮЧУ
@@ -388,10 +357,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('3d_dev_session');
-      document.cookie = '3d_dev_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     }
     await logoutAction();
     await supabase.auth.signOut();
+    setStorageScope(null);
     setCurrentUser(null);
     setUsers([]);
     setRegistrationKeys([]);
@@ -478,11 +447,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setCurrentUser((prev) => (prev ? { ...prev, role } : null));
       }
     }
+    return success;
   };
 
   const toggleUserStatus = async (userId: string) => {
     const target = users.find((u) => u.id === userId);
-    if (!target) return;
+    if (!target) return false;
 
     const success = await authApi.toggleProfileStatus(userId, target.is_active);
     if (success) {
@@ -493,6 +463,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await logout();
       }
     }
+    return success;
   };
 
   const deleteUser = async (userId: string) => {
@@ -503,6 +474,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await logout();
       }
     }
+    return success;
   };
 
   const isAuthenticated = !!currentUser && currentUser.is_active;

@@ -1,12 +1,18 @@
-﻿'use client';
+'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { Order } from '../../widgets/Orders/types';
 import { saveOrder, getOrders } from '../../shared/api/db';
 import { useToast } from './ToastProvider';
 import { useData } from './DataProvider';
-import { OrderFormModal } from '../../widgets/Orders/components/OrderFormModal';
+import { useAuth } from './AuthProvider';
 import { MinimizedDraftsStack, MinimizedDraft } from '../../widgets/Orders/components/MinimizedDraftsStack';
+
+const OrderFormModal = dynamic(
+  () => import('../../widgets/Orders/components/OrderFormModal').then(module => module.OrderFormModal),
+  { ssr: false }
+);
 
 const MAX_MINIMIZED_DRAFTS = 5;
 
@@ -27,21 +33,32 @@ const OrderModalContext = createContext<OrderModalContextType | undefined>(undef
 
 export function OrderModalProvider({ children }: { children: React.ReactNode }) {
   const { savedCalculations } = useData();
+  const { currentUser, isLoading: isAuthLoading } = useAuth();
   const { showWarning, showToast, showSuccess } = useToast();
 
   const [activeOrder, setActiveOrder] = useState<Partial<Order> | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [minimizedDrafts, setMinimizedDrafts] = useState<MinimizedDraft[]>([]);
   const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const isSavingRef = useRef(false);
 
-  // Загрузка всех заказов для автозаполнения
+  // Заказы для автозаполнения загружаются только после авторизации и обновляются по событию.
   useEffect(() => {
-    getOrders().then(data => {
-      if (Array.isArray(data)) {
-        setAllOrders(data);
-      }
-    }).catch(console.error);
-  }, [isModalOpen]);
+    if (isAuthLoading) return;
+    if (!currentUser) {
+      queueMicrotask(() => setAllOrders([]));
+      return;
+    }
+
+    const refreshOrders = () => {
+      getOrders().then(data => {
+        if (Array.isArray(data)) setAllOrders(data);
+      }).catch(console.error);
+    };
+    refreshOrders();
+    window.addEventListener('3d-data-synchronized', refreshOrders);
+    return () => window.removeEventListener('3d-data-synchronized', refreshOrders);
+  }, [currentUser, isAuthLoading]);
 
   // Открытие модалки создания/редактирования
   const openOrder = useCallback((orderToOpen?: Partial<Order> | null) => {
@@ -68,6 +85,7 @@ export function OrderModalProvider({ children }: { children: React.ReactNode }) 
         payments: [0],
         payment: 0,
         client: 'Авито',
+        client_name: '',
         contacts: [],
         contact: '',
         deadline: '',
@@ -87,7 +105,7 @@ export function OrderModalProvider({ children }: { children: React.ReactNode }) 
       return;
     }
 
-    const draftId = activeOrder.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Math.random()));
+    const draftId = activeOrder.id || crypto.randomUUID();
     const newDraft: MinimizedDraft = {
       id: draftId,
       order: { ...activeOrder },
@@ -113,7 +131,7 @@ export function OrderModalProvider({ children }: { children: React.ReactNode }) 
         showWarning(`Достигнут лимит (${MAX_MINIMIZED_DRAFTS}). Сначала закройте или сохраните текущий заказ.`);
         return;
       }
-      const currentDraftId = activeOrder.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Math.random()));
+      const currentDraftId = activeOrder.id || crypto.randomUUID();
       const currentDraft: MinimizedDraft = {
         id: currentDraftId,
         order: { ...activeOrder },
@@ -143,25 +161,12 @@ export function OrderModalProvider({ children }: { children: React.ReactNode }) 
   // Сохранение заказа из активной модалки
   const saveCurrentOrder = useCallback(async (e?: React.FormEvent): Promise<Order | null> => {
     if (e && e.preventDefault) e.preventDefault();
-    if (!activeOrder) return null;
+    if (!activeOrder || isSavingRef.current) return null;
+    isSavingRef.current = true;
 
     try {
       const isEdit = Boolean(activeOrder.id);
-      let orderToSave: Order;
-
-      if (isEdit) {
-        orderToSave = activeOrder as Order;
-      } else {
-        const maxNum = allOrders.reduce((max, o) => Math.max(max, o.order_number || 0), 1000);
-        orderToSave = {
-          ...(activeOrder as Order),
-          id: typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
-          order_number: maxNum + 1,
-          created_at: new Date().toISOString(),
-        };
-      }
-
-      const saved = await saveOrder(orderToSave);
+      const saved = await saveOrder(activeOrder as Omit<Order, 'id'> & { id?: string });
 
       setAllOrders(prev => {
         if (isEdit) {
@@ -187,9 +192,12 @@ export function OrderModalProvider({ children }: { children: React.ReactNode }) 
       return saved;
     } catch (err) {
       console.error('Ошибка сохранения заказа:', err);
+      showWarning(err instanceof Error ? err.message : 'Не удалось сохранить заказ');
       return null;
+    } finally {
+      isSavingRef.current = false;
     }
-  }, [activeOrder, allOrders, showSuccess]);
+  }, [activeOrder, showSuccess, showWarning]);
 
   return (
     <OrderModalContext.Provider
@@ -209,16 +217,18 @@ export function OrderModalProvider({ children }: { children: React.ReactNode }) 
       {children}
 
       {/* Глобальное модальное окно заказа/расхода */}
-      <OrderFormModal
-        isOpen={isModalOpen}
-        onClose={closeActiveModal}
-        onMinimize={minimizeCurrentOrder}
-        order={activeOrder}
-        setOrder={setActiveOrder}
-        onSave={saveCurrentOrder}
-        savedCalculations={savedCalculations || []}
-        allOrders={allOrders}
-      />
+      {isModalOpen && (
+        <OrderFormModal
+          isOpen={isModalOpen}
+          onClose={closeActiveModal}
+          onMinimize={minimizeCurrentOrder}
+          order={activeOrder}
+          setOrder={setActiveOrder}
+          onSave={saveCurrentOrder}
+          savedCalculations={savedCalculations || []}
+          allOrders={allOrders}
+        />
+      )}
 
       {/* Глобальный стек свёрнутых черновиков */}
       <MinimizedDraftsStack

@@ -17,7 +17,7 @@ import {
   Activity,
   DollarSign
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 export function CockpitPreview() {
   const [activeTab, setActiveTab] = useState<'orders' | 'calculator' | 'filaments' | 'printers' | 'analytics'>('orders');
@@ -97,7 +97,10 @@ export function CockpitPreview() {
               >
                 {/* Карточки KPI заказов */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="border border-white/10 bg-white/[0.02] p-3.5 rounded-xl">
+                  <motion.div
+                    whileHover={{ transform: 'translateY(-2px)' }}
+                    className="border border-white/10 bg-white/[0.02] hover:border-white/20 transition-colors p-3.5 rounded-xl"
+                  >
                     <span className="font-mono text-[11px] text-neutral-400 uppercase">Выручка за месяц</span>
                     <div className="mt-1 flex items-baseline gap-2">
                       <span className="text-xl sm:text-2xl font-bold text-white font-mono">184 500 ₽</span>
@@ -107,34 +110,43 @@ export function CockpitPreview() {
                       <div className="h-full bg-cyan-400 rounded-full" style={{ width: '74%' }} />
                     </div>
                     <span className="text-[10px] font-mono text-neutral-400 mt-1 block">Цель: 250 000 ₽</span>
-                  </div>
+                  </motion.div>
 
-                  <div className="border border-white/10 bg-white/[0.02] p-3.5 rounded-xl">
+                  <motion.div
+                    whileHover={{ transform: 'translateY(-2px)' }}
+                    className="border border-white/10 bg-white/[0.02] hover:border-white/20 transition-colors p-3.5 rounded-xl"
+                  >
                     <span className="font-mono text-[11px] text-neutral-400 uppercase">Чистая прибыль</span>
                     <div className="mt-1 flex items-baseline gap-2">
                       <span className="text-xl sm:text-2xl font-bold text-emerald-400 font-mono">126 800 ₽</span>
                       <span className="text-[11px] font-mono text-neutral-400">68.7% маржа</span>
                     </div>
                     <span className="text-[10px] font-mono text-emerald-400/80 mt-3 block">Себестоимость: 57 700 ₽</span>
-                  </div>
+                  </motion.div>
 
-                  <div className="border border-white/10 bg-white/[0.02] p-3.5 rounded-xl">
+                  <motion.div
+                    whileHover={{ transform: 'translateY(-2px)' }}
+                    className="border border-white/10 bg-white/[0.02] hover:border-white/20 transition-colors p-3.5 rounded-xl"
+                  >
                     <span className="font-mono text-[11px] text-neutral-400 uppercase">Заказов в работе</span>
                     <div className="mt-1 flex items-baseline gap-2">
                       <span className="text-xl sm:text-2xl font-bold text-white font-mono">14</span>
                       <span className="text-[11px] font-mono text-yellow-400">4 на печати</span>
                     </div>
                     <span className="text-[10px] font-mono text-neutral-400 mt-3 block">3 готовы к выдаче</span>
-                  </div>
+                  </motion.div>
 
-                  <div className="border border-white/10 bg-white/[0.02] p-3.5 rounded-xl">
+                  <motion.div
+                    whileHover={{ transform: 'translateY(-2px)' }}
+                    className="border border-white/10 bg-white/[0.02] hover:border-white/20 transition-colors p-3.5 rounded-xl"
+                  >
                     <span className="font-mono text-[11px] text-neutral-400 uppercase">Сроки и дедлайны</span>
                     <div className="mt-1 flex items-baseline gap-2">
                       <span className="text-xl sm:text-2xl font-bold text-emerald-400 font-mono">98.6%</span>
                       <span className="text-[11px] font-mono text-neutral-400">вовремя</span>
                     </div>
                     <span className="text-[10px] font-mono text-neutral-400 mt-3 block">Средний срок: 1.8 дня</span>
-                  </div>
+                  </motion.div>
                 </div>
 
                 {/* Живая таблица заказов */}
