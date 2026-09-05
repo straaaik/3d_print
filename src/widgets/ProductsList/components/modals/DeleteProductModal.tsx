@@ -27,13 +27,14 @@ export function DeleteProductModal({ item, onClose, onConfirm }: DeleteProductMo
     <Modal
       isOpen={Boolean(item)}
       onClose={onClose}
-      title="§ 3D-LABS // DELETE_PRODUCT"
+      title="Удаление товара"
+      subtitle={item.name}
       variant="error"
       maxWidth="sm"
       footer={
         <div className="flex justify-end gap-2 w-full font-mono text-xs">
           <CockpitButton type="button" onClick={onClose} disabled={isDeleting}>
-            Отмена
+            Закрыть
           </CockpitButton>
           <CockpitButton
             type="button"

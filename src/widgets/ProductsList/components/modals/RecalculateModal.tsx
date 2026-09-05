@@ -26,7 +26,8 @@ export function RecalculateModal({
     <Modal
       isOpen={isOpen}
       onClose={() => !isRecalculating && onClose()}
-      title="§ 3D-LABS // RECALCULATE_CATALOG"
+      title="Перерасчет каталога"
+      subtitle="Обновление цен и себестоимости"
       maxWidth="md"
       footer={
         <div className="flex justify-end gap-2 w-full font-mono text-xs">
@@ -35,7 +36,7 @@ export function RecalculateModal({
             disabled={isRecalculating}
             onClick={onClose}
           >
-            Отмена
+            Закрыть
           </CockpitButton>
           <CockpitButton
             type="button"

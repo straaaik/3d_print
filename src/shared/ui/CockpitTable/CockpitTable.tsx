@@ -51,7 +51,7 @@ export function CockpitTable<T>({
   renderSubRow,
   renderCustomRow,
   emptyState,
-  emptyTitle = '§ РЕЕСТР ПУСТ',
+  emptyTitle = 'РЕЕСТР ПУСТ',
   emptySubtitle = 'По заданным параметрам записи не найдены.',
   emptyIcon: EmptyIcon = Package,
   emptyAction,

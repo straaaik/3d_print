@@ -209,7 +209,7 @@ export function OrdersTable({
     }
   }, [showInfo]);
 
-  // Закрытие контекстного меню при клике вне его или скролле
+  // Закрытие контекстного меню при клике вне его, скролле или Escape
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
@@ -217,14 +217,19 @@ export function OrdersTable({
       }
     };
     const handleClose = () => setContextMenu(null);
-
-    window.addEventListener('click', handleClickOutside);
-    window.addEventListener('scroll', handleClose);
-    return () => {
-      window.removeEventListener('click', handleClickOutside);
-      window.removeEventListener('scroll', handleClose);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setContextMenu(null);
     };
-  }, []);
+
+    document.addEventListener('mousedown', handleClickOutside, true);
+    window.addEventListener('scroll', handleClose, true);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside, true);
+      window.removeEventListener('scroll', handleClose, true);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [setContextMenu]);
 
   // Сохранение в историю для Undo
   const pushToHistory = (currentOrders: Order[]) => {

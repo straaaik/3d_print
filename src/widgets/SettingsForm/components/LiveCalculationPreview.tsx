@@ -79,7 +79,7 @@ export function LiveCalculationPreview({
           </div>
           <div>
             <h4 className="text-xs font-bold text-white flex items-center gap-2 font-mono uppercase">
-              <span>§ LIVE_PREVIEW // СИМУЛЯЦИЯ РАСЧЕТА</span>
+              <span>LIVE_PREVIEW // СИМУЛЯЦИЯ РАСЧЕТА</span>
             </h4>
             <p className="text-[10px] text-neutral-400 font-sans">
               Показывает, как текущие настройки превратят тестовую печать в итоговую розничную цену и чистую прибыль.

@@ -57,16 +57,13 @@ export function MoveProductModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={
-        movingProduct
-          ? `§ 3D-LABS // MOVE_PRODUCT [ ${movingProduct.name} ]`
-          : `§ 3D-LABS // BATCH_MOVE [ ${selectedIds.length} поз. ]`
-      }
+      title="Перемещение в коллекцию"
+      subtitle={movingProduct ? movingProduct.name : `${selectedIds.length} поз.`}
       maxWidth="md"
       footer={
         <div className="flex justify-end gap-2 w-full font-mono text-xs">
           <CockpitButton type="button" onClick={onClose} disabled={isSaving}>
-            Отмена
+            Закрыть
           </CockpitButton>
           <CockpitButton
             type="button"

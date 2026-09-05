@@ -117,7 +117,8 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="§ 3D-LABS // EDIT_PROFILE"
+      title="Профиль пользователя"
+      subtitle="Настройки аккаунта"
       maxWidth="md"
     >
       <form onSubmit={handleSubmit} className="space-y-4 pt-1 font-mono text-xs">
@@ -310,7 +311,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
             onClick={onClose}
             disabled={isSaving}
           >
-            Отмена
+            Закрыть
           </CockpitButton>
           <CockpitButton
             type="submit"

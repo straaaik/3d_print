@@ -213,7 +213,8 @@ export function AssemblyModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={editingAssembly ? `§ 3D-LABS // EDIT_ASSEMBLY [ ${editingAssembly.name} ]` : '§ 3D-LABS // NEW_ASSEMBLY'}
+      title={editingAssembly ? 'Редактирование сборки' : 'Новая сборка'}
+      subtitle={editingAssembly ? editingAssembly.name : 'Конструктор составного изделия'}
       maxWidth="3xl"
       footer={
         <div className="flex items-center justify-between gap-3 select-none w-full flex-wrap font-mono text-xs">
@@ -236,7 +237,7 @@ export function AssemblyModal({
 
           <div className="flex items-center gap-2">
             <CockpitButton type="button" onClick={onClose} disabled={isSaving}>
-              Отмена
+              Закрыть
             </CockpitButton>
             <CockpitButton
               type="button"

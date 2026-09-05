@@ -243,6 +243,7 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
               <Link 
                 key={item.id} 
                 href={item.href} 
+                aria-current={isActive ? 'page' : undefined}
                 onClick={(e) => {
                   if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
                   if (onNavigate) {

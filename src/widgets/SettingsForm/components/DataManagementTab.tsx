@@ -293,15 +293,14 @@ export function DataManagementTab({
         <CockpitModal
           isOpen={isConfirmSeedModalOpen}
           onClose={() => !isSeeding && setIsConfirmSeedModalOpen(false)}
-          stamp="GENERATE_DEMO_DATA"
-          title="Сгенерировать демонстрационные данные?"
-          subtitle="Операция добавит тестовые сущности во все рабочие разделы."
+          title="Генерация данных"
+          subtitle="Тестовые сущности"
           variant="warning"
           maxWidth="sm"
           footer={
             <div className="flex gap-2 justify-end w-full">
               <CockpitButton disabled={isSeeding} onClick={() => setIsConfirmSeedModalOpen(false)}>
-                Отмена
+                Закрыть
               </CockpitButton>
               <CockpitButton
                 disabled={isSeeding}
@@ -338,15 +337,14 @@ export function DataManagementTab({
       <CockpitModal
         isOpen={isConfirmClearModalOpen}
         onClose={() => !isClearing && setIsConfirmClearModalOpen(false)}
-        stamp="CLEAR_DATABASE"
-        title="Полностью очистить рабочие данные?"
-        subtitle="Удаление затронет облачные записи и локальный кэш."
+        title="Очистка базы данных"
+        subtitle="Полный сброс"
         variant="error"
         maxWidth="sm"
         footer={
           <div className="flex gap-2 justify-end w-full">
             <CockpitButton disabled={isClearing} onClick={() => setIsConfirmClearModalOpen(false)}>
-              Отмена
+              Закрыть
             </CockpitButton>
             <CockpitButton
               disabled={isClearing}

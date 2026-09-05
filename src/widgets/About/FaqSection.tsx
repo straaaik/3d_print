@@ -37,7 +37,7 @@ export function FaqSection() {
         {/* Заголовок */}
         <div className="text-center mb-12 sm:mb-16">
           <span className="font-mono text-xs text-cyan-400 uppercase tracking-widest block mb-3">
-            § ЧАСТО ЗАДАВАЕМЫЕ ВОПРОСЫ
+            ЧАСТО ЗАДАВАЕМЫЕ ВОПРОСЫ
           </span>
           <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-[1.05]">
             Ответы на ключевые вопросы <br />

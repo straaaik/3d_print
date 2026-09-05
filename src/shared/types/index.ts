@@ -174,6 +174,13 @@ export interface CostItem {
   note?: string;    // Дополнительное примечание
 }
 
+export interface PaymentItem {
+  id: string;
+  amount: number;
+  date: string;
+  note?: string;
+}
+
 export interface Order {
   id: string;
   user_id?: string;
@@ -193,7 +200,7 @@ export interface Order {
   amount: number;
   cost: number;
   cost_items?: CostItem[]; // Детализированный список пунктов расхода
-  payments?: number[]; // Список отдельных транзакций оплаты
+  payments?: (number | PaymentItem)[]; // Список отдельных транзакций оплаты (число или транзакция с датой)
   payment: number; // Сумма всех транзакций оплаты
   client: string; // Канал продаж / Источник (Авито, Telegram, Сайт и т.д.) или категория расхода
   client_name?: string; // Имя клиента / Заказчика (напр. «Иван Иванов», «ИП Алексеев»)

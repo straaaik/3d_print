@@ -60,6 +60,8 @@ export interface SalesStatInfo {
   orderCount: number;
   totalRevenue: number;
   isBestseller: boolean;
+  salesSharePercent: number;
+  totalAllTimeSold: number;
 }
 
 export interface WarehouseMetrics {

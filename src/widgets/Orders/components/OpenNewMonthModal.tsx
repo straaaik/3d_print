@@ -191,7 +191,11 @@ export function OpenNewMonthModal({
 
                 <div className="flex items-center gap-2 font-mono text-xs text-[#d4d4d8] min-w-0">
                   <span className="text-[#d4d4d8] font-normal truncate">
-                    § 3D-LABS // ВЫБОР ОТЧЕТНОГО ПЕРИОДА
+                    Выбор отчетного периода
+                  </span>
+                  <span className="text-[#52525b] shrink-0">·</span>
+                  <span className="text-[#71717a] hidden sm:inline truncate">
+                    {year} год
                   </span>
                 </div>
               </div>
@@ -335,9 +339,7 @@ export function OpenNewMonthModal({
             {/* 3. Нижняя панель телеметрии и кнопки */}
             <div className="flex items-center justify-between border-t border-white/10 px-5 py-3 bg-neutral-900/60 font-mono text-xs shrink-0">
               <div className="text-[11px] text-[#71717a] hidden sm:flex items-center gap-2">
-                <span>§ 3D LABS</span>
-                <span>·</span>
-                <span>PERIOD RUNTIME</span>
+                <span>Календарь заказов</span>
               </div>
 
               <div className="flex items-center gap-2.5 ml-auto">
@@ -346,7 +348,7 @@ export function OpenNewMonthModal({
                   onClick={onClose}
                   className="px-3.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-[#a1a1aa] hover:text-white hover:bg-white/[0.08] hover:border-white/20 transition-all cursor-pointer text-xs font-mono select-none"
                 >
-                  [ Отмена ]
+                  [ Закрыть ]
                 </button>
 
                 <button

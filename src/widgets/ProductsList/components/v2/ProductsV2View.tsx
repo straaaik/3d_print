@@ -14,10 +14,12 @@ import {
   ProductCollection, 
   AssemblyPrintedPart, 
   Filament, 
-  Printer 
+  Printer,
+  Settings 
 } from '@/shared/types';
 import { ProductCategory } from '@/shared/lib/categories';
 import { ProductsV2KpiCards } from './ProductsV2KpiCards';
+import { ProductsV2FilterBar } from './ProductsV2FilterBar';
 import { ProductsV2Table } from './ProductsV2Table';
 import { formatCurrency } from '@/shared/lib/format';
 import { 
@@ -33,6 +35,7 @@ import {
   Package,
   HelpCircle
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { CockpitButton } from '@/shared/ui/CockpitButton';
 import { Tooltip } from '@/shared/ui/Tooltip';
 import { usePixelCurtain } from '@/shared/ui/PixelCurtain';
@@ -136,6 +139,7 @@ interface ProductsV2ViewProps {
   salesStatsMap: Map<string, SalesStatInfo>;
   filaments: Filament[];
   printers: Printer[];
+  settings?: Settings | null;
   isOnline?: boolean;
 
   // Полноэкранный режим
@@ -146,6 +150,15 @@ interface ProductsV2ViewProps {
   contextMenu: { x: number; y: number; row: CatalogTableRow } | null;
   setContextMenu: (menu: { x: number; y: number; row: CatalogTableRow } | null) => void;
   contextMenuRef: React.RefObject<HTMLDivElement | null>;
+
+  // Множественный выбор строк (Multi-selection)
+  selectedIds?: string[];
+  onToggleSelect?: (id: string) => void;
+  onSelectAll?: (ids: string[]) => void;
+  onClearSelection?: () => void;
+  onBatchRecalculateSelected?: () => void;
+  onBatchMoveSelected?: () => void;
+  onBatchDeleteSelected?: () => void;
 }
 
 export const ProductsV2View = React.memo(function ProductsV2View({
@@ -216,16 +229,51 @@ export const ProductsV2View = React.memo(function ProductsV2View({
   salesStatsMap,
   filaments,
   printers,
+  settings,
   isOnline = false,
   isExpanded = false,
   onToggleExpand,
   contextMenu,
   setContextMenu,
   contextMenuRef,
+  selectedIds = [],
+  onToggleSelect,
+  onSelectAll,
+  onClearSelection,
+  onBatchRecalculateSelected,
+  onBatchMoveSelected,
+  onBatchDeleteSelected,
 }: ProductsV2ViewProps) {
   const router = useRouter();
   const { navigate: curtainNavigate } = usePixelCurtain();
   const [isSideWingOpen, setIsSideWingOpen] = React.useState(true);
+  const [elevatedRow, setElevatedRow] = React.useState<CatalogTableRow | null>(null);
+
+  React.useEffect(() => {
+    if (elevatedRow && !rows.some((r) => r.id === elevatedRow.id)) {
+      setElevatedRow(null);
+    }
+  }, [elevatedRow, rows]);
+
+  React.useEffect(() => {
+    if (!elevatedRow) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setElevatedRow(null);
+    };
+    const handleGlobalClick = () => {
+      setElevatedRow(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    const timer = setTimeout(() => {
+      window.addEventListener('click', handleGlobalClick);
+    }, 50);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('click', handleGlobalClick);
+    };
+  }, [elevatedRow]);
 
   return (
     <div className={`w-full mx-auto select-none font-sans relative transition-all duration-300 ${
@@ -234,7 +282,15 @@ export const ProductsV2View = React.memo(function ProductsV2View({
       
       {/* ПЛАВАЮЩЕЕ БОКОВОЕ МЕНЮ (ФИКСИРУЕТСЯ НА ЭКРАНЕ ПРИ СКРОЛЛЕ, СКРЫВАЕТСЯ В РАЗВЕРНУТОМ РЕЖИМЕ) */}
       {!isExpanded && (
-        <div className="hidden xl:block absolute left-0 top-24 bottom-0 pointer-events-none z-30">
+        <div 
+          className={`hidden xl:block absolute left-0 top-24 bottom-0 z-30 transition-all duration-300 ${
+            elevatedRow ? 'pointer-events-none select-none' : 'pointer-events-none'
+          }`}
+          style={{ 
+            filter: elevatedRow ? 'blur(4px) opacity(0.35)' : 'none', 
+            transition: 'filter 0.4s ease, opacity 0.4s ease' 
+          }}
+        >
           <div className="sticky top-28 pointer-events-auto">
             <aside 
               className={`flex flex-col gap-2 rounded-l-2xl border-l border-y border-white/20 bg-neutral-900/60 backdrop-blur-2xl shadow-[-15px_20px_50px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.2)] transition-all duration-300 ease-out select-none overflow-hidden ${
@@ -252,7 +308,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
                   {/* Шапка выдвинутого меню */}
                   <div className="flex items-center justify-between pb-1.5 border-b border-white/10 font-mono text-[9px] text-neutral-400 uppercase tracking-wider relative z-10">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-neutral-300">§ ДЕЙСТВИЯ</span>
+                      <span className="font-bold text-neutral-300">ДЕЙСТВИЯ</span>
                       <span className="flex items-center gap-1 text-[8px] text-emerald-400 font-semibold">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                         READY
@@ -368,7 +424,15 @@ export const ProductsV2View = React.memo(function ProductsV2View({
       <div className="relative mx-auto rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl overflow-hidden">
         
         {/* Верхняя панель окна */}
-        <div className="flex flex-wrap items-center justify-between border-b border-white/10 px-4 py-2.5 bg-neutral-900/60 gap-3">
+        <div 
+          className={`flex flex-wrap items-center justify-between border-b border-white/10 px-4 py-2.5 bg-neutral-900/60 gap-3 transition-all duration-300 ${
+            elevatedRow ? 'pointer-events-none select-none' : ''
+          }`}
+          style={{ 
+            filter: elevatedRow ? 'blur(4px) opacity(0.35)' : 'none', 
+            transition: 'filter 0.4s ease, opacity 0.4s ease' 
+          }}
+        >
           
           {/* Левая часть: Точки терминала + Заголовок + Бейдж Supabase Cloud */}
           <div className="flex items-center gap-3 shrink-0">
@@ -413,7 +477,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
             </div>
 
             <div className="flex items-center gap-2 pl-3 border-l border-white/10 font-mono text-xs text-neutral-300">
-              <span className="text-white font-bold">§ 3D-LABS</span>
+              <span className="text-white font-bold">3D-LABS</span>
               <span className="text-neutral-600">//</span>
               <span className="text-neutral-400 hidden sm:inline">ТОВАРЫ</span>
               
@@ -463,104 +527,151 @@ export const ProductsV2View = React.memo(function ProductsV2View({
         <CockpitContentTransition>
           <div className="p-3.5 sm:p-4 md:p-5 space-y-3 sm:space-y-3.5">
           
-          {/* 1. РЯД ИЗ 5-ТИ КОМПАКТНЫХ KPI КАРТОЧЕК */}
-          <ProductsV2KpiCards
-            totalRetailValue={warehouseMetrics.totalRetailValue}
-            totalCostValue={warehouseMetrics.totalCostValue}
-            potentialProfit={warehouseMetrics.potentialProfit}
-            profitMargin={warehouseMetrics.profitMargin}
-            totalUnits={warehouseMetrics.totalUnits}
-            inStockCount={inStockCount}
-            lowStockCount={lowStockCount}
-            outOfStockCount={outOfStockCount}
-            singleCount={singleCount}
-            assemblyCount={assemblyCount}
-            collectionCount={collectionCount}
-            stlCount={stlCount}
-            bestsellerCount={bestsellerCount}
-            totalProductsCount={totalProductsCount}
-            currencySymbol={currencySymbol}
-            isExpanded={isExpanded}
-          />
+          {/* 1. ВЕРХНИЙ БЛОК: СТАТИСТИКА КАТАЛОГА И ДЕЙСТВИЯ */}
+          <div 
+            style={{ 
+              filter: elevatedRow ? 'blur(4px) opacity(0.35)' : 'none', 
+              transition: 'filter 0.4s ease, opacity 0.4s ease' 
+            }}
+            className={`space-y-3 sm:space-y-3.5 transition-all duration-300 ${
+              elevatedRow ? 'pointer-events-none select-none' : ''
+            }`}
+          >
+            {/* 1. РЯД ИЗ 5-ТИ КОМПАКТНЫХ KPI КАРТОЧЕК */}
+            <ProductsV2KpiCards
+              totalRetailValue={warehouseMetrics.totalRetailValue}
+              totalCostValue={warehouseMetrics.totalCostValue}
+              potentialProfit={warehouseMetrics.potentialProfit}
+              profitMargin={warehouseMetrics.profitMargin}
+              totalUnits={warehouseMetrics.totalUnits}
+              inStockCount={inStockCount}
+              lowStockCount={lowStockCount}
+              outOfStockCount={outOfStockCount}
+              singleCount={singleCount}
+              assemblyCount={assemblyCount}
+              collectionCount={collectionCount}
+              stlCount={stlCount}
+              bestsellerCount={bestsellerCount}
+              totalProductsCount={totalProductsCount}
+              currencySymbol={currencySymbol}
+              isExpanded={isExpanded}
+            />
 
-          {/* 2. ОТДЕЛЬНЫЙ БЛОК ДЕЙСТВИЙ В РАЗВЁРНУТОМ РЕЖИМЕ */}
-          {isExpanded && (
-            <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 sm:px-3.5 sm:py-2.5 bg-neutral-900/80 border border-white/10 rounded-xl shadow-sm">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs text-neutral-200 font-bold uppercase tracking-wider flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  § ПАНЕЛЬ ДЕЙСТВИЙ КАТАЛОГА
-                </span>
-                <span className="text-neutral-600 hidden sm:inline">|</span>
-                <span className="text-neutral-400 text-xs font-mono hidden md:inline">
-                  {selectedCategories.length === 0 || selectedCategories.includes('all') ? 'Все категории' : selectedCategories.length === 1 ? selectedCategories[0] : `Категории (${selectedCategories.length})`} ({totalProductsCount} позиций)
-                </span>
+            {/* 2. ОТДЕЛЬНЫЙ БЛОК ДЕЙСТВИЙ В РАЗВЁРНУТОМ РЕЖИМЕ */}
+            {isExpanded && (
+              <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 sm:px-3.5 sm:py-2.5 bg-neutral-900/80 border border-white/10 rounded-xl shadow-sm">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs text-neutral-200 font-bold uppercase tracking-wider flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    ПАНЕЛЬ ДЕЙСТВИЙ КАТАЛОГА
+                  </span>
+                  <span className="text-neutral-600 hidden sm:inline">|</span>
+                  <span className="text-neutral-400 text-xs font-mono hidden md:inline">
+                    {selectedCategories.length === 0 || selectedCategories.includes('all') ? 'Все категории' : selectedCategories.length === 1 ? selectedCategories[0] : `Категории (${selectedCategories.length})`} ({totalProductsCount} позиций)
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
+                  <CockpitButton
+                    onClick={() => router.push('/calculator')}
+                    icon={CalculatorIcon}
+                    isActive={true}
+                    className="font-bold shadow-md whitespace-nowrap py-1.5"
+                    title="Перейти в Калькулятор"
+                  >
+                    [ + В Калькулятор ]
+                  </CockpitButton>
+
+                  <CockpitButton
+                    onClick={onOpenNewAssemblyModal}
+                    icon={Layers}
+                    className="whitespace-nowrap py-1.5 text-cyan-300 border-cyan-500/30 hover:border-cyan-500/50 bg-cyan-950/30"
+                    title="Создать новую сборку"
+                  >
+                    [ + Сборка ]
+                  </CockpitButton>
+
+                  <CockpitButton
+                    onClick={onOpenCreateCollection}
+                    icon={FolderPlus}
+                    className="whitespace-nowrap py-1.5 text-purple-300 border-purple-500/30 hover:border-purple-500/50 bg-purple-950/30"
+                    title="Создать новую коллекцию"
+                  >
+                    [ + Коллекция ]
+                  </CockpitButton>
+
+                  <CockpitButton
+                    onClick={onOpenRecalcModal}
+                    icon={RefreshCw}
+                    disabled={totalProductsCount === 0 || isRecalculating}
+                    className="whitespace-nowrap py-1.5"
+                    title="Пересчитать цены"
+                  >
+                    [ 🔄 Пересчитать ]
+                  </CockpitButton>
+
+                  <CockpitButton
+                    onClick={onUndo}
+                    disabled={!canUndo}
+                    icon={RotateCcw}
+                    className="whitespace-nowrap py-1.5"
+                    title={canUndo ? 'Отменить последнее действие (Ctrl+Z)' : 'Нет действий для отмены'}
+                  >
+                    [ ↩ Отменить ]
+                  </CockpitButton>
+
+                  <CockpitButton
+                    onClick={onOpenBulkDelete}
+                    disabled={totalProductsCount === 0}
+                    icon={Trash2}
+                    className="text-rose-400 hover:text-rose-300 border-rose-500/20 hover:border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 whitespace-nowrap py-1.5"
+                    title="Очистить весь каталог"
+                  >
+                    [ 🗑 Очистить каталог ]
+                  </CockpitButton>
+                </div>
               </div>
+            )}
+          </div>
 
-              <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
-                <CockpitButton
-                  onClick={() => router.push('/calculator')}
-                  icon={CalculatorIcon}
-                  isActive={true}
-                  className="font-bold shadow-md whitespace-nowrap py-1.5"
-                  title="Перейти в Калькулятор"
-                >
-                  [ + В Калькулятор ]
-                </CockpitButton>
+          {/* 2. ПАНЕЛЬ ФИЛЬТРОВ И ПОИСКА КАТАЛОГА (ЭТАЛОН MERIDIAN COCKPIT) */}
+          <div 
+            onClick={() => {
+              if (elevatedRow) setElevatedRow(null);
+            }}
+            className={`relative z-20 transition-all duration-300 ${
+              elevatedRow ? 'pointer-events-none select-none cursor-pointer' : ''
+            }`}
+            style={{ 
+              filter: elevatedRow ? 'blur(4px) opacity(0.35)' : 'none', 
+              transition: 'filter 0.4s ease, opacity 0.4s ease' 
+            }}
+          >
+            <ProductsV2FilterBar
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              productFilter={productFilter}
+              setProductFilter={setProductFilter}
+              stockFilter={stockFilter}
+              setStockFilter={setStockFilter}
+              onlyBestsellers={onlyBestsellers}
+              setOnlyBestsellers={setOnlyBestsellers}
+              selectedCategories={selectedCategories}
+              setSelectedCategories={setSelectedCategories}
+              categoriesList={categoriesList}
+              counts={counts}
+              onResetFilters={() => {
+                setSearchQuery('');
+                setProductFilter('all');
+                setStockFilter('all');
+                setOnlyBestsellers(false);
+                setSelectedCategories(['all']);
+              }}
+            />
+          </div>
 
-                <CockpitButton
-                  onClick={onOpenNewAssemblyModal}
-                  icon={Layers}
-                  className="whitespace-nowrap py-1.5 text-cyan-300 border-cyan-500/30 hover:border-cyan-500/50 bg-cyan-950/30"
-                  title="Создать новую сборку"
-                >
-                  [ + Сборка ]
-                </CockpitButton>
-
-                <CockpitButton
-                  onClick={onOpenCreateCollection}
-                  icon={FolderPlus}
-                  className="whitespace-nowrap py-1.5 text-purple-300 border-purple-500/30 hover:border-purple-500/50 bg-purple-950/30"
-                  title="Создать новую коллекцию"
-                >
-                  [ + Коллекция ]
-                </CockpitButton>
-
-                <CockpitButton
-                  onClick={onOpenRecalcModal}
-                  icon={RefreshCw}
-                  disabled={totalProductsCount === 0 || isRecalculating}
-                  className="whitespace-nowrap py-1.5"
-                  title="Пересчитать цены"
-                >
-                  [ 🔄 Пересчитать ]
-                </CockpitButton>
-
-                <CockpitButton
-                  onClick={onUndo}
-                  disabled={!canUndo}
-                  icon={RotateCcw}
-                  className="whitespace-nowrap py-1.5"
-                  title={canUndo ? 'Отменить последнее действие (Ctrl+Z)' : 'Нет действий для отмены'}
-                >
-                  [ ↩ Отменить ]
-                </CockpitButton>
-
-                <CockpitButton
-                  onClick={onOpenBulkDelete}
-                  disabled={totalProductsCount === 0}
-                  icon={Trash2}
-                  className="text-rose-400 hover:text-rose-300 border-rose-500/20 hover:border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 whitespace-nowrap py-1.5"
-                  title="Очистить весь каталог"
-                >
-                  [ 🗑 Очистить каталог ]
-                </CockpitButton>
-              </div>
-            </div>
-          )}
-
-          {/* 3. ТАБЛИЦА РЕЕСТРА ТОВАРОВ С ИНТЕГРИРОВАННЫМ ТУЛБАРОМ (ПОИСК, КАТЕГОРИИ, ОПЦИИ) */}
-          <div className="relative z-10">
+          {/* 3. ТАБЛИЦА РЕЕСТРА ТОВАРОВ */}
+          <div className={`relative ${elevatedRow ? 'z-40' : 'z-10'}`}>
             <ProductsV2Table
               rows={sortedRows}
               visibleRows={visibleRows}
@@ -572,17 +683,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
               sortOrder={sortOrder}
               onSort={onSort}
               searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              selectedCategories={selectedCategories}
-              setSelectedCategories={setSelectedCategories}
               isExpanded={isExpanded}
-              productFilter={productFilter}
-              setProductFilter={setProductFilter}
-              stockFilter={stockFilter}
-              setStockFilter={setStockFilter}
-              onlyBestsellers={onlyBestsellers}
-              setOnlyBestsellers={setOnlyBestsellers}
-              counts={counts}
               expandedItemIds={expandedItemIds}
               onToggleExpand={onToggleExpandRow}
               editingNameId={editingNameId}
@@ -612,30 +713,54 @@ export const ProductsV2View = React.memo(function ProductsV2View({
               categoriesList={categoriesList}
               filaments={filaments}
               printers={printers}
+              settings={settings}
               contextMenu={contextMenu}
               setContextMenu={setContextMenu}
               contextMenuRef={contextMenuRef}
+              elevatedRow={elevatedRow}
+              setElevatedRow={setElevatedRow}
+              selectedIds={selectedIds}
+              onToggleSelect={onToggleSelect}
+              onSelectAll={onSelectAll}
+              onClearSelection={onClearSelection}
+              onBatchRecalculateSelected={onBatchRecalculateSelected}
+              onBatchMoveSelected={onBatchMoveSelected}
+              onBatchDeleteSelected={onBatchDeleteSelected}
             />
           </div>
 
         </div>
         </CockpitContentTransition>
 
-        {/* 5. ПОДВАЛ КОНСОЛИ */}
-        <div className="border-t border-white/10 px-5 py-2.5 bg-neutral-950 flex items-center justify-between text-[11px] font-mono text-neutral-500">
-          <div className="flex items-center gap-3">
-            <span>DATABASE: {isOnline ? 'SUPABASE CLOUD' : 'LOCALSTORAGE'}</span>
-            <span className="hidden sm:inline">•</span>
-            <span className="hidden sm:inline">CACHE: LOCALSTORAGE SYNCED</span>
+        {/* 4. ПОДВАЛ КОНСОЛИ / ТЕЛЕМЕТРИЯ (STATUSBAR) */}
+        <div 
+          className={`border-t border-white/10 px-5 py-2.5 bg-neutral-950 flex flex-wrap items-center justify-between text-[11px] font-mono text-neutral-500 gap-2 select-none transition-all duration-300 ${
+            elevatedRow ? 'pointer-events-none select-none' : ''
+          }`}
+          style={{ 
+            filter: elevatedRow ? 'blur(4px) opacity(0.35)' : 'none', 
+            transition: 'filter 0.4s ease, opacity 0.4s ease' 
+          }}
+        >
+          <div className="flex items-center gap-3 flex-wrap">
+            <span>DATABASE: {isOnline ? 'SUPABASE CLOUD' : 'OFFLINE'}</span>
+            <span>•</span>
+            <span>CACHE: LOCALSTORAGE SYNCED</span>
+            <span>•</span>
+            <span>ПОКАЗАНО: {visibleRows.length} ИЗ {totalRowsCount}</span>
             {isExpanded && (
               <>
-                <span className="hidden md:inline">•</span>
-                <span className="hidden md:inline text-cyan-400 font-semibold">VIEW: FULLSCREEN SEPARATED</span>
+                <span>•</span>
+                <span className="text-emerald-400 font-semibold">VIEW: FULLSCREEN SEPARATED</span>
               </>
             )}
           </div>
-          <div>
-            RECORDS: {totalProductsCount} · TOTAL VALUE: {formatCurrency(warehouseMetrics.totalRetailValue, currencySymbol)}
+          <div className="flex items-center gap-3 flex-wrap">
+            <span>СОРТИРОВКА: {sortField.toUpperCase()} ({sortOrder.toUpperCase()})</span>
+            <span>•</span>
+            <span>ОЦЕНКА СКЛАДА: {formatCurrency(warehouseMetrics.totalRetailValue, currencySymbol)}</span>
+            <span>•</span>
+            <span className="text-emerald-400 font-semibold">RUNTIME READY</span>
           </div>
         </div>
 

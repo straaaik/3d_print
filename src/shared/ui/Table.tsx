@@ -334,7 +334,7 @@ export function Table<T>({
                       <div className="w-10 h-10 bg-neutral-900 border border-white/10 rounded-xl flex items-center justify-center mx-auto text-neutral-400">
                         <Package size={20} />
                       </div>
-                      <div className="text-sm font-bold text-white">§ РЕЕСТР ПУСТ</div>
+                      <div className="text-sm font-bold text-white">РЕЕСТР ПУСТ</div>
                       <div className="text-xs text-neutral-400 font-sans">
                         Записи не найдены или список пуст.
                       </div>

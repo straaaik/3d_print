@@ -26,13 +26,14 @@ export function ClearCatalogModal({ isOpen, onClose, onConfirm }: ClearCatalogMo
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="§ 3D-LABS // CLEAR_CATALOG"
+      title="Очистка каталога"
+      subtitle="Удаление всех моделей"
       maxWidth="md"
       variant="error"
       footer={
         <div className="flex justify-end gap-2 w-full font-mono text-xs">
           <CockpitButton type="button" onClick={onClose} disabled={isDeleting}>
-            Отмена
+            Закрыть
           </CockpitButton>
           <CockpitButton
             type="button"

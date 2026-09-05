@@ -360,9 +360,8 @@ export function PrinterList() {
       <CockpitModal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        stamp={editingPrinter ? 'EDIT_PRINTER' : 'NEW_PRINTER'}
-        title={editingPrinter ? 'Редактирование оборудования' : 'Новый 3D-принтер'}
-        subtitle="Парк рассчитывает реальную стоимость часа: амортизацию плюс электроэнергию."
+        title={editingPrinter ? 'Редактирование принтера' : 'Новый 3D-принтер'}
+        subtitle="Параметры оборудования"
         variant="cyan"
         maxWidth="2xl"
         badge={<span className="rounded border border-cyan-800/40 bg-cyan-950/60 px-2 py-0.5 text-[9px] font-bold text-cyan-400">MACHINE</span>}
@@ -370,7 +369,7 @@ export function PrinterList() {
           <div className="flex w-full items-center justify-between gap-3">
             <span>HOURLY COST: {previewHourlyCost.toFixed(2)} {currencySymbol}/ч</span>
             <div className="flex gap-2">
-              <CockpitButton onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>Отмена</CockpitButton>
+              <CockpitButton onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>Закрыть</CockpitButton>
               <CockpitButton type="submit" form="printer-form" isActive disabled={isSubmitting}>
                 {isSubmitting ? 'Сохранение...' : editingPrinter ? 'Сохранить' : 'Добавить'}
               </CockpitButton>
@@ -408,14 +407,13 @@ export function PrinterList() {
       <CockpitModal
         isOpen={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
-        stamp="DELETE_PRINTER"
-        title="Удалить принтер из парка?"
-        subtitle="Если он выбран по умолчанию, настройка калькулятора будет сброшена."
+        title="Удаление принтера"
+        subtitle={deleteTarget ? deleteTarget.name : 'Подтверждение действия'}
         variant="warning"
         maxWidth="md"
         footer={(
           <div className="flex w-full justify-end gap-2">
-            <CockpitButton onClick={() => setDeleteTarget(null)}>Отмена</CockpitButton>
+            <CockpitButton onClick={() => setDeleteTarget(null)}>Закрыть</CockpitButton>
             <CockpitButton onClick={confirmDelete} icon={Trash2} className="border-rose-500/30 bg-rose-950/50 text-rose-300 hover:bg-rose-900/60">Удалить принтер</CockpitButton>
           </div>
         )}

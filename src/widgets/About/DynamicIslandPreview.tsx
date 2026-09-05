@@ -95,7 +95,7 @@ export function DynamicIslandPreview() {
         {/* Заголовок секции */}
         <div className="max-w-3xl mb-12 sm:mb-16">
           <span className="font-mono text-xs text-cyan-400 uppercase tracking-widest block mb-3">
-            § ОПЕРАТИВНЫЙ КОНТРОЛЬ · ВСЕ УСТРОЙСТВА
+            ОПЕРАТИВНЫЙ КОНТРОЛЬ · ВСЕ УСТРОЙСТВА
           </span>
           <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-[1.05]">
             Все события вашей фермы — <br />

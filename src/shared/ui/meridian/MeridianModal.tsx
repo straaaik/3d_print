@@ -1,8 +1,6 @@
-'use client';
-
-import React, { useEffect } from 'react';
-import { X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Tooltip } from '../Tooltip';
 
 export interface MeridianModalProps {
   isOpen: boolean;
@@ -19,10 +17,23 @@ export function MeridianModal({
   onClose,
   title,
   subtitle,
-  tag = '3D LABS SPEC',
   children,
   maxWidth = 'lg',
 }: MeridianModalProps) {
+  const [currentTimeStr, setCurrentTimeStr] = useState('');
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTimeStr(
+        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} MSK`
+      );
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -60,39 +71,49 @@ export function MeridianModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 10 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className={`relative w-full ${maxWidthClasses} my-8 bg-neutral-950 border border-white/15 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/90 backdrop-blur-2xl z-10 overflow-hidden`}
+            className={`relative w-full ${maxWidthClasses} my-8 bg-neutral-950/95 border border-white/15 rounded-2xl shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl z-10 overflow-hidden font-mono flex flex-col`}
           >
-            {/* Верхний сервисный штамп */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-5 font-mono text-xs text-neutral-400">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                <span className="text-cyan-400 font-bold uppercase tracking-wider">{tag}</span>
+            {/* 1. Верхняя панель (Cockpit Topbar: Red LED + Title + Live time) */}
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-2.5 bg-neutral-900/60 select-none shrink-0 gap-3">
+              {/* Левая часть: красный терминальный кружок закрытия + заголовок раздела */}
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="flex items-center gap-2 shrink-0">
+                  <Tooltip content="Закрыть окно">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      title="Закрыть окно"
+                      aria-label="Закрыть окно"
+                      className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] hover:scale-125 active:scale-95 transition-all duration-150 cursor-pointer border-none outline-none shrink-0"
+                    />
+                  </Tooltip>
+                </div>
+
+                <div className="flex items-center gap-2 font-mono text-xs text-[#d4d4d8] min-w-0">
+                  <span className="text-[#d4d4d8] font-normal truncate">
+                    {title}
+                  </span>
+                  {subtitle && (
+                    <>
+                      <span className="text-[#52525b] shrink-0">·</span>
+                      <span className="text-[#71717a] hidden sm:inline truncate">
+                        {subtitle}
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
 
-              <button
-                type="button"
-                onClick={onClose}
-                className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-                aria-label="Закрыть"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Заголовок */}
-            <div className="mb-5">
-              <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                {title}
-              </h3>
-              {subtitle && (
-                <p className="text-xs sm:text-sm text-neutral-400 mt-1 font-sans">
-                  {subtitle}
-                </p>
-              )}
+              {/* Правая часть: Только системное время (без крестика) */}
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="font-mono text-xs text-[#71717a] tabular-nums">
+                  {currentTimeStr}
+                </div>
+              </div>
             </div>
 
             {/* Тело модалки */}
-            <div className="space-y-4">
+            <div className="p-6 sm:p-8 space-y-4">
               {children}
             </div>
           </motion.div>

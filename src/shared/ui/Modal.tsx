@@ -1,13 +1,13 @@
-'use client';
-
-import React, { useEffect } from 'react';
-import { X, AlertOctagon, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { AlertOctagon, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Tooltip } from './Tooltip';
 
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: React.ReactNode;
+  subtitle?: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
   variant?: 'default' | 'error' | 'success' | 'warning' | 'info';
@@ -89,11 +89,26 @@ export function Modal({
   isOpen, 
   onClose, 
   title, 
+  subtitle,
   children,
   footer,
   variant = 'default',
   maxWidth = 'md',
 }: ModalProps) {
+  const [currentTimeStr, setCurrentTimeStr] = useState('');
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTimeStr(
+        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} MSK`
+      );
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -132,34 +147,46 @@ export function Modal({
             animate={animConfig.animate}
             exit={animConfig.exit}
             transition={animConfig.transition}
-            className={`relative w-full ${sizeClass} my-auto rounded-2xl border ${styleConfig.borderColor} bg-neutral-950/95 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl z-10 max-h-[90vh] flex flex-col overflow-hidden font-sans`}
+            className={`relative w-full ${sizeClass} my-auto rounded-2xl border ${styleConfig.borderColor} bg-neutral-950/95 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl z-10 max-h-[90vh] flex flex-col overflow-hidden font-mono`}
           >
-            {/* Шапка в стиле Cockpit Topbar */}
-            <div className="flex items-center justify-between border-b border-white/10 px-4 sm:px-5 py-3 bg-neutral-900/60 select-none shrink-0 gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                {/* 3 Терминальные светодиода */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 border border-rose-400/40 inline-block" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80 border border-yellow-400/40 inline-block" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 border border-emerald-400/40 inline-block" />
+            {/* 1. Верхняя панель (Cockpit Topbar: Red LED + Title + Live time) */}
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-2.5 bg-neutral-900/60 select-none shrink-0 gap-3">
+              {/* Левая часть: красный терминальный кружок закрытия + заголовок раздела */}
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="flex items-center gap-2 shrink-0">
+                  <Tooltip content="Закрыть окно">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      title="Закрыть окно"
+                      aria-label="Закрыть окно"
+                      className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] hover:scale-125 active:scale-95 transition-all duration-150 cursor-pointer border-none outline-none shrink-0"
+                    />
+                  </Tooltip>
                 </div>
 
-                <div className="flex items-center gap-2 pl-3 border-l border-white/10 min-w-0">
+                <div className="flex items-center gap-2 font-mono text-xs text-[#d4d4d8] min-w-0">
                   {styleConfig.icon}
-                  <h3 className="text-white text-sm sm:text-base font-bold tracking-tight truncate">
+                  <span className="text-[#d4d4d8] font-normal truncate">
                     {title}
-                  </h3>
+                  </span>
+                  {subtitle && (
+                    <>
+                      <span className="text-[#52525b] shrink-0">·</span>
+                      <span className="text-[#71717a] hidden sm:inline truncate">
+                        {subtitle}
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Закрыть"
-                className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer border border-white/10 shrink-0"
-              >
-                <X size={14} />
-              </button>
+              {/* Правая часть: Только системное время (без крестика) */}
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="font-mono text-xs text-[#71717a] tabular-nums">
+                  {currentTimeStr}
+                </div>
+              </div>
             </div>
 
             {/* Прокручиваемый контент */}

@@ -74,12 +74,13 @@ export function CategoryModal({
     <Modal
       isOpen={Boolean(item)}
       onClose={onClose}
-      title={`§ 3D-LABS // CATEGORY_AND_TAGS [ ${item.name} ]`}
+      title="Категория и метки"
+      subtitle={item.name}
       maxWidth="md"
       footer={
         <div className="flex justify-end gap-2 w-full font-mono text-xs">
           <CockpitButton type="button" onClick={onClose} disabled={isSaving}>
-            Отмена
+            Закрыть
           </CockpitButton>
           <CockpitButton
             type="submit"

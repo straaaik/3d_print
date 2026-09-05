@@ -56,7 +56,14 @@ import {
   TrendingDown,
   Scale,
   Zap,
-  Calculator as CalculatorIcon
+  Calculator as CalculatorIcon,
+  Send,
+  MessageCircle,
+  Share2,
+  Globe,
+  ThumbsUp,
+  MoreHorizontal,
+  CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -371,25 +378,27 @@ function NativeVerticalStatusList({
       <div className="flex flex-col items-start gap-2 pt-0.5">
         {ALL_STATUSES.map(st => {
           const isSelected = st === value;
-          const dotColor =
+          const cfg = STATUS_CONFIG[st];
+          const Icon = cfg?.icon || Clock;
+          const iconColor =
             st === 'Готово'
-              ? 'bg-[#34d399]'
+              ? 'text-[#34d399]'
               : st === 'Не в работе'
-              ? 'bg-[#f87171]'
+              ? 'text-[#f87171]'
               : st === 'Моделирование' || st === 'Ждет покраски'
-              ? 'bg-[#fbbf24]'
-              : 'bg-[#38bdf8]';
+              ? 'text-[#fbbf24]'
+              : 'text-[#38bdf8]';
 
           return (
             <button
               key={st}
               type="button"
               onClick={() => onChange(st)}
-              className={`flex items-center gap-2.5 py-1 text-sm font-mono transition-colors cursor-pointer ${
+              className={`group flex items-center gap-2.5 py-1 text-sm font-mono transition-colors cursor-pointer ${
                 isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-[#d4d4d8]'
               }`}
             >
-              <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : dotColor}`} />
+              <Icon className={`w-3.5 h-3.5 shrink-0 transition-colors ${isSelected ? 'text-white' : iconColor}`} />
               <span className="relative inline-block">
                 <span>{st}</span>
                 <HandDrawnUnderline isSelected={isSelected} />
@@ -418,27 +427,19 @@ function NativeVerticalChannelList({
       <div className="flex flex-col items-start gap-2 pt-0.5">
         {channels.map(ch => {
           const isSelected = ch === (value || 'Авито');
-          const dotColor =
-            ch === 'Telegram'
-              ? 'bg-[#38bdf8]'
-              : ch === 'WhatsApp'
-              ? 'bg-[#34d399]'
-              : ch === 'VK'
-              ? 'bg-[#60a5fa]'
-              : ch === 'Авито'
-              ? 'bg-[#fb923c]'
-              : 'bg-[#a1a1aa]';
+          const cfg = CLIENT_CONFIG[ch] || CLIENT_CONFIG['Другое'];
+          const Icon = cfg?.icon || MoreHorizontal;
 
           return (
             <button
               key={ch}
               type="button"
               onClick={() => onChange(ch)}
-              className={`flex items-center gap-2.5 py-1 text-sm font-mono transition-colors cursor-pointer ${
+              className={`group flex items-center gap-2.5 py-1 text-sm font-mono transition-colors cursor-pointer ${
                 isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-[#d4d4d8]'
               }`}
             >
-              <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-white' : dotColor}`} />
+              <Icon className={`w-3.5 h-3.5 shrink-0 transition-colors ${isSelected ? 'text-white' : 'text-[#71717a] group-hover:text-[#d4d4d8]'}`} />
               <span className="relative inline-block">
                 <span>{ch}</span>
                 <HandDrawnUnderline isSelected={isSelected} />
@@ -804,10 +805,10 @@ function NativeDualDateCalendar({
             activeDateType === 'start' ? 'text-white font-bold' : 'text-[#71717a] hover:text-[#d4d4d8]'
           }`}
         >
-          <span className={`w-2 h-2 rounded-full ${activeDateType === 'start' ? 'bg-emerald-400' : 'bg-emerald-500/60'}`} />
+          <span className={`w-1.5 h-1.5 rounded-full ${activeDateType === 'start' ? 'bg-white' : 'bg-neutral-600'}`} />
           <span className="relative inline-block">
             <span>Приёмка: {startDate || 'не указана'}</span>
-            <HandDrawnUnderline isSelected={activeDateType === 'start'} color="#10b981" />
+            <HandDrawnUnderline isSelected={activeDateType === 'start'} color="#ffffff" />
           </span>
         </button>
 
@@ -825,10 +826,10 @@ function NativeDualDateCalendar({
             activeDateType === 'end' ? 'text-white font-bold' : 'text-[#71717a] hover:text-[#d4d4d8]'
           }`}
         >
-          <span className={`w-2 h-2 rounded-full ${activeDateType === 'end' ? 'bg-red-400' : 'bg-red-500/60'}`} />
+          <span className={`w-1.5 h-1.5 rounded-full ${activeDateType === 'end' ? 'bg-white' : 'bg-neutral-600'}`} />
           <span className="relative inline-block">
             <span>Сдача: {endDate || 'без дедлайна'}</span>
-            <HandDrawnUnderline isSelected={activeDateType === 'end'} color="#ef4444" />
+            <HandDrawnUnderline isSelected={activeDateType === 'end'} color="#ffffff" />
           </span>
         </button>
       </div>
@@ -927,7 +928,7 @@ function NativeDualDateCalendar({
                   {isEnd && !isBoth && <HandDrawnUnderline isSelected={true} color="#ef4444" />}
                   {/* Если обе даты совпали */}
                   {isBoth && (
-                    <span className="absolute -top-1 -right-1 w-1.5 h-1.5 rounded-full bg-red-400 ring-1 ring-emerald-400" />
+                    <span className="absolute -top-1 -right-1 w-1.5 h-1.5 rounded-full bg-white ring-1 ring-white/40" />
                   )}
                 </span>
               </button>
@@ -1684,8 +1685,16 @@ export function OrderFormModal({
     if (payments.length === 0) {
       if (targetPayment !== 0) payments.push(targetPayment);
     } else {
-      const priorTotal = payments.reduce((sum, value) => sum + value, 0);
-      payments[payments.length - 1] = roundTo2(payments[payments.length - 1] + targetPayment - priorTotal);
+      const priorTotal = payments.reduce<number>((sum, value) => sum + (typeof value === 'number' ? value : value.amount || 0), 0);
+      const lastIdx = payments.length - 1;
+      const last = payments[lastIdx];
+      const lastAmt = typeof last === 'number' ? last : (last.amount || 0);
+      const newAmt = roundTo2(lastAmt + targetPayment - priorTotal);
+      if (typeof last === 'number') {
+        payments[lastIdx] = newAmt;
+      } else {
+        payments[lastIdx] = { ...last, amount: newAmt };
+      }
     }
     setOrder({
       ...order,
@@ -1700,8 +1709,16 @@ export function OrderFormModal({
     if (payments.length === 0) {
       if (safePayment !== 0) payments.push(safePayment);
     } else {
-      const priorTotal = payments.reduce((sum, value) => sum + value, 0);
-      payments[payments.length - 1] = roundTo2(payments[payments.length - 1] + safePayment - priorTotal);
+      const priorTotal = payments.reduce<number>((sum, value) => sum + (typeof value === 'number' ? value : value.amount || 0), 0);
+      const lastIdx = payments.length - 1;
+      const last = payments[lastIdx];
+      const lastAmt = typeof last === 'number' ? last : (last.amount || 0);
+      const newAmt = roundTo2(lastAmt + safePayment - priorTotal);
+      if (typeof last === 'number') {
+        payments[lastIdx] = newAmt;
+      } else {
+        payments[lastIdx] = { ...last, amount: newAmt };
+      }
     }
     setOrder({ ...order, payment: safePayment, payments });
   };
@@ -2063,26 +2080,26 @@ export function OrderFormModal({
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 select-none overflow-hidden">
-          {/* Стеклянный темный бэкдроп */}
+          {/* Стеклянный темный бэкдроп с глубоким размытием */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
             onClick={handleAttemptClose}
-            className="fixed inset-0 bg-black/85 backdrop-blur-md"
+            className="fixed inset-0 bg-black/80 backdrop-blur-xl"
           />
 
-          {/* Главное окно консоли в стиле Meridian Cockpit */}
+          {/* Главное окно консоли в стиле Meridian Cockpit с эффектом взлета */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.97, y: 12 }}
+            initial={{ opacity: 0, scale: 0.93, y: 28 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: 12 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
+            exit={{ opacity: 0, scale: 0.93, y: 20 }}
+            transition={{ duration: 0.48, ease: [0.16, 1, 0.3, 1] }}
             role="dialog"
             aria-modal="true"
             aria-labelledby="order-modal-title"
-            className="relative w-full max-w-[1240px] h-[92vh] max-h-[860px] min-h-[580px] my-auto rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl overflow-hidden z-10 flex flex-col font-mono"
+            className="relative w-full max-w-[1240px] h-[92vh] max-h-[860px] min-h-[580px] my-auto rounded-2xl border border-white/20 bg-neutral-950/98 shadow-[0_30px_100px_rgba(0,0,0,0.95)] backdrop-blur-2xl overflow-hidden z-10 flex flex-col font-mono"
           >
             {/* 1. Верхняя панель (Cockpit Topbar: LEDs + Title + Type Switcher + live time) */}
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-2.5 bg-neutral-900/60 shrink-0 gap-3">
@@ -2803,10 +2820,10 @@ export function OrderFormModal({
                                         <button
                                           type="button"
                                           onClick={handleCreateCustomExpenseCat}
-                                          className="text-sm font-mono text-white hover:text-emerald-400 cursor-pointer transition-colors px-0.5 select-none"
+                                          className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 transition-colors"
                                           title="Сохранить (Enter)"
                                         >
-                                          ✓
+                                          <Check className="w-3.5 h-3.5" />
                                         </button>
                                         <button
                                           type="button"
@@ -2814,10 +2831,10 @@ export function OrderFormModal({
                                             setIsAddingExpenseCat(false);
                                             setNewExpenseCatInput('');
                                           }}
-                                          className="text-sm font-mono text-[#71717a] hover:text-white cursor-pointer transition-colors px-0.5 select-none"
+                                          className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 transition-colors"
                                           title="Отмена (Esc)"
                                         >
-                                          ×
+                                          <X className="w-3.5 h-3.5" />
                                         </button>
                                       </div>
                                     </div>
@@ -3108,10 +3125,10 @@ export function OrderFormModal({
                                                     <button
                                                       type="button"
                                                       onClick={handleCreateCustomExtraCostItem}
-                                                      className="text-sm font-mono text-white hover:text-emerald-400 cursor-pointer transition-colors px-0.5 select-none"
+                                                      className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 transition-colors"
                                                       title="Сохранить (Enter)"
                                                     >
-                                                      ✓
+                                                      <Check className="w-3.5 h-3.5" />
                                                     </button>
                                                     <button
                                                       type="button"
@@ -3120,10 +3137,10 @@ export function OrderFormModal({
                                                         setCustomCostCategoryInput('');
                                                         setCustomCostAmountInput('');
                                                       }}
-                                                      className="text-sm font-mono text-[#71717a] hover:text-white cursor-pointer transition-colors px-0.5 select-none"
+                                                      className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 transition-colors"
                                                       title="Отмена (Esc)"
                                                     >
-                                                      ×
+                                                      <X className="w-3.5 h-3.5" />
                                                     </button>
                                                   </div>
                                                 </div>
@@ -3928,10 +3945,10 @@ export function OrderFormModal({
                                           <button
                                             type="button"
                                             onClick={handleCreateCustomContactOption}
-                                            className="text-sm font-mono text-white hover:text-emerald-400 cursor-pointer transition-colors px-0.5 select-none"
+                                            className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 transition-colors"
                                             title="Сохранить (Enter)"
                                           >
-                                            ✓
+                                            <Check className="w-3.5 h-3.5" />
                                           </button>
                                           <button
                                             type="button"
@@ -3939,10 +3956,10 @@ export function OrderFormModal({
                                               setIsAddingCustomContact(false);
                                               setCustomContactLabelInput('');
                                             }}
-                                            className="text-sm font-mono text-[#71717a] hover:text-white cursor-pointer transition-colors px-0.5 select-none"
+                                            className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 transition-colors"
                                             title="Отмена (Esc)"
                                           >
-                                            ×
+                                            <X className="w-3.5 h-3.5" />
                                           </button>
                                         </div>
                                       </div>
@@ -4356,7 +4373,7 @@ export function OrderFormModal({
                     onClick={handleAttemptClose}
                     className="w-full py-1.5 rounded-lg bg-transparent hover:bg-white/5 border border-white/10 text-[#71717a] hover:text-white text-xs font-mono transition-all cursor-pointer"
                   >
-                    Отмена [Esc]
+                    Закрыть [Esc]
                   </button>
                 </div>
 

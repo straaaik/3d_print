@@ -80,7 +80,8 @@ export function AddVariantModal({
     <Modal
       isOpen={Boolean(collection)}
       onClose={onClose}
-      title={`§ 3D-LABS // ADD_VARIANT [ ${collection.name} ]`}
+      title="Добавление модификации"
+      subtitle={collection.name}
       maxWidth="lg"
       footer={
         <div className="flex items-center justify-between gap-3 select-none w-full font-mono text-xs">
@@ -95,7 +96,7 @@ export function AddVariantModal({
 
           <div className="flex items-center gap-2">
             <CockpitButton type="button" onClick={onClose} disabled={isSubmitting}>
-              Отмена
+              Закрыть
             </CockpitButton>
             <CockpitButton
               type="button"

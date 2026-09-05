@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion, type Variants } from 'motion/react';
 
 export type CockpitTransitionTab = 'orders' | 'stats' | 'calculator' | 'products' | 'filaments' | 'printers';
@@ -14,6 +14,22 @@ const COCKPIT_TAB_ORDER: readonly CockpitTransitionTab[] = [
   'printers',
 ];
 
+const COCKPIT_TAB_LABELS: Record<CockpitTransitionTab, string> = {
+  orders: 'Заказы',
+  stats: 'Статистика',
+  calculator: 'Калькулятор',
+  products: 'Товары',
+  filaments: 'Филаменты',
+  printers: 'Принтеры',
+};
+
+export function getCockpitTabFromPathname(pathname: string): CockpitTransitionTab | null {
+  const segment = pathname.split('/').filter(Boolean)[0];
+  return COCKPIT_TAB_ORDER.includes(segment as CockpitTransitionTab)
+    ? segment as CockpitTransitionTab
+    : null;
+}
+
 export function getCockpitTransitionDirection(
   currentTab: CockpitTransitionTab,
   nextTab: CockpitTransitionTab,
@@ -25,14 +41,48 @@ export function getCockpitTransitionDirection(
   return nextIndex > currentIndex ? 1 : -1;
 }
 
-const COCKPIT_HISTORY_SYNC_DELAY_MS = 460;
-
-export function queueCockpitHistoryPush<Timer>(
-  href: string,
+export function commitCockpitHistoryIfCurrent(
+  completedTab: CockpitTransitionTab,
+  currentTab: CockpitTransitionTab,
+  pendingHref: string | null,
+  currentPathname: string,
   push: (href: string) => void,
-  schedule: (task: () => void, delayMs: number) => Timer,
 ) {
-  return schedule(() => push(href), COCKPIT_HISTORY_SYNC_DELAY_MS);
+  if (!pendingHref || completedTab !== currentTab) return false;
+  const normalizePathname = (value: string) => {
+    const pathname = value.split(/[?#]/, 1)[0] || '/';
+    return pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+  };
+
+  if (normalizePathname(pendingHref) !== normalizePathname(currentPathname)) {
+    push(pendingHref);
+  }
+  return true;
+}
+
+export function isCockpitVisibleAnimation(definition: unknown) {
+  return definition === 'visible';
+}
+
+export function shouldHoldExpandedShell(
+  currentTab: CockpitTransitionTab,
+  nextTab: CockpitTransitionTab,
+  isOrdersExpanded: boolean,
+  isProductsExpanded: boolean,
+) {
+  if (currentTab === nextTab) return false;
+  return (currentTab === 'orders' && isOrdersExpanded)
+    || (currentTab === 'products' && isProductsExpanded);
+}
+
+export function shouldShowFullscreenDevelopmentGate(
+  activeTab: CockpitTransitionTab,
+  isExpanded: boolean,
+  isProduction: boolean,
+) {
+  return isProduction
+    && isExpanded
+    && (activeTab === 'orders' || activeTab === 'products');
 }
 
 interface CockpitTransitionContextType {
@@ -71,7 +121,6 @@ export function CockpitContentTransition({ children, className = '' }: CockpitCo
     <motion.div
       initial={false}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12 }}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
       className={`relative w-full ${className}`}
     >
@@ -85,6 +134,7 @@ interface CockpitPanelTransitionProps {
   direction: -1 | 0 | 1;
   children: React.ReactNode;
   className?: string;
+  onTransitionComplete?: (activeKey: CockpitTransitionTab) => void;
 }
 
 type CockpitPanelMotionPhase = 'enter' | 'visible' | 'exit';
@@ -139,14 +189,16 @@ export function CockpitPanelTransition({
   direction,
   children,
   className = '',
+  onTransitionComplete,
 }: CockpitPanelTransitionProps) {
+  const [announcedTab, setAnnouncedTab] = useState(activeKey);
+
   return (
     <MotionConfig reducedMotion="user">
-      <div
-        aria-live="polite"
-        aria-label="Содержимое рабочего раздела"
-        className={`relative w-full ${className}`}
-      >
+      <div aria-label="Содержимое рабочего раздела" className={`relative w-full ${className}`}>
+        <span role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+          Открыт раздел: {COCKPIT_TAB_LABELS[announcedTab]}
+        </span>
         <AnimatePresence mode="wait" initial={false} custom={direction}>
           <motion.div
             key={activeKey}
@@ -156,6 +208,11 @@ export function CockpitPanelTransition({
             initial="enter"
             animate="visible"
             exit="exit"
+            onAnimationComplete={(definition) => {
+              if (!isCockpitVisibleAnimation(definition)) return;
+              setAnnouncedTab(activeKey);
+              onTransitionComplete?.(activeKey);
+            }}
             className="relative w-full"
           >
             {children}

@@ -130,7 +130,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
   const progressPercent = toast.duration > 0 ? (remainingTime / toast.duration) * 100 : 100;
   const hasTitle = Boolean(toast.title && toast.title.trim().length > 0);
   const mainTitle = hasTitle ? toast.title : toast.message;
-  const subtitle = hasTitle ? toast.message : '§ 3D-LABS';
+  const subtitle = hasTitle ? toast.message : '3D-LABS';
 
   return (
     <motion.div

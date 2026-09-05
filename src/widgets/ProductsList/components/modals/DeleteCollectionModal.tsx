@@ -34,13 +34,14 @@ export function DeleteCollectionModal({
     <Modal
       isOpen={Boolean(collection)}
       onClose={onClose}
-      title={`§ 3D-LABS // DELETE_COLLECTION [ ${collection.name} ]`}
+      title="Удаление коллекции"
+      subtitle={collection.name}
       maxWidth="md"
       variant="warning"
       footer={
         <div className="flex justify-end gap-2 w-full font-mono text-xs">
           <CockpitButton type="button" onClick={onClose} disabled={isDeleting}>
-            Отмена
+            Закрыть
           </CockpitButton>
           <CockpitButton
             type="button"

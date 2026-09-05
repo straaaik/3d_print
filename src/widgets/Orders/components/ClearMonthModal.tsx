@@ -31,15 +31,10 @@ export function ClearMonthModal({
     <CockpitModal
       isOpen={isOpen}
       onClose={onClose}
-      stamp="CLEAR_REGISTRY"
       variant="error"
       maxWidth="sm"
-      title={
-        <span className="text-rose-400 font-mono text-sm uppercase tracking-wider flex items-center gap-2">
-          <Trash2 className="w-4 h-4 text-rose-400" />
-          <span>{title}</span>
-        </span>
-      }
+      title={title}
+      subtitle="Очистка реестра"
       footer={
         <div className="flex items-center justify-between w-full">
           <span className="text-[10px] text-neutral-500 font-mono">
@@ -47,7 +42,7 @@ export function ClearMonthModal({
           </span>
           <div className="flex items-center gap-2">
             <CockpitButton type="button" onClick={onClose}>
-              Отмена
+              Закрыть
             </CockpitButton>
 
             <CockpitButton

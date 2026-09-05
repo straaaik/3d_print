@@ -6,12 +6,17 @@ import { SettingsWorkspaceNav } from '../src/widgets/SettingsForm/components/Set
 import { AdminWorkspaceNav } from '../src/widgets/Admin/components/AdminWorkspaceNav';
 import { InventoryWindowControls } from '../src/widgets/InventoryCockpit/InventoryCockpitShell';
 import { StableNavLabel } from '../src/shared/ui/StableNavLabel';
+import { FullscreenDevelopmentGate } from '../src/shared/ui/FullscreenDevelopmentGate';
 import {
   CockpitContentTransition,
   CockpitPanelTransition,
+  commitCockpitHistoryIfCurrent,
+  getCockpitTabFromPathname,
   getCockpitPanelMotionState,
   getCockpitTransitionDirection,
-  queueCockpitHistoryPush,
+  isCockpitVisibleAnimation,
+  shouldHoldExpandedShell,
+  shouldShowFullscreenDevelopmentGate,
 } from '../src/shared/ui/CockpitContentTransition';
 
 test('settings workspace navigation explains each category instead of exposing terse tabs', () => {
@@ -85,25 +90,54 @@ test('cockpit section transition always settles at the exact final position', ()
   });
 });
 
-test('workspace URL is committed only after the content transition has had time to finish', () => {
-  const pushed: string[] = [];
-  let scheduledTask: (() => void) | undefined;
-  let scheduledDelay = 0;
+test('workspace route is derived from the real pathname when a cached Next route tree is restored', () => {
+  assert.equal(getCockpitTabFromPathname('/stats'), 'stats');
+  assert.equal(getCockpitTabFromPathname('/products/'), 'products');
+  assert.equal(getCockpitTabFromPathname('/settings'), null);
+});
 
-  queueCockpitHistoryPush(
-    '/calculator',
-    (href: string) => pushed.push(href),
-    (task: () => void, delay: number) => {
-      scheduledTask = task;
-      scheduledDelay = delay;
-      return 1;
-    },
+test('workspace URL is committed only when the current panel finishes entering', () => {
+  const historyState: { hrefs: string[] } = { hrefs: [] };
+
+  assert.equal(commitCockpitHistoryIfCurrent('stats', 'calculator', '/calculator', '/orders', (href) => historyState.hrefs.push(href)), false);
+  assert.deepEqual(historyState.hrefs, []);
+  assert.equal(commitCockpitHistoryIfCurrent('calculator', 'calculator', '/calculator', '/orders', (href) => historyState.hrefs.push(href)), true);
+  assert.deepEqual(historyState.hrefs, ['/calculator']);
+});
+
+test('workspace does not duplicate history when a rapid transition returns to the current URL', () => {
+  const historyState: { hrefs: string[] } = { hrefs: [] };
+
+  assert.equal(commitCockpitHistoryIfCurrent('orders', 'orders', '/orders', '/orders', (href) => historyState.hrefs.push(href)), true);
+  assert.deepEqual(historyState.hrefs, []);
+  assert.equal(isCockpitVisibleAnimation('visible'), true);
+  assert.equal(isCockpitVisibleAnimation('exit'), false);
+});
+
+test('expanded shell is held only while leaving an expanded registry', () => {
+  assert.equal(shouldHoldExpandedShell('products', 'stats', false, true), true);
+  assert.equal(shouldHoldExpandedShell('orders', 'calculator', true, false), true);
+  assert.equal(shouldHoldExpandedShell('orders', 'orders', true, false), false);
+  assert.equal(shouldHoldExpandedShell('stats', 'calculator', false, false), false);
+});
+
+test('production fullscreen gate applies only to expanded orders and products', () => {
+  assert.equal(shouldShowFullscreenDevelopmentGate('orders', true, true), true);
+  assert.equal(shouldShowFullscreenDevelopmentGate('products', true, true), true);
+  assert.equal(shouldShowFullscreenDevelopmentGate('stats', true, true), false);
+  assert.equal(shouldShowFullscreenDevelopmentGate('products', true, false), false);
+});
+
+test('fullscreen development gate provides a safe way back to the compact workspace', () => {
+  const html = renderToStaticMarkup(
+    <FullscreenDevelopmentGate section="products" onReturn={() => undefined} onHome={() => undefined} />,
   );
 
-  assert.deepEqual(pushed, []);
-  assert.ok(scheduledDelay >= 440);
-  scheduledTask?.();
-  assert.deepEqual(pushed, ['/calculator']);
+  assert.match(html, /В РАЗРАБОТКЕ/);
+  assert.match(html, /полноэкранный режим каталога/i);
+  assert.match(html, /Свернуть в стандартный вид/);
+  assert.match(html, /На главную/);
+  assert.match(html, /tabindex="-1"/);
 });
 
 test('cockpit section transition keeps the animated panel isolated from the page shell', () => {
@@ -113,7 +147,9 @@ test('cockpit section transition keeps the animated panel isolated from the page
     </CockpitPanelTransition>,
   );
 
+  assert.match(html, /role="status"/);
   assert.match(html, /aria-live="polite"/);
+  assert.match(html, /aria-atomic="true"/);
   assert.match(html, /data-cockpit-panel="stats"/);
   assert.match(html, /Статистика мастерской/);
   assert.doesNotMatch(html, /opacity:0/);

@@ -366,7 +366,7 @@ export function GoalSettingsModal({
                   onClick={onClose}
                   className="px-3.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-[#a1a1aa] hover:text-white hover:bg-white/[0.08] hover:border-white/20 transition-all cursor-pointer text-xs font-mono select-none"
                 >
-                  [ Отмена ]
+                  [ Закрыть ]
                 </button>
 
                 <button

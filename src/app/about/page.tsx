@@ -54,7 +54,7 @@ export default function AboutPage() {
               {/* Верхний бейдж */}
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-neutral-300 font-mono text-xs">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                <span>§ 3D-LABS OS · ВСЕМОГУЩИЙ УЧЕТ 3D-ПЕЧАТИ</span>
+                <span>3D-LABS OS · ВСЕМОГУЩИЙ УЧЕТ 3D-ПЕЧАТИ</span>
               </div>
 
               {/* Главный заголовок с акцентным курсивом (Meridian style) */}
@@ -127,7 +127,7 @@ export default function AboutPage() {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
               <div className="md:col-span-8">
                 <span className="font-mono text-xs text-cyan-400 uppercase tracking-widest block mb-2">
-                  § СПЕЦИФИКАЦИЯ СИСТЕМЫ · 6 МОДУЛЕЙ
+                  СПЕЦИФИКАЦИЯ СИСТЕМЫ · 6 МОДУЛЕЙ
                 </span>
                 <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-[1.05]">
                   3D Labs, <em className="text-neutral-400 font-normal italic">в деталях.</em>
@@ -136,7 +136,7 @@ export default function AboutPage() {
 
               <div className="md:col-span-4 border border-white/15 bg-white/[0.02] p-3.5 rounded-xl font-mono text-xs text-neutral-400 hidden md:block">
                 <div className="flex justify-between border-b border-white/10 pb-1.5 mb-1.5 text-white">
-                  <span>§ 3D-LABS / 02</span>
+                  <span>3D-LABS / 02</span>
                   <span>Rev 2.4</span>
                 </div>
                 <div className="flex justify-between">

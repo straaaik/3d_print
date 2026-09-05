@@ -72,12 +72,13 @@ export function EditStlModal({ item, onClose, onSave }: EditStlModalProps) {
     <Modal
       isOpen={Boolean(item)}
       onClose={onClose}
-      title={`§ 3D-LABS // 3D_MODEL_FILES [ ${item.name} ]`}
+      title="Файлы 3D-модели"
+      subtitle={item.name}
       maxWidth="md"
       footer={
         <div className="flex justify-end gap-2 w-full font-mono text-xs">
           <CockpitButton type="button" onClick={onClose} disabled={isSaving}>
-            Отмена
+            Закрыть
           </CockpitButton>
           <CockpitButton
             type="submit"

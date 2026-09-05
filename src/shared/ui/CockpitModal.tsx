@@ -1,8 +1,6 @@
-'use client';
-
-import React, { useEffect, useId, useRef } from 'react';
-import { X } from 'lucide-react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { Tooltip } from './Tooltip';
 
 export interface CockpitModalProps {
   isOpen: boolean;
@@ -34,7 +32,7 @@ export function CockpitModal({
   onClose,
   title,
   subtitle,
-  stamp = 'MODAL_WINDOW',
+  stamp = 'ОКНО',
   badge,
   children,
   footer,
@@ -44,6 +42,20 @@ export function CockpitModal({
 }: CockpitModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  const [currentTimeStr, setCurrentTimeStr] = useState('');
+
+  // Системное время для правой части шапки (как в GoalSettingsModal)
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTimeStr(
+        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} MSK`
+      );
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 10000);
+    return () => clearInterval(interval);
+  }, []);
   // Блокировка прокрутки фона при открытой модалке
   useEffect(() => {
     if (isOpen) {
@@ -101,15 +113,15 @@ export function CockpitModal({
   const getVariantAccent = () => {
     switch (variant) {
       case 'error':
-        return 'border-rose-500/30 shadow-[0_20px_80px_-15px_rgba(244,63,94,0.15)]';
+        return 'border-rose-500/40 shadow-[0_25px_90px_-15px_rgba(0,0,0,0.95)]';
       case 'warning':
-        return 'border-amber-500/30 shadow-[0_20px_80px_-15px_rgba(245,158,11,0.15)]';
+        return 'border-amber-500/40 shadow-[0_25px_90px_-15px_rgba(0,0,0,0.95)]';
       case 'success':
-        return 'border-emerald-500/30 shadow-[0_20px_80px_-15px_rgba(16,185,129,0.15)]';
+        return 'border-emerald-500/40 shadow-[0_25px_90px_-15px_rgba(0,0,0,0.95)]';
       case 'cyan':
-        return 'border-cyan-500/30 shadow-[0_20px_80px_-15px_rgba(6,182,212,0.15)]';
+        return 'border-cyan-500/40 shadow-[0_25px_90px_-15px_rgba(0,0,0,0.95)]';
       default:
-        return 'border-white/15 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)]';
+        return 'border-white/15 shadow-[0_25px_90px_-15px_rgba(0,0,0,0.95)]';
     }
   };
 
@@ -117,18 +129,18 @@ export function CockpitModal({
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 lg:p-6 overflow-y-auto select-none">
-          {/* Стеклянный темный бэкдроп */}
+          {/* Стеклянный темный бэкдроп с глубоким размытием */}
           <motion.div
             aria-hidden="true"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/80 backdrop-blur-md"
+            className="fixed inset-0 bg-black/80 backdrop-blur-xl"
           />
 
-          {/* Главное окно в стиле Cockpit Console */}
+          {/* Главное окно в стиле Cockpit Console с эффектом кинематографичного подъема */}
           <motion.div
             ref={dialogRef}
             role="dialog"
@@ -137,61 +149,52 @@ export function CockpitModal({
             aria-label={title ? undefined : stamp}
             data-cockpit-modal="true"
             tabIndex={-1}
-            initial={{ opacity: 0, scale: 0.96, y: 10 }}
+            initial={{ opacity: 0, scale: 0.94, y: 24 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 10 }}
-            transition={{ duration: 0.18, ease: 'easeOut' }}
+            exit={{ opacity: 0, scale: 0.94, y: 16 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
             className={`relative w-full ${sizeClass} my-auto rounded-2xl border ${getVariantAccent()} bg-neutral-950/95 shadow-2xl backdrop-blur-2xl overflow-hidden z-10 flex flex-col max-h-[92vh] font-sans`}
           >
-            {/* 1. Верхняя панель (Cockpit Topbar) */}
-            <div className="flex items-center justify-between border-b border-white/10 px-4 sm:px-5 py-3 bg-neutral-900/60 shrink-0 gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                {/* Светодиоды терминала */}
-                {showLeds && (
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 border border-rose-400/40 inline-block" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80 border border-yellow-400/40 inline-block" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 border border-emerald-400/40 inline-block" />
-                  </div>
-                )}
+            {/* 1. Верхняя панель (Cockpit Topbar: Red LED + Title + Live time) */}
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-2.5 bg-neutral-900/60 shrink-0 gap-3">
+              {/* Левая часть: красный терминальный кружок закрытия + заголовок раздела */}
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="flex items-center gap-2 shrink-0">
+                  <Tooltip content="Закрыть окно">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      title="Закрыть окно"
+                      aria-label="Закрыть окно"
+                      className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] hover:scale-125 active:scale-95 transition-all duration-150 cursor-pointer border-none outline-none"
+                    />
+                  </Tooltip>
+                </div>
 
-                {/* Инженерный штамп */}
-                <div className={`flex items-center gap-2 font-mono text-xs text-neutral-300 min-w-0 ${showLeds ? 'pl-3 border-l border-white/10' : ''}`}>
-                  <span className="text-white font-bold shrink-0">§ 3D-LABS</span>
-                  <span className="text-neutral-600 shrink-0">{'//'}</span>
-                  <span className="text-neutral-400 truncate uppercase tracking-wider font-semibold">
-                    {stamp}
+                <div className="flex items-center gap-2 font-mono text-xs text-[#d4d4d8] min-w-0">
+                  <span id={titleId} className="text-[#d4d4d8] font-normal truncate">
+                    {title || stamp}
                   </span>
+                  {subtitle && (
+                    <>
+                      <span className="text-[#52525b] shrink-0">·</span>
+                      <span className="text-[#71717a] hidden sm:inline truncate">
+                        {subtitle}
+                      </span>
+                    </>
+                  )}
                   {badge && <div className="shrink-0">{badge}</div>}
                 </div>
               </div>
 
-              {/* Кнопка закрытия */}
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Закрыть"
-                className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer border border-white/10 shrink-0"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+              {/* Правая часть: Только системное время (без крестика) */}
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="font-mono text-xs text-[#71717a] tabular-nums">
+                  {currentTimeStr}
+                </div>
+              </div>
             </div>
 
-            {/* 2. Заголовок и подзаголовок (если задан) */}
-            {(title || subtitle) && (
-              <div className="px-4 sm:px-6 pt-4 pb-2 shrink-0">
-                {title && (
-                  <h3 id={titleId} className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                    {title}
-                  </h3>
-                )}
-                {subtitle && (
-                  <p className="text-xs text-neutral-400 mt-0.5 font-normal leading-relaxed font-sans">
-                    {subtitle}
-                  </p>
-                )}
-              </div>
-            )}
 
             {/* 3. Прокручиваемый рабочий контент */}
             <div className="p-4 sm:p-6 overflow-y-auto flex-1 custom-scrollbar text-xs sm:text-sm text-neutral-200">

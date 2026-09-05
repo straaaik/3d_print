@@ -15,7 +15,7 @@ export function SkeletonTerminalHeader({ title, badge = 'СИНХРОНИЗАЦ�
           <span className="w-3 h-3 rounded-full bg-emerald-500/80 border border-emerald-400/40 inline-block" />
         </div>
         <div className="flex items-center gap-2 pl-3 border-l border-white/10 font-mono text-xs text-neutral-300">
-          <span className="text-white font-bold">§ 3D-LABS</span>
+          <span className="text-white font-bold">3D-LABS</span>
           <span className="text-neutral-600">{'//'}</span>
           <span className="text-neutral-400 uppercase tracking-wider">{title}</span>
           <span className="flex items-center gap-1 text-[10px] font-mono text-cyan-400 bg-cyan-950/60 border border-cyan-800/40 px-2 py-0.5 rounded font-bold animate-pulse">
@@ -518,7 +518,7 @@ export function HubSkeleton() {
       <div className="w-full flex items-center justify-between z-20">
         <div className="flex items-center gap-2 font-mono text-xs text-neutral-400 tracking-wider">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="font-semibold text-neutral-300">§ 3D-LABS</span>
+          <span className="font-semibold text-neutral-300">3D-LABS</span>
           <span className="text-neutral-600">//</span>
           <span className="text-neutral-400">OPERATIONS HUB</span>
         </div>
@@ -542,7 +542,7 @@ export function HubSkeleton() {
       {/* Нижняя телеметрия */}
       <div className="w-full flex items-center justify-between text-[11px] font-mono text-neutral-600 z-20 pt-4 border-t border-white/5">
         <div className="flex items-center gap-2">
-          <span>§ 3D LABS</span>
+          <span>3D LABS</span>
           <span>·</span>
           <span>SYSTEM RUNTIME 2.4</span>
         </div>
@@ -577,7 +577,7 @@ export function CockpitWorkspaceSkeleton({ initialTab = 'orders' }: { initialTab
 
       <footer className="w-full text-center py-6 border-t border-white/10 select-none bg-neutral-950/80 backdrop-blur-md font-mono text-xs text-neutral-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>§ 3D LABS · COCKPIT WORKSPACE v2.4</span>
+          <span>3D LABS · COCKPIT WORKSPACE v2.4</span>
           <span>ДАННЫЕ СОХРАНЯЮТСЯ В LOCALSTORAGE И SUPABASE</span>
         </div>
       </footer>

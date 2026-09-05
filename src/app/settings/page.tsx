@@ -93,7 +93,7 @@ export default function SettingsPage() {
 
       <footer className="w-full select-none border-t border-white/10 bg-neutral-950/80 py-6 font-mono text-[11px] text-neutral-500 backdrop-blur-md">
         <div className="mx-auto flex max-w-[1500px] flex-col items-center justify-between gap-2 px-4 sm:flex-row">
-          <span>§ 3D LABS · SETTINGS RUNTIME v2.4</span>
+          <span>3D LABS · SETTINGS RUNTIME v2.4</span>
           <span>CONFIG: LOCALSTORAGE + SUPABASE CLOUD</span>
         </div>
       </footer>
@@ -101,15 +101,14 @@ export default function SettingsPage() {
       <CockpitModal
         isOpen={isWarningOpen}
         onClose={handleCancel}
-        stamp="UNSAVED_CHANGES"
-        title="В конфигурации есть изменения"
-        subtitle="Выберите, что сделать с локальным черновиком перед переходом."
+        title="Несохраненные изменения"
+        subtitle="Конфигурация"
         variant="warning"
         maxWidth="md"
         badge={<span className="rounded border border-amber-800/40 bg-amber-950/60 px-2 py-0.5 text-[9px] font-bold text-amber-400">DIRTY</span>}
         footer={(
           <div className="flex w-full flex-wrap items-center justify-end gap-2">
-            <CockpitButton onClick={handleCancel} disabled={isSaving}>Остаться</CockpitButton>
+            <CockpitButton onClick={handleCancel} disabled={isSaving}>Закрыть</CockpitButton>
             <CockpitButton onClick={handleDiscard} disabled={isSaving} icon={RotateCcw} className="border-rose-800/40 bg-rose-950/50 text-rose-300">Не сохранять</CockpitButton>
             <CockpitButton onClick={handleSaveAndLeave} disabled={isSaving} icon={Check} isActive>
               {isSaving ? 'Сохранение...' : 'Сохранить и перейти'}

@@ -102,9 +102,8 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
     <CockpitModal
       isOpen={isOpen}
       onClose={handleClose}
-      stamp="ACCESS_KEY_GENERATOR"
       title="Генератор ключей доступа"
-      subtitle="Создавайте один или несколько одноразовых ключей с ролью и сроком действия."
+      subtitle="Одноразовые ключи"
       variant="cyan"
       maxWidth="lg"
       badge={<span className="rounded border border-cyan-800/40 bg-cyan-950/60 px-2 py-0.5 text-[9px] font-bold text-cyan-400">SECURE</span>}
@@ -224,7 +223,7 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
               onClick={handleClose}
               disabled={isGenerating}
             >
-              Отмена
+              Закрыть
             </CockpitButton>
             <CockpitButton
               type="button"
@@ -330,7 +329,7 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
                 isActive={true}
                 className="border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold"
               >
-                Готово
+                Закрыть
               </CockpitButton>
             </div>
           </div>

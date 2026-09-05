@@ -78,6 +78,20 @@ export function ClientReceiptModal({
     }
   }, [isOpen]);
 
+  const [currentTimeStr, setCurrentTimeStr] = useState('');
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTimeStr(
+        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} MSK`
+      );
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -236,30 +250,36 @@ export function ClientReceiptModal({
           aria-labelledby="client-receipt-title"
           className="relative w-full max-w-6xl rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl overflow-hidden z-10 my-auto flex flex-col max-h-[94vh]"
         >
-          {/* 1. ВЕРХНЯЯ ПАНЕЛЬ (ШАПКА ОКНА В ТОЧНОСТИ КАК В КАЛЬКУЛЯТОРЕ) */}
-          <div className="flex flex-wrap items-center justify-between border-b border-white/10 px-4 sm:px-6 py-3 bg-neutral-900/60 shrink-0">
-            <div className="flex items-center gap-3">
-              {/* Только одна красная точка - закрытие при нажатии */}
-              <Tooltip content="Закрыть окно">
-                <button
-                  ref={closeButtonRef}
-                  type="button"
-                  onClick={onClose}
-                  aria-label="Закрыть чек"
-                  className="w-3 h-3 rounded-full bg-red-500/80 border border-red-400/40 hover:bg-red-500 hover:scale-110 active:scale-95 transition-all cursor-pointer shadow-sm flex items-center justify-center group"
-                >
-                  <X className="w-2 h-2 text-red-950 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </button>
-              </Tooltip>
+          {/* 1. Верхняя панель (Cockpit Topbar: Red LED + Title + Live time) */}
+          <div className="flex items-center justify-between border-b border-white/10 px-5 py-2.5 bg-neutral-900/60 shrink-0 gap-3">
+            <div className="flex items-center gap-4 min-w-0">
+              <div className="flex items-center gap-2 shrink-0">
+                <Tooltip content="Закрыть окно">
+                  <button
+                    ref={closeButtonRef}
+                    type="button"
+                    onClick={onClose}
+                    title="Закрыть окно"
+                    aria-label="Закрыть чек"
+                    className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] hover:scale-125 active:scale-95 transition-all duration-150 cursor-pointer border-none outline-none shrink-0"
+                  />
+                </Tooltip>
+              </div>
 
-              <div className="flex items-center gap-2 pl-3 border-l border-white/10 font-mono text-xs text-neutral-300">
-                <span className="text-white font-bold">§ 3D-LABS</span>
-                <span className="text-neutral-600">{'//'}</span>
-                <span id="client-receipt-title" className="text-neutral-400">ЧЕК ДЛЯ КЛИЕНТА</span>
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-mono ml-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>Клиентский вид</span>
-                </div>
+              <div className="flex items-center gap-2 font-mono text-xs text-[#d4d4d8] min-w-0">
+                <span id="client-receipt-title" className="text-[#d4d4d8] font-normal truncate">
+                  Чек для клиента
+                </span>
+                <span className="text-[#52525b] shrink-0">·</span>
+                <span className="text-[#71717a] hidden sm:inline truncate">
+                  Клиентский вид
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="font-mono text-xs text-[#71717a] tabular-nums">
+                {currentTimeStr}
               </div>
             </div>
           </div>

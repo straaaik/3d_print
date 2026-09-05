@@ -239,20 +239,21 @@ export function UserProfileMenu() {
       <Modal
         isOpen={isLogoutModalOpen}
         onClose={() => setIsLogoutModalOpen(false)}
-        title="§ 3D-LABS // LOGOUT"
+        title="Выход из системы"
+        subtitle="Завершение сеанса"
         variant="error"
         maxWidth="sm"
       >
         <div className="space-y-3 font-mono text-xs">
           <p className="text-neutral-300 leading-relaxed font-sans">
-            Вы действительно хотите выйти из системы 3D Labs?
+            Вы действительно хотите выйти из системы?
           </p>
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
             <CockpitButton
               type="button"
               onClick={() => setIsLogoutModalOpen(false)}
             >
-              Отмена
+              Закрыть
             </CockpitButton>
             <CockpitButton
               type="button"

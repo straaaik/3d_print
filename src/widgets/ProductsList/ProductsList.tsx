@@ -344,6 +344,42 @@ export function ProductsList({
 
   const [quickEditProductItem, setQuickEditProductItem] = useState<SavedCalculation | null>(null);
 
+  // 15. Множественный выбор строк (Multi-selection)
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = (ids: string[]) => {
+    setSelectedIds(ids);
+  };
+
+  const handleClearSelection = () => {
+    setSelectedIds([]);
+  };
+
+  const handleBatchRecalculateSelected = () => {
+    setIsRecalcModalOpen(true);
+  };
+
+  const handleBatchMoveSelected = () => {
+    setIsBatchMoveOpen(true);
+  };
+
+  const handleBatchDeleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+    const count = selectedIds.length;
+    if (!window.confirm(`Вы уверены, что хотите удалить ${count} выбранных позиций?`)) return;
+    pushHistory();
+    const remaining = savedCalculations.filter((c) => !selectedIds.includes(c.id));
+    await restoreAllSavedCalculations(remaining);
+    setSelectedIds([]);
+    showSuccess(`Удалено ${count} товаров`, 'Удаление');
+  };
+
   // Инлайн-обновление товара и коллекции
   const handleInlineUpdateProduct = async (productId: string, updates: Partial<SavedCalculation>) => {
     const existing = savedCalculations.find((p) => p.id === productId);
@@ -559,6 +595,7 @@ export function ProductsList({
       }
     }
 
+    setSelectedIds([]);
     showSuccess(
       targetColId === 'none'
         ? `${ids.length} товаров извлечено из коллекций`
@@ -571,9 +608,13 @@ export function ProductsList({
     setIsRecalculating(true);
     try {
       pushHistory();
-      const fullyUpdated = recalculateAllProducts(savedCalculations, filaments, printers, settings);
+      const targetIds = scope === 'selected' && selectedIds.length > 0 ? selectedIds : undefined;
+      const fullyUpdated = recalculateAllProducts(savedCalculations, filaments, printers, settings, targetIds);
       await restoreAllSavedCalculations(fullyUpdated);
-      showSuccess(`Пересчитано ${fullyUpdated.length} позиций каталога!`, 'Цены обновлены');
+      showSuccess(
+        `Пересчитано ${targetIds ? targetIds.length : fullyUpdated.length} позиций каталога!`,
+        'Цены обновлены'
+      );
       setIsRecalcModalOpen(false);
     } catch (err) {
       console.error('Ошибка пересчета:', err);
@@ -641,7 +682,7 @@ export function ProductsList({
         if (onlyBestsellers) {
           childs = childs.filter((c) => {
             const st = salesStatsMap.get(c.id);
-            return st && st.soldQty > 0;
+            return Boolean(st?.isBestseller);
           });
         }
 
@@ -760,7 +801,7 @@ export function ProductsList({
         if (productFilter === 'assembly' && calc.type !== 'assembly') return false;
         if (onlyBestsellers) {
           const st = salesStatsMap.get(calc.id);
-          if (!st || st.soldQty <= 0) return false;
+          if (!st || !st.isBestseller) return false;
         }
 
         // Фильтр остатков
@@ -862,7 +903,7 @@ export function ProductsList({
       inStock: savedCalculations.filter((c) => (c.stock_quantity || 0) > 0).length,
       lowStock: savedCalculations.filter((c) => (c.stock_quantity || 0) <= 2 && (c.stock_quantity || 0) > 0).length,
       outOfStock: savedCalculations.filter((c) => (c.stock_quantity || 0) === 0).length,
-      bestsellers: savedCalculations.filter((c) => (salesStatsMap.get(c.id)?.soldQty || 0) > 0).length,
+      bestsellers: savedCalculations.filter((c) => Boolean(salesStatsMap.get(c.id)?.isBestseller)).length,
     };
   }, [savedCalculations, collections, salesStatsMap]);
 
@@ -957,12 +998,20 @@ export function ProductsList({
         salesStatsMap={salesStatsMap}
         filaments={filaments}
         printers={printers}
+        settings={settings}
         isOnline={isOnline}
         isExpanded={isExpanded}
         onToggleExpand={setIsExpanded}
         contextMenu={contextMenu}
         setContextMenu={setContextMenu}
         contextMenuRef={contextMenuRef}
+        selectedIds={selectedIds}
+        onToggleSelect={handleToggleSelect}
+        onSelectAll={handleSelectAll}
+        onClearSelection={handleClearSelection}
+        onBatchRecalculateSelected={handleBatchRecalculateSelected}
+        onBatchMoveSelected={handleBatchMoveSelected}
+        onBatchDeleteSelected={handleBatchDeleteSelected}
       />
 
       {/* Модальные окна */}
@@ -1022,7 +1071,7 @@ export function ProductsList({
       {(movingProduct || isBatchMoveOpen) && (
         <MoveProductModal
           movingProduct={movingProduct}
-          selectedIds={[]}
+          selectedIds={selectedIds}
           isBatchMoveOpen={isBatchMoveOpen}
           collections={collections}
           savedCalculations={savedCalculations}
@@ -1039,7 +1088,7 @@ export function ProductsList({
         <RecalculateModal
           isOpen={isRecalcModalOpen}
           onClose={() => setIsRecalcModalOpen(false)}
-          selectedCount={savedCalculations.length}
+          selectedCount={selectedIds.length > 0 ? selectedIds.length : savedCalculations.length}
           totalCount={savedCalculations.length}
           isRecalculating={isRecalculating}
           onConfirm={handleConfirmRecalculate}

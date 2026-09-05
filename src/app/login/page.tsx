@@ -198,7 +198,7 @@ export default function LoginPage() {
 
               {/* Штамп раздела */}
               <div className="flex items-center gap-2 pl-3 border-l border-white/10 font-mono text-xs text-neutral-300">
-                <span className="text-white font-bold">§ 3D-LABS</span>
+                <span className="text-white font-bold">3D-LABS</span>
                 <span className="text-neutral-600">//</span>
                 <span className="text-neutral-400 text-[11px]">ACCESS_GATEWAY</span>
               </div>
@@ -520,7 +520,7 @@ export default function LoginPage() {
       {/* 3. Глобальный подвал страницы */}
       <footer className="w-full text-center py-6 border-t border-white/10 select-none bg-neutral-950/80 backdrop-blur-md font-mono text-xs text-neutral-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>§ 3D LABS · ENGINE v2.4 · ACCESS RUNTIME</span>
+          <span>3D LABS · ENGINE v2.4 · ACCESS RUNTIME</span>
           <span>ДАННЫЕ СОХРАНЯЮТСЯ В LOCALSTORAGE И SUPABASE</span>
         </div>
       </footer>

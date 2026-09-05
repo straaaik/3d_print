@@ -145,7 +145,7 @@ export function InventoryCockpitShell({
 
             <div className="flex min-w-0 items-center gap-2 border-l border-white/10 pl-3 font-mono">
               <span className="h-5 w-5 shrink-0 text-cyan-400">{icon}</span>
-              <span className="hidden text-xs font-bold tracking-wider text-white sm:inline">§ 3D-LABS</span>
+              <span className="hidden text-xs font-bold tracking-wider text-white sm:inline">3D-LABS</span>
               <span className="hidden text-neutral-600 sm:inline">{'//'}</span>
               <span className="truncate text-[11px] font-semibold tracking-wider text-neutral-300 sm:text-xs">{section}</span>
               <span className="hidden items-center gap-1 rounded border border-emerald-800/40 bg-emerald-950/60 px-2 py-0.5 text-[9px] font-bold tracking-wider text-emerald-400 md:inline-flex">

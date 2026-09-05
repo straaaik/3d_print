@@ -335,14 +335,13 @@ export function AdminPanel() {
       <CockpitModal
         isOpen={Boolean(keyToDelete)}
         onClose={() => !isDeleting && setKeyToDelete(null)}
-        stamp="DELETE_ACCESS_KEY"
-        title="Удалить регистрационный ключ?"
-        subtitle="После удаления ключ больше нельзя будет использовать для регистрации."
+        title="Удаление ключа"
+        subtitle="Регистрационный доступ"
         variant="error"
         maxWidth="md"
         footer={(
           <div className="flex w-full justify-end gap-2">
-            <CockpitButton onClick={() => setKeyToDelete(null)} disabled={isDeleting}>Отмена</CockpitButton>
+            <CockpitButton onClick={() => setKeyToDelete(null)} disabled={isDeleting}>Закрыть</CockpitButton>
             <CockpitButton onClick={confirmDeleteKey} icon={Trash2} disabled={isDeleting} className="border-rose-800/40 bg-rose-950/60 text-rose-300">
               {isDeleting ? 'Удаление...' : 'Удалить ключ'}
             </CockpitButton>
@@ -355,14 +354,13 @@ export function AdminPanel() {
       <CockpitModal
         isOpen={Boolean(userToDelete)}
         onClose={() => !isDeleting && setUserToDelete(null)}
-        stamp="DELETE_USER_ACCOUNT"
-        title="Удалить аккаунт пользователя?"
-        subtitle="Профиль исчезнет из панели; связанные данные останутся под контролем политик базы."
+        title="Удаление пользователя"
+        subtitle={userToDelete?.name || 'Аккаунт'}
         variant="error"
         maxWidth="md"
         footer={(
           <div className="flex w-full justify-end gap-2">
-            <CockpitButton onClick={() => setUserToDelete(null)} disabled={isDeleting}>Отмена</CockpitButton>
+            <CockpitButton onClick={() => setUserToDelete(null)} disabled={isDeleting}>Закрыть</CockpitButton>
             <CockpitButton onClick={confirmDeleteUser} icon={Trash2} disabled={isDeleting} className="border-rose-800/40 bg-rose-950/60 text-rose-300">
               {isDeleting ? 'Удаление...' : 'Удалить аккаунт'}
             </CockpitButton>

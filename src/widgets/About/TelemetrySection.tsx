@@ -47,7 +47,7 @@ export function TelemetrySection() {
           {/* Левая часть: ключевые бенчмарки в стиле Meridian */}
           <div className="lg:col-span-5 space-y-6">
             <div className="font-mono text-xs text-cyan-400 uppercase tracking-widest">
-              § БЕНЧМАРКИ ЭФФЕКТИВНОСТИ · 3D LABS
+              БЕНЧМАРКИ ЭФФЕКТИВНОСТИ · 3D LABS
             </div>
             
             <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-[1.05]">

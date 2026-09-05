@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Search, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -36,6 +37,7 @@ export interface CockpitDropdownProps {
   hideStatusDot?: boolean;
   icon?: React.ComponentType<{ className?: string }>;
   showChevron?: boolean;
+  usePortal?: boolean;
 }
 
 export function CockpitDropdown({
@@ -60,11 +62,22 @@ export function CockpitDropdown({
   hideStatusDot = false,
   icon: LeadingIcon,
   showChevron = true,
+  usePortal = false,
 }: CockpitDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownMenuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const handleToggle = () => {
+    if (disabled) return;
+    if (!isOpen && containerRef.current) {
+      setTargetRect(containerRef.current.getBoundingClientRect());
+    }
+    setIsOpen(!isOpen);
+  };
 
   const selectedOption = options.find((opt) => opt.value === value);
 
@@ -117,9 +130,13 @@ export function CockpitDropdown({
   // Закрытие при клике вне компонента
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
+      if (containerRef.current && containerRef.current.contains(e.target as Node)) {
+        return;
       }
+      if (dropdownMenuRef.current && dropdownMenuRef.current.contains(e.target as Node)) {
+        return;
+      }
+      setIsOpen(false);
     };
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
@@ -137,6 +154,21 @@ export function CockpitDropdown({
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
+
+  // Закрытие при скролле или изменении размера окна для портала
+  useEffect(() => {
+    if (!isOpen || !usePortal) return;
+    const handleScrollOrResize = (e: Event) => {
+      if (dropdownMenuRef.current && dropdownMenuRef.current.contains(e.target as Node)) return;
+      setIsOpen(false);
+    };
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize);
+    return () => {
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
+    };
+  }, [isOpen, usePortal]);
 
   // Фокус на поиск при открытии
   useEffect(() => {
@@ -223,13 +255,16 @@ export function CockpitDropdown({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className={`${getButtonStyles()} ${buttonClassName} disabled:opacity-40 disabled:cursor-not-allowed`}
       >
         <div className={`flex items-center gap-2 min-w-0 ${showChevron ? 'flex-1 justify-start' : 'w-full justify-center'} overflow-hidden`}>
-          {/* Иконка слева (если передана) */}
-          {LeadingIcon && (
-            <LeadingIcon className="w-3.5 h-3.5 shrink-0 text-neutral-400" />
+          {/* Иконка слева (если передана явно или задана в выбранной опции) */}
+          {(LeadingIcon || selectedOption?.icon) && (
+            (() => {
+              const IconComp = LeadingIcon || selectedOption?.icon;
+              return IconComp ? <IconComp className="w-3.5 h-3.5 shrink-0 text-neutral-400" /> : null;
+            })()
           )}
 
           {/* Точка слева (ТОЛЬКО если задана и не multiSelect) */}
@@ -266,137 +301,180 @@ export function CockpitDropdown({
       </button>
 
       {/* ВЫПАДАЮЩЕЕ МЕНЮ В СТИЛЕ ИНТЕРФЕЙСА (КОМПАКТНОЕ И БЕЗ НЕОНА) */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 3, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 3, scale: 0.98 }}
-            transition={{ duration: 0.12 }}
-            style={{ width: dropdownWidth || undefined }}
-            className={`absolute ${
-              variant === 'filter'
-                ? `${align === 'right' ? 'right-0 min-w-[210px] w-max max-w-[300px]' : '-left-1 -right-1 w-[calc(100%+8px)]'} top-full mt-2`
-                : `${align === 'right' ? 'right-0' : 'left-0'} top-full mt-1.5 w-full min-w-[165px]`
-            } z-50 rounded-xl bg-neutral-950 border border-white/15 shadow-[0_15px_40px_rgba(0,0,0,0.9)] backdrop-blur-2xl overflow-hidden flex flex-col font-mono select-none ${dropdownClassName}`}
-          >
-            {/* Поле поиска (если опций много) */}
-            {isSearchEnabled && (
-              <div className="px-2 py-1.5 border-b border-white/10 bg-neutral-900/60 shrink-0">
-                <div className="relative flex items-center">
-                  <Search className="w-3 h-3 text-neutral-500 absolute left-2 pointer-events-none" />
-                  <input
-                    ref={searchInputRef}
-                    type="text"
-                    placeholder="ПОИСК..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full h-6 pl-6 pr-2 bg-neutral-950 border border-white/10 focus:border-white/25 focus:outline-none rounded-md text-[11px] text-white placeholder-neutral-500 font-mono uppercase tracking-wide"
-                  />
-                </div>
-              </div>
-            )}
+      {(() => {
+        const portalWidth = dropdownWidth || (targetRect ? targetRect.width : undefined);
+        const portalHeight = 280;
+        const spaceBelow = typeof window !== 'undefined' && targetRect ? window.innerHeight - targetRect.bottom : 300;
+        const isPortalTop = spaceBelow < portalHeight && targetRect && targetRect.top > spaceBelow;
+        const portalTop = targetRect ? (isPortalTop ? targetRect.top - portalHeight - 6 : targetRect.bottom + 6) : 0;
+        let portalLeft = targetRect ? targetRect.left : 0;
+        if (typeof window !== 'undefined' && targetRect) {
+          const numWidth = typeof portalWidth === 'number' ? portalWidth : targetRect.width;
+          if (portalLeft + numWidth > window.innerWidth - 16) {
+            portalLeft = window.innerWidth - numWidth - 16;
+          }
+          if (portalLeft < 16) portalLeft = 16;
+        }
 
-            {/* СПИСОК ЭЛЕМЕНТОВ */}
-            <div className="divide-y divide-white/[0.04] max-h-60 overflow-y-auto scrollbar-none">
-              {filteredOptions.length === 0 ? (
-                <div className="py-4 text-center text-[10px] text-neutral-500 uppercase tracking-wider font-mono">
-                  [ НИЧЕГО НЕ НАЙДЕНО ]
-                </div>
-              ) : (
-                filteredOptions.map((opt) => {
-                  const isSelected = isOptionSelected(opt.value);
-                  const optionHasDot = !multiSelect && Boolean(opt.color || opt.statusDotColor);
+        const menuContent = (
+          <AnimatePresence>
+            {isOpen && (
+              <motion.div
+                ref={dropdownMenuRef}
+                initial={{ opacity: 0, y: usePortal && isPortalTop ? -3 : 3, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: usePortal && isPortalTop ? -3 : 3, scale: 0.98 }}
+                transition={{ duration: 0.12 }}
+                style={
+                  usePortal && targetRect
+                    ? {
+                        position: 'fixed',
+                        top: Math.max(12, portalTop),
+                        left: portalLeft,
+                        width: portalWidth || targetRect.width,
+                        zIndex: 99999,
+                      }
+                    : { width: dropdownWidth || undefined }
+                }
+                onClick={(e) => e.stopPropagation()}
+                className={`${
+                  usePortal
+                    ? ''
+                    : `absolute ${
+                        variant === 'filter'
+                          ? `${align === 'right' ? 'right-0 min-w-[210px] w-max max-w-[300px]' : '-left-1 -right-1 w-[calc(100%+8px)]'} top-full mt-2`
+                          : `${align === 'right' ? 'right-0' : 'left-0'} top-full mt-1.5 w-full min-w-[165px]`
+                      }`
+                } z-50 rounded-xl bg-neutral-950 border border-white/15 shadow-[0_15px_40px_rgba(0,0,0,0.9)] backdrop-blur-2xl overflow-hidden flex flex-col font-mono select-none ${dropdownClassName}`}
+              >
+                {/* Поле поиска (если опций много) */}
+                {isSearchEnabled && (
+                  <div className="px-2 py-1.5 border-b border-white/10 bg-neutral-900/60 shrink-0">
+                    <div className="relative flex items-center">
+                      <Search className="w-3 h-3 text-neutral-500 absolute left-2 pointer-events-none" />
+                      <input
+                        ref={searchInputRef}
+                        type="text"
+                        placeholder="ПОИСК..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full h-6 pl-6 pr-2 bg-neutral-950 border border-white/10 focus:border-white/25 focus:outline-none rounded-md text-[11px] text-white placeholder-neutral-500 font-mono uppercase tracking-wide"
+                      />
+                    </div>
+                  </div>
+                )}
 
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => handleOptionClick(opt.value)}
-                      className={`relative w-full px-3 py-2 text-left flex items-center justify-between gap-2 transition-colors cursor-pointer text-xs group ${
-                        isSelected
-                          ? 'bg-white/10 text-white font-semibold'
-                          : 'bg-transparent hover:bg-white/5 text-neutral-300 hover:text-white'
-                      }`}
-                    >
-                      {/* Тонкая белая полоса слева у выбранного элемента в обычном режиме */}
-                      {!multiSelect && isSelected && (
-                        <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-white" />
-                      )}
+                {/* СПИСОК ЭЛЕМЕНТОВ */}
+                <div className="divide-y divide-white/[0.04] max-h-60 overflow-y-auto scrollbar-none">
+                  {filteredOptions.length === 0 ? (
+                    <div className="py-4 text-center text-[10px] text-neutral-500 uppercase tracking-wider font-mono">
+                      [ НИЧЕГО НЕ НАЙДЕНО ]
+                    </div>
+                  ) : (
+                    filteredOptions.map((opt) => {
+                      const isSelected = isOptionSelected(opt.value);
+                      const optionHasDot = !multiSelect && Boolean(opt.color || opt.statusDotColor);
 
-                      {/* Чекбокс слева в multiSelect режиме */}
-                      {multiSelect && (
-                        <div
-                          className={`w-3.5 h-3.5 rounded flex items-center justify-center transition-all shrink-0 ${
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => handleOptionClick(opt.value)}
+                          className={`relative w-full px-3 py-2 text-left flex items-center justify-between gap-2 transition-colors cursor-pointer text-xs group ${
                             isSelected
-                              ? 'bg-white text-neutral-950'
-                              : 'border border-white/25 bg-white/5 group-hover:border-white/40'
+                              ? 'bg-white/10 text-white font-semibold'
+                              : 'bg-transparent hover:bg-white/5 text-neutral-300 hover:text-white'
                           }`}
                         >
-                          {isSelected && (
-                            <Check className="w-2.5 h-2.5 stroke-[3.5]" />
+                          {/* Тонкая белая полоса слева у выбранного элемента в обычном режиме */}
+                          {!multiSelect && isSelected && (
+                            <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-white" />
                           )}
-                        </div>
-                      )}
 
-                      {/* Левая часть: название и бейдж в рамочке */}
-                      <div className="flex items-center gap-1.5 min-w-0 flex-1 pl-0.5">
-                        <span className="truncate text-xs font-mono">
-                          {opt.label}
-                        </span>
-
-                        {/* Рамочный бейдж параметра */}
-                        {opt.badge && (
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-mono shrink-0 border border-white/10 bg-white/5 text-neutral-400">
-                            {opt.badge}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Правая часть: цветная точка статуса (ТОЛЬКО если задана) */}
-                      {optionHasDot && (
-                        <div className="shrink-0 flex items-center">
-                          {opt.color ? (
-                            <span
-                              className={`w-2 h-2 rounded-full shrink-0 ${
-                                isSelected ? 'ring-1 ring-white/40' : 'border border-white/20'
+                          {/* Чекбокс слева в multiSelect режиме */}
+                          {multiSelect && (
+                            <div
+                              className={`w-3.5 h-3.5 rounded flex items-center justify-center transition-all shrink-0 ${
+                                isSelected
+                                  ? 'bg-white text-neutral-950'
+                                  : 'border border-white/25 bg-white/5 group-hover:border-white/40'
                               }`}
-                              style={{ backgroundColor: opt.color }}
-                            />
-                          ) : (
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full shrink-0 ${getDotColorClass(opt.statusDotColor, isSelected)}`}
-                            />
+                            >
+                              {isSelected && (
+                                <Check className="w-2.5 h-2.5 stroke-[3.5]" />
+                              )}
+                            </div>
                           )}
-                        </div>
-                      )}
-                    </button>
-                  );
-                })
-              )}
-            </div>
 
-            {/* ПОДВАЛ МЕНЮ */}
-            <div className="px-3 py-1.5 bg-neutral-950 border-t border-white/5 text-[9px] font-mono text-neutral-500 uppercase tracking-wider flex items-center justify-between shrink-0">
-              {multiSelect && values && values.length > 0 && !values.includes('all') ? (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onMultiChange?.(['all']);
-                  }}
-                  className="text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
-                >
-                  [ СБРОСИТЬ ВСЕ ]
-                </button>
-              ) : (
-                <span>{footerText || `${options.length} ОПЦИЙ`}</span>
-              )}
-              <span className="text-neutral-600">3DLABS</span>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                          {/* Левая часть: название и бейдж в рамочке */}
+                          <div className="flex items-center gap-2 min-w-0 flex-1 pl-0.5">
+                            {/* Бесцветная иконка опции (если есть) */}
+                            {opt.icon && (
+                              <opt.icon className="w-3.5 h-3.5 shrink-0 text-neutral-400 group-hover:text-white transition-colors" />
+                            )}
+
+                            <span className="truncate text-xs font-mono leading-none">
+                              {opt.label}
+                            </span>
+
+                            {/* Рамочный бейдж параметра */}
+                            {opt.badge && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-mono shrink-0 border border-white/10 bg-white/5 text-neutral-400">
+                                {opt.badge}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Правая часть: цветная точка статуса (ТОЛЬКО если задана) */}
+                          {optionHasDot && (
+                            <div className="shrink-0 flex items-center">
+                              {opt.color ? (
+                                <span
+                                  className={`w-2 h-2 rounded-full shrink-0 ${
+                                    isSelected ? 'ring-1 ring-white/40' : 'border border-white/20'
+                                  }`}
+                                  style={{ backgroundColor: opt.color }}
+                                />
+                              ) : (
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${getDotColorClass(opt.statusDotColor, isSelected)}`}
+                                />
+                              )}
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* ПОДВАЛ МЕНЮ */}
+                <div className="px-3 py-1.5 bg-neutral-950 border-t border-white/5 text-[9px] font-mono text-neutral-500 uppercase tracking-wider flex items-center justify-between shrink-0">
+                  {multiSelect && values && values.length > 0 && !values.includes('all') ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onMultiChange?.(['all']);
+                      }}
+                      className="text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                    >
+                      [ СБРОСИТЬ ВСЕ ]
+                    </button>
+                  ) : (
+                    <span>{footerText || `${options.length} ОПЦИЙ`}</span>
+                  )}
+                  <span className="text-neutral-600">3DLABS</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        );
+
+        return usePortal && typeof window !== 'undefined'
+          ? createPortal(menuContent, document.body)
+          : menuContent;
+      })()}
     </div>
   );
 }

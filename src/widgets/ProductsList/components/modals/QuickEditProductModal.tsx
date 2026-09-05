@@ -97,12 +97,13 @@ export function QuickEditProductModal({
     <Modal
       isOpen={Boolean(item)}
       onClose={onClose}
-      title={`§ 3D-LABS // QUICK_EDIT [ ${item.name} ]`}
+      title="Быстрое редактирование"
+      subtitle={item.name}
       maxWidth="lg"
       footer={
         <div className="flex justify-end gap-2 w-full font-mono text-xs">
           <CockpitButton type="button" onClick={onClose} disabled={isSaving}>
-            Отмена
+            Закрыть
           </CockpitButton>
           <CockpitButton
             type="submit"

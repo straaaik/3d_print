@@ -333,9 +333,8 @@ export function FilamentList() {
       <CockpitModal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        stamp={editingFilament ? 'EDIT_FILAMENT' : 'NEW_FILAMENT'}
-        title={editingFilament ? 'Редактирование катушки' : 'Новая катушка филамента'}
-        subtitle="Параметры сразу участвуют в расчёте себестоимости печати."
+        title={editingFilament ? 'Редактирование катушки' : 'Новая катушка'}
+        subtitle="Параметры материала"
         variant="cyan"
         maxWidth="2xl"
         badge={<span className="rounded border border-cyan-800/40 bg-cyan-950/60 px-2 py-0.5 text-[9px] font-bold text-cyan-400">MATERIAL</span>}
@@ -343,7 +342,7 @@ export function FilamentList() {
           <div className="flex w-full items-center justify-between gap-3">
             <span>UNIT COST: {previewUnitCost.toFixed(2)} {currencySymbol}/г</span>
             <div className="flex gap-2">
-              <CockpitButton onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>Отмена</CockpitButton>
+              <CockpitButton onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>Закрыть</CockpitButton>
               <CockpitButton type="submit" form="filament-form" isActive disabled={isSubmitting}>
                 {isSubmitting ? 'Сохранение...' : editingFilament ? 'Сохранить' : 'Добавить'}
               </CockpitButton>
@@ -377,14 +376,13 @@ export function FilamentList() {
       <CockpitModal
         isOpen={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
-        stamp="DELETE_FILAMENT"
-        title="Удалить катушку из каталога?"
-        subtitle="Действие необратимо, но уже сохранённые расчёты останутся без изменений."
+        title="Удаление катушки"
+        subtitle={deleteTarget ? deleteTarget.name : 'Подтверждение действия'}
         variant="warning"
         maxWidth="md"
         footer={(
           <div className="flex w-full justify-end gap-2">
-            <CockpitButton onClick={() => setDeleteTarget(null)}>Отмена</CockpitButton>
+            <CockpitButton onClick={() => setDeleteTarget(null)}>Закрыть</CockpitButton>
             <CockpitButton onClick={confirmDelete} icon={Trash2} className="border-rose-500/30 bg-rose-950/50 text-rose-300 hover:bg-rose-900/60">Удалить катушку</CockpitButton>
           </div>
         )}

@@ -32,6 +32,7 @@ export function getWarehouseMetrics(savedCalculations: SavedCalculation[]): Ware
  */
 export function getSalesStats(orders: Order[], savedCalculations: SavedCalculation[]) {
   const map = new Map<string, SalesStatInfo>();
+  let totalAllTimeSold = 0;
   let maxSoldQty = 0;
 
   orders.forEach((order) => {
@@ -53,12 +54,15 @@ export function getSalesStats(orders: Order[], savedCalculations: SavedCalculati
           orderCount: 0,
           totalRevenue: 0,
           isBestseller: false,
+          salesSharePercent: 0,
+          totalAllTimeSold: 0,
         };
         current.soldQty += orderQty;
         current.orderCount += 1;
         current.totalRevenue += orderAmount;
         map.set(matchedProductId, current);
 
+        totalAllTimeSold += orderQty;
         if (current.soldQty > maxSoldQty) {
           maxSoldQty = current.soldQty;
         }
@@ -66,11 +70,29 @@ export function getSalesStats(orders: Order[], savedCalculations: SavedCalculati
     }
   });
 
+  const activeProductsCount = map.size;
+  const averageShare = activeProductsCount > 0 ? 100 / activeProductsCount : 0;
+  
+  // Расчет адаптивного процентного порога:
+  // При 1-6 активных товарах: порог ровно 30% (как указано в правиле: <30% - не хит, >=30% - хит)
+  // При 7+ товарах: адаптируется под широкий каталог (минимум 15%, максимум 30%, но не менее 2x от среднего)
+  const thresholdPercent = activeProductsCount <= 6
+    ? 30
+    : Math.max(15, Math.min(30, Math.round(averageShare * 2)));
+
   map.forEach((val) => {
-    val.isBestseller = val.soldQty >= 3 || (maxSoldQty >= 2 && val.soldQty === maxSoldQty);
+    val.totalAllTimeSold = totalAllTimeSold;
+    val.salesSharePercent = totalAllTimeSold > 0
+      ? Math.round((val.soldQty / totalAllTimeSold) * 1000) / 10
+      : 0;
+
+    const meetsVolume = totalAllTimeSold >= 5 && val.soldQty >= 3;
+    const meetsShare = val.salesSharePercent >= thresholdPercent;
+
+    val.isBestseller = meetsVolume && meetsShare;
   });
 
-  return { map, maxSoldQty };
+  return { map, maxSoldQty, totalAllTimeSold, thresholdPercent };
 }
 
 export function prepareDraftOrderFromProduct(item: SavedCalculation) {
