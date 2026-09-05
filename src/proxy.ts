@@ -1,8 +1,26 @@
 import { type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/proxy';
+import { createContentSecurityPolicy } from '@/shared/lib/contentSecurityPolicy';
 
 export async function proxy(request: NextRequest) {
-  return await updateSession(request);
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  let supabaseOrigin: string | undefined;
+
+  try {
+    supabaseOrigin = supabaseUrl ? new URL(supabaseUrl).origin : undefined;
+  } catch {
+    supabaseOrigin = undefined;
+  }
+
+  return await updateSession(request, {
+    nonce,
+    contentSecurityPolicy: createContentSecurityPolicy({
+      nonce,
+      isDevelopment: process.env.NODE_ENV === 'development',
+      supabaseOrigin,
+    }),
+  });
 }
 
 export const config = {

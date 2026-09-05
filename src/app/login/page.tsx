@@ -60,7 +60,6 @@ export default function LoginPage() {
         if (res.success) {
           showSuccess('Вы успешно вошли в систему', 'Добро пожаловать!');
           router.replace('/orders');
-          window.location.href = '/orders';
         } else {
           setFormError(res.error || 'Не удалось выполнить вход');
           showError(res.error || 'Не удалось выполнить вход');

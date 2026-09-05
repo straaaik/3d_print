@@ -3,6 +3,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { getRandomAvatarColor } from '@/shared/api/authDb';
+import { persistProfileUpdate, type ProfileUpdateResult } from '@/shared/lib/profileUpdate';
 import { cookies } from 'next/headers';
 
 export interface RegisterActionParams {
@@ -17,6 +18,8 @@ export interface UpdateProfileActionParams {
   email: string;
   avatarColor?: string;
 }
+
+export type UpdateProfileActionResult = ProfileUpdateResult;
 
 /**
  * Регистрация нового пользователя по пригласительному ключу
@@ -100,7 +103,7 @@ export async function updateProfileAction({
   name,
   email,
   avatarColor,
-}: UpdateProfileActionParams): Promise<{ success: boolean; error?: string }> {
+}: UpdateProfileActionParams): Promise<UpdateProfileActionResult> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -118,32 +121,35 @@ export async function updateProfileAction({
     if (!cleanEmail || !cleanEmail.includes('@')) {
       return { success: false, error: 'Укажите корректный email' };
     }
-
-    // Если изменился email, обновляем в Supabase Auth
-    if (cleanEmail !== user.email?.toLowerCase()) {
-      const { error: emailError } = await supabase.auth.updateUser({
-        email: cleanEmail,
-      });
-      if (emailError) {
-        return { success: false, error: emailError.message };
-      }
+    if (avatarColor && !/^#[0-9a-f]{6}$/i.test(avatarColor)) {
+      return { success: false, error: 'Укажите корректный цвет аватара' };
     }
 
-    // Обновляем метаданные в profiles
-    const { error: profileError } = await (supabase as any)
-      .from('profiles')
-      .update({
+    return await persistProfileUpdate(
+      {
+        currentEmail: user.email,
         name: cleanName,
         email: cleanEmail,
-        avatar_color: avatarColor,
-      })
-      .eq('id', user.id);
-
-    if (profileError) {
-      return { success: false, error: profileError.message };
-    }
-
-    return { success: true };
+        avatarColor,
+      },
+      {
+        updateEmail: async (updatedEmail) => {
+          const { error } = await supabase.auth.updateUser({ email: updatedEmail });
+          return error?.message;
+        },
+        updateProfile: async (profile) => {
+          const { error } = await (supabase as any)
+            .from('profiles')
+            .update({
+              name: profile.name,
+              email: profile.email,
+              avatar_color: profile.avatarColor,
+            })
+            .eq('id', user.id);
+          return error?.message;
+        },
+      }
+    );
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : 'Ошибка обновления профиля' };
   }
@@ -205,6 +211,14 @@ export async function logoutAction(): Promise<void> {
   cookieStore.delete('3d_dev_session');
   const supabase = await createClient();
   await supabase.auth.signOut();
+}
+
+/** Returns the authoritative development session state from the server cookie. */
+export async function getDevSessionAction(): Promise<{ active: boolean }> {
+  if (process.env.NODE_ENV !== 'development') return { active: false };
+
+  const cookieStore = await cookies();
+  return { active: cookieStore.get('3d_dev_session')?.value === 'true' };
 }
 
 /**

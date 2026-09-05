@@ -4,8 +4,6 @@ import React, { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../../entities/model/AuthProvider';
 import { ShieldAlert, Lock } from 'lucide-react';
-import { Button } from './Button';
-import { UserProfileMenu } from '../../widgets/UserMenu/UserProfileMenu';
 
 import { 
   CockpitWorkspaceSkeleton, 
@@ -14,19 +12,19 @@ import {
   OrdersSkeleton 
 } from './CockpitSkeleton';
 import { MainNavbar } from './MainNavbar';
+import { isPublicAuthPath } from '../lib/safeRedirect';
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { currentUser, isAuthenticated, isAdmin, isLoading } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
 
   const isLoginPage = pathname === '/login';
-  const isAboutPage = pathname === '/about' || pathname?.startsWith('/about');
-  const isPublicPage = isLoginPage || isAboutPage;
+  const isPublicPage = isPublicAuthPath(pathname ?? '');
   const isAdminPage = pathname?.startsWith('/admin');
 
   useEffect(() => {
@@ -114,7 +112,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
           </div>
           <div className="space-y-1">
             <span className="font-mono text-xs text-rose-400 font-bold uppercase tracking-wider block">
-              // ТРЕБУЕТСЯ АВТОРИЗАЦИЯ
+              {'// ТРЕБУЕТСЯ АВТОРИЗАЦИЯ'}
             </span>
             <h2 className="text-lg font-bold text-white">Доступ ограничен</h2>
             <p className="text-neutral-400 text-xs leading-relaxed">
@@ -143,7 +141,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
           </div>
           <div className="space-y-1">
             <span className="font-mono text-xs text-amber-400 font-bold uppercase tracking-wider block">
-              // ОГРАНИЧЕНИЕ ПРАВ ДОСТУПА
+              {'// ОГРАНИЧЕНИЕ ПРАВ ДОСТУПА'}
             </span>
             <h2 className="text-lg font-bold text-white">Требуются права администратора</h2>
             <p className="text-neutral-400 text-xs leading-relaxed">

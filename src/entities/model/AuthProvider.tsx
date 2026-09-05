@@ -5,9 +5,9 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { User, RegistrationKey, UserRole } from '../../shared/types';
 import { createClient } from '@/lib/supabase/client';
 import * as authApi from '../../shared/api/authDb';
-import { registerAction, updateProfileAction, changePasswordAction, devLoginAction, logoutAction } from '@/app/auth/actions';
+import { registerAction, updateProfileAction, changePasswordAction, devLoginAction, getDevSessionAction, logoutAction } from '@/app/auth/actions';
 import { setStorageScope } from '../../shared/lib/storageScope';
-import { createInitialAuthRenderState } from './authHydration';
+import { createInitialAuthRenderState, reconcileDevSessionHydration, reconcilePartialProfileUser } from './authHydration';
 
 const DEV_FALLBACK_USER: User = {
   id: 'dev-admin-id',
@@ -134,31 +134,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const isDevelopment = process.env.NODE_ENV === 'development';
     const hasDevLocal = isDevelopment && typeof window !== 'undefined' && localStorage.getItem('3d_dev_session') === 'true';
 
+    const clearUnauthenticatedState = () => {
+      setStorageScope(null);
+      setCurrentUser(null);
+      setUsers([]);
+      setRegistrationKeys([]);
+      setIsLoading(false);
+    };
+
+    const reconcileDevSession = async () => {
+      let hasServerSession = false;
+      if (isDevelopment) {
+        try {
+          hasServerSession = (await getDevSessionAction()).active;
+        } catch {
+          hasServerSession = false;
+        }
+      }
+
+      if (!isMounted) return;
+      const hydration = reconcileDevSessionHydration(hasServerSession, hasDevLocal);
+      if (hydration.clearLocalHint && typeof window !== 'undefined') {
+        localStorage.removeItem('3d_dev_session');
+      }
+      if (hydration.authenticateAsDev) {
+        setStorageScope(DEV_FALLBACK_USER.id);
+        setCurrentUser(DEV_FALLBACK_USER);
+        setIsLoading(false);
+        return;
+      }
+      clearUnauthenticatedState();
+    };
+
     // Первоначальная проверка пользователя
-    supabase.auth.getUser().then((res: any) => {
+    supabase.auth.getUser().then(async (res: any) => {
       if (!isMounted) return;
       const user = res?.data?.user;
       if (user) {
         loadProfile(user.id);
-      } else if (hasDevLocal) {
-        setStorageScope(DEV_FALLBACK_USER.id);
-        setCurrentUser(DEV_FALLBACK_USER);
-        setIsLoading(false);
       } else {
-        setStorageScope(null);
-        setCurrentUser(null);
-        setIsLoading(false);
+        await reconcileDevSession();
       }
-    }).catch(() => {
+    }).catch(async () => {
       if (!isMounted) return;
-      if (hasDevLocal) {
-        setStorageScope(DEV_FALLBACK_USER.id);
-        setCurrentUser(DEV_FALLBACK_USER);
-      } else {
-        setStorageScope(null);
-        setCurrentUser(null);
-      }
-      setIsLoading(false);
+      await reconcileDevSession();
     });
 
     // Подписка на события авторизации
@@ -167,18 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (session?.user) {
         loadProfile(session.user.id);
       } else {
-        const isStillDev = process.env.NODE_ENV === 'development' &&
-          typeof window !== 'undefined' && localStorage.getItem('3d_dev_session') === 'true';
-        if (isStillDev) {
-          setStorageScope(DEV_FALLBACK_USER.id);
-          setCurrentUser(DEV_FALLBACK_USER);
-        } else {
-          setStorageScope(null);
-          setCurrentUser(null);
-          setUsers([]);
-          setRegistrationKeys([]);
-        }
-        setIsLoading(false);
+        void reconcileDevSession();
       }
     });
 
@@ -342,6 +350,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!profileRes.success) {
+        if (profileRes.partial) {
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+              setCurrentUser((existingUser) => existingUser
+                ? reconcilePartialProfileUser(existingUser, user.email)
+                : existingUser);
+            }
+          } catch (refreshError) {
+            console.error('Не удалось обновить Auth-пользователя после частичного обновления профиля:', refreshError);
+          }
+        }
         return { success: false, error: profileRes.error };
       }
 
