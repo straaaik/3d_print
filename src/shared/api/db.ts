@@ -1,8 +1,9 @@
 import { Filament, Printer, Settings, SavedCalculation, Order, ProductCollection } from '../types';
 /* eslint-disable @typescript-eslint/no-explicit-any -- Supabase schema types are not generated in this project yet. */
 import { generateRandomSeedData, SeedDataResult } from '../lib/seedGenerator';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '../../lib/supabase/client';
 import { getScopedStorageKey, getStorageScope } from '../lib/storageScope';
+import { parseDataBackup, type ParsedDataBackup } from '../lib/dataBackup';
 
 const STORAGE_BASE_KEYS = {
   FILAMENTS: '3d_calc_filaments',
@@ -46,20 +47,20 @@ export class DatabaseOperationError extends Error {
 
 function readLocalJson<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
-  const raw = localStorage.getItem(key);
+  const raw = window.localStorage.getItem(key);
   if (!raw) return fallback;
   try {
     return JSON.parse(raw) as T;
   } catch (error) {
     console.warn(`Повреждён локальный кэш «${key}», использовано безопасное значение.`, error);
-    localStorage.removeItem(key);
+    window.localStorage.removeItem(key);
     return fallback;
   }
 }
 
 function writeLocalJson<T>(key: string, value: T): void {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(key, JSON.stringify(value));
+  window.localStorage.setItem(key, JSON.stringify(value));
 }
 
 function upsertLocalItem<T extends { id: string }>(key: string, item: T): T[] {
@@ -1028,83 +1029,94 @@ export async function deleteOrders(ids: string[]): Promise<boolean> {
  * Полностью удаляет все данные из всех таблиц (orders, saved_calculations, settings, filaments, printers)
  * как в Supabase (если подключен и авторизован), так и в LocalStorage.
  */
+type DatabaseClient = {
+  from: (table: string) => any;
+  rpc?: (functionName: string, args?: Record<string, unknown>) => Promise<{ error?: unknown } | null | undefined>;
+  auth?: { getUser?: () => Promise<{ data?: { user?: { id: string } | null }; error?: unknown }> };
+};
+
+const EMPTY_DATABASE_ID = '00000000-0000-0000-0000-000000000000';
+const DATABASE_TABLES = ['monthly_goals', 'orders', 'saved_calculations', 'collections', 'settings', 'filaments', 'printers'] as const;
+
+function requireSupabaseSuccess(operation: string, response: { error?: unknown } | null | undefined): void {
+  if (response?.error) throwDatabaseError(operation, response.error);
+}
+
+async function getClientUserId(client: DatabaseClient): Promise<string | undefined> {
+  if (!client.auth?.getUser) return undefined;
+  const { data, error } = await client.auth.getUser();
+  if (error) throwDatabaseError('проверка пользователя восстановления', error);
+  return data?.user?.id;
+}
+
+async function clearCloudDatabaseTables(client: DatabaseClient): Promise<void> {
+  for (const table of DATABASE_TABLES) {
+    const response = await client.from(table).delete().neq('id', EMPTY_DATABASE_ID);
+    requireSupabaseSuccess(`очистка таблицы ${table}`, response);
+  }
+}
+
+function clearLocalDatabaseTables(): void {
+  if (typeof window === 'undefined') return;
+  writeLocalJson(STORAGE_KEYS.FILAMENTS, []);
+  writeLocalJson(STORAGE_KEYS.PRINTERS, []);
+  writeLocalJson(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+  writeLocalJson(STORAGE_KEYS.SAVED_CALCULATIONS, []);
+  writeLocalJson(STORAGE_KEYS.ORDERS, []);
+  writeLocalJson(STORAGE_KEYS.COLLECTIONS, []);
+  writeLocalJson(STORAGE_KEYS.MONTHLY_GOALS, DEFAULT_MONTHLY_GOALS_CONFIG);
+  writeLocalJson(STORAGE_KEYS.SYNC_QUEUE, []);
+}
+
+/** Clears cloud tables first, then makes local caches and the sync queue empty. */
+export async function clearAllDatabaseTablesWithClient(client: DatabaseClient | null): Promise<void> {
+  if (client) await clearCloudDatabaseTables(client);
+  clearLocalDatabaseTables();
+}
+
 export async function clearAllDatabaseTables(): Promise<void> {
-  const client = await getAuthenticatedSupabaseClient();
-
-  if (client) {
-    try {
-      // Удаляем из всех таблиц с учетом foreign keys (сначала зависимые)
-      await (client as any).from('monthly_goals').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await (client as any).from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await (client as any).from('saved_calculations').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await (client as any).from('collections').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await (client as any).from('settings').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await (client as any).from('filaments').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await (client as any).from('printers').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    } catch (e) {
-      console.error('Ошибка при очистке таблиц Supabase:', e);
-    }
-  }
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEYS.FILAMENTS, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEYS.PRINTERS, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
-    localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify([]));
-    localStorage.setItem(STORAGE_KEYS.MONTHLY_GOALS, JSON.stringify(DEFAULT_MONTHLY_GOALS_CONFIG));
-  }
+  await clearAllDatabaseTablesWithClient(await getAuthenticatedSupabaseClient());
 }
 
 /**
  * Очищает все таблицы и заполняет базу случайно сгенерированными реалистичными данными.
  */
+async function insertRows(client: DatabaseClient, table: string, rows: unknown[] | unknown): Promise<void> {
+  if (Array.isArray(rows) && rows.length === 0) return;
+  const response = await client.from(table).insert(rows);
+  requireSupabaseSuccess(`заполнение таблицы ${table}`, response);
+}
+
+function writeSeedToLocalStorage(seedData: SeedDataResult): void {
+  if (typeof window === 'undefined') return;
+  writeLocalJson(STORAGE_KEYS.PRINTERS, seedData.printers);
+  writeLocalJson(STORAGE_KEYS.FILAMENTS, seedData.filaments);
+  writeLocalJson(STORAGE_KEYS.SETTINGS, seedData.settings);
+  writeLocalJson(STORAGE_KEYS.SAVED_CALCULATIONS, seedData.savedCalculations.map(withoutStlPayload));
+  writeLocalJson(STORAGE_KEYS.ORDERS, seedData.orders);
+  writeLocalJson(STORAGE_KEYS.COLLECTIONS, seedData.collections || []);
+  writeLocalJson(STORAGE_KEYS.MONTHLY_GOALS, DEFAULT_MONTHLY_GOALS_CONFIG);
+  writeLocalJson(STORAGE_KEYS.SYNC_QUEUE, []);
+}
+
+/** Restores generated data without changing local caches until every cloud write has succeeded. */
+export async function resetAndSeedDatabaseWithClient(seedData: SeedDataResult, client: DatabaseClient | null): Promise<SeedDataResult> {
+  if (client) {
+    await clearCloudDatabaseTables(client);
+    await insertRows(client, 'printers', seedData.printers);
+    await insertRows(client, 'filaments', seedData.filaments);
+    await insertRows(client, 'settings', seedData.settings);
+    await insertRows(client, 'collections', seedData.collections || []);
+    await insertRows(client, 'saved_calculations', seedData.savedCalculations);
+    await insertRows(client, 'orders', seedData.orders);
+  }
+  writeSeedToLocalStorage(seedData);
+  return seedData;
+}
+
 export async function resetAndSeedDatabase(customSeed?: SeedDataResult): Promise<SeedDataResult> {
   const seedData = customSeed || generateRandomSeedData();
-
-  // 1. Очищаем все таблицы
-  await clearAllDatabaseTables();
-
-  // 2. Записываем в LocalStorage
-  if (typeof window !== 'undefined') {
-    const safeCalcs = seedData.savedCalculations.map(withoutStlPayload);
-    localStorage.setItem(STORAGE_KEYS.PRINTERS, JSON.stringify(seedData.printers));
-    localStorage.setItem(STORAGE_KEYS.FILAMENTS, JSON.stringify(seedData.filaments));
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(seedData.settings));
-    localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(safeCalcs));
-    localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(seedData.orders));
-    localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(seedData.collections || []));
-  }
-
-  // 3. Записываем в Supabase (если подключен и есть авторизованная сессия)
-  const client = await getAuthenticatedSupabaseClient();
-  if (client) {
-    try {
-      if (seedData.printers.length > 0) {
-        await (client as any).from('printers').insert(seedData.printers);
-      }
-      if (seedData.filaments.length > 0) {
-        await (client as any).from('filaments').insert(seedData.filaments);
-      }
-      if (seedData.settings) {
-        await (client as any).from('settings').insert(seedData.settings);
-      }
-      if (seedData.collections && seedData.collections.length > 0) {
-        await (client as any).from('collections').insert(seedData.collections);
-      }
-      if (seedData.savedCalculations.length > 0) {
-        await (client as any).from('saved_calculations').insert(seedData.savedCalculations);
-      }
-      if (seedData.orders.length > 0) {
-        await (client as any).from('orders').insert(seedData.orders);
-      }
-    } catch (e) {
-      console.error('Ошибка вставки сгенерированных данных в Supabase:', e);
-    }
-  }
-
-  return seedData;
+  return resetAndSeedDatabaseWithClient(seedData, await getAuthenticatedSupabaseClient());
 }
 
 export const clearAllData = clearAllDatabaseTables;
@@ -1293,6 +1305,206 @@ export async function saveMonthlyGoalsConfig(config: MonthlyGoalsConfig): Promis
       console.error('Ошибка сохранения целей в localStorage:', err);
     }
   }
+}
+
+function toMonthlyGoalRows(config: MonthlyGoalsConfig) {
+  const updatedAt = new Date().toISOString();
+  return [
+    { month_key: 'default', target_amount: config.defaultGoal, updated_at: updatedAt },
+    ...Object.entries(config.monthlyGoals).map(([monthKey, amount]) => ({
+      month_key: monthKey,
+      target_amount: amount,
+      updated_at: updatedAt,
+    })),
+  ];
+}
+
+function toFilamentRow(item: Filament, userId?: string): Record<string, unknown> {
+  return {
+    id: item.id,
+    ...(userId ? { user_id: userId } : {}),
+    ...(item.created_at ? { created_at: item.created_at } : {}),
+    name: item.name,
+    weight_g: item.weight_g,
+    price: item.price,
+    ...(item.color !== undefined ? { color: item.color } : {}),
+  };
+}
+
+function toPrinterRow(item: Printer, userId?: string): Record<string, unknown> {
+  return {
+    id: item.id,
+    ...(userId ? { user_id: userId } : {}),
+    ...(item.created_at ? { created_at: item.created_at } : {}),
+    name: item.name,
+    power_w: item.power_w,
+    price: item.price,
+    lifespan_hours: item.lifespan_hours,
+    ...(item.color !== undefined ? { color: item.color } : {}),
+  };
+}
+
+function toSettingsRow(settings: Settings, userId?: string): Record<string, unknown> {
+  return {
+    ...(userId ? { user_id: userId } : {}),
+    ...(settings.updated_at ? { updated_at: settings.updated_at } : {}),
+    currency: settings.currency,
+    electricity_rate: settings.electricity_rate,
+    default_printer_id: settings.default_printer_id,
+    labor_rate_per_hour: settings.labor_rate_per_hour,
+    labor_time_minutes: settings.labor_time_minutes,
+    ...(settings.is_owner_labor_default !== undefined ? { is_owner_labor_default: settings.is_owner_labor_default } : {}),
+    ...(settings.is_labor_per_unit_default !== undefined ? { is_labor_per_unit_default: settings.is_labor_per_unit_default } : {}),
+    ...(settings.min_order_price !== undefined ? { min_order_price: settings.min_order_price } : {}),
+    ...(settings.enable_material_difficulty !== undefined ? { enable_material_difficulty: settings.enable_material_difficulty } : {}),
+    ...(settings.material_multipliers !== undefined ? { material_multipliers: settings.material_multipliers } : {}),
+    default_markup_percent: settings.default_markup_percent,
+    default_defect_percent: settings.default_defect_percent,
+    ...(settings.default_urgency_percent !== undefined ? { default_urgency_percent: settings.default_urgency_percent } : {}),
+  };
+}
+
+function toCollectionRow(item: ProductCollection, userId?: string): Record<string, unknown> {
+  return {
+    id: item.id,
+    ...(userId ? { user_id: userId } : {}),
+    ...(item.created_at ? { created_at: item.created_at } : {}),
+    name: item.name,
+    ...(item.category !== undefined ? { category: item.category } : {}),
+    ...(item.tags !== undefined ? { tags: item.tags } : {}),
+    ...(item.description !== undefined ? { description: item.description } : {}),
+  };
+}
+
+function toSavedCalculationRow(item: SavedCalculation, userId?: string): Record<string, unknown> {
+  const columns = [
+    'id', 'created_at', 'name', 'type', 'filament_name', 'filament_color', 'printer_name',
+    'weight_g', 'hours', 'minutes', 'quantity', 'base_cost', 'final_price', 'filament_id',
+    'printer_id', 'labor_minutes', 'labor_rate_per_hour', 'is_owner_labor', 'is_labor_per_unit',
+    'markup_percent', 'defect_percent', 'collection_id', 'collection_name', 'assembly_parts',
+    'assembly_hardware', 'assembly_labor_minutes', 'assembly_labor_cost', 'custom_cost_items',
+    'discount_percent', 'discount_amount', 'urgency_percent', 'urgency_amount', 'category', 'tags',
+    'stock_quantity', 'stl_url', 'stl_file_name', 'stl_file_data',
+  ] as const;
+  const row = Object.fromEntries(columns.filter(column => item[column] !== undefined).map(column => [column, item[column]]));
+  if (userId) row.user_id = userId;
+  return row;
+}
+
+function toOrderRow(item: Order, userId?: string): Record<string, unknown> {
+  const columns = [
+    'id', 'created_at', 'order_number', 'date', 'type', 'title', 'quantity', 'base_amount',
+    'urgency_type', 'urgency_percent', 'urgency_amount', 'discount_type', 'discount_percent',
+    'discount_amount', 'amount', 'cost', 'cost_items', 'payments', 'payment', 'client', 'client_name',
+    'contact', 'contacts', 'deadline', 'status', 'notes', 'product_id',
+  ] as const;
+  const row = Object.fromEntries(columns.filter(column => item[column] !== undefined).map(column => [column, item[column]]));
+  if (userId) row.user_id = userId;
+  return row;
+}
+
+function toMonthlyGoalRowsForUser(config: MonthlyGoalsConfig, userId?: string): Record<string, unknown>[] {
+  return toMonthlyGoalRows(config).map(row => userId ? { ...row, user_id: userId } : row);
+}
+
+function prepareInventoryForOrderRestore(calculations: SavedCalculation[], orders: Order[]): SavedCalculation[] {
+  const requiredByProduct = new Map<string, number>();
+  for (const order of orders) {
+    if (order.type !== 'income' || !order.product_id) continue;
+    requiredByProduct.set(order.product_id, (requiredByProduct.get(order.product_id) || 0) + Math.max(0, order.quantity || 0));
+  }
+  return calculations.map(calculation => {
+    const required = requiredByProduct.get(calculation.id) || 0;
+    return required > 0
+      ? { ...calculation, stock_quantity: Math.max(0, calculation.stock_quantity || 0) + required }
+      : calculation;
+  });
+}
+
+async function replaceCloudTable(client: DatabaseClient, table: string, rows: unknown[] | unknown): Promise<void> {
+  const deleted = await client.from(table).delete().neq('id', EMPTY_DATABASE_ID);
+  requireSupabaseSuccess(`очистка таблицы ${table}`, deleted);
+  await insertRows(client, table, rows);
+}
+
+async function restoreCloudDatabaseSnapshot(client: DatabaseClient, snapshot: ParsedDataBackup): Promise<void> {
+  const userId = await getClientUserId(client);
+  if (snapshot.filaments !== undefined) await replaceCloudTable(client, 'filaments', snapshot.filaments.map(item => toFilamentRow(item, userId)));
+  if (snapshot.printers !== undefined) await replaceCloudTable(client, 'printers', snapshot.printers.map(item => toPrinterRow(item, userId)));
+  if (snapshot.settings !== undefined) await replaceCloudTable(client, 'settings', snapshot.settings === null ? [] : toSettingsRow(snapshot.settings, userId));
+
+  if (snapshot.collections !== undefined) {
+    const rows = snapshot.collections.map(item => toCollectionRow(item, userId));
+    if (client.rpc) {
+      const response = await client.rpc('restore_collections_snapshot', { p_items: rows });
+      requireSupabaseSuccess('восстановление снимка коллекций', response);
+    } else {
+      await replaceCloudTable(client, 'collections', rows);
+    }
+  }
+
+  const restoreCalculations = async (calculations: SavedCalculation[]) => {
+    const rows = calculations.map(item => toSavedCalculationRow(item, userId));
+    if (client.rpc) {
+      const response = await client.rpc('restore_saved_calculations_snapshot', { p_items: rows });
+      requireSupabaseSuccess('восстановление снимка расчётов', response);
+    } else {
+      await replaceCloudTable(client, 'saved_calculations', rows);
+    }
+  };
+
+  // The order RPC adjusts product stock while replaying orders. Seed a
+  // temporary pre-order stock, then restore the exact backup values after the
+  // replay so the final catalog is byte-for-byte equivalent to the snapshot.
+  const hasInventoryChanges = snapshot.orders?.some(order =>
+    order.type === 'income' && Boolean(order.product_id) && Math.max(0, order.quantity || 0) > 0
+  ) ?? false;
+  if (snapshot.savedCalculations !== undefined) {
+    const preparedCalculations = hasInventoryChanges
+      ? prepareInventoryForOrderRestore(snapshot.savedCalculations, snapshot.orders || [])
+      : snapshot.savedCalculations;
+    await restoreCalculations(preparedCalculations);
+  }
+  if (snapshot.orders !== undefined) {
+    const rows = snapshot.orders.map(item => toOrderRow(item, userId));
+    if (client.rpc) {
+      const response = await client.rpc('restore_orders_snapshot', { p_orders: rows });
+      requireSupabaseSuccess('восстановление снимка заказов', response);
+    } else {
+      await replaceCloudTable(client, 'orders', rows);
+    }
+  }
+  if (snapshot.savedCalculations !== undefined && hasInventoryChanges) {
+    await restoreCalculations(snapshot.savedCalculations);
+  }
+  if (snapshot.monthlyGoals !== undefined) {
+    await replaceCloudTable(client, 'monthly_goals', toMonthlyGoalRowsForUser(snapshot.monthlyGoals, userId));
+  }
+}
+
+function writeRestoredSnapshotToLocalStorage(snapshot: ParsedDataBackup): void {
+  if (typeof window === 'undefined') return;
+  if (snapshot.filaments !== undefined) writeLocalJson(STORAGE_KEYS.FILAMENTS, snapshot.filaments);
+  if (snapshot.printers !== undefined) writeLocalJson(STORAGE_KEYS.PRINTERS, snapshot.printers);
+  if (snapshot.settings !== undefined) writeLocalJson(STORAGE_KEYS.SETTINGS, snapshot.settings);
+  if (snapshot.savedCalculations !== undefined) writeLocalJson(STORAGE_KEYS.SAVED_CALCULATIONS, snapshot.savedCalculations.map(withoutStlPayload));
+  if (snapshot.collections !== undefined) writeLocalJson(STORAGE_KEYS.COLLECTIONS, snapshot.collections);
+  // V1 did not contain orders or monthly goals: their absence preserves existing data.
+  if (snapshot.orders !== undefined) writeLocalJson(STORAGE_KEYS.ORDERS, snapshot.orders);
+  if (snapshot.monthlyGoals !== undefined) writeLocalJson(STORAGE_KEYS.MONTHLY_GOALS, snapshot.monthlyGoals);
+  writeLocalJson(STORAGE_KEYS.SYNC_QUEUE, []);
+}
+
+/** Validates the complete backup before touching cloud or local storage. */
+export async function restoreDatabaseSnapshotWithClient(input: unknown, client: DatabaseClient | null): Promise<ParsedDataBackup> {
+  const snapshot = parseDataBackup(input);
+  if (client) await restoreCloudDatabaseSnapshot(client, snapshot);
+  writeRestoredSnapshotToLocalStorage(snapshot);
+  return snapshot;
+}
+
+export async function restoreDatabaseSnapshot(snapshot: unknown): Promise<void> {
+  await restoreDatabaseSnapshotWithClient(snapshot, await getAuthenticatedSupabaseClient());
 }
 
 // ==========================================

@@ -19,6 +19,8 @@ try {
     'tests/inventory-registry-table.test.tsx',
     'tests/auth-hydration.test.ts',
     'tests/products-v2.test.tsx',
+    'tests/data-backup.test.ts',
+    'tests/database-maintenance.test.ts',
     '--outDir', outputDirectory,
     '--module', 'commonjs',
     '--moduleResolution', 'node',
@@ -42,6 +44,8 @@ try {
     resolve(outputDirectory, 'tests', 'inventory-registry-table.test.js'),
     resolve(outputDirectory, 'tests', 'auth-hydration.test.js'),
     resolve(outputDirectory, 'tests', 'products-v2.test.js'),
+    resolve(outputDirectory, 'tests', 'data-backup.test.js'),
+    resolve(outputDirectory, 'tests', 'database-maintenance.test.js'),
   ], { stdio: 'inherit' });
   process.exitCode = run.status ?? 1;
 } finally {

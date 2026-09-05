@@ -3,6 +3,7 @@
 import React, { createContext, useCallback, useContext, useState, useEffect, useRef } from 'react';
 import { Filament, Printer, Settings, SavedCalculation, CustomCostItem, ProductCollection, Order } from '../../shared/types';
 import * as api from '../../shared/api/db';
+import { parseDataBackup, type ParsedDataBackup } from '../../shared/lib/dataBackup';
 import { useToast } from './ToastProvider';
 import { useAuth } from './AuthProvider';
 
@@ -96,6 +97,7 @@ interface DataContextType {
   // Data management & Random Seed
   seedRandomData: () => Promise<void>;
   clearAllData: () => Promise<void>;
+  restoreBackup: (snapshot: unknown) => Promise<void>;
   refreshAllData: () => Promise<void>;
 }
 
@@ -493,6 +495,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const restoreBackup = async (input: unknown) => {
+    // Parse before any API call so malformed nested entities cannot partially
+    // overwrite cloud or local data. The API validates again at its boundary.
+    const snapshot: ParsedDataBackup = parseDataBackup(input);
+    await api.restoreDatabaseSnapshot(snapshot);
+
+    if (snapshot.filaments !== undefined) setFilaments(snapshot.filaments);
+    if (snapshot.printers !== undefined) setPrinters(snapshot.printers);
+    if (snapshot.settings !== undefined) setSettings(snapshot.settings);
+    if (snapshot.savedCalculations !== undefined) setSavedCalculations(snapshot.savedCalculations);
+    if (snapshot.collections !== undefined) setCollections(snapshot.collections);
+    if (snapshot.orders !== undefined) setOrders(snapshot.orders);
+    if (snapshot.monthlyGoals !== undefined) setMonthlyGoals(snapshot.monthlyGoals);
+    setIsOnline(await api.checkSupabaseConnection());
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('3d-data-synchronized'));
+    }
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -565,6 +587,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         refreshConnection,
         seedRandomData,
         clearAllData,
+        restoreBackup,
         refreshAllData,
       }}
     >

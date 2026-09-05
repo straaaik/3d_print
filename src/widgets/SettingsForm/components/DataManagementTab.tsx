@@ -6,7 +6,7 @@ import { CockpitButton } from '../../../shared/ui/CockpitButton';
 import { CockpitModal } from '../../../shared/ui/CockpitModal';
 import { useToast } from '../../../entities/model/ToastProvider';
 import { useData } from '../../../entities/model/DataProvider';
-import { STORAGE_KEYS } from '../../../shared/api/db';
+import { createDataBackup } from '../../../shared/lib/dataBackup';
 import { 
   Download, 
   Upload, 
@@ -39,7 +39,18 @@ export function DataManagementTab({
   isConfirmSeedModalOpen,
   setIsConfirmSeedModalOpen,
 }: DataManagementTabProps) {
-  const { filaments, printers, settings, savedCalculations, collections, seedRandomData, clearAllData } = useData();
+  const {
+    filaments,
+    printers,
+    settings,
+    savedCalculations,
+    collections,
+    orders,
+    monthlyGoals,
+    seedRandomData,
+    clearAllData,
+    restoreBackup,
+  } = useData();
   const { showToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -49,14 +60,15 @@ export function DataManagementTab({
     if (typeof window === 'undefined') return;
 
     try {
-      const backup = {
+      const backup = createDataBackup({
         filaments,
         printers,
         settings,
         savedCalculations,
         collections,
-        exportedAt: new Date().toISOString(),
-      };
+        orders,
+        monthlyGoals,
+      });
 
       const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(backup, null, 2));
       const downloadAnchor = document.createElement('a');
@@ -78,54 +90,16 @@ export function DataManagementTab({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    fileReader.onload = (event) => {
+    fileReader.onload = async (event) => {
       try {
         const parsed = JSON.parse(event.target?.result as string);
-
-        const isValidArray = (val: unknown) => !val || (Array.isArray(val) && val.every((item) => typeof item === 'object' && item !== null));
-        const isValidObject = (val: unknown) => !val || (typeof val === 'object' && val !== null && !Array.isArray(val));
-
-        if (!parsed || typeof parsed !== 'object') {
-          showToast('Неверный формат файла резервной копии.', 'error');
-          return;
-        }
-
-        if (parsed.filaments && !isValidArray(parsed.filaments)) {
-          showToast('Ошибка: поле filaments имеет неверный формат.', 'error');
-          return;
-        }
-        if (parsed.printers && !isValidArray(parsed.printers)) {
-          showToast('Ошибка: поле printers имеет неверный формат.', 'error');
-          return;
-        }
-        if (parsed.settings && !isValidObject(parsed.settings)) {
-          showToast('Ошибка: поле settings имеет неверный формат.', 'error');
-          return;
-        }
-        if (parsed.savedCalculations && !isValidArray(parsed.savedCalculations)) {
-          showToast('Ошибка: поле savedCalculations имеет неверный формат.', 'error');
-          return;
-        }
-        if (parsed.collections && !isValidArray(parsed.collections)) {
-          showToast('Ошибка: поле collections имеет неверный формат.', 'error');
-          return;
-        }
-
-        if (parsed.filaments || parsed.printers || parsed.settings || parsed.savedCalculations || parsed.collections) {
-          if (parsed.filaments) localStorage.setItem(STORAGE_KEYS.FILAMENTS, JSON.stringify(parsed.filaments));
-          if (parsed.printers) localStorage.setItem(STORAGE_KEYS.PRINTERS, JSON.stringify(parsed.printers));
-          if (parsed.settings) localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(parsed.settings));
-          if (parsed.savedCalculations) localStorage.setItem(STORAGE_KEYS.SAVED_CALCULATIONS, JSON.stringify(parsed.savedCalculations));
-          if (parsed.collections) localStorage.setItem(STORAGE_KEYS.COLLECTIONS, JSON.stringify(parsed.collections));
-
-          showToast('Данные успешно импортированы! Перезагрузка страницы...', 'success');
-          setTimeout(() => window.location.reload(), 1200);
-        } else {
-          showToast('В файле нет поддерживаемых данных для восстановления.', 'error');
-        }
+        await restoreBackup(parsed);
+        showToast('Данные успешно восстановлены из резервной копии.', 'success');
       } catch (err) {
         console.error(err);
-        showToast('Ошибка при чтении файла резервной копии.', 'error');
+        showToast(err instanceof Error ? err.message : 'Ошибка при восстановлении резервной копии.', 'error');
+      } finally {
+        e.target.value = '';
       }
     };
     fileReader.readAsText(file);
