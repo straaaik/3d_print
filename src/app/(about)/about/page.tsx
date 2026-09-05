@@ -17,16 +17,16 @@ import {
   Activity,
   CheckCircle2
 } from 'lucide-react';
-import { useAuth } from '../../entities/model/AuthProvider';
-import { AboutHeader } from '../../widgets/About/AboutHeader';
-import { CockpitPreview } from '../../widgets/About/CockpitPreview';
-import { SpecInteractive } from '../../widgets/About/SpecInteractive';
-import { TelemetrySection } from '../../widgets/About/TelemetrySection';
-import { DynamicIslandPreview } from '../../widgets/About/DynamicIslandPreview';
-import { ComparisonSection } from '../../widgets/About/ComparisonSection';
-import { BentoWall } from '../../widgets/About/BentoWall';
-import { FaqSection } from '../../widgets/About/FaqSection';
-import { AboutFooter } from '../../widgets/About/AboutFooter';
+import { useAuth } from '../../../entities/model/AuthProvider';
+import { AboutHeader } from '../../../widgets/About/AboutHeader';
+import { CockpitPreview } from '../../../widgets/About/CockpitPreview';
+import { SpecInteractive } from '../../../widgets/About/SpecInteractive';
+import { TelemetrySection } from '../../../widgets/About/TelemetrySection';
+import { DynamicIslandPreview } from '../../../widgets/About/DynamicIslandPreview';
+import { ComparisonSection } from '../../../widgets/About/ComparisonSection';
+import { BentoWall } from '../../../widgets/About/BentoWall';
+import { FaqSection } from '../../../widgets/About/FaqSection';
+import { AboutFooter } from '../../../widgets/About/AboutFooter';
 
 export default function AboutPage() {
   const { isAuthenticated } = useAuth();

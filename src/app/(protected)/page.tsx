@@ -4,10 +4,10 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
-import { useData } from '../entities/model/DataProvider';
-import { UserProfileMenu } from '../widgets/UserMenu/UserProfileMenu';
-import { usePixelCurtain } from '../shared/ui/PixelCurtain';
-import { HubSkeleton } from '../shared/ui/CockpitSkeleton';
+import { useData } from '../../entities/model/DataProvider';
+import { UserProfileMenu } from '../../widgets/UserMenu/UserProfileMenu';
+import { usePixelCurtain } from '../../shared/ui/PixelCurtain';
+import { HubSkeleton } from '../../shared/ui/CockpitSkeleton';
 
 interface HubSection {
   id: string;
@@ -250,6 +250,5 @@ export default function HomePage() {
     </div>
   );
 }
-
 
 

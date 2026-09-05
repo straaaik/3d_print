@@ -22,6 +22,7 @@ try {
     'tests/products-v2.test.tsx',
     'tests/data-backup.test.ts',
     'tests/database-maintenance.test.ts',
+    'tests/runtime-architecture.test.tsx',
     '--outDir', outputDirectory,
     '--module', 'commonjs',
     '--moduleResolution', 'node',
@@ -48,6 +49,7 @@ try {
     resolve(outputDirectory, 'tests', 'products-v2.test.js'),
     resolve(outputDirectory, 'tests', 'data-backup.test.js'),
     resolve(outputDirectory, 'tests', 'database-maintenance.test.js'),
+    resolve(outputDirectory, 'tests', 'runtime-architecture.test.js'),
   ], { stdio: 'inherit' });
   process.exitCode = run.status ?? 1;
 } finally {

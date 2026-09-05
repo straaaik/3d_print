@@ -3,15 +3,15 @@
 import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check, Database, RotateCcw, Sliders } from 'lucide-react';
-import { SettingsForm } from '../../widgets/SettingsForm/SettingsForm';
-import { InventoryCockpitShell } from '../../widgets/InventoryCockpit/InventoryCockpitShell';
-import { MainNavbar } from '../../shared/ui/MainNavbar';
-import { CockpitButton } from '../../shared/ui/CockpitButton';
-import { CockpitModal } from '../../shared/ui/CockpitModal';
-import { useData } from '../../entities/model/DataProvider';
-import { usePixelCurtain } from '../../shared/ui/PixelCurtain';
-import { usePersistentState } from '../../shared/lib/usePersistentState';
-import { SettingsSkeleton } from '../../shared/ui/CockpitSkeleton';
+import { SettingsForm } from '../../../widgets/SettingsForm/SettingsForm';
+import { InventoryCockpitShell } from '../../../widgets/InventoryCockpit/InventoryCockpitShell';
+import { MainNavbar } from '../../../shared/ui/MainNavbar';
+import { CockpitButton } from '../../../shared/ui/CockpitButton';
+import { CockpitModal } from '../../../shared/ui/CockpitModal';
+import { useData } from '../../../entities/model/DataProvider';
+import { usePixelCurtain } from '../../../shared/ui/PixelCurtain';
+import { usePersistentState } from '../../../shared/lib/usePersistentState';
+import { SettingsSkeleton } from '../../../shared/ui/CockpitSkeleton';
 
 export default function SettingsPage() {
   const router = useRouter();

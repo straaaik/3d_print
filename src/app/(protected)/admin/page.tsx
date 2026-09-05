@@ -3,9 +3,9 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShieldX } from 'lucide-react';
-import { AdminPanel } from '../../widgets/Admin/AdminPanel';
-import { MainNavbar } from '../../shared/ui/MainNavbar';
-import { useAuth } from '../../entities/model/AuthProvider';
+import { AdminPanel } from '../../../widgets/Admin/AdminPanel';
+import { MainNavbar } from '../../../shared/ui/MainNavbar';
+import { useAuth } from '../../../entities/model/AuthProvider';
 
 export default function AdminPage() {
   const router = useRouter();

@@ -1,16 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from 'next/navigation';
 import { useData } from '../../entities/model/DataProvider';
 import { MainNavbar } from '../../shared/ui/MainNavbar';
 import { usePersistentState } from '../../shared/lib/usePersistentState';
-import { OrdersTable } from '../Orders/OrdersTable';
-import { Calculator } from '../Calculator/Calculator';
-import { StatsDashboard } from '../Stats/StatsDashboard';
-import { ProductsList } from '../ProductsList/ProductsList';
-import { FilamentList } from '../FilamentList/FilamentList';
-import { PrinterList } from '../PrinterList/PrinterList';
 import { 
   OrdersSkeleton, 
   CalculatorSkeleton, 
@@ -28,6 +23,31 @@ import {
   shouldShowFullscreenDevelopmentGate,
 } from '../../shared/ui/CockpitContentTransition';
 import { FullscreenDevelopmentGate } from '../../shared/ui/FullscreenDevelopmentGate';
+
+const OrdersTable = dynamic(
+  () => import('../Orders/OrdersTable').then((module) => module.OrdersTable),
+  { loading: () => <OrdersSkeleton /> },
+);
+const Calculator = dynamic(
+  () => import('../Calculator/Calculator').then((module) => module.Calculator),
+  { loading: () => <CalculatorSkeleton /> },
+);
+const StatsDashboard = dynamic(
+  () => import('../Stats/StatsDashboard').then((module) => module.StatsDashboard),
+  { loading: () => <StatsSkeleton /> },
+);
+const ProductsList = dynamic(
+  () => import('../ProductsList/ProductsList').then((module) => module.ProductsList),
+  { loading: () => <ProductsSkeleton /> },
+);
+const FilamentList = dynamic(
+  () => import('../FilamentList/FilamentList').then((module) => module.FilamentList),
+  { loading: () => <FilamentsSkeleton /> },
+);
+const PrinterList = dynamic(
+  () => import('../PrinterList/PrinterList').then((module) => module.PrinterList),
+  { loading: () => <PrintersSkeleton /> },
+);
 
 export type CockpitTabId = 'orders' | 'stats' | 'calculator' | 'products' | 'filaments' | 'printers';
 

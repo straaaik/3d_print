@@ -19,9 +19,9 @@ import {
   Sparkles,
   Layers
 } from 'lucide-react';
-import { useAuth } from '../../entities/model/AuthProvider';
-import { useToast } from '../../entities/model/ToastProvider';
-import { usePersistentState } from '../../shared/lib/usePersistentState';
+import { useAuth } from '../../../entities/model/AuthProvider';
+import { useToast } from '../../../entities/model/ToastProvider';
+import { usePersistentState } from '../../../shared/lib/usePersistentState';
 
 export default function LoginPage() {
   const router = useRouter();

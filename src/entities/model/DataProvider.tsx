@@ -168,21 +168,27 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // 1. Проверяем соединение с Supabase
-      const onlineStatus = await api.checkSupabaseConnection();
-      setIsOnline(onlineStatus);
+      const onlineStatusPromise = api.checkSupabaseConnection();
+      const settingsPromise = api.getSettings();
+      const filamentsPromise = api.getFilaments();
+      const printersPromise = api.getPrinters();
+      const savedCalculationsPromise = api.getSavedCalculations();
+      const collectionsPromise = api.getCollections();
+      const ordersPromise = api.getOrders();
+      const monthlyGoalsPromise = api.getMonthlyGoalsConfig();
 
-      // 2. Параллельно загружаем все данные
-      const [loadedSettings, loadedFilaments, loadedPrinters, loadedSavedCalculations, loadedCollections, loadedOrders, loadedMonthlyGoals] = await Promise.all([
-        api.getSettings(),
-        api.getFilaments(),
-        api.getPrinters(),
-        api.getSavedCalculations(),
-        api.getCollections(),
-        api.getOrders(),
-        api.getMonthlyGoalsConfig(),
+      const [onlineStatus, loadedSettings, loadedFilaments, loadedPrinters, loadedSavedCalculations, loadedCollections, loadedOrders, loadedMonthlyGoals] = await Promise.all([
+        onlineStatusPromise,
+        settingsPromise,
+        filamentsPromise,
+        printersPromise,
+        savedCalculationsPromise,
+        collectionsPromise,
+        ordersPromise,
+        monthlyGoalsPromise,
       ]);
 
+      setIsOnline(onlineStatus);
       setSettings(loadedSettings);
       setFilaments(loadedFilaments);
       setPrinters(loadedPrinters);
