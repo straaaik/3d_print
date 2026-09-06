@@ -298,13 +298,16 @@ export default function LoginPage() {
                 >
                   {/* Поле Email */}
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider block">
-                      // Электронная почта
+                    <label htmlFor="login-email" className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider block">
+                      {'// Электронная почта'}
                     </label>
                     <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl px-3 py-2 transition-all flex items-center gap-2.5">
                       <Mail className="w-4 h-4 text-neutral-500 shrink-0" />
                       <input
+                        id="login-email"
+                        name="email"
                         type="email"
+                        autoComplete="email"
                         required={!isDev}
                         value={loginEmail}
                         onChange={(e) => setLoginEmail(e.target.value)}
@@ -316,13 +319,16 @@ export default function LoginPage() {
 
                   {/* Поле Пароль */}
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider block">
-                      // Пароль доступа
+                    <label htmlFor="login-password" className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider block">
+                      {'// Пароль доступа'}
                     </label>
                     <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl px-3 py-2 transition-all flex items-center gap-2.5">
                       <Lock className="w-4 h-4 text-neutral-500 shrink-0" />
                       <input
+                        id="login-password"
+                        name="password"
                         type={showPassword ? 'text' : 'password'}
+                        autoComplete="current-password"
                         required={!isDev}
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
@@ -332,6 +338,8 @@ export default function LoginPage() {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+                        title={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
                         className="text-neutral-500 hover:text-white transition-colors cursor-pointer shrink-0"
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -376,13 +384,16 @@ export default function LoginPage() {
 
                   {/* Имя / Название студии */}
                   <div className="space-y-1">
-                    <label className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider block">
-                      // Имя или название студии
+                    <label htmlFor="registration-name" className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider block">
+                      {'// Имя или название студии'}
                     </label>
                     <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl px-3 py-2 transition-all flex items-center gap-2.5">
                       <UserIcon className="w-4 h-4 text-neutral-500 shrink-0" />
                       <input
+                        id="registration-name"
+                        name="name"
                         type="text"
+                        autoComplete="organization"
                         required
                         value={regName}
                         onChange={(e) => setRegName(e.target.value)}
@@ -394,13 +405,16 @@ export default function LoginPage() {
 
                   {/* Email */}
                   <div className="space-y-1">
-                    <label className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider block">
-                      // Рабочая почта
+                    <label htmlFor="registration-email" className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider block">
+                      {'// Рабочая почта'}
                     </label>
                     <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl px-3 py-2 transition-all flex items-center gap-2.5">
                       <Mail className="w-4 h-4 text-neutral-500 shrink-0" />
                       <input
+                        id="registration-email"
+                        name="email"
                         type="email"
+                        autoComplete="email"
                         required
                         value={regEmail}
                         onChange={(e) => setRegEmail(e.target.value)}
@@ -413,13 +427,16 @@ export default function LoginPage() {
                   {/* Пароль и повтор */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <div className="space-y-1">
-                      <label className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider block">
-                        // Пароль
+                      <label htmlFor="registration-password" className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider block">
+                        {'// Пароль'}
                       </label>
                       <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl px-3 py-2 transition-all flex items-center gap-2">
                         <Lock className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
                         <input
+                          id="registration-password"
+                          name="password"
                           type={showPassword ? 'text' : 'password'}
+                          autoComplete="new-password"
                           required
                           value={regPassword}
                           onChange={(e) => setRegPassword(e.target.value)}
@@ -429,6 +446,8 @@ export default function LoginPage() {
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
+                          aria-label={showPassword ? 'Скрыть пароль регистрации' : 'Показать пароль регистрации'}
+                          title={showPassword ? 'Скрыть пароль регистрации' : 'Показать пароль регистрации'}
                           className="text-neutral-500 hover:text-white transition-colors cursor-pointer"
                         >
                           {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -437,13 +456,16 @@ export default function LoginPage() {
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider block">
-                        // Повтор пароля
+                      <label htmlFor="registration-password-confirmation" className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider block">
+                        {'// Повтор пароля'}
                       </label>
                       <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl px-3 py-2 transition-all flex items-center gap-2">
                         <Lock className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
                         <input
+                          id="registration-password-confirmation"
+                          name="password_confirmation"
                           type={showConfirmPassword ? 'text' : 'password'}
+                          autoComplete="new-password"
                           required
                           value={regConfirmPassword}
                           onChange={(e) => setRegConfirmPassword(e.target.value)}
@@ -453,6 +475,8 @@ export default function LoginPage() {
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          aria-label={showConfirmPassword ? 'Скрыть подтверждение пароля' : 'Показать подтверждение пароля'}
+                          title={showConfirmPassword ? 'Скрыть подтверждение пароля' : 'Показать подтверждение пароля'}
                           className="text-neutral-500 hover:text-white transition-colors cursor-pointer"
                         >
                           {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -464,15 +488,18 @@ export default function LoginPage() {
                   {/* Ключ доступа */}
                   <div className="space-y-1 pt-1">
                     <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-mono text-amber-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
+                      <label htmlFor="registration-key" className="text-[11px] font-mono text-amber-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
                         <KeyRound className="w-3.5 h-3.5" />
-                        // Ключ доступа (Invite Key)
+                        {'// Ключ доступа (Invite Key)'}
                       </label>
                       <span className="text-[10px] font-mono text-neutral-500">ТРЕБУЕТСЯ</span>
                     </div>
                     <div className="bg-amber-950/20 border border-amber-500/40 focus-within:border-amber-400 focus-within:ring-1 focus-within:ring-amber-400/30 rounded-xl px-3 py-2 transition-all flex items-center gap-2">
                       <input
+                        id="registration-key"
+                        name="registration_key"
                         type="text"
+                        autoComplete="off"
                         required
                         value={regKey}
                         onChange={(e) => setRegKey(e.target.value.toUpperCase())}

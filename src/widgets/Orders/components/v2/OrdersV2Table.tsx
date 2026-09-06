@@ -689,29 +689,45 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 filter: { duration: 0.4, ease: [0.16, 1, 0.3, 1] },
                 layout: { duration: 0.38, ease: [0.16, 1, 0.3, 1] },
               }}
-              tabIndex={0}
-              role="button"
               onClick={() => setElevatedOrder(isElevated ? null : order)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  setElevatedOrder(isElevated ? null : order);
-                }
-              }}
-              className={`rounded-xl border p-3 focus:outline-none cursor-pointer transition-all ${
+              className={`relative rounded-xl border p-3 cursor-pointer transition-all ${
                 isElevated
                   ? '!z-50 !border-white/40 !bg-neutral-900/98 !shadow-[0_25px_60px_-10px_rgba(0,0,0,0.95)] ring-1 ring-white/20'
                   : 'border-white/10 bg-white/[0.03] hover:border-white/20'
               }`}
             >
+              <button
+                type="button"
+                aria-label={`Открыть детали ${order.title || 'заказа'}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setElevatedOrder(isElevated ? null : order);
+                }}
+                className="absolute inset-0 z-0 rounded-xl focus:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+              />
+              <div className="relative z-10">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-mono text-[10px] text-neutral-500">{formatOrderNumber(order, index)}</span>
                     {order.type === 'income' && (
-                      <span className="font-mono text-[10px] text-cyan-400 font-semibold truncate max-w-[150px]">
-                        {order.client_name || order.contact || 'Частный заказчик'}
-                      </span>
+                      <>
+                        <span className="font-mono text-[10px] text-cyan-400 font-semibold truncate max-w-[150px]">
+                          {order.client_name || 'Частный заказчик'}
+                        </span>
+                        <button
+                          type="button"
+                          title={order.contact ? 'Клик для изменения контактов' : 'Клик для добавления контакта'}
+                          aria-label={`${order.contact ? 'Изменить контакты клиента' : 'Добавить контакт'} для ${order.title || 'заказа'}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleOpenContactsModal(order);
+                          }}
+                          className="min-w-0 truncate text-left font-mono text-[10px] text-neutral-400 hover:text-white"
+                        >
+                          {order.contact || 'Добавить контакт'}
+                        </button>
+                      </>
                     )}
                   </div>
                   <h3 className="mt-1 text-sm font-semibold text-white truncate max-w-[240px]">
@@ -772,6 +788,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 >
                   <Edit2 className="h-4 w-4" />
                 </button>
+              </div>
               </div>
             </motion.article>
           );

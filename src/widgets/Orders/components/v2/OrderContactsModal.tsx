@@ -9,14 +9,6 @@ import {
   CONTACT_TYPES_CONFIG,
 } from '../../types';
 import { 
-  Phone, 
-  Send, 
-  MessageCircle, 
-  ShoppingBag, 
-  Share2, 
-  Camera, 
-  Mail, 
-  Globe, 
   Plus, 
   Trash2, 
   Copy, 
@@ -26,6 +18,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip } from '@/shared/ui/Tooltip';
+import { CockpitDropdown, type CockpitDropdownOption } from '@/shared/ui/CockpitDropdown';
 
 export interface OrderContactsModalProps {
   order: Order | null;
@@ -126,6 +119,26 @@ export const ALL_CONTACT_TYPES: ContactType[] = [
   'other',
 ];
 
+const CONTACT_TYPE_OPTIONS: CockpitDropdownOption[] = ALL_CONTACT_TYPES.map((type) => ({
+  value: type,
+  label: CONTACT_TYPES_CONFIG[type]?.label || type,
+  icon: CONTACT_TYPES_CONFIG[type]?.icon,
+}));
+
+function getInitialContacts(order: Order): ContactItem[] {
+  if (order.contacts && order.contacts.length > 0) return [...order.contacts];
+  if (!order.contact?.trim()) return [{ type: 'phone', value: '' }];
+
+  const value = order.contact.trim();
+  let type: ContactType = 'phone';
+  if (value.startsWith('@') || value.includes('t.me')) type = 'telegram';
+  else if (value.includes('@') && value.includes('.')) type = 'email';
+  else if (value.includes('avito')) type = 'avito';
+  else if (value.includes('vk.com')) type = 'vk';
+  else if (!/^(\+7|8|\+375|\+380|\+)/.test(value)) type = 'other';
+  return [{ type, value }];
+}
+
 export function OrderContactsModal({
   order,
   isOpen,
@@ -153,23 +166,8 @@ export function OrderContactsModal({
   // Инициализация контактов заказа при открытии
   useEffect(() => {
     if (isOpen && order) {
-      if (order.contacts && order.contacts.length > 0) {
-        setContacts([...order.contacts]);
-      } else if (order.contact && order.contact.trim()) {
-        // Если есть старый контакт в виде строки
-        const val = order.contact.trim();
-        let guessedType: ContactType = 'phone';
-        if (val.startsWith('@') || val.includes('t.me')) guessedType = 'telegram';
-        else if (val.includes('@') && val.includes('.')) guessedType = 'email';
-        else if (val.includes('avito')) guessedType = 'avito';
-        else if (val.includes('vk.com')) guessedType = 'vk';
-        else if (/^(\+7|8|\+375|\+380|\+)/.test(val)) guessedType = 'phone';
-        else guessedType = 'other';
-
-        setContacts([{ type: guessedType, value: val }]);
-      } else {
-        setContacts([{ type: 'phone', value: '' }]);
-      }
+      const initialContacts = getInitialContacts(order);
+      queueMicrotask(() => setContacts(initialContacts));
     }
   }, [isOpen, order]);
 
@@ -235,6 +233,9 @@ export function OrderContactsModal({
             exit={{ opacity: 0, scale: 0.96, y: 15 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="contacts-modal-title"
             className="relative w-full max-w-lg bg-neutral-950/95 border border-white/20 rounded-2xl shadow-[0_25px_80px_-15px_rgba(0,0,0,0.95)] backdrop-blur-2xl overflow-hidden text-xs flex flex-col max-h-[90vh]"
           >
             {/* 1. Верхняя панель (Cockpit Topbar: Red LED + Title + Live time) */}
@@ -254,7 +255,7 @@ export function OrderContactsModal({
                 </div>
 
                 <div className="flex items-center gap-2 font-mono text-xs text-[#d4d4d8] min-w-0">
-                  <span className="text-[#d4d4d8] font-normal truncate">
+                  <span id="contacts-modal-title" className="text-[#d4d4d8] font-normal truncate">
                     Контакты клиента
                   </span>
                   <span className="text-[#52525b] shrink-0">·</span>
@@ -302,7 +303,6 @@ export function OrderContactsModal({
                 <div className="space-y-2.5">
                   {contacts.map((c, idx) => {
                     const cfg = CONTACT_TYPES_CONFIG[c.type] || CONTACT_TYPES_CONFIG.other;
-                    const Icon = cfg.icon;
                     const href = getContactHref(c.type, c.value);
                     const isCopied = copiedIdx === idx;
 
@@ -311,36 +311,36 @@ export function OrderContactsModal({
                         key={idx}
                         className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-2 hover:border-white/20 transition-all"
                       >
-                        <div className="flex items-center gap-2">
-                          {/* Селект типа контакта */}
-                          <div className="relative shrink-0">
-                            <select
+                        <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                          {/* Тип контакта */}
+                          <div className="w-full shrink-0 sm:w-40">
+                            <CockpitDropdown
                               value={c.type}
-                              onChange={(e) =>
+                              onChange={(type) =>
                                 handleUpdateContact(idx, {
-                                  type: e.target.value as ContactType,
+                                  type: type as ContactType,
                                 })
                               }
-                              className="bg-neutral-900 border border-white/15 text-neutral-200 text-xs font-mono rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-cyan-400/60 cursor-pointer appearance-none pr-7"
-                            >
-                              {ALL_CONTACT_TYPES.map((t) => (
-                                <option key={t} value={t} className="bg-neutral-900 text-white">
-                                  {CONTACT_TYPES_CONFIG[t]?.label || t}
-                                </option>
-                              ))}
-                            </select>
-                            <Icon className="w-3.5 h-3.5 text-neutral-400 absolute right-2 top-2.5 pointer-events-none" />
+                              options={CONTACT_TYPE_OPTIONS}
+                              ariaLabel={`Тип контакта ${idx + 1}`}
+                              className="w-full"
+                              buttonClassName="h-8"
+                              usePortal
+                            />
                           </div>
 
                           {/* Поле ввода значения контакта */}
                           <input
+                            id={`contact-value-${idx}`}
+                            name={`contact_value_${idx}`}
+                            aria-label={`Значение контакта ${idx + 1}`}
                             type="text"
                             value={c.value}
                             onChange={(e) =>
                               handleUpdateContact(idx, { value: e.target.value })
                             }
                             placeholder={cfg.placeholder}
-                            className="flex-1 bg-neutral-900 border border-white/15 text-white font-mono text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-cyan-400/60 placeholder:text-neutral-600"
+                            className="min-w-0 flex-1 bg-neutral-900 border border-white/15 text-white font-mono text-xs rounded-lg px-3 py-1.5 focus:outline-none focus:border-cyan-400/60 placeholder:text-neutral-600"
                           />
 
                           {/* Кнопка удаления контакта */}
@@ -348,6 +348,8 @@ export function OrderContactsModal({
                             <button
                               type="button"
                               onClick={() => handleRemoveContact(idx)}
+                              aria-label={`Удалить контакт ${idx + 1}`}
+                              title={`Удалить контакт ${idx + 1}`}
                               className="p-1.5 rounded-lg border border-white/10 hover:border-rose-500/40 hover:bg-rose-950/40 text-neutral-400 hover:text-rose-300 transition-colors cursor-pointer shrink-0"
                             >
                               <Trash2 className="w-3.5 h-3.5" />

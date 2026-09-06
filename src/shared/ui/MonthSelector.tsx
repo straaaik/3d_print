@@ -200,9 +200,11 @@ export const MonthSelector = React.memo(function MonthSelector({
       {/* Кнопка «Предыдущий месяц» с фиксированным размером (никогда не смещается) */}
       <Tooltip content="Предыдущий месяц">
         <button
-          type="button"
-          onClick={handlePrev}
-          disabled={disabled}
+        type="button"
+        onClick={handlePrev}
+        disabled={disabled}
+        aria-label="Предыдущий месяц"
+        title="Предыдущий месяц"
           className="w-6 min-w-[24px] max-w-[24px] h-full rounded-lg text-neutral-400 hover:text-white hover:bg-white/5 active:scale-90 transition-all cursor-pointer flex items-center justify-center shrink-0 disabled:opacity-40 disabled:pointer-events-none"
         >
           <ChevronLeft className="w-3.5 h-3.5 shrink-0" />
@@ -215,6 +217,8 @@ export const MonthSelector = React.memo(function MonthSelector({
           type="button"
           onClick={() => !disabled && setIsOpen(!isOpen)}
           disabled={disabled}
+          aria-label={`Выбрать месяц: ${currentDisplayText}`}
+          title={`Выбрать месяц: ${currentDisplayText}`}
           className={`min-w-0 flex-1 h-full mx-0.5 flex items-center justify-center gap-1.5 px-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer overflow-hidden ${
             isSelectedOrOpen
               ? 'bg-neutral-800 border border-white/15 text-white shadow-sm font-semibold'
@@ -231,9 +235,11 @@ export const MonthSelector = React.memo(function MonthSelector({
       {/* Кнопка «Следующий месяц» с фиксированным размером (никогда не смещается) */}
       <Tooltip content="Следующий месяц">
         <button
-          type="button"
-          onClick={handleNext}
-          disabled={disabled}
+        type="button"
+        onClick={handleNext}
+        disabled={disabled}
+        aria-label="Следующий месяц"
+        title="Следующий месяц"
           className="w-6 min-w-[24px] max-w-[24px] h-full rounded-lg text-neutral-400 hover:text-white hover:bg-white/5 active:scale-90 transition-all cursor-pointer flex items-center justify-center shrink-0 disabled:opacity-40 disabled:pointer-events-none"
         >
           <ChevronRight className="w-3.5 h-3.5 shrink-0" />

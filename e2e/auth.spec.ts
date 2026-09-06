@@ -7,4 +7,7 @@ test('закрытый экран перенаправляет гостя на �
 
   await expect(page).toHaveURL('/login');
   await expect(page.getByRole('heading', { name: 'Вход в систему 3D Labs' })).toBeVisible();
+  await expect(page.getByLabel('Электронная почта')).toHaveAttribute('name', 'email');
+  await expect(page.getByLabel('Пароль доступа')).toHaveAttribute('autocomplete', 'current-password');
+  await expect(page.getByRole('button', { name: 'Показать пароль' })).toBeVisible();
 });

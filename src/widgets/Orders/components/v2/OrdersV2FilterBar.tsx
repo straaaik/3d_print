@@ -113,10 +113,10 @@ export const OrdersV2FilterBar = React.memo(function OrdersV2FilterBar({
   ];
 
   return (
-    <div className="bg-white/[0.03] border border-white/10 rounded-xl p-2 sm:px-3 sm:py-2 select-none shadow-sm flex items-center justify-between gap-2 relative z-30">
+    <div className="bg-white/[0.03] border border-white/10 rounded-xl p-2 sm:px-3 sm:py-2 select-none shadow-sm flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between relative z-30">
       
       {/* 1. СЛЕВА: Поиск в стиле капсулы со скриншота */}
-      <div className="bg-neutral-950/80 border border-white/10 p-1 rounded-xl w-48 sm:w-56 h-10 shrink-0 shadow-inner flex items-center">
+      <div className="bg-neutral-950/80 border border-white/10 p-1 rounded-xl w-full sm:w-64 xl:w-48 h-10 shrink-0 shadow-inner flex items-center">
         <div
           className={`flex items-center w-full h-full px-2.5 rounded-lg text-xs font-mono transition-all ${
             isSearchActive
@@ -139,6 +139,8 @@ export const OrdersV2FilterBar = React.memo(function OrdersV2FilterBar({
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
+                aria-label="Очистить поиск заказов"
+                title="Очистить поиск заказов"
                 className="text-neutral-400 hover:text-white p-0.5 rounded cursor-pointer transition-colors shrink-0 ml-1"
               >
                 <X size={12} />
@@ -154,10 +156,11 @@ export const OrdersV2FilterBar = React.memo(function OrdersV2FilterBar({
         onChange={setTypeFilter}
         options={typeFilterOptions}
         ariaLabel="Фильтр заказов"
+        className="max-w-full"
       />
 
       {/* 3. СПРАВА: Месяцы, Клиенты, Оплата (Одинаковая ширина w-[160px] и высота h-10) */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:flex-nowrap xl:justify-end">
         {/* Блок переключения месяцев (w-[160px] h-10) */}
         <MonthSelector
           selectedMonthKey={selectedMonthKey}
@@ -181,6 +184,7 @@ export const OrdersV2FilterBar = React.memo(function OrdersV2FilterBar({
             align="left"
             className="w-full h-full"
             placeholder="Все клиенты"
+            ariaLabel="Фильтр клиентов"
             hideStatusDot
           />
         </div>
@@ -195,6 +199,7 @@ export const OrdersV2FilterBar = React.memo(function OrdersV2FilterBar({
             align="left"
             className="w-full h-full"
             placeholder="Любая оплата"
+            ariaLabel="Фильтр оплаты"
           />
         </div>
       </div>

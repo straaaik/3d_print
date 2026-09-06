@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useId, useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Search, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -35,6 +35,7 @@ export interface CockpitDropdownProps {
   dropdownClassName?: string;
   dropdownWidth?: number | string;
   hideStatusDot?: boolean;
+  ariaLabel?: string;
   icon?: React.ComponentType<{ className?: string }>;
   showChevron?: boolean;
   usePortal?: boolean;
@@ -60,26 +61,56 @@ export function CockpitDropdown({
   dropdownClassName = '',
   dropdownWidth,
   hideStatusDot = false,
+  ariaLabel,
   icon: LeadingIcon,
   showChevron = true,
   usePortal = false,
 }: CockpitDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const [activeOptionIndex, setActiveOptionIndex] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownMenuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-
-  const handleToggle = () => {
-    if (disabled) return;
-    if (!isOpen && containerRef.current) {
-      setTargetRect(containerRef.current.getBoundingClientRect());
-    }
-    setIsOpen(!isOpen);
-  };
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const generatedId = useId();
+  const listboxId = `cockpit-dropdown-${generatedId}`;
 
   const selectedOption = options.find((opt) => opt.value === value);
+  const isSearchEnabled = searchable ?? options.length > 7;
+  const filteredOptions = isSearchEnabled && search.trim()
+    ? options.filter(
+        (opt) =>
+          opt.label.toLowerCase().includes(search.toLowerCase()) ||
+          (opt.badge && opt.badge.toLowerCase().includes(search.toLowerCase())) ||
+          (opt.subtext && opt.subtext.toLowerCase().includes(search.toLowerCase()))
+      )
+    : options;
+  const activeIndex = Math.min(Math.max(activeOptionIndex, 0), Math.max(filteredOptions.length - 1, 0));
+  const activeOption = filteredOptions[activeIndex];
+  const getOptionId = (option: CockpitDropdownOption) => `${listboxId}-option-${encodeURIComponent(option.value)}`;
+
+  const openMenu = (preferredIndex?: number) => {
+    if (disabled) return;
+    if (containerRef.current) {
+      setTargetRect(containerRef.current.getBoundingClientRect());
+    }
+    const selectedIndex = filteredOptions.findIndex((option) => isOptionSelected(option.value));
+    setActiveOptionIndex(preferredIndex ?? (selectedIndex >= 0 ? selectedIndex : 0));
+    setIsOpen(true);
+  };
+
+  const closeMenu = (returnFocus = false) => {
+    setIsOpen(false);
+    setSearch('');
+    if (returnFocus) requestAnimationFrame(() => triggerRef.current?.focus());
+  };
+
+  const handleToggle = () => {
+    if (isOpen) closeMenu();
+    else openMenu();
+  };
 
   const isOptionSelected = (optValue: string) => {
     if (multiSelect) {
@@ -122,8 +153,102 @@ export function CockpitDropdown({
       }
     } else {
       onChange?.(optValue);
-      setIsOpen(false);
-      setSearch('');
+      closeMenu();
+    }
+  };
+
+  const moveActiveOption = (direction: 1 | -1) => {
+    if (filteredOptions.length === 0) return;
+    setActiveOptionIndex((current) => (current + direction + filteredOptions.length) % filteredOptions.length);
+  };
+
+  const moveFocusFromTrigger = (direction: 1 | -1) => {
+    const trigger = triggerRef.current;
+    if (!trigger || typeof window === 'undefined') return;
+    const focusableSelector = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const controls = Array.from(document.querySelectorAll<HTMLElement>(focusableSelector)).filter((control) => {
+      const styles = window.getComputedStyle(control);
+      return control.tabIndex >= 0 && styles.visibility !== 'hidden' && styles.display !== 'none' && control.getClientRects().length > 0;
+    });
+    const triggerIndex = controls.indexOf(trigger);
+    const target = controls[triggerIndex + direction];
+    const focusTarget = () => {
+      if (document.activeElement === document.body) target?.focus();
+    };
+    target?.focus();
+    queueMicrotask(focusTarget);
+    window.setTimeout(focusTarget, 160);
+  };
+
+  const returnFocusToTrigger = () => {
+    const focusTrigger = () => {
+      if (document.activeElement === document.body) triggerRef.current?.focus();
+    };
+    triggerRef.current?.focus();
+    queueMicrotask(focusTrigger);
+    window.setTimeout(focusTrigger, 160);
+  };
+
+  const handleTriggerKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (disabled) return;
+    if (event.key === 'Escape' && isOpen) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu(true);
+      return;
+    }
+    if (event.key === 'Tab' && isOpen) {
+      event.preventDefault();
+      closeMenu();
+      moveFocusFromTrigger(event.shiftKey ? -1 : 1);
+      return;
+    }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (isOpen) moveActiveOption(event.key === 'ArrowDown' ? 1 : -1);
+      else openMenu(event.key === 'ArrowDown' ? 0 : Math.max(filteredOptions.length - 1, 0));
+      return;
+    }
+    if (event.key === 'Home' || event.key === 'End') {
+      event.preventDefault();
+      if (isOpen) setActiveOptionIndex(event.key === 'Home' ? 0 : Math.max(filteredOptions.length - 1, 0));
+      else openMenu(event.key === 'Home' ? 0 : Math.max(filteredOptions.length - 1, 0));
+      return;
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      if (isOpen && activeOption) handleOptionClick(activeOption.value);
+      else handleToggle();
+    }
+  };
+
+  const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      moveActiveOption(event.key === 'ArrowDown' ? 1 : -1);
+      return;
+    }
+    if (event.key === 'Home' || event.key === 'End') {
+      event.preventDefault();
+      setActiveOptionIndex(event.key === 'Home' ? 0 : Math.max(filteredOptions.length - 1, 0));
+      return;
+    }
+    if (event.key === 'Enter' && activeOption) {
+      event.preventDefault();
+      handleOptionClick(activeOption.value);
+      return;
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu(true);
+      return;
+    }
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      closeMenu();
+      if (event.shiftKey) returnFocusToTrigger();
+      else moveFocusFromTrigger(1);
     }
   };
 
@@ -136,7 +261,7 @@ export function CockpitDropdown({
       if (dropdownMenuRef.current && dropdownMenuRef.current.contains(e.target as Node)) {
         return;
       }
-      setIsOpen(false);
+      closeMenu();
     };
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
@@ -147,7 +272,7 @@ export function CockpitDropdown({
   // Закрытие по нажатию Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsOpen(false);
+      if (e.key === 'Escape') closeMenu(true);
     };
     if (isOpen) {
       window.addEventListener('keydown', handleKeyDown);
@@ -160,7 +285,7 @@ export function CockpitDropdown({
     if (!isOpen || !usePortal) return;
     const handleScrollOrResize = (e: Event) => {
       if (dropdownMenuRef.current && dropdownMenuRef.current.contains(e.target as Node)) return;
-      setIsOpen(false);
+      closeMenu();
     };
     window.addEventListener('scroll', handleScrollOrResize, true);
     window.addEventListener('resize', handleScrollOrResize);
@@ -172,23 +297,10 @@ export function CockpitDropdown({
 
   // Фокус на поиск при открытии
   useEffect(() => {
-    if (isOpen && searchable) {
+    if (isOpen && isSearchEnabled) {
       setTimeout(() => searchInputRef.current?.focus(), 50);
-    } else {
-      setSearch('');
     }
-  }, [isOpen, searchable]);
-
-  const isSearchEnabled = searchable ?? options.length > 7;
-
-  const filteredOptions = isSearchEnabled && search.trim()
-    ? options.filter(
-        (opt) =>
-          opt.label.toLowerCase().includes(search.toLowerCase()) ||
-          (opt.badge && opt.badge.toLowerCase().includes(search.toLowerCase())) ||
-          (opt.subtext && opt.subtext.toLowerCase().includes(search.toLowerCase()))
-      )
-    : options;
+  }, [isOpen, isSearchEnabled]);
 
   // Определение цвета точки статуса (чистые матовые цвета без неона)
   const getDotColorClass = (type?: string, isSelected?: boolean) => {
@@ -253,9 +365,17 @@ export function CockpitDropdown({
 
       {/* КНОПКА ОТКРЫТИЯ ДРОПДАУНА */}
       <button
+        ref={triggerRef}
         type="button"
+        role={isSearchEnabled ? undefined : 'combobox'}
         disabled={disabled}
         onClick={handleToggle}
+        onKeyDown={handleTriggerKeyDown}
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-controls={listboxId}
+        aria-activedescendant={!isSearchEnabled && isOpen && activeOption ? getOptionId(activeOption) : undefined}
         className={`${getButtonStyles()} ${buttonClassName} disabled:opacity-40 disabled:cursor-not-allowed`}
       >
         <div className={`flex items-center gap-2 min-w-0 ${showChevron ? 'flex-1 justify-start' : 'w-full justify-center'} overflow-hidden`}>
@@ -355,9 +475,20 @@ export function CockpitDropdown({
                       <input
                         ref={searchInputRef}
                         type="text"
+                        role="combobox"
+                        aria-label={ariaLabel ? `Поиск в списке: ${ariaLabel}` : 'Поиск в списке вариантов'}
+                        aria-autocomplete="list"
+                        aria-expanded={isOpen}
+                        aria-haspopup="listbox"
+                        aria-controls={listboxId}
+                        aria-activedescendant={activeOption ? getOptionId(activeOption) : undefined}
                         placeholder="ПОИСК..."
                         value={search}
-                        onChange={(e) => setSearch(e.target.value)}
+                        onChange={(e) => {
+                          setSearch(e.target.value);
+                          setActiveOptionIndex(0);
+                        }}
+                        onKeyDown={handleSearchKeyDown}
                         className="w-full h-6 pl-6 pr-2 bg-neutral-950 border border-white/10 focus:border-white/25 focus:outline-none rounded-md text-[11px] text-white placeholder-neutral-500 font-mono uppercase tracking-wide"
                       />
                     </div>
@@ -365,24 +496,32 @@ export function CockpitDropdown({
                 )}
 
                 {/* СПИСОК ЭЛЕМЕНТОВ */}
-                <div className="divide-y divide-white/[0.04] max-h-60 overflow-y-auto scrollbar-none">
-                  {filteredOptions.length === 0 ? (
-                    <div className="py-4 text-center text-[10px] text-neutral-500 uppercase tracking-wider font-mono">
-                      [ НИЧЕГО НЕ НАЙДЕНО ]
-                    </div>
-                  ) : (
-                    filteredOptions.map((opt) => {
+                <div
+                  id={listboxId}
+                  role="listbox"
+                  aria-label={ariaLabel ? `${ariaLabel}: варианты` : undefined}
+                  aria-multiselectable={multiSelect || undefined}
+                  className="divide-y divide-white/[0.04] max-h-60 overflow-y-auto scrollbar-none"
+                >
+                  {filteredOptions.map((opt, index) => {
                       const isSelected = isOptionSelected(opt.value);
                       const optionHasDot = !multiSelect && Boolean(opt.color || opt.statusDotColor);
 
                       return (
                         <button
                           key={opt.value}
+                          id={getOptionId(opt)}
                           type="button"
+                          role="option"
+                          tabIndex={-1}
+                          aria-selected={isSelected}
                           onClick={() => handleOptionClick(opt.value)}
+                          onMouseEnter={() => setActiveOptionIndex(index)}
                           className={`relative w-full px-3 py-2 text-left flex items-center justify-between gap-2 transition-colors cursor-pointer text-xs group ${
                             isSelected
                               ? 'bg-white/10 text-white font-semibold'
+                              : index === activeIndex
+                              ? 'bg-white/5 text-white'
                               : 'bg-transparent hover:bg-white/5 text-neutral-300 hover:text-white'
                           }`}
                         >
@@ -444,9 +583,13 @@ export function CockpitDropdown({
                           )}
                         </button>
                       );
-                    })
-                  )}
+                    })}
                 </div>
+                {filteredOptions.length === 0 && (
+                  <p role="status" className="py-4 text-center text-[10px] text-neutral-500 uppercase tracking-wider font-mono">
+                    [ НИЧЕГО НЕ НАЙДЕНО ]
+                  </p>
+                )}
 
                 {/* ПОДВАЛ МЕНЮ */}
                 <div className="px-3 py-1.5 bg-neutral-950 border-t border-white/5 text-[9px] font-mono text-neutral-500 uppercase tracking-wider flex items-center justify-between shrink-0">

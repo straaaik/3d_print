@@ -2,10 +2,11 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Copy, Download, Printer, Check, Sparkles } from 'lucide-react';
+import { Copy, Download, Printer, Check, Sparkles } from 'lucide-react';
 import { formatCurrency } from '../../shared/lib/format';
 import { usePersistentState } from '../../shared/lib/usePersistentState';
 import { Tooltip } from '../../shared/ui/Tooltip';
+import { useToast } from '../../entities/model/ToastProvider';
 
 export interface CustomCostItemBreakdown {
   id: string;
@@ -38,6 +39,212 @@ export interface ClientReceiptModalProps {
   };
 }
 
+export interface ReceiptExportRunOptions {
+  run: () => Promise<void>;
+  setIsExporting: (isExporting: boolean) => void;
+  reportError: (message: string) => void;
+}
+
+export interface ReceiptPrintWindow {
+  document: Pick<Document, 'write' | 'close'>;
+  addEventListener: (type: 'load' | 'error', listener: () => void) => void;
+  removeEventListener: (type: 'load' | 'error', listener: () => void) => void;
+  print: () => void;
+  close: () => void;
+}
+
+export type ReceiptAction = 'copy' | 'download' | 'print';
+type ReceiptClipboardPayload = Record<string, Blob | PromiseLike<Blob> | string | PromiseLike<string>>;
+type ReceiptRenderer = Pick<Required<ReceiptActionDependencies>, 'toBlob' | 'toPng'>;
+
+export interface ReceiptActionDependencies {
+  receiptNode: HTMLElement;
+  orderNumber: string;
+  toBlob?: (node: HTMLElement, options: { pixelRatio: number; cacheBust: boolean }) => Promise<Blob | null>;
+  toPng?: (node: HTMLElement, options: { pixelRatio: number; cacheBust: boolean }) => Promise<string>;
+  loadRenderer?: () => Promise<ReceiptRenderer>;
+  clipboard?: Pick<Clipboard, 'write'>;
+  createClipboardItem?: (items: ReceiptClipboardPayload) => ClipboardItem;
+  downloadPng: (dataUrl: string) => void;
+  openPrintWindow: () => ReceiptPrintWindow | null;
+  onCopied: () => void;
+  setIsExporting: (isExporting: boolean) => void;
+  reportError: (message: string) => void;
+  printTimeoutMs?: number;
+}
+
+export async function runReceiptExport({
+  run,
+  setIsExporting,
+  reportError,
+}: ReceiptExportRunOptions): Promise<void> {
+  setIsExporting(true);
+  try {
+    await run();
+  } catch {
+    reportError('Не удалось подготовить чек. Повторите попытку.');
+  } finally {
+    setIsExporting(false);
+  }
+}
+
+function downloadReceiptPng(dataUrl: string, orderNumber: string): void {
+  const link = document.createElement('a');
+  link.download = `3D_Labs_Check_${orderNumber}.png`;
+  link.href = dataUrl;
+  link.click();
+}
+
+function getReceiptPrintMarkup(imageUrl: string, orderNumber: string): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Товарный чек ${orderNumber} - 3D Labs</title>
+        <style>
+          @page { margin: 10mm; size: auto; }
+          body {
+            background: #f4f4f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: var(--font-jetbrains-mono), monospace;
+            margin: 0;
+          }
+          img { width: 300px; max-width: 100%; height: auto; }
+          @media print { body { background: transparent; } }
+        </style>
+      </head>
+      <body><img src="${imageUrl}" alt="Товарный чек" /></body>
+    </html>`;
+}
+
+export async function printReceiptImage(
+  imageUrl: string,
+  orderNumber: string,
+  printWindow: ReceiptPrintWindow,
+  timeoutMs = 15_000,
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    let settled = false;
+    const safelyClose = () => {
+      try {
+        printWindow.close();
+      } catch {
+        // The original lifecycle failure is more useful than a close failure.
+      }
+    };
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      printWindow.removeEventListener('load', onLoad);
+      printWindow.removeEventListener('error', onError);
+    };
+    const settle = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (error) reject(error);
+      else resolve();
+    };
+    const onLoad = () => {
+      try {
+        printWindow.print();
+        printWindow.close();
+        settle();
+      } catch (error) {
+        safelyClose();
+        settle(error instanceof Error ? error : new Error('Не удалось распечатать чек.'));
+      }
+    };
+    const onError = () => {
+      safelyClose();
+      settle(new Error('Не удалось загрузить чек для печати.'));
+    };
+    const timeoutId = setTimeout(() => {
+      safelyClose();
+      settle(new Error('Превышено время ожидания окна печати.'));
+    }, timeoutMs);
+
+    printWindow.addEventListener('load', onLoad);
+    printWindow.addEventListener('error', onError);
+
+    try {
+      printWindow.document.write(getReceiptPrintMarkup(imageUrl, orderNumber));
+      printWindow.document.close();
+    } catch (error) {
+      safelyClose();
+      settle(error instanceof Error ? error : new Error('Не удалось подготовить окно печати.'));
+    }
+  });
+}
+
+export function createReceiptExportOperations(dependencies: ReceiptActionDependencies): Record<ReceiptAction, () => Promise<void>> {
+  const renderOptions = { pixelRatio: 3, cacheBust: true };
+  const loadRenderer = (): ReceiptRenderer | Promise<ReceiptRenderer> => {
+    if (dependencies.toBlob && dependencies.toPng) {
+      return { toBlob: dependencies.toBlob, toPng: dependencies.toPng };
+    }
+    if (dependencies.loadRenderer) return dependencies.loadRenderer();
+    throw new Error('Рендерер чека недоступен.');
+  };
+
+  return {
+    copy: async () => {
+      const rendererSource = loadRenderer();
+      const renderer = rendererSource instanceof Promise ? await rendererSource : rendererSource;
+      const blob = await renderer.toBlob(dependencies.receiptNode, renderOptions);
+      if (blob && dependencies.clipboard && dependencies.createClipboardItem) {
+        await dependencies.clipboard.write([dependencies.createClipboardItem({ 'image/png': blob })]);
+        dependencies.onCopied();
+        return;
+      }
+      dependencies.downloadPng(await renderer.toPng(dependencies.receiptNode, renderOptions));
+    },
+    download: async () => {
+      const rendererSource = loadRenderer();
+      const renderer = rendererSource instanceof Promise ? await rendererSource : rendererSource;
+      dependencies.downloadPng(await renderer.toPng(dependencies.receiptNode, renderOptions));
+    },
+    print: async () => {
+      const printWindow = dependencies.openPrintWindow();
+      if (!printWindow) {
+        throw new Error('Браузер заблокировал окно печати.');
+      }
+
+      let imageUrl: string;
+      try {
+        const rendererSource = loadRenderer();
+        const renderer = rendererSource instanceof Promise ? await rendererSource : rendererSource;
+        imageUrl = await renderer.toPng(dependencies.receiptNode, renderOptions);
+      } catch (error) {
+        try {
+          printWindow.close();
+        } catch {
+          // Preserve the renderer error reported by the surrounding export lifecycle.
+        }
+        throw error;
+      }
+
+      await printReceiptImage(
+        imageUrl,
+        dependencies.orderNumber,
+        printWindow,
+        dependencies.printTimeoutMs,
+      );
+    },
+  };
+}
+
+export async function performReceiptAction(action: ReceiptAction, dependencies: ReceiptActionDependencies): Promise<void> {
+  const operations = createReceiptExportOperations(dependencies);
+  await runReceiptExport({
+    run: operations[action],
+    setIsExporting: dependencies.setIsExporting,
+    reportError: dependencies.reportError,
+  });
+}
+
 export function ClientReceiptModal({
   isOpen,
   onClose,
@@ -56,6 +263,7 @@ export function ClientReceiptModal({
   const [copiedImage, setCopiedImage] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const { showError } = useToast();
 
   // Изначально все доп. услуги выключены
   useEffect(() => {
@@ -132,98 +340,51 @@ export function ClientReceiptModal({
   // Копирование картинки в буфер обмена
   const handleCopyImage = async () => {
     if (!receiptRef.current) return;
-    setIsExporting(true);
-    try {
-      const { toBlob } = await import('html-to-image');
-      const blob = await toBlob(receiptRef.current, {
-        pixelRatio: 3,
-        cacheBust: true,
-      });
-
-      if (blob && navigator.clipboard && window.ClipboardItem) {
-        await navigator.clipboard.write([
-          new ClipboardItem({ 'image/png': blob }),
-        ]);
+    await performReceiptAction('copy', {
+      receiptNode: receiptRef.current,
+      orderNumber,
+      loadRenderer: () => import('html-to-image'),
+      clipboard: navigator.clipboard,
+      createClipboardItem: (items) => new ClipboardItem(items),
+      downloadPng: (dataUrl) => downloadReceiptPng(dataUrl, orderNumber),
+      openPrintWindow: () => window.open('', '_blank') as unknown as ReceiptPrintWindow | null,
+      onCopied: () => {
         setCopiedImage(true);
         setTimeout(() => setCopiedImage(false), 2500);
-      } else {
-        handleDownloadPng();
-      }
-    } catch (err) {
-      console.error('Ошибка копирования изображения:', err);
-      handleDownloadPng();
-    } finally {
-      setIsExporting(false);
-    }
+      },
+      setIsExporting,
+      reportError: showError,
+    });
   };
 
   // Скачивание PNG
   const handleDownloadPng = async () => {
     if (!receiptRef.current) return;
-    setIsExporting(true);
-    try {
-      const { toPng } = await import('html-to-image');
-      const dataUrl = await toPng(receiptRef.current, {
-        pixelRatio: 3,
-        cacheBust: true,
-      });
-      const link = document.createElement('a');
-      link.download = `3D_Labs_Check_${orderNumber}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (err) {
-      console.error('Ошибка экспорта PNG:', err);
-    } finally {
-      setIsExporting(false);
-    }
+    await performReceiptAction('download', {
+      receiptNode: receiptRef.current,
+      orderNumber,
+      loadRenderer: () => import('html-to-image'),
+      downloadPng: (dataUrl) => downloadReceiptPng(dataUrl, orderNumber),
+      openPrintWindow: () => window.open('', '_blank') as unknown as ReceiptPrintWindow | null,
+      onCopied: () => undefined,
+      setIsExporting,
+      reportError: showError,
+    });
   };
 
   // Печать / Сохранить в PDF
   const handlePrint = async () => {
     if (!receiptRef.current) return;
-    setIsExporting(true);
-    const { toPng } = await import('html-to-image');
-    const imageUrl = await toPng(receiptRef.current, { pixelRatio: 3, cacheBust: true });
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      setIsExporting(false);
-      window.print();
-      return;
-    }
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Товарный чек ${orderNumber} - 3D Labs</title>
-          <style>
-            @page { margin: 10mm; size: auto; }
-            body { 
-              background: #f4f4f5; 
-              display: flex; 
-              justify-content: center; 
-              align-items: center; 
-              min-height: 100vh; 
-              font-family: var(--font-jetbrains-mono), monospace;
-              margin: 0;
-            }
-            img { width: 300px; max-width: 100%; height: auto; }
-            @media print {
-              body { background: transparent; }
-            }
-          </style>
-        </head>
-        <body>
-          <img src="${imageUrl}" alt="Товарный чек" />
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-    printWindow.addEventListener('load', () => {
-      printWindow.print();
-      printWindow.close();
-    }, { once: true });
-    setIsExporting(false);
+    await performReceiptAction('print', {
+      receiptNode: receiptRef.current,
+      orderNumber,
+      loadRenderer: () => import('html-to-image'),
+      downloadPng: (dataUrl) => downloadReceiptPng(dataUrl, orderNumber),
+      openPrintWindow: () => window.open('', '_blank') as unknown as ReceiptPrintWindow | null,
+      onCopied: () => undefined,
+      setIsExporting,
+      reportError: showError,
+    });
   };
 
   if (!isOpen) return null;
