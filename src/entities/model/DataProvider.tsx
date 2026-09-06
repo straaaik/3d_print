@@ -6,6 +6,7 @@ import * as api from '../../shared/api/db';
 import { parseDataBackup, type ParsedDataBackup } from '../../shared/lib/dataBackup';
 import { useToast } from './ToastProvider';
 import { useAuth } from './AuthProvider';
+import { loadInitialData } from './loadInitialData';
 
 import { usePersistentState } from '../../shared/lib/usePersistentState';
 
@@ -168,25 +169,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const onlineStatusPromise = api.checkSupabaseConnection();
-      const settingsPromise = api.getSettings();
-      const filamentsPromise = api.getFilaments();
-      const printersPromise = api.getPrinters();
-      const savedCalculationsPromise = api.getSavedCalculations();
-      const collectionsPromise = api.getCollections();
-      const ordersPromise = api.getOrders();
-      const monthlyGoalsPromise = api.getMonthlyGoalsConfig();
-
-      const [onlineStatus, loadedSettings, loadedFilaments, loadedPrinters, loadedSavedCalculations, loadedCollections, loadedOrders, loadedMonthlyGoals] = await Promise.all([
-        onlineStatusPromise,
-        settingsPromise,
-        filamentsPromise,
-        printersPromise,
-        savedCalculationsPromise,
-        collectionsPromise,
-        ordersPromise,
-        monthlyGoalsPromise,
-      ]);
+      const {
+        onlineStatus,
+        settings: loadedSettings,
+        filaments: loadedFilaments,
+        printers: loadedPrinters,
+        savedCalculations: loadedSavedCalculations,
+        collections: loadedCollections,
+        orders: loadedOrders,
+        monthlyGoals: loadedMonthlyGoals,
+      } = await loadInitialData(api);
 
       setIsOnline(onlineStatus);
       setSettings(loadedSettings);

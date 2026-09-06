@@ -23,31 +23,16 @@ import {
   shouldShowFullscreenDevelopmentGate,
 } from '../../shared/ui/CockpitContentTransition';
 import { FullscreenDevelopmentGate } from '../../shared/ui/FullscreenDevelopmentGate';
+import { createWorkspaceComponents, type WorkspaceDynamicAdapter } from './workspaceDefinitions';
 
-const OrdersTable = dynamic(
-  () => import('../Orders/OrdersTable').then((module) => module.OrdersTable),
-  { loading: () => <OrdersSkeleton /> },
-);
-const Calculator = dynamic(
-  () => import('../Calculator/Calculator').then((module) => module.Calculator),
-  { loading: () => <CalculatorSkeleton /> },
-);
-const StatsDashboard = dynamic(
-  () => import('../Stats/StatsDashboard').then((module) => module.StatsDashboard),
-  { loading: () => <StatsSkeleton /> },
-);
-const ProductsList = dynamic(
-  () => import('../ProductsList/ProductsList').then((module) => module.ProductsList),
-  { loading: () => <ProductsSkeleton /> },
-);
-const FilamentList = dynamic(
-  () => import('../FilamentList/FilamentList').then((module) => module.FilamentList),
-  { loading: () => <FilamentsSkeleton /> },
-);
-const PrinterList = dynamic(
-  () => import('../PrinterList/PrinterList').then((module) => module.PrinterList),
-  { loading: () => <PrintersSkeleton /> },
-);
+const {
+  orders: OrdersTable,
+  stats: StatsDashboard,
+  calculator: Calculator,
+  products: ProductsList,
+  filaments: FilamentList,
+  printers: PrinterList,
+} = createWorkspaceComponents(dynamic as WorkspaceDynamicAdapter);
 
 export type CockpitTabId = 'orders' | 'stats' | 'calculator' | 'products' | 'filaments' | 'printers';
 

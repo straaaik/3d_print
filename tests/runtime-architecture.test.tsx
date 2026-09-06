@@ -1,78 +1,151 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import test from 'node:test';
+import React from 'react';
+import RootLayout from '../src/app/layout';
+import AboutLayout from '../src/app/(about)/layout';
+import LoginLayout from '../src/app/(login)/layout';
+import ProtectedLayout from '../src/app/(protected)/layout';
+import { loadInitialData, type InitialDataApi } from '../src/entities/model/loadInitialData';
+import { AuthProvider } from '../src/entities/model/AuthProvider';
+import { DataProvider } from '../src/entities/model/DataProvider';
+import { OrderModalProvider } from '../src/entities/model/OrderModalContext';
+import { ToastProvider } from '../src/entities/model/ToastProvider';
+import { AuthGuard } from '../src/shared/ui/AuthGuard';
+import { CockpitTransitionProvider } from '../src/shared/ui/CockpitContentTransition';
+import { PixelCurtainProvider } from '../src/shared/ui/PixelCurtain';
+import {
+  CalculatorSkeleton,
+  FilamentsSkeleton,
+  OrdersSkeleton,
+  PrintersSkeleton,
+  ProductsSkeleton,
+  StatsSkeleton,
+} from '../src/shared/ui/CockpitSkeleton';
+import {
+  createWorkspaceComponents,
+  type WorkspaceDynamicAdapter,
+  type WorkspaceDefinition,
+  workspaceDefinitions,
+} from '../src/widgets/CockpitWorkspace/workspaceDefinitions';
 
 const source = (path: string) => readFileSync(resolve(path), 'utf8');
+type ElementWithChildren = React.ReactElement<{ children?: React.ReactElement; className?: string }>;
 
-test('workspace implementations are isolated behind named next/dynamic boundaries', () => {
+const child = (element: ElementWithChildren) => element.props.children as ElementWithChildren;
+
+test('cockpit shell has no static workspace implementation imports', () => {
   const workspace = source('src/widgets/CockpitWorkspace/CockpitWorkspace.tsx');
 
   assert.match(workspace, /import dynamic from 'next\/dynamic';/);
-  assert.doesNotMatch(workspace, /import\s+\{\s*OrdersTable\s*\}\s+from/);
-  assert.doesNotMatch(workspace, /import\s+\{\s*Calculator\s*\}\s+from/);
-  assert.doesNotMatch(workspace, /import\s+\{\s*StatsDashboard\s*\}\s+from/);
-  assert.doesNotMatch(workspace, /import\s+\{\s*ProductsList\s*\}\s+from/);
-  assert.doesNotMatch(workspace, /import\s+\{\s*FilamentList\s*\}\s+from/);
-  assert.doesNotMatch(workspace, /import\s+\{\s*PrinterList\s*\}\s+from/);
-
-  const boundaries = [
-    ['OrdersTable', '../Orders/OrdersTable', 'OrdersSkeleton'],
-    ['Calculator', '../Calculator/Calculator', 'CalculatorSkeleton'],
-    ['StatsDashboard', '../Stats/StatsDashboard', 'StatsSkeleton'],
-    ['ProductsList', '../ProductsList/ProductsList', 'ProductsSkeleton'],
-    ['FilamentList', '../FilamentList/FilamentList', 'FilamentsSkeleton'],
-    ['PrinterList', '../PrinterList/PrinterList', 'PrintersSkeleton'],
-  ];
-
-  for (const [name, modulePath, skeleton] of boundaries) {
-    const escapedPath = modulePath.replaceAll('/', '\\/');
-    assert.match(
-      workspace,
-      new RegExp(`const ${name} = dynamic\\([\\s\\S]*?import\\('${escapedPath}'\\)\\.then\\(\\(module\\) => module\\.${name}\\)[\\s\\S]*?loading: \\(\\) => <${skeleton} \\/>`),
-    );
+  for (const name of ['OrdersTable', 'Calculator', 'StatsDashboard', 'ProductsList', 'FilamentList', 'PrinterList']) {
+    assert.doesNotMatch(workspace, new RegExp(`import\\s+\\{\\s*${name}\\s*\\}\\s+from`));
   }
 });
 
-test('route groups keep provider ownership out of the root and public routes', () => {
-  const rootLayout = source('src/app/layout.tsx');
-  const protectedLayout = source('src/app/(protected)/layout.tsx');
-  const loginLayout = source('src/app/(login)/layout.tsx');
-
-  assert.match(rootLayout, /<body className="antialiased min-h-screen text-white bg-\[#0a0a0a\] bg-dot-grid">/);
-  for (const provider of ['DataProvider', 'ToastProvider', 'AuthProvider', 'OrderModalProvider', 'AuthGuard', 'PixelCurtainProvider', 'CockpitTransitionProvider', 'InteractiveDotGrid']) {
-    assert.doesNotMatch(rootLayout, new RegExp(provider));
-  }
-
-  for (const provider of ['ToastProvider', 'AuthProvider', 'DataProvider', 'OrderModalProvider', 'AuthGuard', 'PixelCurtainProvider', 'CockpitTransitionProvider']) {
-    assert.match(protectedLayout, new RegExp(provider));
-  }
-  assert.match(loginLayout, /ToastProvider/);
-  assert.match(loginLayout, /AuthProvider/);
-  assert.doesNotMatch(loginLayout, /DataProvider|AuthGuard|OrderModalProvider|PixelCurtainProvider|CockpitTransitionProvider/);
-  assert.equal(existsSync(resolve('src/app/(about)/about/page.tsx')), true);
-  assert.equal(existsSync(resolve('src/app/auth/callback/route.ts')), true);
-});
-
-test('data initialization starts connectivity and every entity read before awaiting results', () => {
-  const provider = source('src/entities/model/DataProvider.tsx');
-  const loadData = provider.slice(provider.indexOf('const loadData = useCallback'));
-  const starts = [
-    'api.checkSupabaseConnection()',
-    'api.getSettings()',
-    'api.getFilaments()',
-    'api.getPrinters()',
-    'api.getSavedCalculations()',
-    'api.getCollections()',
-    'api.getOrders()',
-    'api.getMonthlyGoalsConfig()',
+test('production workspace factory supplies every loader and matching skeleton to the dynamic adapter', () => {
+  const calls: Array<Parameters<WorkspaceDynamicAdapter>> = [];
+  const dynamicAdapter = ((load, options) => {
+    calls.push([load, options]);
+    return () => null;
+  }) as WorkspaceDynamicAdapter;
+  createWorkspaceComponents(dynamicAdapter);
+  const definitions: Array<[WorkspaceDefinition, React.ComponentType]> = [
+    [workspaceDefinitions.orders, OrdersSkeleton],
+    [workspaceDefinitions.stats, StatsSkeleton],
+    [workspaceDefinitions.calculator, CalculatorSkeleton],
+    [workspaceDefinitions.products, ProductsSkeleton],
+    [workspaceDefinitions.filaments, FilamentsSkeleton],
+    [workspaceDefinitions.printers, PrintersSkeleton],
   ];
 
-  const awaitAll = loadData.indexOf('await Promise.all');
-  for (const operation of starts) {
-    const operationIndex = loadData.indexOf(operation);
-    assert.notEqual(operationIndex, -1, `${operation} starts during initialization`);
-    assert.ok(operationIndex < awaitAll, `${operation} starts before the combined await`);
+  assert.equal(calls.length, definitions.length);
+  for (const [index, [definition, skeleton]] of definitions.entries()) {
+    assert.equal(calls[index][0], definition.load);
+    assert.equal(calls[index][1].loading, skeleton);
   }
-  assert.match(loadData, /await Promise\.all\(\[\s*onlineStatusPromise,\s*settingsPromise,\s*filamentsPromise,\s*printersPromise,\s*savedCalculationsPromise,\s*collectionsPromise,\s*ordersPromise,\s*monthlyGoalsPromise,?\s*\]\)/);
+});
+
+test('real route layouts own only their required provider trees', () => {
+  const protectedTree = ProtectedLayout({ children: <span>protected</span> });
+  assert.equal(protectedTree.type, 'div');
+  assert.equal(child(protectedTree).type, ToastProvider);
+  assert.equal(child(child(protectedTree)).type, AuthProvider);
+  assert.equal(child(child(child(protectedTree))).type, DataProvider);
+  assert.equal(child(child(child(child(protectedTree)))).type, OrderModalProvider);
+  assert.equal(child(child(child(child(child(protectedTree))))).type, AuthGuard);
+  assert.equal(child(child(child(child(child(child(protectedTree)))))).type, PixelCurtainProvider);
+  assert.equal(child(child(child(child(child(child(child(protectedTree))))))).type, CockpitTransitionProvider);
+
+  const loginTree = LoginLayout({ children: <span>login</span> });
+  assert.equal(loginTree.type, 'div');
+  assert.equal(child(loginTree).type, ToastProvider);
+  assert.equal(child(child(loginTree)).type, AuthProvider);
+
+  const aboutTree = AboutLayout({ children: <span>about</span> });
+  assert.equal(aboutTree.type, AuthProvider);
+
+  const rootTree = RootLayout({ children: <span>root</span> });
+  assert.equal(rootTree.type, 'html');
+  const body = child(rootTree);
+  assert.equal(body.type, 'body');
+  assert.match(body.props.className ?? '', /bg-dot-grid/);
+  assert.equal(body.props.children?.type, 'span');
+});
+
+test('initial data orchestration starts every API operation before any deferred result resolves', async () => {
+  const starts: string[] = [];
+  const deferred = <T,>() => {
+    let resolvePromise: (value: T) => void = () => undefined;
+    const promise = new Promise<T>((resolve) => { resolvePromise = resolve; });
+    return { promise, resolve: resolvePromise };
+  };
+  const connection = deferred<boolean>();
+  const settings = deferred<Awaited<ReturnType<InitialDataApi['getSettings']>>>();
+  const filaments = deferred<Awaited<ReturnType<InitialDataApi['getFilaments']>>>();
+  const printers = deferred<Awaited<ReturnType<InitialDataApi['getPrinters']>>>();
+  const savedCalculations = deferred<Awaited<ReturnType<InitialDataApi['getSavedCalculations']>>>();
+  const collections = deferred<Awaited<ReturnType<InitialDataApi['getCollections']>>>();
+  const orders = deferred<Awaited<ReturnType<InitialDataApi['getOrders']>>>();
+  const monthlyGoals = deferred<Awaited<ReturnType<InitialDataApi['getMonthlyGoalsConfig']>>>();
+  const api: InitialDataApi = {
+    checkSupabaseConnection: () => { starts.push('connection'); return connection.promise; },
+    getSettings: () => { starts.push('settings'); return settings.promise; },
+    getFilaments: () => { starts.push('filaments'); return filaments.promise; },
+    getPrinters: () => { starts.push('printers'); return printers.promise; },
+    getSavedCalculations: () => { starts.push('savedCalculations'); return savedCalculations.promise; },
+    getCollections: () => { starts.push('collections'); return collections.promise; },
+    getOrders: () => { starts.push('orders'); return orders.promise; },
+    getMonthlyGoalsConfig: () => { starts.push('monthlyGoals'); return monthlyGoals.promise; },
+  };
+
+  const result = loadInitialData(api);
+  assert.deepEqual(starts, ['connection', 'settings', 'filaments', 'printers', 'savedCalculations', 'collections', 'orders', 'monthlyGoals']);
+
+  connection.resolve(true);
+  const settingsValue = {} as Awaited<ReturnType<InitialDataApi['getSettings']>>;
+  const filamentsValue = [] as Awaited<ReturnType<InitialDataApi['getFilaments']>>;
+  const printersValue = [] as Awaited<ReturnType<InitialDataApi['getPrinters']>>;
+  const savedCalculationsValue = [] as Awaited<ReturnType<InitialDataApi['getSavedCalculations']>>;
+  const collectionsValue = [] as Awaited<ReturnType<InitialDataApi['getCollections']>>;
+  const ordersValue = [] as Awaited<ReturnType<InitialDataApi['getOrders']>>;
+  const monthlyGoalsValue = {} as Awaited<ReturnType<InitialDataApi['getMonthlyGoalsConfig']>>;
+  settings.resolve(settingsValue);
+  filaments.resolve(filamentsValue);
+  printers.resolve(printersValue);
+  savedCalculations.resolve(savedCalculationsValue);
+  collections.resolve(collectionsValue);
+  orders.resolve(ordersValue);
+  monthlyGoals.resolve(monthlyGoalsValue);
+  assert.deepEqual(await result, {
+    onlineStatus: true,
+    settings: settingsValue,
+    filaments: filamentsValue,
+    printers: printersValue,
+    savedCalculations: savedCalculationsValue,
+    collections: collectionsValue,
+    orders: ordersValue,
+    monthlyGoals: monthlyGoalsValue,
+  });
 });
