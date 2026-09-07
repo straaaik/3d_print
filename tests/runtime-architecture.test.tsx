@@ -13,6 +13,7 @@ import { DataProvider } from '../src/entities/model/DataProvider';
 import { OrderModalProvider } from '../src/entities/model/OrderModalContext';
 import { ToastProvider } from '../src/entities/model/ToastProvider';
 import { AuthGuard } from '../src/shared/ui/AuthGuard';
+import { AppMotionProvider } from '../src/shared/ui/AppMotionProvider';
 import { CockpitTransitionProvider } from '../src/shared/ui/CockpitContentTransition';
 import { PixelCurtainProvider } from '../src/shared/ui/PixelCurtain';
 import {
@@ -74,24 +75,27 @@ test('production workspace factory supplies every loader and matching skeleton t
 test('real route layouts own only their required provider trees', () => {
   const protectedTree = ProtectedLayout({ children: <span>protected</span> });
   assert.equal(protectedTree.type, 'div');
-  assert.equal(child(protectedTree).type, ToastProvider);
-  assert.equal(child(child(protectedTree)).type, AuthProvider);
-  assert.equal(child(child(child(protectedTree))).type, DataProvider);
-  assert.equal(child(child(child(child(protectedTree)))).type, OrderModalProvider);
-  assert.equal(child(child(child(child(child(protectedTree))))).type, AuthGuard);
-  assert.equal(child(child(child(child(child(child(protectedTree)))))).type, PixelCurtainProvider);
-  assert.equal(child(child(child(child(child(child(child(protectedTree))))))).type, CockpitTransitionProvider);
-  assert.equal(child(child(child(child(child(child(child(child(protectedTree)))))))).type, 'span');
+  assert.equal(child(protectedTree).type, AppMotionProvider);
+  assert.equal(child(child(protectedTree)).type, ToastProvider);
+  assert.equal(child(child(child(protectedTree))).type, AuthProvider);
+  assert.equal(child(child(child(child(protectedTree)))).type, DataProvider);
+  assert.equal(child(child(child(child(child(protectedTree))))).type, OrderModalProvider);
+  assert.equal(child(child(child(child(child(child(protectedTree)))))).type, AuthGuard);
+  assert.equal(child(child(child(child(child(child(child(protectedTree))))))).type, PixelCurtainProvider);
+  assert.equal(child(child(child(child(child(child(child(child(protectedTree)))))))).type, CockpitTransitionProvider);
+  assert.equal(child(child(child(child(child(child(child(child(child(protectedTree))))))))).type, 'span');
 
   const loginTree = LoginLayout({ children: <span>login</span> });
   assert.equal(loginTree.type, 'div');
-  assert.equal(child(loginTree).type, ToastProvider);
-  assert.equal(child(child(loginTree)).type, AuthProvider);
-  assert.equal(child(child(child(loginTree))).type, 'span');
+  assert.equal(child(loginTree).type, AppMotionProvider);
+  assert.equal(child(child(loginTree)).type, ToastProvider);
+  assert.equal(child(child(child(loginTree))).type, AuthProvider);
+  assert.equal(child(child(child(child(loginTree)))).type, 'span');
 
   const aboutTree = AboutLayout({ children: <span>about</span> });
-  assert.equal(aboutTree.type, AuthProvider);
-  assert.equal(child(aboutTree).type, 'span');
+  assert.equal(aboutTree.type, AppMotionProvider);
+  assert.equal(child(aboutTree).type, AuthProvider);
+  assert.equal(child(child(aboutTree)).type, 'span');
 
   const rootTree = RootLayout({ children: <span>root</span> });
   assert.equal(rootTree.type, 'html');
