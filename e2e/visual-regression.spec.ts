@@ -27,6 +27,9 @@ test.describe('визуальная стабильность основных э
 
       await expect(page).toHaveURL(route.path);
       await expect(page.getByText(route.readyText, { exact: false }).first()).toBeVisible();
+      if (route.path === '/orders') {
+        await expect(page.getByPlaceholder('Поиск...')).toBeVisible();
+      }
       await page.evaluate(async () => {
         await document.fonts.ready;
       });
