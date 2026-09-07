@@ -40,6 +40,9 @@ import { Tooltip } from '@/shared/ui/Tooltip';
 import { usePixelCurtain } from '@/shared/ui/PixelCurtain';
 import { CockpitContentTransition } from '@/shared/ui/CockpitContentTransition';
 import { MotionPulse } from '@/shared/ui/MotionPrimitives';
+import { motion, useReducedMotion } from 'motion/react';
+
+const SURFACE_EASE = [0.16, 1, 0.3, 1] as const;
 
 interface ProductsV2ViewProps {
   rows: CatalogTableRow[];
@@ -248,6 +251,10 @@ export const ProductsV2View = React.memo(function ProductsV2View({
   const { navigate: curtainNavigate } = usePixelCurtain();
   const [isSideWingOpen, setIsSideWingOpen] = React.useState(true);
   const [elevatedRow, setElevatedRow] = React.useState<CatalogTableRow | null>(null);
+  const shouldReduceMotion = useReducedMotion();
+  const surfaceTransition = shouldReduceMotion
+    ? { duration: 0 }
+    : { duration: 0.4, ease: SURFACE_EASE };
 
   React.useEffect(() => {
     if (elevatedRow && !rows.some((r) => r.id === elevatedRow.id)) {
@@ -282,14 +289,16 @@ export const ProductsV2View = React.memo(function ProductsV2View({
 
       {/* ПЛАВАЮЩЕЕ БОКОВОЕ МЕНЮ (ФИКСИРУЕТСЯ НА ЭКРАНЕ ПРИ СКРОЛЛЕ, СКРЫВАЕТСЯ В РАЗВЕРНУТОМ РЕЖИМЕ) */}
       {!isExpanded && (
-        <div
+        <motion.div
+          initial={false}
+          animate={{
+            filter: elevatedRow ? 'blur(4px)' : 'blur(0px)',
+            opacity: elevatedRow ? 0.35 : 1,
+          }}
+          transition={surfaceTransition}
           className={`hidden xl:block absolute left-0 top-24 bottom-0 z-30 duration-300 ${
             elevatedRow ? 'pointer-events-none select-none' : 'pointer-events-none'
           }`}
-          style={{
-            filter: elevatedRow ? 'blur(4px) opacity(0.35)' : 'none',
-            transition: 'filter 0.4s ease, opacity 0.4s ease'
-          }}
         >
           <div className="sticky top-28 pointer-events-auto">
             <aside
@@ -417,21 +426,23 @@ export const ProductsV2View = React.memo(function ProductsV2View({
               )}
             </aside>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* ГЛАВНОЕ ОКНО КОНСОЛИ (MERIDIAN COCKPIT CONTAINER) */}
       <div className="relative mx-auto rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl overflow-hidden">
 
         {/* Верхняя панель окна */}
-        <div
+        <motion.div
+          initial={false}
+          animate={{
+            filter: elevatedRow ? 'blur(4px)' : 'blur(0px)',
+            opacity: elevatedRow ? 0.35 : 1,
+          }}
+          transition={surfaceTransition}
           className={`flex flex-wrap items-center justify-between border-b border-white/10 px-4 py-2.5 bg-neutral-900/60 gap-3 duration-300 ${
             elevatedRow ? 'pointer-events-none select-none' : ''
           }`}
-          style={{
-            filter: elevatedRow ? 'blur(4px) opacity(0.35)' : 'none',
-            transition: 'filter 0.4s ease, opacity 0.4s ease'
-          }}
         >
 
           {/* Левая часть: Точки терминала + Заголовок + Бейдж Supabase Cloud */}
@@ -521,18 +532,20 @@ export const ProductsV2View = React.memo(function ProductsV2View({
             </CockpitButton>
           </div>
 
-        </div>
+        </motion.div>
 
         {/* Внутреннее содержимое консоли товаров с анимацией перехода */}
         <CockpitContentTransition>
           <div className="p-3.5 sm:p-4 md:p-5 space-y-3 sm:space-y-3.5">
 
           {/* 1. ВЕРХНИЙ БЛОК: СТАТИСТИКА КАТАЛОГА И ДЕЙСТВИЯ */}
-          <div
-            style={{
-              filter: elevatedRow ? 'blur(4px) opacity(0.35)' : 'none',
-              transition: 'filter 0.4s ease, opacity 0.4s ease'
+          <motion.div
+            initial={false}
+            animate={{
+              filter: elevatedRow ? 'blur(4px)' : 'blur(0px)',
+              opacity: elevatedRow ? 0.35 : 1,
             }}
+            transition={surfaceTransition}
             className={`space-y-3 sm:space-y-3.5 duration-300 ${
               elevatedRow ? 'pointer-events-none select-none' : ''
             }`}
@@ -632,20 +645,22 @@ export const ProductsV2View = React.memo(function ProductsV2View({
                 </div>
               </div>
             )}
-          </div>
+          </motion.div>
 
           {/* 2. ПАНЕЛЬ ФИЛЬТРОВ И ПОИСКА КАТАЛОГА (ЭТАЛОН MERIDIAN COCKPIT) */}
-          <div
+          <motion.div
+            initial={false}
+            animate={{
+              filter: elevatedRow ? 'blur(4px)' : 'blur(0px)',
+              opacity: elevatedRow ? 0.35 : 1,
+            }}
+            transition={surfaceTransition}
             onClick={() => {
               if (elevatedRow) setElevatedRow(null);
             }}
             className={`relative z-20 duration-300 ${
               elevatedRow ? 'pointer-events-none select-none cursor-pointer' : ''
             }`}
-            style={{
-              filter: elevatedRow ? 'blur(4px) opacity(0.35)' : 'none',
-              transition: 'filter 0.4s ease, opacity 0.4s ease'
-            }}
           >
             <ProductsV2FilterBar
               searchQuery={searchQuery}
@@ -668,7 +683,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
                 setSelectedCategories(['all']);
               }}
             />
-          </div>
+          </motion.div>
 
           {/* 3. ТАБЛИЦА РЕЕСТРА ТОВАРОВ */}
           <div className={`relative ${elevatedRow ? 'z-40' : 'z-10'}`}>
@@ -733,14 +748,16 @@ export const ProductsV2View = React.memo(function ProductsV2View({
         </CockpitContentTransition>
 
         {/* 4. ПОДВАЛ КОНСОЛИ / ТЕЛЕМЕТРИЯ (STATUSBAR) */}
-        <div
+        <motion.div
+          initial={false}
+          animate={{
+            filter: elevatedRow ? 'blur(4px)' : 'blur(0px)',
+            opacity: elevatedRow ? 0.35 : 1,
+          }}
+          transition={surfaceTransition}
           className={`border-t border-white/10 px-5 py-2.5 bg-neutral-950 flex flex-wrap items-center justify-between text-[11px] font-mono text-neutral-500 gap-2 select-none duration-300 ${
             elevatedRow ? 'pointer-events-none select-none' : ''
           }`}
-          style={{
-            filter: elevatedRow ? 'blur(4px) opacity(0.35)' : 'none',
-            transition: 'filter 0.4s ease, opacity 0.4s ease'
-          }}
         >
           <div className="flex items-center gap-3 flex-wrap">
             <span>DATABASE: {isOnline ? 'SUPABASE CLOUD' : 'OFFLINE'}</span>
@@ -762,7 +779,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
             <span>•</span>
             <span className="text-emerald-400 font-semibold">RUNTIME READY</span>
           </div>
-        </div>
+        </motion.div>
 
       </div>
 

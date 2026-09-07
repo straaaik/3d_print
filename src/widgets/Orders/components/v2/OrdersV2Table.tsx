@@ -30,7 +30,7 @@ import {
   ExternalLink, 
   Plus, 
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { Tooltip } from '@/shared/ui/Tooltip';
 import { AnimatedPriceNumber } from '@/shared/ui/AnimatedPriceNumber';
 import { TableDeadlinePicker } from './TableDeadlinePicker';
@@ -41,6 +41,7 @@ import { MotionPulse } from '@/shared/ui/MotionPrimitives';
 
 const COMPACT_GRID_COLUMNS = '112px 80px 176px minmax(200px, 1.5fr) 144px 128px 96px 144px 112px';
 const EXPANDED_GRID_COLUMNS = '128px 112px 96px 176px 176px minmax(200px, 1.5fr) 192px 128px 144px 128px 112px 128px 144px 144px';
+const SURFACE_EASE = [0.16, 1, 0.3, 1] as const;
 
 export type EditableField = 
   | 'date' 
@@ -359,6 +360,10 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
   elevatedOrder: propElevatedOrder,
   setElevatedOrder: propSetElevatedOrder,
 }: OrdersV2TableProps) {
+  const shouldReduceMotion = useReducedMotion();
+  const surfaceTransition = shouldReduceMotion
+    ? { duration: 0 }
+    : { duration: 0.4, ease: SURFACE_EASE };
   const sentinelRef = useRef<HTMLTableRowElement | null>(null);
   const [activeStatusDropdown, setActiveStatusDropdown] = useState<{
     order: Order;
@@ -818,9 +823,14 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
           /* РАЗВЁРНУТЫЙ РЕЖИМ (15 ОТДЕЛЬНЫХ СТОЛБЦОВ С МАКСИМАЛЬНОЙ ДЕТАЛИЗАЦИЕЙ)       */
           /* ========================================================================= */
           <table className="w-full text-left text-xs border-collapse min-w-[1680px] block">
-            <thead 
+            <motion.thead
+              initial={false}
+              animate={{
+                filter: elevatedOrder ? 'blur(4px)' : 'blur(0px)',
+                opacity: elevatedOrder ? 0.35 : 1,
+              }}
+              transition={surfaceTransition}
               className={`block w-full ${elevatedOrder ? 'pointer-events-none select-none' : ''}`}
-              style={{ filter: elevatedOrder ? 'blur(4px) opacity(0.35)' : 'blur(0px) opacity(1)', transition: 'filter 0.4s ease, opacity 0.4s ease' }}
             >
               <tr 
                 className="bg-neutral-900/95 border-b border-white/10 text-neutral-400 font-mono text-[10px] sm:text-[11px] uppercase tracking-wider sticky top-0 z-20 grid items-center"
@@ -968,7 +978,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                   </div>
                 </th>
               </tr>
-            </thead>
+            </motion.thead>
 
             <tbody className="block w-full divide-y divide-white/5 font-mono text-xs">
               {visibleOrders.length === 0 ? (
@@ -1867,9 +1877,14 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
           /* КОМПАКТНЫЙ РЕЖИМ (9 СДВОЕННЫХ СТОЛБЦОВ С ИНЛАЙН-РЕДАКТИРОВАНИЕМ)           */
           /* ========================================================================= */
           <table className="w-full text-left text-xs border-collapse min-w-[1050px] block">
-            <thead 
+            <motion.thead
+              initial={false}
+              animate={{
+                filter: elevatedOrder ? 'blur(4px)' : 'blur(0px)',
+                opacity: elevatedOrder ? 0.35 : 1,
+              }}
+              transition={surfaceTransition}
               className={`block w-full ${elevatedOrder ? 'pointer-events-none select-none' : ''}`}
-              style={{ filter: elevatedOrder ? 'blur(4px) opacity(0.35)' : 'blur(0px) opacity(1)', transition: 'filter 0.4s ease, opacity 0.4s ease' }}
             >
               <tr 
                 className="bg-neutral-900/90 border-b border-white/10 text-neutral-400 font-mono text-[10px] sm:text-[11px] uppercase tracking-wider grid items-center"
@@ -1974,7 +1989,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                   </div>
                 </th>
               </tr>
-            </thead>
+            </motion.thead>
 
             {/* Строки заказов */}
             <tbody className="block w-full divide-y divide-white/5 font-mono text-xs">

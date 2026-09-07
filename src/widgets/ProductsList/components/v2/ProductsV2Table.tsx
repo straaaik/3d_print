@@ -43,7 +43,7 @@ import {
   X,
   RefreshCw
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { Tooltip } from '../../../../shared/ui/Tooltip';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
 import { AnimatedPriceNumber } from '../../../../shared/ui/AnimatedPriceNumber';
@@ -54,6 +54,7 @@ import { MotionPulse, MotionRevealDiv } from '../../../../shared/ui/MotionPrimit
 // Точные моноширинные сетки колонок (CSS Grid) — абсолютная синхронизация thead и tbody
 export const PRODUCTS_EXPANDED_COLUMNS = '112px 96px 144px minmax(220px,1.5fr) 136px 128px 144px 128px 128px 144px 112px 96px 136px';
 export const PRODUCTS_COMPACT_COLUMNS = '112px 136px minmax(200px,1.5fr) 128px 120px 136px 128px 128px 120px';
+const SURFACE_EASE = [0.16, 1, 0.3, 1] as const;
 
 interface TableCategoryDropdownPortalProps {
   isOpen: boolean;
@@ -407,6 +408,10 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
   onBatchMoveSelected,
   onBatchDeleteSelected,
 }: ProductsV2TableProps) {
+  const shouldReduceMotion = useReducedMotion();
+  const surfaceTransition = shouldReduceMotion
+    ? { duration: 0 }
+    : { duration: 0.4, ease: SURFACE_EASE };
   // Локальное состояние для строки в фокусе (парение), если не передано внешнее
   const [internalElevatedRow, setInternalElevatedRow] = useState<CatalogTableRow | null>(null);
   const elevatedRow = externalElevatedRow !== undefined ? externalElevatedRow : internalElevatedRow;
@@ -783,12 +788,14 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
           /* РАЗВЁРНУТЫЙ РЕЖИМ (13 РАЗДЕЛЬНЫХ КОЛОНОК С ПОЛНОЙ ДЕТАЛИЗАЦИЕЙ)            */
           /* ========================================================================= */
           <table className="w-full text-left text-xs border-collapse min-w-[1680px] block">
-            <thead
-              className={`block w-full ${elevatedRow ? 'pointer-events-none select-none' : ''}`}
-              style={{
-                filter: elevatedRow ? 'blur(4px) opacity(0.35)' : 'blur(0px) opacity(1)',
-                transition: 'filter 0.4s ease, opacity 0.4s ease'
+            <motion.thead
+              initial={false}
+              animate={{
+                filter: elevatedRow ? 'blur(4px)' : 'blur(0px)',
+                opacity: elevatedRow ? 0.35 : 1,
               }}
+              transition={surfaceTransition}
+              className={`block w-full ${elevatedRow ? 'pointer-events-none select-none' : ''}`}
             >
               <tr
                 className="bg-neutral-900/95 border-b border-white/10 text-neutral-400 font-mono text-[10px] sm:text-[11px] uppercase tracking-wider sticky top-0 z-20 grid items-center select-none"
@@ -947,7 +954,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                   <span>ДЕЙСТВИЯ</span>
                 </th>
               </tr>
-            </thead>
+            </motion.thead>
 
             <tbody className="block w-full divide-y divide-white/5 font-mono text-xs">
               {visibleRows.length === 0 ? (
@@ -1609,12 +1616,14 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
           /* КОМПАКТНЫЙ РЕЖИМ (9 СДВОЕННЫХ КОЛОНОК — ТОЧНЫЙ ЭТАЛОН РЕЕСТРА ORDERS)     */
           /* ========================================================================= */
           <table className="w-full text-left text-xs border-collapse min-w-[1050px] block">
-            <thead
-              className={`block w-full ${elevatedRow ? 'pointer-events-none select-none' : ''}`}
-              style={{
-                filter: elevatedRow ? 'blur(4px) opacity(0.35)' : 'blur(0px) opacity(1)',
-                transition: 'filter 0.4s ease, opacity 0.4s ease'
+            <motion.thead
+              initial={false}
+              animate={{
+                filter: elevatedRow ? 'blur(4px)' : 'blur(0px)',
+                opacity: elevatedRow ? 0.35 : 1,
               }}
+              transition={surfaceTransition}
+              className={`block w-full ${elevatedRow ? 'pointer-events-none select-none' : ''}`}
             >
               <tr
                 className="bg-neutral-900/90 border-b border-white/10 text-neutral-400 font-mono text-[10px] sm:text-[11px] uppercase tracking-wider grid items-center select-none"
@@ -1741,7 +1750,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                   <span>ДЕЙСТВИЯ</span>
                 </th>
               </tr>
-            </thead>
+            </motion.thead>
 
             <tbody className="block w-full divide-y divide-white/5 font-mono text-xs">
               {visibleRows.length === 0 ? (
