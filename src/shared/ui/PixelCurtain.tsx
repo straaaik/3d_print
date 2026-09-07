@@ -40,7 +40,7 @@ export function PixelCurtainProvider({ children }: { children: React.ReactNode }
       for (let c = 0; c < COLS; c++) {
         // Детерминированный псевдослучайный шум для естественного эффекта рассыпания
         const pseudoRandom = Math.abs(Math.sin((r + 1) * 12.9898 + (c + 1) * 78.233)) % 1;
-        
+
         // Диагональная волна + шум
         const normalizedDist = (r / ROWS + c / COLS) / 2;
         const coverDelay = normalizedDist * 0.18 + pseudoRandom * 0.12;
@@ -137,7 +137,7 @@ export function PixelCurtainProvider({ children }: { children: React.ReactNode }
       {/* Полноэкранный слой пиксельного занавеса (Curtains: Pixels) */}
       <AnimatePresence>
         {isTransitioning && (
-          <div 
+          <div
             className="fixed inset-0 z-[99999] pointer-events-auto grid w-screen h-screen overflow-hidden select-none bg-transparent"
             style={{
               gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`,

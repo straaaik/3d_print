@@ -214,7 +214,7 @@ export function OpenNewMonthModal({
 
             {/* 2. Тело модального окна */}
             <div className="p-5 sm:p-6 bg-[#18181c] space-y-4">
-              
+
               {/* Переключатель года в стиле Cockpit */}
               <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#141416]/80 border border-[#26262b]">
                 <Tooltip content="Предыдущий год">

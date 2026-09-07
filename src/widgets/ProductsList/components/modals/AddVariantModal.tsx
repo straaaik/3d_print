@@ -3,7 +3,7 @@ import { ProductCollection, SavedCalculation, Filament, Printer } from '../../..
 import { Modal } from '../../../../shared/ui/Modal';
 import { Select } from '../../../../shared/ui/Select';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
-import { FolderPlus, Layers, Copy, Plus, Sparkles } from 'lucide-react';
+import {  Layers, Copy, Sparkles } from 'lucide-react';
 
 interface AddVariantModalProps {
   collection: ProductCollection | null;

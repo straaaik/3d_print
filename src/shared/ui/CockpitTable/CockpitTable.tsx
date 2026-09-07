@@ -1,24 +1,20 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { 
-  CockpitTableProps, 
-  CockpitTableColumn, 
-  CockpitTableAlign 
+import {
+  CockpitTableProps,
+  CockpitTableAlign
 } from './types';
 import { Checkbox } from '../Checkbox';
 import { Tooltip } from '../Tooltip';
-import { 
-  ChevronUp, 
-  ChevronDown, 
-  Search, 
-  X, 
-  Package, 
-  Database,
-  Activity,
-  Layers
+import {
+  ChevronUp,
+  ChevronDown,
+  Search,
+  X,
+  Package,
+  Database
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { usePersistentState } from '../../lib/usePersistentState';
 
 export function CockpitTable<T>({
@@ -141,8 +137,8 @@ export function CockpitTable<T>({
       const col = columns.find((c) => (c.sortKey || c.id) === sortField);
       if (col) {
         items.sort((a, b) => {
-          let valA: any;
-          let valB: any;
+          let valA: unknown;
+          let valB: unknown;
 
           if (col.sortValue) {
             valA = col.sortValue(a);
@@ -418,7 +414,7 @@ export function CockpitTable<T>({
                         const rawVal =
                           typeof col.accessor === 'function'
                             ? col.accessor(item)
-                            : (item as any)[col.accessor];
+                            : (item as Record<PropertyKey, unknown>)[col.accessor];
                         cellContent = rawVal !== undefined && rawVal !== null ? String(rawVal) : '—';
                       }
 

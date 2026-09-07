@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-  Order, 
-  OrderStatus, 
-  ALL_STATUSES, 
-  STATUS_CONFIG, 
+import {
+  Order,
+  OrderStatus,
+  ALL_STATUSES,
+  STATUS_CONFIG,
   CLIENT_CONFIG,
   ORDER_CHANNELS,
   ContactItem,
@@ -18,29 +18,16 @@ import { formatMoney, getDeadlineInfo, roundTo2 } from '../../helpers';
 import { TableDeadlinePicker } from './TableDeadlinePicker';
 import { getContactHref, ALL_CONTACT_TYPES } from './OrderContactsModal';
 import { formatOrderNumber } from './types';
-import { 
-  Check, 
+import {
+  Check,
   CheckCircle2,
-  Copy, 
-  Tag, 
+  Tag,
   Globe,
-  Plus,
-  Minus,
   ChevronDown,
   ExternalLink,
   X,
-  Trash2,
-  Calendar,
-  CreditCard,
-  ShoppingBag,
-  Send,
-  MessageCircle,
-  Share2,
-  ThumbsUp,
   MoreHorizontal,
-  Compass,
   Package,
-  User,
   Wrench,
   Droplet,
   Sparkles,
@@ -906,7 +893,7 @@ export function OrderRowDrawer({
   const netProfit = totalAmount - totalCost;
   const marginPercent = totalAmount > 0 ? ((netProfit / totalAmount) * 100).toFixed(1) : '0';
   const debt = Math.max(0, totalAmount - paid);
-  const paidPercent = totalAmount > 0 
+  const paidPercent = totalAmount > 0
     ? Math.min(100, Math.max(0, (paid / totalAmount) * 100))
     : (paid > 0 ? 100 : 0);
   const isFullPaid = totalAmount > 0 && Math.abs(paid - totalAmount) < 0.01;
@@ -1024,8 +1011,8 @@ export function OrderRowDrawer({
   }, [client]);
 
   return (
-    <div 
-      onClick={(e) => e.stopPropagation()} 
+    <div
+      onClick={(e) => e.stopPropagation()}
       className="p-2.5 sm:p-3 font-mono text-xs select-none space-y-2 bg-neutral-950/98 text-white border-t border-white/10"
     >
       {/* ========================================================================= */}
@@ -1068,8 +1055,8 @@ export function OrderRowDrawer({
 
             {/* Доход / Расход */}
             <span className={`h-8 flex items-center justify-center text-[10px] font-bold uppercase tracking-wider px-2.5 rounded-md border shrink-0 ${
-              order.type === 'income' 
-                ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/40' 
+              order.type === 'income'
+                ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/40'
                 : 'bg-rose-950/40 text-rose-400 border-rose-800/40'
             }`}>
               {order.type === 'income' ? 'ДОХОД' : 'РАСХОД'}
@@ -1105,8 +1092,8 @@ export function OrderRowDrawer({
                   setIsStatusOpen(true);
                 }}
                 className={`h-8 border rounded-md px-2 flex items-center justify-between gap-1 text-left font-mono text-[11px] transition-all cursor-pointer select-none tracking-wider uppercase shadow-inner shrink-0 ${
-                  isStatusOpen 
-                    ? 'border-white/30 ring-1 ring-white/10 bg-neutral-900 text-white' 
+                  isStatusOpen
+                    ? 'border-white/30 ring-1 ring-white/10 bg-neutral-900 text-white'
                     : 'bg-neutral-950/80 border-white/15 hover:border-white/25 text-white'
                 }`}
                 title="Клик для выбора статуса заказа"
@@ -1649,10 +1636,10 @@ export function OrderRowDrawer({
                         ? 'bg-amber-950/60 text-amber-300 border-amber-800/50'
                         : 'bg-white/5 text-neutral-400 border-white/10'
                   }`}>
-                    {paid >= totalAmount && totalAmount > 0 
-                      ? 'ОПЛАЧЕН ПОЛНОСТЬЮ' 
-                      : paid > 0 
-                      ? `ОПЛАЧЕНО ${totalAmount > 0 ? Math.round((paid / totalAmount) * 100) : 0}%` 
+                    {paid >= totalAmount && totalAmount > 0
+                      ? 'ОПЛАЧЕН ПОЛНОСТЬЮ'
+                      : paid > 0
+                      ? `ОПЛАЧЕНО ${totalAmount > 0 ? Math.round((paid / totalAmount) * 100) : 0}%`
                       : 'НЕ ОПЛАЧЕН'}
                   </span>
                 </div>
@@ -1754,8 +1741,8 @@ export function OrderRowDrawer({
                         type="button"
                         onClick={handleSetFullPayment}
                         className={`py-0.5 text-xs font-mono transition-colors cursor-pointer shrink-0 ${
-                          isFullPaid 
-                            ? 'text-white font-bold' 
+                          isFullPaid
+                            ? 'text-white font-bold'
                             : 'text-[#71717a] hover:text-white'
                         }`}
                         title={isFullPaid ? 'Заказ оплачен на 100%' : debt > 0 ? `Добавить платёж на остаток (${formatMoney(debt)})` : 'Внести 100% оплату'}
@@ -1786,7 +1773,7 @@ export function OrderRowDrawer({
 
                     {/* Тонкий аккуратный прогресс-бар в нативном стиле */}
                     <div className="w-full h-1 bg-[#222226] rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-white rounded-full transition-all duration-300"
                         style={{ width: `${Math.min(100, Math.max(paidPercent > 0 ? 3 : 0, paidPercent))}%` }}
                       />

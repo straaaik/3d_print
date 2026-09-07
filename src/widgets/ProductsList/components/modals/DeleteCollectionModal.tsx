@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ProductCollection } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
-import { Check, FolderX, AlertTriangle } from 'lucide-react';
+import { Check, AlertTriangle } from 'lucide-react';
 
 interface DeleteCollectionModalProps {
   collection: ProductCollection | null;

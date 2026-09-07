@@ -519,7 +519,7 @@ export function HubSkeleton() {
         <div className="flex items-center gap-2 font-mono text-xs text-neutral-400 tracking-wider">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="font-semibold text-neutral-300">3D-LABS</span>
-          <span className="text-neutral-600">//</span>
+          <span className="text-neutral-600">{'//'}</span>
           <span className="text-neutral-400">OPERATIONS HUB</span>
         </div>
         <div className="w-8 h-8 rounded-full bg-white/10 animate-pulse" />

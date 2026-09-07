@@ -125,7 +125,7 @@ export default function HomePage() {
         <div className="flex items-center gap-2 font-mono text-xs text-neutral-400 tracking-wider">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span className="font-semibold text-neutral-300">3D-LABS</span>
-          <span className="text-neutral-600">//</span>
+          <span className="text-neutral-600">{'//'}</span>
           <span className="text-neutral-400">OPERATIONS HUB</span>
         </div>
         <UserProfileMenu />
@@ -134,7 +134,7 @@ export default function HomePage() {
       {/* Центральный блок: парящие 3D иконки в плотной связке */}
       <div className="w-full flex-1 flex flex-col items-center justify-center py-6 sm:py-12 z-10">
         {/* Контейнер иконок с точным расчётом хитбокса */}
-        <div 
+        <div
           className="flex flex-wrap sm:flex-nowrap items-center justify-center -space-x-10 sm:-space-x-16 md:-space-x-20 lg:-space-x-24 xl:-space-x-28 px-4 py-12"
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
@@ -250,5 +250,4 @@ export default function HomePage() {
     </div>
   );
 }
-
 

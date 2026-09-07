@@ -24,7 +24,7 @@ export function AnimatedPriceNumber({
   currencyClassName,
 }: AnimatedPriceNumberProps) {
   const safeValue = typeof value === 'number' && !isNaN(value) ? value : 0;
-  const roundedValue = decimals > 0 
+  const roundedValue = decimals > 0
     ? Math.round(safeValue * Math.pow(10, decimals)) / Math.pow(10, decimals)
     : Math.round(safeValue);
 

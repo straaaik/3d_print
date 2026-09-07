@@ -448,10 +448,10 @@ export function ClientReceiptModal({
           {/* 2. ОСНОВНОЕ ТЕЛО МОДАЛКИ (ДВЕ КОЛОНКИ: СЛЕВА НАСТРОЙКИ И ДАННЫЕ, СПРАВА ЧЕК) */}
           <div className="p-4 sm:p-6 overflow-y-auto flex-1">
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-stretch">
-              
+
               {/* ЛЕВАЯ КОЛОНКА: ИНФОРМАЦИЯ И ПАРАМЕТРЫ ЧЕКА (РАСТЯГИВАЕТСЯ НА ВСЮ ВЫСОТУ) */}
               <div className="flex flex-col justify-between h-full space-y-4">
-                
+
                 {/* Верхняя группа карточек */}
                 <div className="space-y-4">
                   {/* Карточка 1: Название изделия для чека */}
@@ -604,7 +604,7 @@ export function ClientReceiptModal({
 
               {/* ПРАВАЯ КОЛОНКА: САМ ТЕПЛОВОЙ ЧЕК И КНОПКИ ЭКСПОРТА */}
               <div className="flex flex-col items-center space-y-4">
-                
+
                 {/* Сам бланк чека */}
                 <div
                   ref={receiptRef}
@@ -628,7 +628,7 @@ export function ClientReceiptModal({
                       <span style={{ fontWeight: 'bold', color: '#0a0a0a' }}>3D LABS · PRODUCTION</span>
                       <span>№ {orderNumber}</span>
                     </div>
-                    
+
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#525252', paddingTop: '3px', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
                       <span>ТОВАРНЫЙ ЧЕК</span>
                       <span>{orderDate}</span>

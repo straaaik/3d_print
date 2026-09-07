@@ -2,17 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-  Order, 
-  PaymentItem 
+import {
+  Order,
+  PaymentItem
 } from '../../types';
 import { formatMoney, roundTo2 } from '../../helpers';
 import { formatOrderNumber } from './types';
-import { 
-  CreditCard, 
-  Plus, 
-  Trash2, 
-  Calendar, 
+import {
+
+  Plus,
+  Trash2,
+  Calendar,
   Coins
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -119,7 +119,7 @@ export function OrderPaymentModal({
     items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
   );
   const debt = Math.max(0, roundTo2(totalOrderAmount - currentTotalPaid));
-  const paidPercent = totalOrderAmount > 0 
+  const paidPercent = totalOrderAmount > 0
     ? Math.min(100, Math.max(0, (currentTotalPaid / totalOrderAmount) * 100))
     : (currentTotalPaid > 0 ? 100 : 0);
 

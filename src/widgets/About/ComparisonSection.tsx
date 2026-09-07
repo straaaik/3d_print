@@ -52,7 +52,7 @@ export function ComparisonSection() {
   return (
     <section id="comparison" className="border-b border-white/15 bg-neutral-950/40 py-16 sm:py-24 select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        
+
         {/* Заголовок секции */}
         <div className="border-b border-white/10 pb-4 mb-8 sm:mb-12 flex items-center justify-between font-mono text-xs text-neutral-400">
           <span>7 КАТЕГОРИЙ · ПРЯМОЕ СРАВНЕНИЕ</span>
@@ -78,7 +78,7 @@ export function ComparisonSection() {
         <div className="hidden md:block border-y border-white/15 divide-y divide-white/10">
           {rows.map((row) => (
             <div key={row.num} className="grid grid-cols-[200px_1fr_1fr] items-stretch text-xs sm:text-sm">
-              
+
               {/* Колонка категории */}
               <div className="py-6 pr-6 border-r border-white/10 flex items-start gap-3">
                 <span className="font-mono text-xs text-cyan-400 font-bold">{row.num}</span>

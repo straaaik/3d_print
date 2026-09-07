@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Box, ArrowRight, ShieldCheck, Terminal, Heart } from 'lucide-react';
+import { Box, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../entities/model/AuthProvider';
 
 export function AboutFooter() {
@@ -10,11 +10,11 @@ export function AboutFooter() {
 
   return (
     <footer className="bg-neutral-950 text-neutral-400 font-sans border-t border-white/15 select-none relative overflow-hidden">
-      
+
       {/* Главный финальный CTA блок */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-24 border-b border-white/10">
         <div className="border border-white/15 bg-gradient-to-b from-white/[0.04] to-transparent p-8 sm:p-14 rounded-3xl relative overflow-hidden text-center max-w-4xl mx-auto">
-          
+
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-700/60 text-cyan-300 font-mono text-xs mb-6">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
             ГОТОВО К ВНЕДРЕНИЮ В ВАШЕЙ МАСТЕРСКОЙ
@@ -53,7 +53,7 @@ export function AboutFooter() {
 
       {/* Навигационные колонки и статус системы */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16 grid grid-cols-2 md:grid-cols-5 gap-8">
-        
+
         {/* Бренд колонка */}
         <div className="col-span-2 space-y-4">
           <div className="flex items-center gap-2.5">

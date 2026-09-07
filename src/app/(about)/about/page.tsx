@@ -2,20 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { motion } from 'motion/react';
-import { 
-  Box, 
-  ArrowRight, 
-  Sparkles, 
-  ShieldCheck, 
-  Calculator, 
-  ShoppingBag, 
-  Package, 
-  Layers, 
-  Cpu, 
-  TrendingUp,
-  Activity,
-  CheckCircle2
+import {
+
+  ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../../../entities/model/AuthProvider';
 import { AboutHeader } from '../../../widgets/About/AboutHeader';
@@ -33,24 +22,24 @@ export default function AboutPage() {
 
   return (
     <div className="min-h-screen bg-transparent text-white selection:bg-cyan-500/30 selection:text-cyan-200">
-      
+
       {/* Шапка в стиле Meridian */}
       <AboutHeader />
 
       <main className="relative pt-24 sm:pt-28">
-        
+
         {/* HERO СЕКЦИЯ */}
         <section id="overview" className="relative px-4 sm:px-6 pt-12 sm:pt-16 pb-16 sm:pb-24 overflow-hidden">
-          
+
           {/* Декоративная подсветка фона */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-cyan-500/10 blur-[140px] pointer-events-none rounded-full" />
           <div className="absolute top-1/3 right-1/4 w-[400px] h-[400px] bg-purple-500/5 blur-[120px] pointer-events-none rounded-full" />
 
           <div className="max-w-7xl mx-auto space-y-12">
-            
+
             {/* Текстовый блок Hero */}
             <div className="max-w-4xl space-y-6">
-              
+
               {/* Верхний бейдж */}
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-neutral-300 font-mono text-xs">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
@@ -122,7 +111,7 @@ export default function AboutPage() {
         {/* СЕКЦИЯ СПЕЦИФИКАЦИЙ (AT A GLANCE / МОДУЛИ A - F) */}
         <section id="specs" className="relative border-t border-white/15 bg-neutral-950/80 px-4 sm:px-6 py-16 sm:py-24 select-none">
           <div className="max-w-7xl mx-auto space-y-12">
-            
+
             {/* Заголовок секции со штампом спецификации */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
               <div className="md:col-span-8">

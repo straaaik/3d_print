@@ -26,7 +26,6 @@ import {
 import {
   createWorkspaceComponents,
   type WorkspaceDynamicAdapter,
-  type WorkspaceDefinition,
   workspaceDefinitions,
 } from '../src/widgets/CockpitWorkspace/workspaceDefinitions';
 
@@ -45,25 +44,25 @@ test('cockpit shell has no static workspace implementation imports', () => {
 });
 
 test('production workspace factory supplies every loader and matching skeleton to the dynamic adapter', () => {
-  const calls: Array<Parameters<WorkspaceDynamicAdapter>> = [];
-  const dynamicAdapter = ((load, options) => {
-    calls.push([load, options]);
+  const calls: Array<{ load: unknown; loading: unknown }> = [];
+  const dynamicAdapter: WorkspaceDynamicAdapter = (load, options) => {
+    calls.push({ load, loading: options.loading });
     return () => null;
-  }) as WorkspaceDynamicAdapter;
+  };
   createWorkspaceComponents(dynamicAdapter);
-  const definitions: Array<[WorkspaceDefinition, React.ComponentType]> = [
+  const definitions = [
     [workspaceDefinitions.orders, OrdersSkeleton],
     [workspaceDefinitions.stats, StatsSkeleton],
     [workspaceDefinitions.calculator, CalculatorSkeleton],
     [workspaceDefinitions.products, ProductsSkeleton],
     [workspaceDefinitions.filaments, FilamentsSkeleton],
     [workspaceDefinitions.printers, PrintersSkeleton],
-  ];
+  ] as const;
 
   assert.equal(calls.length, definitions.length);
   for (const [index, [definition, skeleton]] of definitions.entries()) {
-    assert.equal(calls[index][0], definition.load);
-    assert.equal(calls[index][1].loading, skeleton);
+    assert.equal(calls[index].load, definition.load);
+    assert.equal(calls[index].loading, skeleton);
   }
 });
 
@@ -77,14 +76,17 @@ test('real route layouts own only their required provider trees', () => {
   assert.equal(child(child(child(child(child(protectedTree))))).type, AuthGuard);
   assert.equal(child(child(child(child(child(child(protectedTree)))))).type, PixelCurtainProvider);
   assert.equal(child(child(child(child(child(child(child(protectedTree))))))).type, CockpitTransitionProvider);
+  assert.equal(child(child(child(child(child(child(child(child(protectedTree)))))))).type, 'span');
 
   const loginTree = LoginLayout({ children: <span>login</span> });
   assert.equal(loginTree.type, 'div');
   assert.equal(child(loginTree).type, ToastProvider);
   assert.equal(child(child(loginTree)).type, AuthProvider);
+  assert.equal(child(child(child(loginTree))).type, 'span');
 
   const aboutTree = AboutLayout({ children: <span>about</span> });
   assert.equal(aboutTree.type, AuthProvider);
+  assert.equal(child(aboutTree).type, 'span');
 
   const rootTree = RootLayout({ children: <span>root</span> });
   assert.equal(rootTree.type, 'html');

@@ -1,14 +1,13 @@
-import { 
-  Printer, 
-  Filament, 
-  Settings, 
-  SavedCalculation, 
-  Order, 
-  OrderStatus, 
-  ContactItem, 
-  ContactType, 
-  CostItem, 
-  AssemblyPrintedPart, 
+import {
+  Printer,
+  Filament,
+  Settings,
+  SavedCalculation,
+  Order,
+  OrderStatus,
+  ContactItem,
+  CostItem,
+  AssemblyPrintedPart,
   AssemblyHardwareItem,
   ProductCollection
 } from '../types';
@@ -580,7 +579,7 @@ export function generateRandomSeedData(options: SeedOptions = {}): SeedDataResul
       const f = randomChoice(filaments);
       const p = randomChoice(printers);
       const partHours = part.hours + part.minutes / 60;
-      
+
       const partFilCost = (f.price / f.weight_g) * part.weight_g;
       const partElec = (p.power_w / 1000) * partHours * settings.electricity_rate;
       const partDeprec = (p.price / p.lifespan_hours) * partHours;
@@ -816,10 +815,10 @@ export function generateRandomSeedData(options: SeedOptions = {}): SeedDataResul
       const clientChannel = randomChoice(CLIENT_CHANNELS);
       const qty = randomChoice([1, 1, 1, 2, 2, 3, 5, 10]);
 
-      let unitAmount = matchedProduct ? matchedProduct.final_price : randomInt(70, 350) * 20;
-      let unitCost = matchedProduct ? matchedProduct.base_cost : Math.round(unitAmount * randomFloat(0.35, 0.55));
+      const unitAmount = matchedProduct ? matchedProduct.final_price : randomInt(70, 350) * 20;
+      const unitCost = matchedProduct ? matchedProduct.base_cost : Math.round(unitAmount * randomFloat(0.35, 0.55));
       // Модификаторы: базовая стоимость, скидка и срочность
-      let baseAmount = Math.round(unitAmount * qty);
+      const baseAmount = Math.round(unitAmount * qty);
       let discountPercent: number | undefined = undefined;
       let discountAmount: number | undefined = undefined;
       let urgencyPercent: number | undefined = undefined;

@@ -93,10 +93,10 @@ export function NumberCounter({
           {label}
         </span>
       )}
-      
+
       <div className={`flex items-center rounded-xl h-9 min-h-[36px] overflow-hidden transition-colors select-none ${
-        disabled 
-          ? 'bg-neutral-950 border border-white/5 opacity-40 cursor-not-allowed' 
+        disabled
+          ? 'bg-neutral-950 border border-white/5 opacity-40 cursor-not-allowed'
           : isModified
           ? 'bg-neutral-900 border border-amber-500/70 shadow-[0_0_10px_rgba(245,158,11,0.15)] focus-within:border-cyan-400'
           : 'bg-neutral-900 border border-white/15 focus-within:border-cyan-400 hover:border-white/25'
@@ -110,7 +110,7 @@ export function NumberCounter({
           <Minus size={13} />
         </button>
 
-        <div 
+        <div
           onClick={handleStartEditing}
           className={`flex-1 h-full flex items-center justify-center px-2 min-w-[40px] relative overflow-hidden ${
             disabled ? 'cursor-not-allowed' : 'cursor-text'

@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { 
-  Search, 
-  X, 
-  Layers, 
-  Package, 
-  Boxes, 
-  FolderPlus, 
-  Flame, 
+import {
+  Search,
+  X,
+  Layers,
+  Package,
+  Boxes,
+  FolderPlus,
+  Flame,
   RotateCcw,
   Tag
 } from 'lucide-react';
@@ -118,7 +118,7 @@ export const ProductsV2FilterBar = React.memo(function ProductsV2FilterBar({
 
   return (
     <div className="bg-white/[0.03] border border-white/10 rounded-xl p-2 sm:px-3 sm:py-2 select-none shadow-sm flex flex-wrap items-center justify-between gap-2.5 relative z-30">
-      
+
       {/* 1. СЛЕВА: Поиск в стиле капсулы */}
       <div className="bg-neutral-950/80 border border-white/10 p-1 rounded-xl w-48 sm:w-56 h-10 shrink-0 shadow-inner flex items-center">
         <div

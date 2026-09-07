@@ -27,7 +27,7 @@ export function generateKeyString(prefix = '3DLAB'): string {
 
 // Палитра аватарок
 const AVATAR_COLORS = [
-  '#FF6B00', '#00E676', '#0CB4E0', '#8B5CF6', 
+  '#FF6B00', '#00E676', '#0CB4E0', '#8B5CF6',
   '#EC4899', '#F59E0B', '#3B82F6', '#10B981'
 ];
 

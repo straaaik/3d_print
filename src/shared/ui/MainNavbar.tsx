@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAuth } from '../../entities/model/AuthProvider';
-import { 
-  ChevronDown, 
-  Settings, 
-  ShieldCheck, 
-  Info, 
+import {
+  ChevronDown,
+  Settings,
+  ShieldCheck,
+  Info,
   LogOut,
   LayoutGrid
 } from 'lucide-react';
@@ -93,7 +93,7 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
   return (
     <header className={`w-full max-w-[1500px] mx-auto select-none ${className}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        
+
         {/* ЛЕВАЯ ЧАСТЬ: ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ НА МЕСТЕ ЛОГОТИПА */}
         <div className="relative" ref={profileRef}>
           <button
@@ -102,7 +102,7 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
             className="flex items-center gap-2.5 bg-neutral-950/85 hover:bg-neutral-900/90 border border-white/15 backdrop-blur-xl px-3 py-1.5 rounded-xl text-white shadow-2xl transition-all cursor-pointer group"
           >
             {/* Аватарка (розовый сквиркл со скриншота) */}
-            <div 
+            <div
               className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs sm:text-sm shrink-0 shadow-sm"
               style={{ backgroundColor: avatarBg }}
             >
@@ -120,10 +120,10 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
             </div>
 
             {/* Стрелочка */}
-            <ChevronDown 
+            <ChevronDown
               className={`w-3.5 h-3.5 text-neutral-400 transition-transform duration-200 ${
                 isProfileOpen ? 'rotate-180 text-white' : 'group-hover:text-white'
-              }`} 
+              }`}
             />
           </button>
 
@@ -240,9 +240,9 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
             );
 
             return (
-              <Link 
-                key={item.id} 
-                href={item.href} 
+              <Link
+                key={item.id}
+                href={item.href}
                 aria-current={isActive ? 'page' : undefined}
                 onClick={(e) => {
                   if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;

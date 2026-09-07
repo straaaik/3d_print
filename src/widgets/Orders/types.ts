@@ -1,22 +1,22 @@
 import React from 'react';
-import { 
-  Order, 
-  OrderStatus, 
-  ContactItem, 
-  ContactType, 
-  CostItem, 
+import {
+  Order,
+  OrderStatus,
+  ContactItem,
+  ContactType,
+  CostItem,
   PaymentItem,
-  SavedCalculation 
+  SavedCalculation
 } from '../../shared/types';
-import { 
-  AlertCircle, 
-  Cpu, 
-  Clock, 
-  Printer, 
-  Palette, 
-  Brush, 
-  Package, 
-  Truck, 
+import {
+  AlertCircle,
+  Cpu,
+  Clock,
+  Printer,
+  Palette,
+  Brush,
+  Package,
+  Truck,
   CheckCircle2,
   ShoppingBag,
   Send,

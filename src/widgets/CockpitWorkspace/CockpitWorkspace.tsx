@@ -6,13 +6,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useData } from '../../entities/model/DataProvider';
 import { MainNavbar } from '../../shared/ui/MainNavbar';
 import { usePersistentState } from '../../shared/lib/usePersistentState';
-import { 
-  OrdersSkeleton, 
-  CalculatorSkeleton, 
-  StatsSkeleton, 
-  ProductsSkeleton, 
+import {
+  OrdersSkeleton,
+  CalculatorSkeleton,
+  StatsSkeleton,
+  ProductsSkeleton,
   FilamentsSkeleton,
-  PrintersSkeleton 
+  PrintersSkeleton
 } from '../../shared/ui/CockpitSkeleton';
 import {
   CockpitPanelTransition,
@@ -23,7 +23,7 @@ import {
   shouldShowFullscreenDevelopmentGate,
 } from '../../shared/ui/CockpitContentTransition';
 import { FullscreenDevelopmentGate } from '../../shared/ui/FullscreenDevelopmentGate';
-import { createWorkspaceComponents, type WorkspaceDynamicAdapter } from './workspaceDefinitions';
+import { createWorkspaceComponents } from './workspaceDefinitions';
 
 const {
   orders: OrdersTable,
@@ -32,7 +32,7 @@ const {
   products: ProductsList,
   filaments: FilamentList,
   printers: PrinterList,
-} = createWorkspaceComponents(dynamic as WorkspaceDynamicAdapter);
+} = createWorkspaceComponents(dynamic);
 
 export type CockpitTabId = 'orders' | 'stats' | 'calculator' | 'products' | 'filaments' | 'printers';
 
@@ -53,7 +53,7 @@ export function CockpitWorkspace({ initialTab }: CockpitWorkspaceProps) {
   const activeTabRef = useRef<CockpitTabId>(resolvedInitialTab);
   const pendingHistoryHrefRef = useRef<string | null>(null);
   const holdExpandedShellRef = useRef(false);
-  
+
   const [isOrdersExpanded, setIsOrdersExpanded] = usePersistentState<boolean>('3d_orders_expanded_view', false);
   const [isProductsExpanded, setIsProductsExpanded] = usePersistentState<boolean>('3d_products_expanded_view', false);
 
@@ -190,16 +190,16 @@ export function CockpitWorkspace({ initialTab }: CockpitWorkspaceProps) {
           ) : (
             <div className="w-full">
               {activeTab === 'orders' && (
-                <OrdersTable 
-                  isExpanded={isOrdersExpanded} 
+                <OrdersTable
+                  isExpanded={isOrdersExpanded}
                   onToggleExpand={handleOrdersExpandedChange}
                 />
               )}
               {activeTab === 'stats' && <StatsDashboard />}
               {activeTab === 'calculator' && <Calculator />}
               {activeTab === 'products' && (
-                <ProductsList 
-                  isExpanded={isProductsExpanded} 
+                <ProductsList
+                  isExpanded={isProductsExpanded}
                   onToggleExpand={handleProductsExpandedChange}
                 />
               )}

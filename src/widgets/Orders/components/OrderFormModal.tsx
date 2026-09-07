@@ -23,47 +23,31 @@ import {
 import { DEFAULT_COST_CATEGORIES } from '../../../shared/lib/costCategories';
 import { useData } from '../../../entities/model/DataProvider';
 import { calculateCost } from '../../../features/calculate-cost/model/calculate';
-import { CustomCostItem, ContactItem, ContactType } from '../../../shared/types';
-import { CockpitDropdown, CockpitDropdownOption } from '../../../shared/ui/CockpitDropdown';
-import { NumberCounter } from '../../../shared/ui/NumberCounter';
-import { 
-  ShoppingBag, 
+import { CustomCostItem, ContactType } from '../../../shared/types';
+import {  CockpitDropdownOption } from '../../../shared/ui/CockpitDropdown';
+import {
+
   Package, 
   Search, 
   DollarSign, 
   Flame, 
   Tag, 
   Receipt, 
-  Plus, 
-  Trash2, 
-  PhoneCall, 
   NotebookPen, 
   Check, 
   Clock, 
   Calendar, 
   AlertTriangle, 
-  RotateCcw, 
   Layers, 
   Wrench, 
   X, 
-  User, 
-  Activity,
-  ArrowRight,
+  User,
   Printer,
-  Sparkles,
-  Percent,
   TrendingUp,
   TrendingDown,
   Scale,
-  Zap,
   Calculator as CalculatorIcon,
-  Send,
-  MessageCircle,
-  Share2,
-  Globe,
-  ThumbsUp,
-  MoreHorizontal,
-  CheckCircle2
+  MoreHorizontal
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 

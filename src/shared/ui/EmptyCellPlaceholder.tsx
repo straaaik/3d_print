@@ -9,7 +9,7 @@ interface EmptyCellPlaceholderProps {
   title?: string;
 }
 
-export function EmptyCellPlaceholder({ 
+export function EmptyCellPlaceholder({
   label = '—',
   align = 'left',
   className = '',
@@ -23,7 +23,7 @@ export function EmptyCellPlaceholder({
 
   return (
     <div className={`flex items-center w-full select-none ${alignClasses[align]}`}>
-      <span 
+      <span
         className={`font-mono text-xs text-gray-500/40 cursor-not-allowed select-none px-1 ${className}`}
         title={title}
       >

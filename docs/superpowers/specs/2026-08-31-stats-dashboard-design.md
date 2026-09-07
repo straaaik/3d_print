@@ -1,7 +1,7 @@
 # 3D Labs Statistics Cockpit — Design Specification
 
-**Date:** 2026-08-31  
-**Status:** Awaiting user approval  
+**Date:** 2026-08-31
+**Status:** Awaiting user approval
 **Route:** `/stats`
 
 ## Objective

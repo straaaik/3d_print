@@ -1,5 +1,4 @@
 import React from 'react';
-import { useRouter } from 'next/navigation';
 import { 
   Order, 
   OrderStatus, 
@@ -14,7 +13,6 @@ import { OrdersV2FilterBar } from './OrdersV2FilterBar';
 import { OrdersV2Table } from './OrdersV2Table';
 import { formatMonthKeyLabel } from '../../helpers';
 import { RotateCcw, CalendarPlus, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { CockpitButton } from '@/shared/ui/CockpitButton';
 import { Tooltip } from '@/shared/ui/Tooltip';
 import { usePixelCurtain } from '@/shared/ui/PixelCurtain';
@@ -160,7 +158,6 @@ export const OrdersV2View = React.memo(function OrdersV2View({
   contextMenuRef,
   onCopyContact,
 }: OrdersV2ViewProps) {
-  const router = useRouter();
   const { navigate: curtainNavigate } = usePixelCurtain();
   const monthLabel = formatMonthKeyLabel(selectedMonthKey);
   const [isSideWingOpen, setIsSideWingOpen] = React.useState(true);

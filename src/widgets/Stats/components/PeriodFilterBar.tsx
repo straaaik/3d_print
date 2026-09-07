@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { 
-  Calendar, 
-  ChevronDown, 
-  Check, 
+import {
+  Calendar,
+  ChevronDown,
+  Check,
   X
 } from 'lucide-react';
-import { 
-  PeriodPreset, 
-  DateRange, 
+import {
+  PeriodPreset,
+  DateRange,
   getOrderMonthKey
 } from '../helpers/statsCalculator';
 import { DatePicker } from '../../../shared/ui/DatePicker';

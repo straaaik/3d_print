@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronUp, ChevronDown, Search, X, ChevronLeft, ChevronRight, Package } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
 import { usePersistentState } from '../lib/usePersistentState';
 
 export interface TableColumn<T> {
@@ -56,7 +55,7 @@ export function Table<T>({
 
   const sortKey = storageKey ? persistedSortKey : localSortKey;
   const setSortKey = storageKey ? setPersistedSortKey : setLocalSortKey;
-  const sortDirection = storageKey ? persistedSortDirection : setLocalSortDirection;
+  const sortDirection = storageKey ? persistedSortDirection : localSortDirection;
   const setSortDirection = storageKey ? setPersistedSortDirection : setLocalSortDirection;
   const searchQuery = storageKey ? persistedSearchQuery : localSearchQuery;
   const setSearchQuery = storageKey ? setPersistedSearchQuery : setLocalSearchQuery;
@@ -145,19 +144,9 @@ export function Table<T>({
     if (!column) return data;
 
     const sorted = [...data].sort((a, b) => {
-      let valA = column.sortValue ? column.sortValue(a) : (a as any)[sortKey];
-      let valB = column.sortValue ? column.sortValue(b) : (b as any)[sortKey];
-
-      if (valA === undefined || valA === null) valA = '';
-      if (valB === undefined || valB === null) valB = '';
-
-      if (typeof valA === 'string' && typeof valB === 'string') {
-        return valA.localeCompare(valB, 'ru', { numeric: true, sensitivity: 'base' });
-      }
-
-      if (valA < valB) return -1;
-      if (valA > valB) return 1;
-      return 0;
+      const valA = column.sortValue ? column.sortValue(a) : (a as Record<string, unknown>)[sortKey];
+      const valB = column.sortValue ? column.sortValue(b) : (b as Record<string, unknown>)[sortKey];
+      return compareTableValues(valA, valB);
     });
 
     return sortDirection === 'desc' ? sorted.reverse() : sorted;
@@ -170,7 +159,7 @@ export function Table<T>({
     const query = searchQuery.toLowerCase().trim().replace(/^#/, '');
 
     return sortedData.filter((item) => {
-      return Object.values(item as any).some((val) => {
+      return Object.values(item as Record<string, unknown>).some((val) => {
         if (val === null || val === undefined) return false;
 
         if (Array.isArray(val)) {
@@ -361,7 +350,7 @@ export function Table<T>({
                               : 'text-left'
                           } ${col.className || ''}`}
                         >
-                          {col.render ? col.render(item) : (item as any)[col.key] ?? '—'}
+                          {col.render ? col.render(item) : String((item as Record<string, unknown>)[col.key] ?? '—')}
                         </td>
                       ))}
                     </tr>
@@ -417,4 +406,22 @@ export function Table<T>({
       )}
     </div>
   );
+}
+
+export function compareTableValues(left: unknown, right: unknown): number {
+  const normalizedLeft = left ?? '';
+  const normalizedRight = right ?? '';
+
+  if (typeof normalizedLeft === 'number' && typeof normalizedRight === 'number') {
+    return normalizedLeft - normalizedRight;
+  }
+
+  if (typeof normalizedLeft === 'boolean' && typeof normalizedRight === 'boolean') {
+    return Number(normalizedLeft) - Number(normalizedRight);
+  }
+
+  return String(normalizedLeft).localeCompare(String(normalizedRight), 'ru', {
+    numeric: true,
+    sensitivity: 'base',
+  });
 }

@@ -24,12 +24,12 @@ const getNormalizedMaterialMultipliers = (multipliers?: Record<string, number> |
 });
 
 export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolean }) {
-  const { 
-    settings, 
-    printers, 
-    updateSettings, 
+  const {
+    settings,
+    printers,
+    updateSettings,
     setIsSettingsDirty,
-    settingsSaveRef 
+    settingsSaveRef
   } = useData();
   const { showToast } = useToast();
 

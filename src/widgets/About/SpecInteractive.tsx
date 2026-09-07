@@ -1,17 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
-  Calculator, 
-  ShoppingBag, 
-  Package, 
-  Layers, 
-  Cpu, 
-  TrendingUp,
-  ArrowRight,
-  ShieldCheck,
-  CheckCircle2,
-  Sparkles
+import {
+  Calculator,
+  CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -148,7 +140,7 @@ export function SpecInteractive() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start select-none">
-      
+
       {/* Левая колонка: Интерактивный список зон A-F в стиле Meridian */}
       <div className="lg:col-span-6 border-y border-white/15 divide-y divide-white/10">
         {SPECS.map((spec) => {

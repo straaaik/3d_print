@@ -2,24 +2,20 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../entities/model/DataProvider';
 import { useToast } from '../../entities/model/ToastProvider';
 import { calculateCost } from '../../features/calculate-cost/model/calculate';
 import { formatCurrency } from '../../shared/lib/format';
-import { CustomCostItem } from '../../shared/types';
 import { Tooltip, CustomTooltip } from '../../shared/ui/Tooltip';
 import { CockpitButton } from '../../shared/ui/CockpitButton';
 import { usePixelCurtain } from '../../shared/ui/PixelCurtain';
 import { CockpitContentTransition } from '../../shared/ui/CockpitContentTransition';
 import { 
   getStoredCategories, 
-  saveNewCategory, 
-  ProductCategory, 
-  getCategoryLucideIcon, 
-  AVAILABLE_CATEGORY_ICONS 
+  ProductCategory
 } from '../../shared/lib/categories';
-import { DEFAULT_COST_CATEGORIES, getCategoryConfig, CostCategoryConfig } from '../../shared/lib/costCategories';
+import { DEFAULT_COST_CATEGORIES } from '../../shared/lib/costCategories';
 import { 
   ShoppingBag, 
   Package, 
@@ -27,28 +23,10 @@ import {
   Check, 
   RotateCcw,
   Plus, 
-  Minus, 
-  Trash2, 
-  Upload, 
-  FileCode, 
-  ExternalLink, 
   X, 
-  Scale, 
-  Clock, 
-  Zap, 
-  TrendingUp, 
-  Wrench, 
-  ChevronDown, 
-  SlidersHorizontal,
-  Tag,
-  ShieldAlert,
-  Percent,
-  Flame,
-  Activity,
-  CheckCircle2,
+  Zap,
   HelpCircle,
-  Share2,
-  Download as DownloadIcon
+  Share2
 } from 'lucide-react';
 import { usePersistentState } from '../../shared/lib/usePersistentState';
 import { CockpitDropdown } from '../../shared/ui/CockpitDropdown';
@@ -272,7 +250,7 @@ export function Calculator() {
     targetDate.setDate(targetDate.getDate() + leadTimeDays);
     const deadlineStr = `${String(targetDate.getDate()).padStart(2, '0')}.${String(targetDate.getMonth() + 1).padStart(2, '0')}.${targetDate.getFullYear()}`;
 
-    const costItems: any[] = [];
+    const costItems: Array<{ id: string; category: string; amount: number }> = [];
     if (result.materialCost > 0) {
       costItems.push({ id: 'c-mat', category: `Нить (${selectedFilament.name})`, amount: Math.round(result.materialCost * 100) / 100 });
     }
@@ -423,8 +401,8 @@ export function Calculator() {
             </div>
 
             <div className="flex items-center gap-2 pl-3 border-l border-white/10 font-mono text-xs text-neutral-300">
-              <span className="text-white font-bold">§ 3D-LABS</span>
-              <span className="text-neutral-600">//</span>
+              <span className="text-white font-bold">3D-LABS</span>
+              <span className="text-neutral-600">{'//'}</span>
               <span className="text-neutral-400 hidden sm:inline">КАЛЬКУЛЯТОР</span>
               
               {isOnline ? (
@@ -1020,7 +998,7 @@ export function Calculator() {
                 {isAddingCustomCost && (
                   <div className="p-3 bg-neutral-900/90 border border-cyan-500/30 rounded-xl space-y-2.5 text-xs font-mono animate-in fade-in">
                     <div className="flex items-center justify-between text-[11px] text-neutral-400 border-b border-white/10 pb-1.5">
-                      <span className="font-bold text-cyan-300">// НОВЫЙ РАСХОД</span>
+                      <span className="font-bold text-cyan-300">{'// НОВЫЙ РАСХОД'}</span>
                       <button
                         type="button"
                         onClick={() => setIsAddingCustomCost(false)}
@@ -1358,7 +1336,7 @@ export function Calculator() {
               className="relative w-full max-w-lg bg-neutral-950 border border-white/15 rounded-2xl p-6 shadow-2xl z-10 space-y-4"
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-3 font-mono text-xs text-neutral-400">
-                <span className="text-white font-bold">§ 3D-LABS // CATALOG_REGISTRY</span>
+                <span className="text-white font-bold">3D-LABS // CATALOG_REGISTRY</span>
                 <button
                   type="button"
                   onClick={() => setIsSaveModalOpen(false)}

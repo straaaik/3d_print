@@ -606,7 +606,7 @@ export function getDateRangeForMonthKey(monthKey: string): DateRange {
  * Получение диапазона дат для заданного пресета
  */
 export function getDateRangeForPreset(
-  preset: PeriodPreset, 
+  preset: PeriodPreset,
   customRange?: DateRange,
   selectedMonthKey?: string
 ): DateRange {

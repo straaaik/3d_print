@@ -1,6 +1,6 @@
 import React from 'react';
 import { formatCurrency } from '@/shared/lib/format';
-import { TrendingUp, TrendingDown, Layers, ArrowUpRight, Package, Box, Boxes, Sparkles } from 'lucide-react';
+import { TrendingUp, TrendingDown, Layers, ArrowUpRight, Boxes } from 'lucide-react';
 import { Tooltip } from '@/shared/ui/Tooltip';
 import { CockpitTiltCard } from '@/shared/ui/CockpitTiltCard';
 
@@ -48,7 +48,7 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3 select-none">
-      
+
       {/* КАРТОЧКА 1: РОЗНИЧНАЯ СТОИМОСТЬ */}
       <CockpitTiltCard
         tone="cyan"
@@ -237,7 +237,7 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
         {/* Полоса прогресса маржинальности */}
         <div className="mt-2">
           <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden relative">
-            <div 
+            <div
               className="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-teal-500 to-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]"
               style={{ width: `${Math.min(100, Math.max(5, profitMargin))}%` }}
             />

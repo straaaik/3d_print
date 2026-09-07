@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Activity, Zap, CheckCircle2, ShieldAlert, Cpu, Sparkles } from 'lucide-react';
+import { Activity, Sparkles } from 'lucide-react';
 
 export function TelemetrySection() {
   const events = [
@@ -17,7 +17,7 @@ export function TelemetrySection() {
   return (
     <section id="telemetry" className="relative border-y border-white/15 bg-neutral-950/60 select-none">
       {/* Фоновая микро-сетка */}
-      <div 
+      <div
         className="absolute inset-0 opacity-[0.03] pointer-events-none"
         style={{
           backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)',
@@ -43,13 +43,13 @@ export function TelemetrySection() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-          
+
           {/* Левая часть: ключевые бенчмарки в стиле Meridian */}
           <div className="lg:col-span-5 space-y-6">
             <div className="font-mono text-xs text-cyan-400 uppercase tracking-widest">
               БЕНЧМАРКИ ЭФФЕКТИВНОСТИ · 3D LABS
             </div>
-            
+
             <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-[1.05]">
               Порядок вместо хаоса, <br />
               <em className="text-neutral-400 font-normal italic">прибыль вместо догадок.</em>

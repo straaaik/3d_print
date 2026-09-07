@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Box, CheckCircle2, AlertTriangle, Clock, Activity, Cpu, Layers, DollarSign } from 'lucide-react';
+import { Box, DollarSign } from 'lucide-react';
 
 export function DynamicIslandPreview() {
   const [activeStep, setActiveStep] = useState(0);
@@ -86,12 +86,12 @@ export function DynamicIslandPreview() {
 
   return (
     <section className="relative border-b border-white/15 bg-neutral-950 py-16 sm:py-24 select-none overflow-hidden">
-      
+
       {/* Декоративный фоновый свет */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/5 blur-[120px] pointer-events-none rounded-full" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        
+
         {/* Заголовок секции */}
         <div className="max-w-3xl mb-12 sm:mb-16">
           <span className="font-mono text-xs text-cyan-400 uppercase tracking-widest block mb-3">
@@ -108,7 +108,7 @@ export function DynamicIslandPreview() {
 
         {/* Сетка: Интерактивные шаги слева + Мокап смартфона справа */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
-          
+
           {/* Левая колонка: 4 интерактивные карточки событий */}
           <div className="lg:col-span-6 space-y-3">
             {activities.map((item, idx) => {
@@ -150,10 +150,10 @@ export function DynamicIslandPreview() {
           {/* Правая колонка: Стилизованный мокап iPhone / Dynamic Island в стиле Meridian */}
           <div className="lg:col-span-6 flex justify-center">
             <div className="relative w-[300px] sm:w-[340px] h-[600px] rounded-[3rem] border-[6px] border-neutral-700 bg-neutral-900 p-3 shadow-2xl shadow-black/90 select-none">
-              
+
               {/* Экран телефона */}
               <div className="relative h-full w-full rounded-[2.25rem] bg-black overflow-hidden flex flex-col justify-between p-4 text-white">
-                
+
                 {/* Dynamic Island блок */}
                 <div className="relative mx-auto mt-1 flex items-center justify-between gap-2 px-3.5 py-2 rounded-full bg-neutral-900 border border-white/15 text-xs shadow-lg max-w-[240px] w-full">
                   <div className="flex items-center gap-2">
@@ -195,9 +195,9 @@ export function DynamicIslandPreview() {
                         <span className="text-[10px] text-neutral-400">Статус</span>
                       </div>
                       <div className="mt-1.5 h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full ${current.color}`} 
-                          style={{ width: `${current.phoneCard.progress}%` }} 
+                        <div
+                          className={`h-full rounded-full ${current.color}`}
+                          style={{ width: `${current.phoneCard.progress}%` }}
                         />
                       </div>
                       <span className="text-[10px] text-neutral-400 font-mono mt-1 block">

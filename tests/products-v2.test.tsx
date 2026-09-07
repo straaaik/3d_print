@@ -2,9 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { 
-  PRODUCTS_EXPANDED_COLUMNS, 
-  PRODUCTS_COMPACT_COLUMNS 
+import {
+  PRODUCTS_EXPANDED_COLUMNS,
+  PRODUCTS_COMPACT_COLUMNS
 } from '../src/widgets/ProductsList/components/v2/ProductsV2Table';
 import { ProductsV2FilterBar } from '../src/widgets/ProductsList/components/v2/ProductsV2FilterBar';
 import { getSalesStats } from '../src/widgets/ProductsList/helpers';

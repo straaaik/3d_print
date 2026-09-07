@@ -2,7 +2,6 @@
 
 import React from 'react';
 import NumberFlow from '@number-flow/react';
-import { motion } from 'motion/react';
 import {
   ArrowDownRight,
   ArrowUpRight,

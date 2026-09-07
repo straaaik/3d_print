@@ -540,7 +540,7 @@ export async function saveSettings(settings: Settings): Promise<Settings> {
 
 export async function getSavedCalculations(): Promise<SavedCalculation[]> {
   const client = await getAuthenticatedSupabaseClient();
-  
+
   if (client) {
     try {
       const { data, error } = await (client as any)
@@ -693,7 +693,7 @@ export async function restoreAllSavedCalculations(calculations: SavedCalculation
 
 export async function getCollections(): Promise<ProductCollection[]> {
   const client = await getAuthenticatedSupabaseClient();
-  
+
   if (client) {
     try {
       const { data, error } = await (client as any)
@@ -876,7 +876,7 @@ export async function restoreAllOrders(orders: Order[]): Promise<void> {
 
 export async function getOrders(): Promise<Order[]> {
   const client = await getAuthenticatedSupabaseClient();
-  
+
   if (client) {
     try {
       const { data, error } = await (client as any)

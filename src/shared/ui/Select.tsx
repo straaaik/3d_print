@@ -74,7 +74,7 @@ export function Select({
       const rect = buttonRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
-      
+
       let openTop = false;
       if (dropdownPosition === 'top') {
         openTop = true;
@@ -82,8 +82,8 @@ export function Select({
         openTop = true;
       }
 
-      let targetWidth = typeof dropdownWidth === 'number' 
-        ? dropdownWidth 
+      const targetWidth = typeof dropdownWidth === 'number'
+        ? dropdownWidth
         : (dropdownWidth ? parseInt(String(dropdownWidth), 10) || rect.width : Math.max(rect.width, variant === 'compact' || variant === 'badge' ? 170 : 220));
 
       let left = rect.left;
@@ -198,7 +198,7 @@ export function Select({
           {label}
         </span>
       )}
-      
+
       <div className="relative inline-block w-full">
         <button
           ref={buttonRef}
@@ -216,16 +216,16 @@ export function Select({
         >
           <div className="flex items-center gap-1.5 overflow-hidden min-w-0 flex-1">
             {selectedOption?.color && (
-              <div 
+              <div
                 className="w-2.5 h-2.5 rounded-full border border-black/20 shadow-inner shrink-0"
                 style={{ backgroundColor: selectedOption.color }}
               />
             )}
-            
+
             {SelectedIcon && (
               <SelectedIcon className={`w-3.5 h-3.5 shrink-0 ${selectedOption?.iconColor || (variant === 'badge' ? '' : 'text-cyan-400')}`} />
             )}
-            
+
             <span className="truncate text-left font-mono">
               {selectedOption ? selectedOption.label : placeholder}
             </span>
@@ -299,20 +299,20 @@ export function Select({
                           }}
                           className={`flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg cursor-pointer transition-colors select-none whitespace-nowrap gap-2 font-mono ${
                             isSelected
-                              ? (opt.badgeStyle 
-                                  ? `${opt.badgeStyle} font-bold border` 
+                              ? (opt.badgeStyle
+                                  ? `${opt.badgeStyle} font-bold border`
                                   : 'bg-white/15 text-white font-bold border border-white/20 shadow-sm')
                               : 'text-neutral-300 hover:bg-white/10 hover:text-white'
                           }`}
                         >
                           <div className="flex items-center gap-2 min-w-0 flex-1">
                             {opt.color && (
-                              <div 
-                                className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0 shadow-inner" 
+                              <div
+                                className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0 shadow-inner"
                                 style={{ backgroundColor: opt.color }}
                               />
                             )}
-                            
+
                             {OptionIcon && (
                               <OptionIcon className={`w-3.5 h-3.5 shrink-0 ${opt.iconColor || ''}`} />
                             )}

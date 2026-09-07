@@ -54,7 +54,7 @@ export const OrdersV2KpiCards = React.memo(function OrdersV2KpiCards({
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3 select-none">
-      
+
       {/* КАРТОЧКА 1: ВЫРУЧКА */}
       <CockpitTiltCard
         tone="cyan"
@@ -245,7 +245,7 @@ export const OrdersV2KpiCards = React.memo(function OrdersV2KpiCards({
         {/* Полоса прогресса к цели */}
         <div className="mt-2">
           <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden relative">
-            <div 
+            <div
               className={`h-full rounded-full transition-all duration-500 ${
                 isGoalReached
                   ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]'

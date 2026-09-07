@@ -22,7 +22,7 @@ interface DataContextType {
   setMonthlyGoals: React.Dispatch<React.SetStateAction<api.MonthlyGoalsConfig>>;
   isLoading: boolean;
   isOnline: boolean;
-  
+
   // Блокировка переходов при несохраненных настройках
   isSettingsDirty: boolean;
   setIsSettingsDirty: (dirty: boolean) => void;
@@ -64,20 +64,20 @@ interface DataContextType {
   calcCustomCostItems: CustomCostItem[];
   setCalcCustomCostItems: React.Dispatch<React.SetStateAction<CustomCostItem[]>>;
   resetCalculator: () => void;
-  
+
   // Filaments actions
   addFilament: (filament: Omit<Filament, 'id'>) => Promise<Filament>;
   updateFilament: (filament: Filament) => Promise<Filament>;
   deleteFilament: (id: string) => Promise<void>;
-  
+
   // Printers actions
   addPrinter: (printer: Omit<Printer, 'id'>) => Promise<Printer>;
   updatePrinter: (printer: Printer) => Promise<Printer>;
   deletePrinter: (id: string) => Promise<void>;
-  
+
   // Settings actions
   updateSettings: (settings: Settings) => Promise<Settings>;
-  
+
   // Saved Calculations actions
   addSavedCalculation: (calc: Omit<SavedCalculation, 'id' | 'created_at'>) => Promise<SavedCalculation>;
   updateSavedCalculation: (calc: SavedCalculation) => Promise<SavedCalculation>;
@@ -91,7 +91,7 @@ interface DataContextType {
   updateCollection: (collection: ProductCollection) => Promise<ProductCollection>;
   deleteCollection: (id: string, deleteContainedProducts?: boolean) => Promise<void>;
   setCollections: React.Dispatch<React.SetStateAction<ProductCollection[]>>;
-  
+
   // Supabase connection
   refreshConnection: () => Promise<boolean>;
 

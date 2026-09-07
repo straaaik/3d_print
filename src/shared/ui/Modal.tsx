@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AlertOctagon, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, type TargetAndTransition, type Transition } from 'motion/react';
 import { Tooltip } from './Tooltip';
 
 export interface ModalProps {
@@ -48,7 +48,14 @@ const maxWidthClasses = {
   '5xl': 'max-w-5xl',
 };
 
-const modalVariants: Record<string, any> = {
+type ModalAnimation = {
+  initial: TargetAndTransition;
+  animate: TargetAndTransition;
+  exit: TargetAndTransition;
+  transition: Transition;
+};
+
+const modalVariants: Record<NonNullable<ModalProps['variant']>, ModalAnimation> = {
   default: {
     initial: { opacity: 0, scale: 0.96, y: 8 },
     animate: { opacity: 1, scale: 1, y: 0 },
@@ -57,8 +64,8 @@ const modalVariants: Record<string, any> = {
   },
   error: {
     initial: { opacity: 0, scale: 0.95 },
-    animate: { 
-      opacity: 1, 
+    animate: {
+      opacity: 1,
       scale: 1,
       x: [0, -10, 8, -8, 6, -4, 2, 0],
     },
@@ -85,10 +92,10 @@ const modalVariants: Record<string, any> = {
   },
 };
 
-export function Modal({ 
-  isOpen, 
-  onClose, 
-  title, 
+export function Modal({
+  isOpen,
+  onClose,
+  title,
   subtitle,
   children,
   footer,

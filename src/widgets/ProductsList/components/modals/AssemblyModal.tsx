@@ -1,17 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AssemblyPrintedPart, AssemblyHardwareItem, SavedCalculation, Filament, Printer } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
-import { Select } from '../../../../shared/ui/Select';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
 import { Checkbox } from '../../../../shared/ui/Checkbox';
 import { Tooltip } from '../../../../shared/ui/Tooltip';
-import { 
-  Trash2, 
-  Box, 
-  Layers, 
-  Plus, 
-  Wrench, 
-  Clock, 
+import {
+  Trash2,
+  Box,
+  Layers,
+  Plus,
+  Wrench,
+  Clock,
   Search,
   X
 } from 'lucide-react';

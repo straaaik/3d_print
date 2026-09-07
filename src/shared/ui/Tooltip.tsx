@@ -60,7 +60,7 @@ export function Tooltip({
   const calculatePosition = useCallback(() => {
     if (!triggerRef.current || typeof window === 'undefined') return;
     const triggerRect = triggerRef.current.getBoundingClientRect();
-    
+
     // Estimate or measure tooltip size
     const estimatedWidth = tooltipRef.current?.offsetWidth || (subtext ? 160 : 120);
     const estimatedHeight = tooltipRef.current?.offsetHeight || (subtext ? 44 : 28);
@@ -365,7 +365,7 @@ export function CustomTooltip({
 
   return (
     <>
-      <div 
+      <div
         ref={triggerRef}
         className="inline-flex items-center cursor-help"
         onMouseEnter={() => {
@@ -381,20 +381,20 @@ export function CustomTooltip({
         <AnimatePresence>
           {isOpen && coords && (
             <motion.div
-              initial={{ 
-                opacity: 0, 
-                scale: 0.97, 
-                y: coords.placement === 'top' ? 4 : -4 
+              initial={{
+                opacity: 0,
+                scale: 0.97,
+                y: coords.placement === 'top' ? 4 : -4
               }}
-              animate={{ 
-                opacity: 1, 
-                scale: 1, 
-                y: 0 
+              animate={{
+                opacity: 1,
+                scale: 1,
+                y: 0
               }}
-              exit={{ 
-                opacity: 0, 
-                scale: 0.97, 
-                y: coords.placement === 'top' ? 4 : -4 
+              exit={{
+                opacity: 0,
+                scale: 0.97,
+                y: coords.placement === 'top' ? 4 : -4
               }}
               transition={{ duration: 0.1, ease: 'easeOut' }}
               style={{
@@ -441,14 +441,14 @@ export function CustomTooltip({
 
               {/* Треугольная стрелка */}
               {coords.placement === 'top' ? (
-                <div 
+                <div
                   style={{ left: coords.arrowLeft }}
-                  className="absolute top-full -translate-x-1/2 -mt-[1px] w-0 h-0 border-x-6 border-x-transparent border-t-6 border-t-neutral-950" 
+                  className="absolute top-full -translate-x-1/2 -mt-[1px] w-0 h-0 border-x-6 border-x-transparent border-t-6 border-t-neutral-950"
                 />
               ) : (
-                <div 
+                <div
                   style={{ left: coords.arrowLeft }}
-                  className="absolute bottom-full -translate-x-1/2 -mb-[1px] w-0 h-0 border-x-6 border-x-transparent border-b-6 border-b-neutral-950" 
+                  className="absolute bottom-full -translate-x-1/2 -mb-[1px] w-0 h-0 border-x-6 border-x-transparent border-b-6 border-b-neutral-950"
                 />
               )}
             </motion.div>

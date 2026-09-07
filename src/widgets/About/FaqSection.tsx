@@ -33,7 +33,7 @@ export function FaqSection() {
   return (
     <section id="faq" className="border-b border-white/15 bg-neutral-950/60 py-16 sm:py-24 select-none">
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
-        
+
         {/* Заголовок */}
         <div className="text-center mb-12 sm:mb-16">
           <span className="font-mono text-xs text-cyan-400 uppercase tracking-widest block mb-3">

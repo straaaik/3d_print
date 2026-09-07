@@ -1,7 +1,6 @@
-import React from 'react';
-import { 
-  Car, Home, Cpu, Gamepad2, Wrench, Tag, Folder, Sparkles, Box, 
-  Lightbulb, Rocket, Heart, Gift, Palette, Layers, LucideIcon 
+import {
+  Car, Home, Cpu, Gamepad2, Wrench, Tag, Folder, Sparkles, Box,
+  Lightbulb, Rocket, Heart, Gift, Palette, Layers, LucideIcon
 } from 'lucide-react';
 
 export interface ProductCategory {
@@ -76,11 +75,11 @@ export const AVAILABLE_CATEGORY_ICONS = [
 export function getCategoryLucideIcon(categoryNameOrId: string | undefined): LucideIcon {
   if (!categoryNameOrId) return Tag;
   const lower = categoryNameOrId.toLowerCase().trim();
-  
+
   if (CATEGORY_ICON_MAP[lower]) {
     return CATEGORY_ICON_MAP[lower];
   }
-  
+
   // Поиск по ключевым словам
   if (lower.includes('авто') || lower.includes('машин') || lower.includes('мото')) return Car;
   if (lower.includes('дом') || lower.includes('декор') || lower.includes('интерьер')) return Home;
@@ -110,7 +109,7 @@ export function getStoredCategories(): ProductCategory[] {
     const raw = localStorage.getItem('custom_product_categories');
     if (!raw) return INITIAL_PRODUCT_CATEGORIES;
     const custom = JSON.parse(raw) as ProductCategory[];
-    
+
     const combined = [...INITIAL_PRODUCT_CATEGORIES];
     for (const c of custom) {
       if (!combined.some(existing => existing.id.toLowerCase() === c.id.toLowerCase())) {
@@ -143,7 +142,7 @@ export function saveNewCategory(name: string, iconName = 'tag'): ProductCategory
       return current;
     }
     const updated = [...current, newCat];
-    
+
     const customOnly = updated.filter(c => !INITIAL_PRODUCT_CATEGORIES.some(init => init.id.toLowerCase() === c.id.toLowerCase()));
     localStorage.setItem('custom_product_categories', JSON.stringify(customOnly));
     return updated;

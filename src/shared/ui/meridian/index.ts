@@ -4,7 +4,6 @@ export * from './MeridianCard';
 export * from './MeridianInput';
 export * from './MeridianSelect';
 export * from './MeridianNumberCounter';
-export * from './MeridianModal';
 export * from './MeridianLedgerRow';
 export * from './MeridianSectionHeader';
 export * from '../CockpitTable';

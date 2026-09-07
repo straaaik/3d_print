@@ -20,6 +20,7 @@ const unitTestFiles = [
   'tests/data-backup.test.ts',
   'tests/database-maintenance.test.ts',
   'tests/ui-resilience.test.tsx',
+  'tests/table-sort.test.ts',
 ];
 
 rmSync(outputDirectory, { recursive: true, force: true });
@@ -69,6 +70,7 @@ try {
     resolve(outputDirectory, 'tests', 'data-backup.test.js'),
     resolve(outputDirectory, 'tests', 'database-maintenance.test.js'),
     resolve(outputDirectory, 'tests', 'ui-resilience.test.js'),
+    resolve(outputDirectory, 'tests', 'table-sort.test.js'),
     resolve(outputDirectory, 'tests', 'runtime-architecture.test.js'),
   ], { stdio: 'inherit' });
   process.exitCode = run.status ?? 1;

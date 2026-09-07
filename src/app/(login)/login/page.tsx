@@ -167,7 +167,7 @@ export default function LoginPage() {
           </div>
           <div className="flex items-center gap-1.5">
             <span className="font-bold text-white tracking-tight">3D LABS</span>
-            <span className="text-neutral-600">//</span>
+            <span className="text-neutral-600">{'//'}</span>
             <span className="text-neutral-400 hidden sm:inline">OS v2.4</span>
           </div>
         </Link>
@@ -198,7 +198,7 @@ export default function LoginPage() {
               {/* Штамп раздела */}
               <div className="flex items-center gap-2 pl-3 border-l border-white/10 font-mono text-xs text-neutral-300">
                 <span className="text-white font-bold">3D-LABS</span>
-                <span className="text-neutral-600">//</span>
+                <span className="text-neutral-600">{'//'}</span>
                 <span className="text-neutral-400 text-[11px]">ACCESS_GATEWAY</span>
               </div>
             </div>
@@ -217,7 +217,7 @@ export default function LoginPage() {
             <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <span className="font-mono text-xs text-cyan-400 font-bold uppercase tracking-wider">
-                  // {activeTab === 'login' ? 'АУТЕНТИФИКАЦИЯ' : 'РЕГИСТРАЦИЯ ПО КЛЮЧУ'}
+                  {'// '}{activeTab === 'login' ? 'АУТЕНТИФИКАЦИЯ' : 'РЕГИСТРАЦИЯ ПО КЛЮЧУ'}
                 </span>
                 <span className="font-mono text-[10px] text-neutral-500">
                   AUTH ENGINE v2.4

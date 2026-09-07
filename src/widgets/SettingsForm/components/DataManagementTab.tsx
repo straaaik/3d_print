@@ -7,14 +7,14 @@ import { CockpitModal } from '../../../shared/ui/CockpitModal';
 import { useToast } from '../../../entities/model/ToastProvider';
 import { useData } from '../../../entities/model/DataProvider';
 import { createDataBackup } from '../../../shared/lib/dataBackup';
-import { 
-  Download, 
-  Upload, 
-  Sparkles, 
-  Trash2, 
-  Cpu, 
-  Layers, 
-  Package, 
+import {
+  Download,
+  Upload,
+  Sparkles,
+  Trash2,
+  Cpu,
+  Layers,
+  Package,
   ShoppingBag
 } from 'lucide-react';
 

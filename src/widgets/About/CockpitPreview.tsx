@@ -1,21 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
-  ShoppingBag, 
-  Calculator, 
-  Package, 
-  Layers, 
-  Cpu, 
-  TrendingUp, 
-  Clock, 
-  CheckCircle2, 
-  AlertCircle, 
-  Zap, 
-  Sparkles,
-  Search,
-  Activity,
-  DollarSign
+import {
+  ShoppingBag,
+  Calculator,
+  Layers,
+  Cpu,
+  TrendingUp,
+  CheckCircle2,
+  Activity
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -26,7 +19,7 @@ export function CockpitPreview() {
     <div className="w-full select-none">
       {/* 3D Container & Tilt Frame */}
       <div className="relative mx-auto rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl overflow-hidden">
-        
+
         {/* Консольная шапка в стиле окна macOS / Meridian Dashboard */}
         <div className="flex flex-wrap items-center justify-between border-b border-white/10 px-4 py-3 bg-neutral-900/60 gap-3">
           <div className="flex items-center gap-3">
@@ -58,7 +51,7 @@ export function CockpitPreview() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
                   className={`relative px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
                     isActive
                       ? 'text-white bg-white/10 border border-white/20 shadow-sm'
@@ -84,7 +77,7 @@ export function CockpitPreview() {
         {/* Интерактивное тело консоли */}
         <div className="p-4 sm:p-6 min-h-[480px] bg-gradient-to-b from-neutral-950 to-neutral-900/90">
           <AnimatePresence mode="wait">
-            
+
             {/* 1. ЗАКАЗЫ (CRM) */}
             {activeTab === 'orders' && (
               <motion.div
@@ -357,8 +350,8 @@ export function CockpitPreview() {
                   ].map((spool, idx) => (
                     <div key={idx} className="border border-white/10 bg-white/[0.02] p-3.5 rounded-xl flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <div 
-                          className="w-8 h-8 rounded-full border-2 border-white/20 shadow-md shrink-0" 
+                        <div
+                          className="w-8 h-8 rounded-full border-2 border-white/20 shadow-md shrink-0"
                           style={{ backgroundColor: spool.color }}
                         />
                         <div>
@@ -372,8 +365,8 @@ export function CockpitPreview() {
                           {spool.remaining} г / {spool.total} г
                         </div>
                         <div className="mt-1 h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full rounded-full ${spool.warning ? 'bg-amber-400' : 'bg-cyan-400'}`} 
+                          <div
+                            className={`h-full rounded-full ${spool.warning ? 'bg-amber-400' : 'bg-cyan-400'}`}
                             style={{ width: `${(spool.remaining / spool.total) * 100}%` }}
                           />
                         </div>
@@ -484,7 +477,7 @@ export function CockpitPreview() {
                     ].map((item, i) => (
                       <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
                         <div className="w-full flex items-end justify-center gap-0.5 h-full">
-                          <div 
+                          <div
                             className="w-full rounded-t bg-cyan-500/80 group-hover:bg-cyan-400 transition-all"
                             style={{ height: `${(item.val / 200) * 100}%` }}
                             title={`Выручка: ${item.val} тыс. ₽`}

@@ -3,13 +3,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  User as UserIcon, 
-  ShieldCheck, 
-  Settings, 
-  LogOut, 
-  ChevronDown, 
-  Edit3, 
+import {
+
+  ShieldCheck,
+  Settings,
+  LogOut,
+  ChevronDown,
+  Edit3,
   Sparkles,
   LayoutGrid
 } from 'lucide-react';

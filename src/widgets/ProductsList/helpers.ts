@@ -1,13 +1,12 @@
-import { SavedCalculation, Order, AssemblyPrintedPart, AssemblyHardwareItem, Filament, Printer, Settings } from '../../shared/types';
+import { SavedCalculation, Order, AssemblyPrintedPart, AssemblyHardwareItem, CostItem } from '../../shared/types';
 import { WarehouseMetrics, SalesStatInfo } from './types';
 import { getCategoryConfig } from '../../shared/lib/costCategories';
 
-import { 
-  round2, 
-  calculateAssemblyTotals, 
-  calculateWarehouseMetrics, 
-  AssemblyTotalsResult, 
-  WarehouseMetricsResult 
+import {
+  round2,
+  calculateAssemblyTotals,
+  calculateWarehouseMetrics,
+  AssemblyTotalsResult
 } from '../../shared/lib/formulas';
 
 export { round2 };
@@ -72,7 +71,7 @@ export function getSalesStats(orders: Order[], savedCalculations: SavedCalculati
 
   const activeProductsCount = map.size;
   const averageShare = activeProductsCount > 0 ? 100 / activeProductsCount : 0;
-  
+
   // Расчет адаптивного процентного порога:
   // При 1-6 активных товарах: порог ровно 30% (как указано в правиле: <30% - не хит, >=30% - хит)
   // При 7+ товарах: адаптируется под широкий каталог (минимум 15%, максимум 30%, но не менее 2x от среднего)
@@ -104,7 +103,7 @@ export function prepareDraftOrderFromProduct(item: SavedCalculation) {
   const orderQty = item.quantity || 1;
   const isFromStock = currentStock >= orderQty;
 
-  const cost_items: any[] = [];
+  const cost_items: CostItem[] = [];
 
   if (item.type === 'assembly') {
     const parts = item.assembly_parts || [];

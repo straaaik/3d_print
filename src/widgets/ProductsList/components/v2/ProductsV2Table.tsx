@@ -1,46 +1,45 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-  CatalogTableRow, 
-  SortField, 
-  SortOrder, 
+import {
+  CatalogTableRow,
+  SortField,
+  SortOrder,
   SalesStatInfo,
-  formatProductArticle 
+  formatProductArticle
 } from '../../types';
-import { 
-  SavedCalculation, 
-  ProductCollection, 
-  AssemblyPrintedPart, 
-  Filament, 
+import {
+  SavedCalculation,
+  ProductCollection,
+  AssemblyPrintedPart,
+  Filament,
   Printer,
-  Settings 
+  Settings
 } from '../../../../shared/types';
 import { formatCurrency } from '../../../../shared/lib/format';
 import { round2 } from '../../../../shared/lib/formulas';
 import { calculateCost } from '../../../../features/calculate-cost/model/calculate';
 import { ProductCategory, getCategoryLucideIcon } from '../../../../shared/lib/categories';
-import { 
-  ChevronUp, 
-  ChevronDown, 
-  Edit2, 
-  Copy, 
-  Check, 
-  Trash2, 
-  Package, 
-  Layers, 
-  FolderPlus, 
-  Flame, 
-  Plus, 
-  Minus, 
-  Calculator as CalculatorIcon, 
-  FileCode, 
-  ShoppingCart, 
+import {
+  ChevronUp,
+  ChevronDown,
+  Edit2,
+  Copy,
+  Check,
+  Trash2,
+  Package,
+  Layers,
+  FolderPlus,
+  Flame,
+  Plus,
+  Minus,
+  Calculator as CalculatorIcon,
+  FileCode,
+  ShoppingCart,
   ChevronRight,
   FolderInput,
   Tag,
   Clock,
   CheckSquare,
-  Square,
   X,
   RefreshCw
 } from 'lucide-react';
@@ -610,7 +609,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
 
   return (
     <div className="border border-white/10 rounded-xl overflow-hidden flex flex-col font-sans select-none bg-neutral-950/40">
-      
+
       {/* 1. МОБИЛЬНАЯ ВЕРСИЯ (КАРТОЧКИ < lg) */}
       <div className="lg:hidden p-3 space-y-2">
         {visibleRows.map((row) => {
@@ -657,10 +656,10 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-mono text-[10px] text-neutral-500">{article}</span>
                     <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold border ${
-                      isCol 
-                        ? 'bg-purple-950/60 text-purple-300 border-purple-800/40' 
-                        : isAsm 
-                        ? 'bg-cyan-950/60 text-cyan-300 border-cyan-800/40' 
+                      isCol
+                        ? 'bg-purple-950/60 text-purple-300 border-purple-800/40'
+                        : isAsm
+                        ? 'bg-cyan-950/60 text-cyan-300 border-cyan-800/40'
                         : 'bg-white/5 text-neutral-400 border-white/10'
                     }`}>
                       {isCol ? 'КОЛЛЕКЦИЯ' : isAsm ? 'СБОРКА' : 'ШТУЧНЫЙ'}
@@ -779,7 +778,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
       </div>
 
       {/* 2. ОСНОВНОЕ ТЕЛО ТАБЛИЦЫ (ДЕСКТОП >= lg) */}
-      <div 
+      <div
         onClick={() => {
           if (elevatedRow) setElevatedRow(null);
         }}
@@ -792,14 +791,14 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
           /* РАЗВЁРНУТЫЙ РЕЖИМ (13 РАЗДЕЛЬНЫХ КОЛОНОК С ПОЛНОЙ ДЕТАЛИЗАЦИЕЙ)            */
           /* ========================================================================= */
           <table className="w-full text-left text-xs border-collapse min-w-[1680px] block">
-            <thead 
+            <thead
               className={`block w-full ${elevatedRow ? 'pointer-events-none select-none' : ''}`}
-              style={{ 
-                filter: elevatedRow ? 'blur(4px) opacity(0.35)' : 'blur(0px) opacity(1)', 
-                transition: 'filter 0.4s ease, opacity 0.4s ease' 
+              style={{
+                filter: elevatedRow ? 'blur(4px) opacity(0.35)' : 'blur(0px) opacity(1)',
+                transition: 'filter 0.4s ease, opacity 0.4s ease'
               }}
             >
-              <tr 
+              <tr
                 className="bg-neutral-900/95 border-b border-white/10 text-neutral-400 font-mono text-[10px] sm:text-[11px] uppercase tracking-wider sticky top-0 z-20 grid items-center select-none"
                 style={{ gridTemplateColumns: PRODUCTS_EXPANDED_COLUMNS }}
               >
@@ -848,7 +847,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 </th>
 
                 {/* 3. КАТЕГОРИЯ */}
-                <th 
+                <th
                   onClick={() => onSort('category')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group min-w-0"
                 >
@@ -859,7 +858,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 </th>
 
                 {/* 4. НАИМЕНОВАНИЕ / ДЕТАЛИ */}
-                <th 
+                <th
                   onClick={() => onSort('name')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group min-w-0"
                 >
@@ -870,7 +869,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 </th>
 
                 {/* 5. ПЛАСТИК */}
-                <th 
+                <th
                   onClick={() => onSort('filament')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group min-w-0"
                 >
@@ -881,7 +880,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 </th>
 
                 {/* 6. ВЕС / ВРЕМЯ */}
-                <th 
+                <th
                   onClick={() => onSort('params')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-center min-w-0"
                 >
@@ -892,7 +891,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 </th>
 
                 {/* 7. ОСТАТОК СКЛАДА */}
-                <th 
+                <th
                   onClick={() => onSort('stock')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-center min-w-0"
                 >
@@ -903,7 +902,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 </th>
 
                 {/* 8. СЕБЕСТОИМОСТЬ */}
-                <th 
+                <th
                   onClick={() => onSort('cost')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right min-w-0"
                 >
@@ -914,7 +913,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 </th>
 
                 {/* 9. ЦЕНА ПРОДАЖИ */}
-                <th 
+                <th
                   onClick={() => onSort('price')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right min-w-0"
                 >
@@ -925,7 +924,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 </th>
 
                 {/* 10. ПРИБЫЛЬ / МАРЖА */}
-                <th 
+                <th
                   onClick={() => onSort('profit')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right min-w-0"
                 >
@@ -936,7 +935,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 </th>
 
                 {/* 11. ПРОДАЖИ (ЗАКАЗЫ) */}
-                <th 
+                <th
                   onClick={() => onSort('sales')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right min-w-0"
                 >
@@ -1023,14 +1022,14 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           }
                         }}
                         className={`transition-colors group relative border-b grid w-full items-center ${
-                          isElevated 
-                            ? '!z-50 ring-1 ring-white/20 cursor-default' 
+                          isElevated
+                            ? '!z-50 ring-1 ring-white/20 cursor-default'
                             : isBlurred
                             ? 'pointer-events-none select-none border-white/5'
                             : isSelected
                             ? '!bg-white/[0.08] !border-white/20 cursor-pointer'
-                            : isContextMenuActive 
-                            ? '!bg-neutral-800/90 text-white border-white/5 cursor-pointer' 
+                            : isContextMenuActive
+                            ? '!bg-neutral-800/90 text-white border-white/5 cursor-pointer'
                             : 'border-white/5 cursor-pointer'
                         }`}
                         style={{ gridTemplateColumns: PRODUCTS_EXPANDED_COLUMNS }}
@@ -1192,10 +1191,10 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           {row.rowKind === 'collection' ? (
                             <div className="flex items-center gap-1 overflow-hidden">
                               {(row.materialsColors || []).slice(0, 3).map((col, idx) => (
-                                <span 
-                                  key={idx} 
-                                  className="w-2.5 h-2.5 rounded-full border border-white/20 shrink-0" 
-                                  style={{ backgroundColor: col }} 
+                                <span
+                                  key={idx}
+                                  className="w-2.5 h-2.5 rounded-full border border-white/20 shrink-0"
+                                  style={{ backgroundColor: col }}
                                 />
                               ))}
                               <span className="text-[11px] text-neutral-400 font-mono">
@@ -1214,9 +1213,9 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                               className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-mono bg-white/[0.03] text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 transition-all cursor-pointer"
                               title="Клик для быстрой смены пластика"
                             >
-                              <span 
-                                className="w-2 h-2 rounded-full border border-white/20 shrink-0" 
-                                style={{ backgroundColor: row.item.filament_color || '#3b82f6' }} 
+                              <span
+                                className="w-2 h-2 rounded-full border border-white/20 shrink-0"
+                                style={{ backgroundColor: row.item.filament_color || '#3b82f6' }}
                               />
                               <span className="truncate max-w-[85px]">{row.item.filament_name || 'PLA'}</span>
                             </button>
@@ -1299,7 +1298,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                         </td>
 
                         {/* 8. СЕБЕСТОИМОСТЬ (СПРАВА) */}
-                        <td 
+                        <td
                           onClick={(e) => {
                             if (row.rowKind === 'product') {
                               e.stopPropagation();
@@ -1330,7 +1329,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                         </td>
 
                         {/* 9. ЦЕНА ПРОДАЖИ (СПРАВА) */}
-                        <td 
+                        <td
                           onClick={(e) => {
                             if (row.rowKind === 'product') {
                               e.stopPropagation();
@@ -1483,7 +1482,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                         {/* Нижняя выезжающая панель: ProductRowDrawer */}
                         <AnimatePresence>
                           {isElevated && (
-                            <td 
+                            <td
                               className="p-0 border-0 col-span-full w-full"
                               style={{ gridColumn: '1 / -1' }}
                             >
@@ -1618,14 +1617,14 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
           /* КОМПАКТНЫЙ РЕЖИМ (9 СДВОЕННЫХ КОЛОНОК — ТОЧНЫЙ ЭТАЛОН РЕЕСТРА ORDERS)     */
           /* ========================================================================= */
           <table className="w-full text-left text-xs border-collapse min-w-[1050px] block">
-            <thead 
+            <thead
               className={`block w-full ${elevatedRow ? 'pointer-events-none select-none' : ''}`}
-              style={{ 
-                filter: elevatedRow ? 'blur(4px) opacity(0.35)' : 'blur(0px) opacity(1)', 
-                transition: 'filter 0.4s ease, opacity 0.4s ease' 
+              style={{
+                filter: elevatedRow ? 'blur(4px) opacity(0.35)' : 'blur(0px) opacity(1)',
+                transition: 'filter 0.4s ease, opacity 0.4s ease'
               }}
             >
-              <tr 
+              <tr
                 className="bg-neutral-900/90 border-b border-white/10 text-neutral-400 font-mono text-[10px] sm:text-[11px] uppercase tracking-wider grid items-center select-none"
                 style={{ gridTemplateColumns: PRODUCTS_COMPACT_COLUMNS }}
               >
@@ -1669,7 +1668,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 </th>
 
                 {/* 2. КАТЕГОРИЯ */}
-                <th 
+                <th
                   onClick={() => onSort('category')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group min-w-0"
                 >
@@ -1680,7 +1679,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 </th>
 
                 {/* 3. ИЗДЕЛИЕ / ДЕТАЛИ */}
-                <th 
+                <th
                   onClick={() => onSort('name')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group min-w-0"
                 >
@@ -1691,7 +1690,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 </th>
 
                 {/* 4. ПЛАСТИК */}
-                <th 
+                <th
                   onClick={() => onSort('filament')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group min-w-0"
                 >
@@ -1702,7 +1701,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 </th>
 
                 {/* 5. ВЕС / ВРЕМЯ */}
-                <th 
+                <th
                   onClick={() => onSort('params')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-center min-w-0"
                 >
@@ -1713,7 +1712,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 </th>
 
                 {/* 6. ОСТАТОК СКЛАДА */}
-                <th 
+                <th
                   onClick={() => onSort('stock')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-center min-w-0"
                 >
@@ -1724,7 +1723,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 </th>
 
                 {/* 7. СЕБЕСТ. / ЦЕНА */}
-                <th 
+                <th
                   onClick={() => onSort('price')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right min-w-0"
                 >
@@ -1735,7 +1734,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 </th>
 
                 {/* 8. ПРИБЫЛЬ / МАРЖА */}
-                <th 
+                <th
                   onClick={() => onSort('profit')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right min-w-0"
                 >
@@ -1816,14 +1815,14 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           }
                         }}
                         className={`transition-colors group relative border-b grid w-full items-center ${
-                          isElevated 
-                            ? '!z-50 ring-1 ring-white/20 cursor-default' 
+                          isElevated
+                            ? '!z-50 ring-1 ring-white/20 cursor-default'
                             : isBlurred
                             ? 'pointer-events-none select-none border-white/5'
                             : isSelected
                             ? '!bg-white/[0.08] !border-white/20 cursor-pointer'
-                            : isContextMenuActive 
-                            ? '!bg-neutral-800/90 text-white border-white/5 cursor-pointer' 
+                            : isContextMenuActive
+                            ? '!bg-neutral-800/90 text-white border-white/5 cursor-pointer'
                             : 'border-white/5 cursor-pointer'
                         }`}
                         style={{ gridTemplateColumns: PRODUCTS_COMPACT_COLUMNS }}
@@ -1965,9 +1964,9 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                               className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-mono bg-white/[0.03] text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 transition-all cursor-pointer"
                               title="Клик для смены пластика"
                             >
-                              <span 
-                                className="w-2 h-2 rounded-full border border-white/20 shrink-0" 
-                                style={{ backgroundColor: row.item.filament_color || '#3b82f6' }} 
+                              <span
+                                className="w-2 h-2 rounded-full border border-white/20 shrink-0"
+                                style={{ backgroundColor: row.item.filament_color || '#3b82f6' }}
                               />
                               <span className="truncate max-w-[85px]">{row.item.filament_name || 'PLA'}</span>
                             </button>
@@ -2110,7 +2109,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                         {/* Нижняя выезжающая панель: ProductRowDrawer */}
                         <AnimatePresence>
                           {isElevated && (
-                            <td 
+                            <td
                               className="p-0 border-0 col-span-full w-full"
                               style={{ gridColumn: '1 / -1' }}
                             >

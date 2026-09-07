@@ -2,18 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-  Order, 
-  ContactItem, 
+import {
+  Order,
+  ContactItem,
   ContactType,
   CONTACT_TYPES_CONFIG,
 } from '../../types';
-import { 
-  Plus, 
-  Trash2, 
-  Copy, 
-  ExternalLink, 
-  Check, 
+import {
+  Plus,
+  Trash2,
+  Copy,
+  ExternalLink,
+  Check,
   User,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';

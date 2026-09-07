@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Box, Sparkles, Menu, X, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Box, Menu, X, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../entities/model/AuthProvider';
 
 export function AboutHeader() {

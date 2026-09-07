@@ -55,8 +55,8 @@ export function ColorPicker({
                   style={{ backgroundColor: color }}
                 >
                   {isSelected && (
-                    <Check 
-                      size={11} 
+                    <Check
+                      size={11}
                       className={color === '#FFFFFF' ? 'text-black font-bold' : 'text-white font-bold'}
                     />
                   )}
@@ -71,23 +71,23 @@ export function ColorPicker({
 
         {/* Кнопка "Свой цвет" */}
         <Tooltip content={!isDefaultColor ? `Свой цвет: ${value}` : 'Выбрать свой цвет'}>
-          <div 
+          <div
             className={`w-5.5 h-5.5 rounded-full border border-dashed transition-all flex items-center justify-center relative hover:scale-105 active:scale-95 bg-neutral-950 overflow-hidden cursor-pointer ${
-              !isDefaultColor 
-                ? 'border-cyan-400 text-cyan-400' 
+              !isDefaultColor
+                ? 'border-cyan-400 text-cyan-400'
                 : 'border-white/20 text-neutral-400 hover:text-white'
             }`}
             style={!isDefaultColor ? { backgroundColor: value } : {}}
           >
             {!isDefaultColor ? (
-              <Check 
-                size={11} 
+              <Check
+                size={11}
                 className={value.toUpperCase() === '#FFFFFF' ? 'text-black font-bold' : 'text-white font-bold'}
               />
             ) : (
               <Pipette size={11} />
             )}
-            
+
             {/* Скрытый нативный input color */}
             <input
               ref={fileInputRef}

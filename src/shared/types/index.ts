@@ -80,7 +80,7 @@ export interface SavedCalculation {
   quantity: number;
   base_cost: number;
   final_price: number;
-  
+
   // Привязка к коллекции
   collection_id?: string;
   collection_name?: string;
@@ -140,25 +140,25 @@ export interface Settings {
   default_defect_percent: number;
 }
 
-export type OrderStatus = 
-  | 'Не в работе' 
-  | 'Моделирование' 
-  | 'Ждет печати' 
-  | 'Печать' 
-  | 'Ждет покраски' 
-  | 'Покраска' 
-  | 'Ждет отправки' 
-  | 'Отправлен' 
+export type OrderStatus =
+  | 'Не в работе'
+  | 'Моделирование'
+  | 'Ждет печати'
+  | 'Печать'
+  | 'Ждет покраски'
+  | 'Покраска'
+  | 'Ждет отправки'
+  | 'Отправлен'
   | 'Готово';
 
-export type ContactType = 
-  | 'phone' 
-  | 'telegram' 
-  | 'whatsapp' 
-  | 'avito' 
-  | 'vk' 
-  | 'instagram' 
-  | 'email' 
+export type ContactType =
+  | 'phone'
+  | 'telegram'
+  | 'whatsapp'
+  | 'avito'
+  | 'vk'
+  | 'instagram'
+  | 'email'
   | 'other';
 
 export interface ContactItem {

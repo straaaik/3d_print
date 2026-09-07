@@ -49,14 +49,14 @@ interface AuthContextType {
   isLoading: boolean;
   users: User[];
   registrationKeys: RegistrationKey[];
-  
+
   // Auth methods
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   devLogin: () => Promise<{ success: boolean; error?: string }>;
   register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>;
   updateProfile: (data: UpdateProfileData) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  
+
   // Admin methods
   generateKey: (options?: GenerateKeyOptions) => Promise<RegistrationKey>;
   generateBatchKeys: (count: number, options?: GenerateKeyOptions) => Promise<RegistrationKey[]>;

@@ -4,7 +4,7 @@ import { Modal } from '../../../../shared/ui/Modal';
 import { Select, SelectOption } from '../../../../shared/ui/Select';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
 import { Checkbox } from '../../../../shared/ui/Checkbox';
-import { Folder, Tag, FolderPlus, Search, X, FileText } from 'lucide-react';
+import { Folder, Tag, Search, X, FileText } from 'lucide-react';
 import { formatCurrency } from '../../../../shared/lib/format';
 
 interface CollectionModalProps {

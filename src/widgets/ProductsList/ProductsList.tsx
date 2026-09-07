@@ -4,35 +4,34 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation';
 import { useData } from '../../entities/model/DataProvider';
 import { useToast } from '../../entities/model/ToastProvider';
-import { 
-  SavedCalculation, 
-  ProductCollection, 
+import {
+  SavedCalculation,
+  ProductCollection,
   AssemblyPrintedPart
 } from '../../shared/types';
 import { restoreAllCollections } from '../../shared/api/db';
-import { 
-  getStoredCategories, 
-  saveNewCategory, 
-  ProductCategory, 
-  getCategoryLucideIcon 
+import {
+  getStoredCategories,
+  saveNewCategory,
+  ProductCategory,
+  getCategoryLucideIcon
 } from '../../shared/lib/categories';
 import { recalculateAllProducts } from '../../features/calculate-cost/model/calculate';
 import { SelectOption } from '../../shared/ui/Select';
 import { usePersistentState } from '../../shared/lib/usePersistentState';
 import { Package } from 'lucide-react';
-import { AnimatePresence } from 'motion/react';
 
-import { 
-  CatalogTableRow, 
-  ProductFilter, 
-  StockFilter, 
-  SortField, 
-  SortOrder 
+import {
+  CatalogTableRow,
+  ProductFilter,
+  StockFilter,
+  SortField,
+  SortOrder
 } from './types';
-import { 
-  getWarehouseMetrics, 
-  getSalesStats, 
-  prepareDraftOrderFromProduct 
+import {
+  getWarehouseMetrics,
+  getSalesStats,
+  prepareDraftOrderFromProduct
 } from './helpers';
 import { ProductsV2View } from './components/v2/ProductsV2View';
 

@@ -2,9 +2,9 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
+import {
+  ChevronLeft,
+  ChevronRight,
   Trash2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -64,7 +64,7 @@ export function TableDeadlinePicker({
   onClose,
 }: TableDeadlinePickerProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
-  
+
   const selectedDate = useMemo(() => (value ? parseDate(value) : null), [value]);
   const [viewDate, setViewDate] = useState<Date>(() => selectedDate || new Date());
 
@@ -111,14 +111,14 @@ export function TableDeadlinePicker({
     const spaceAbove = targetRect.top;
 
     const isTop = spaceBelow < popoverHeight && spaceAbove > spaceBelow;
-    
+
     let left = targetRect.left;
     if (left + popoverWidth > window.innerWidth - 12) {
       left = window.innerWidth - popoverWidth - 12;
     }
     if (left < 12) left = 12;
 
-    const top = isTop 
+    const top = isTop
       ? Math.max(12, targetRect.top - popoverHeight - 6)
       : Math.min(window.innerHeight - popoverHeight - 12, targetRect.bottom + 6);
 

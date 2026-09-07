@@ -1,10 +1,10 @@
 import { Order, OrderStatus, ContactType } from './types';
-import { 
-  round2 as roundTo2, 
-  calculateOrderFinancials, 
-  calculateOrdersSummaryKPI, 
-  OrderFinancialsResult, 
-  OrdersSummaryKPIResult 
+import {
+  round2 as roundTo2,
+  calculateOrderFinancials,
+  calculateOrdersSummaryKPI,
+  OrderFinancialsResult,
+  OrdersSummaryKPIResult
 } from '../../shared/lib/formulas';
 
 export { roundTo2, calculateOrderFinancials, calculateOrdersSummaryKPI };

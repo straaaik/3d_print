@@ -1,12 +1,12 @@
 import React from 'react';
-import { 
-  Search, 
-  X, 
-  Layers, 
-  TrendingUp, 
-  TrendingDown, 
-  CheckCircle2, 
-  Clock 
+import {
+  Search,
+  X,
+  Layers,
+  TrendingUp,
+  TrendingDown,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 import { getOrderMonthKey } from '../../helpers';
 import { ALL_CLIENTS, Order, OrderTypeFilter, PaymentFilter } from '../../types';
@@ -114,7 +114,7 @@ export const OrdersV2FilterBar = React.memo(function OrdersV2FilterBar({
 
   return (
     <div className="bg-white/[0.03] border border-white/10 rounded-xl p-2 sm:px-3 sm:py-2 select-none shadow-sm flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between relative z-30">
-      
+
       {/* 1. СЛЕВА: Поиск в стиле капсулы со скриншота */}
       <div className="bg-neutral-950/80 border border-white/10 p-1 rounded-xl w-full sm:w-64 xl:w-48 h-10 shrink-0 shadow-inner flex items-center">
         <div

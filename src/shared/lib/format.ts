@@ -34,7 +34,7 @@ export function formatDate(isoString?: string): string {
   try {
     const date = new Date(isoString);
     if (isNaN(date.getTime())) return '—';
-    
+
     return date.toLocaleString('ru-RU', {
       day: '2-digit',
       month: '2-digit',

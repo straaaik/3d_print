@@ -32,8 +32,8 @@ export function MinimizedDraftsStack({
           const isIncome = draft.order.type !== 'expense';
           const title = draft.order.title?.trim() || (isIncome ? 'Новый заказ' : 'Новый расход');
           const amount = draft.order.amount || 0;
-          const subtitle = isIncome 
-            ? (draft.order.client_name || draft.order.contact || draft.order.client || 'Клиент') 
+          const subtitle = isIncome
+            ? (draft.order.client_name || draft.order.contact || draft.order.client || 'Клиент')
             : (draft.order.client || 'Расход');
 
           return (
@@ -57,8 +57,8 @@ export function MinimizedDraftsStack({
                 <div className="flex flex-col min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <span className={`text-[9px] font-bold tracking-wider uppercase px-1 py-0.2 rounded border shrink-0 ${
-                      isIncome 
-                        ? 'text-emerald-400 bg-emerald-950/40 border-emerald-800/40' 
+                      isIncome
+                        ? 'text-emerald-400 bg-emerald-950/40 border-emerald-800/40'
                         : 'text-rose-400 bg-rose-950/40 border-rose-800/40'
                     }`}>
                       {isIncome ? 'ДОХОД' : 'РАСХОД'}

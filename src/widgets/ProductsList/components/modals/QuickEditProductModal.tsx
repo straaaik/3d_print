@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { SavedCalculation, Filament, Printer } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
-import { Input } from '../../../../shared/ui/Input';
 import { Select, SelectOption } from '../../../../shared/ui/Select';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
 import { round2 } from '../../helpers';

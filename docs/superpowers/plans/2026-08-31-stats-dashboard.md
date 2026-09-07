@@ -92,7 +92,7 @@ assert.deepEqual(cash.paymentGap, { ordered: 1000, paid: 600, receivable: 400 })
 
 - [ ] **Step 3: Run the tests and verify the expected RED state**
 
-Run: `npm test`  
+Run: `npm test`
 Expected: TypeScript reports that `buildStatsReport` and the new analytics types do not exist.
 
 - [ ] **Step 4: Add the report contracts**
@@ -197,7 +197,7 @@ Build the first complete `StatsReport` with zero-valued arrays for chart familie
 
 - [ ] **Step 6: Run the mode tests and verify GREEN**
 
-Run: `npm test`  
+Run: `npm test`
 Expected: existing formula/number tests and new accrual/cash tests pass.
 
 - [ ] **Step 7: Write failing aggregation tests**
@@ -214,7 +214,7 @@ Add separate tests for:
 
 - [ ] **Step 8: Run the aggregation tests and verify RED**
 
-Run: `npm test`  
+Run: `npm test`
 Expected: the first missing aggregation assertion fails with an empty prepared array or missing goal/delta value.
 
 - [ ] **Step 9: Implement all report aggregations in one pass over filtered orders**
@@ -223,7 +223,7 @@ Create maps for products, filament aliases, printer aliases, statuses, cost cate
 
 - [ ] **Step 10: Run the complete analytics suite and refactor while green**
 
-Run: `npm test`  
+Run: `npm test`
 Expected: all analytics and existing tests pass with no warnings.
 
 ---
@@ -267,7 +267,7 @@ assert.match(shell, /Выручка выросла/);
 
 - [ ] **Step 3: Run tests and verify RED**
 
-Run: `npm test`  
+Run: `npm test`
 Expected: imports for the three new components cannot be resolved.
 
 - [ ] **Step 4: Implement the components with Meridian primitives**
@@ -276,7 +276,7 @@ Expected: imports for the three new components cannot be resolved.
 
 - [ ] **Step 5: Run tests and verify GREEN**
 
-Run: `npm test`  
+Run: `npm test`
 Expected: semantics and prior analytics tests pass.
 
 ---
@@ -299,7 +299,7 @@ Add a pure exported `getFinancialLabels(mode)` test asserting `accrual` returns 
 
 - [ ] **Step 2: Run tests and verify RED**
 
-Run: `npm test`  
+Run: `npm test`
 Expected: `getFinancialLabels` is missing.
 
 - [ ] **Step 3: Implement labels and dashboard state**
@@ -345,8 +345,8 @@ No orders: show actions to `/orders` and `/calculator`. Orders but no product li
 
 - [ ] **Step 8: Run automated checks**
 
-Run: `npm test`  
-Run: `npm run lint`  
+Run: `npm test`
+Run: `npm run lint`
 Expected: tests pass and the modified shell has no lint errors.
 
 ---
@@ -371,7 +371,7 @@ Add pure helpers to the calculator test target and assert that chart summaries m
 
 - [ ] **Step 2: Run tests and verify RED**
 
-Run: `npm test`  
+Run: `npm test`
 Expected: summary/intensity helpers are missing.
 
 - [ ] **Step 3: Implement tested chart helpers**
@@ -400,8 +400,8 @@ Declare top-level `next/dynamic` imports in `StatsDashboard.tsx` with fixed lite
 
 - [ ] **Step 9: Run automated checks**
 
-Run: `npm test`  
-Run: `npm run lint`  
+Run: `npm test`
+Run: `npm run lint`
 Expected: all checks pass.
 
 ---
@@ -423,7 +423,7 @@ Assert that equal product values sort alphabetically, ranking switches return th
 
 - [ ] **Step 2: Run tests and verify RED**
 
-Run: `npm test`  
+Run: `npm test`
 Expected: deterministic tie order or cost reconciliation assertion fails.
 
 - [ ] **Step 3: Correct report sorting and cost remainder allocation**
@@ -440,8 +440,8 @@ Render a 100% stacked overview bar and ranked category rows. Use deterministic s
 
 - [ ] **Step 6: Add dynamic imports and verify**
 
-Run: `npm test`  
-Run: `npm run lint`  
+Run: `npm test`
+Run: `npm run lint`
 Expected: checks pass and no chart imports expand the page’s initial synchronous module graph unnecessarily.
 
 ---
@@ -464,7 +464,7 @@ Assert one assembly order distributes each part’s quantity-adjusted grams/hour
 
 - [ ] **Step 2: Run tests and verify RED**
 
-Run: `npm test`  
+Run: `npm test`
 Expected: at least the insight threshold or assembly allocation assertion fails.
 
 - [ ] **Step 3: Complete allocation and deterministic insight rules**
@@ -485,8 +485,8 @@ Render three to six compact tiles ordered by severity: data quality, receivables
 
 - [ ] **Step 7: Add dynamic imports and verify**
 
-Run: `npm test`  
-Run: `npm run lint`  
+Run: `npm test`
+Run: `npm run lint`
 Expected: checks pass.
 
 ---
@@ -522,9 +522,9 @@ Use the pure report fixtures and server-rendered component tests to cover: no or
 
 - [ ] **Step 6: Run full automated verification**
 
-Run: `npm test`  
-Run: `npm run lint`  
-Run: `npm run build`  
+Run: `npm test`
+Run: `npm run lint`
+Run: `npm run build`
 Expected: every command exits with code 0 and introduces no new warnings.
 
 - [ ] **Step 7: Review the final diff**

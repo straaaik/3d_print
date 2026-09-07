@@ -191,7 +191,7 @@ export function GoalSettingsModal({
 
             {/* 2. Тело модального окна */}
             <form onSubmit={handleSave} className="p-5 sm:p-6 bg-[#18181c] space-y-5 font-mono">
-              
+
               {/* Поле ввода целевой суммы */}
               <div className="space-y-2 select-none">
                 <div className="flex items-center justify-between text-[11px] text-[#71717a] uppercase tracking-wider font-semibold">

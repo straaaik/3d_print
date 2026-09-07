@@ -5,29 +5,28 @@ import { SavedCalculation, ProductCollection, Filament } from '../../../../share
 import { CatalogTableRow, formatProductArticle, SalesStatInfo } from '../../types';
 import { formatCurrency } from '../../../../shared/lib/format';
 import { getCategoryLucideIcon } from '../../../../shared/lib/categories';
-import { 
-  Coins, 
-  Clock, 
-  Boxes, 
-  FileCode, 
-  Edit2, 
-  Calculator, 
-  ShoppingCart, 
-  Minus, 
-  Plus, 
-  Check, 
-  X,
+import {
+  Coins,
+  FileCode,
+  Edit2,
+  Calculator,
+  ShoppingCart,
+  Plus,
+  Check,
   Layers,
-  ChevronDown,
   Printer,
-  Sparkles,
-  Tag,
   Flame
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
 import { Tooltip } from '../../../../shared/ui/Tooltip';
 import { AnimatedPriceNumber } from '../../../../shared/ui/AnimatedPriceNumber';
+
+function CategoryIcon({ category }: { category: string }) {
+  return React.createElement(getCategoryLucideIcon(category), {
+    className: 'w-3.5 h-3.5 text-neutral-400 shrink-0',
+  });
+}
 
 interface ProductRowDrawerProps {
   row: CatalogTableRow;
@@ -182,11 +181,10 @@ export function ProductRowDrawer({
 
   const hasStl = isProduct ? Boolean(item?.stl_url || item?.stl_file_data) : (row.stlCount || 0) > 0;
   const article = formatProductArticle(row);
-  const CatIcon = getCategoryLucideIcon(row.category || 'Разное');
 
   return (
-    <div 
-      onClick={(e) => e.stopPropagation()} 
+    <div
+      onClick={(e) => e.stopPropagation()}
       className="p-2.5 sm:p-3 font-mono text-xs select-none space-y-2 bg-neutral-950/98 text-white border-t border-white/10"
     >
       {/* ========================================================================= */}
@@ -227,10 +225,10 @@ export function ProductRowDrawer({
             </span>
 
             <span className={`h-8 flex items-center justify-center text-[10px] font-bold uppercase tracking-wider px-2.5 rounded-md border shrink-0 ${
-              isCol 
-                ? 'bg-purple-950/40 text-purple-300 border-purple-800/40' 
-                : isAsm 
-                ? 'bg-cyan-950/40 text-cyan-300 border-cyan-800/40' 
+              isCol
+                ? 'bg-purple-950/40 text-purple-300 border-purple-800/40'
+                : isAsm
+                ? 'bg-cyan-950/40 text-cyan-300 border-cyan-800/40'
                 : 'bg-white/5 text-neutral-300 border-white/10'
             }`}>
               {isCol ? 'КОЛЛЕКЦИЯ' : isAsm ? 'СБОРКА' : 'ШТУЧНЫЙ'}
@@ -261,7 +259,7 @@ export function ProductRowDrawer({
           {/* Справа от названия: Категория и быстрые бейджи */}
           <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap">
             <div className="h-8 flex items-center gap-1.5 border border-white/15 rounded-md px-2 text-[10.5px] bg-black/60 text-neutral-300 select-none shrink-0">
-              <CatIcon className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+              <CategoryIcon category={row.category || 'Разное'} />
               <span className="text-[9.5px] font-mono uppercase text-neutral-500">КАТ:</span>
               <span className="font-mono text-[11px] font-semibold text-white truncate max-w-[100px]">
                 {row.category || 'Разное'}
@@ -406,9 +404,9 @@ export function ProductRowDrawer({
                     МАТЕРИАЛ И ЦВЕТ
                   </div>
                   <div className="flex items-center gap-2 pt-0.5">
-                    <span 
-                      className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0" 
-                      style={{ backgroundColor: item?.filament_color || '#3b82f6' }} 
+                    <span
+                      className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0"
+                      style={{ backgroundColor: item?.filament_color || '#3b82f6' }}
                     />
                     <span className="text-sm text-white font-medium truncate">
                       {item?.filament_name || (isCol ? 'Различные' : 'PLA')}
@@ -574,7 +572,7 @@ export function ProductRowDrawer({
 
                   {/* Тонкий прогресс-бар в нативном стиле */}
                   <div className="w-full h-1 bg-[#222226] rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-white rounded-full transition-all duration-300"
                       style={{ width: `${Math.min(100, Math.max(0, marginPercent))}%` }}
                     />

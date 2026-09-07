@@ -8,14 +8,14 @@ import { Input } from '../../../shared/ui/Input';
 import { UserRole, RegistrationKey } from '../../../shared/types';
 import { useAuth } from '../../../entities/model/AuthProvider';
 import { useToast } from '../../../entities/model/ToastProvider';
-import { 
-  Sparkles, 
-  Copy, 
-  Check, 
-  ShieldCheck, 
-  UserCheck, 
-  Clock, 
-  Layers, 
+import {
+  Sparkles,
+  Copy,
+  Check,
+  ShieldCheck,
+  UserCheck,
+  Clock,
+  Layers,
   CheckCircle2,
   FileText
 } from 'lucide-react';
@@ -33,7 +33,7 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
   const [role, setRole] = useState<UserRole>('user');
   const [expiresInDays, setExpiresInDays] = useState<string>('0');
   const [note, setNote] = useState<string>('');
-  
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedKeys, setGeneratedKeys] = useState<RegistrationKey[] | null>(null);
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
