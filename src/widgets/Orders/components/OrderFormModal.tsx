@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useEffectEvent, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Order, 
@@ -11,20 +11,17 @@ import {
 import { 
   ALL_STATUSES, 
   STATUS_CONFIG, 
-  ALL_CLIENTS, 
   CLIENT_CONFIG 
 } from '../types';
 import { 
   formatMoney, 
   roundTo2, 
-  calculateOrderFinancials,
-  getDeadlineInfo 
+  calculateOrderFinancials
 } from '../helpers';
 import { DEFAULT_COST_CATEGORIES } from '../../../shared/lib/costCategories';
 import { useData } from '../../../entities/model/DataProvider';
 import { calculateCost } from '../../../features/calculate-cost/model/calculate';
 import { CustomCostItem, ContactType } from '../../../shared/types';
-import {  CockpitDropdownOption } from '../../../shared/ui/CockpitDropdown';
 import {
 
   Package, 
@@ -50,31 +47,6 @@ import {
   MoreHorizontal
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-
-const STATUS_DROPDOWN_OPTIONS: CockpitDropdownOption[] = ALL_STATUSES.map(st => {
-  const cfg = STATUS_CONFIG[st];
-  let dotColor: 'cyan' | 'green' | 'orange' | 'red' | 'gray' = 'cyan';
-  if (st === 'Готово') dotColor = 'green';
-  else if (st === 'Не в работе') dotColor = 'red';
-  else if (st === 'Моделирование' || st === 'Ждет покраски') dotColor = 'orange';
-  else if (st === 'Печать' || st === 'Ждет печати' || st === 'Отправлен') dotColor = 'cyan';
-
-  return {
-    value: st,
-    label: cfg.label,
-    icon: cfg.icon,
-    statusDotColor: dotColor,
-  };
-});
-
-const CLIENT_DROPDOWN_OPTIONS: CockpitDropdownOption[] = ALL_CLIENTS.map(cl => {
-  const cfg = CLIENT_CONFIG[cl];
-  return {
-    value: cl,
-    label: cfg.label,
-    icon: cfg.icon,
-  };
-});
 
 type OrderModalTab = 'item' | 'pricing' | 'status' | 'client' | 'tech';
 
@@ -1038,10 +1010,8 @@ export function OrderFormModal({
   const router = useRouter();
   const { printers, filaments, settings } = useData();
   const [activeTab, setActiveTab] = useState<OrderModalTab>('item');
-  const [isProductSelectorOpen, setIsProductSelectorOpen] = useState(false);
   const [productSearchQuery, setProductSearchQuery] = useState('');
   const [expenseHistorySearchQuery, setExpenseHistorySearchQuery] = useState('');
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
   const [formErrors, setFormErrors] = useState<Record<string, boolean>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showUnsavedWarning, setShowUnsavedWarning] = useState(false);
@@ -1143,11 +1113,6 @@ export function OrderFormModal({
     }
   };
 
-  // Добавление новой статьи расхода
-  const [newCostCategory, setNewCostCategory] = useState('Печать');
-  const [newCostAmount, setNewCostAmount] = useState<number | ''>('');
-  const [newCostNote, setNewCostNote] = useState('');
-
   // Категории для Расходов
   const [customExpenseCategories, setCustomExpenseCategories] = useState<string[]>([]);
   const [isAddingExpenseCat, setIsAddingExpenseCat] = useState<boolean>(false);
@@ -1239,6 +1204,80 @@ export function OrderFormModal({
   const [initialSnapshot, setInitialSnapshot] = useState('');
   const isClosingRef = useRef(false);
 
+  const initializeModal = useEffectEvent(() => {
+    setActiveTab('item');
+    setIsMiniCalcOpen(false);
+    setPrinterSearch('');
+    setFilamentSearch('');
+    setFormErrors({});
+
+    // Сброс всех полей мини-калькулятора в 0
+    setCalcWeight('0');
+    setCalcHours('0');
+    setCalcMinutes('0');
+    setCalcMarkup('0');
+    setCalcLaborMinutes('0');
+    setCalcLaborRate(settings?.labor_rate_per_hour ? String(settings.labor_rate_per_hour) : '600');
+    setCalcDefect('0');
+    setCalcIsOwnerLabor(settings?.is_owner_labor_default ?? true);
+    setCalcUrgencyPct(0);
+    setCalcDiscountPct(0);
+    setCalcCustomCosts([]);
+    setCalcAppliedFeedback(false);
+
+    if (order) {
+      setInitialSnapshot(JSON.stringify(order));
+
+      // Инициализация базовой себестоимости и доп. расходов
+      if (order.cost_items && order.cost_items.length > 0) {
+        const baseItem = order.cost_items.find(i => i.category === 'Печать' || i.category === 'Базовая себестоимость');
+        const extras = baseItem ? order.cost_items.filter(i => i !== baseItem) : order.cost_items;
+        setManualBaseCost(String(baseItem ? (baseItem.amount || 0) : (order.cost || 0)));
+        setExtraCostItems(extras);
+
+        // Любые кастомные статьи, которых нет в стандартных 5
+        const customFound = extras.filter(
+          ex => !DEFAULT_DIRECT_EXTRA_OPTIONS.some(d => d.category === ex.category)
+        );
+        setCustomExtraOptions(customFound.map(cf => ({
+          id: cf.id || cf.category,
+          category: cf.category,
+          defaultAmount: cf.amount || 100,
+          isCustom: true,
+        })));
+      } else {
+        setManualBaseCost(String(order.cost || 0));
+        setExtraCostItems([]);
+        setCustomExtraOptions([]);
+      }
+
+      // Извлекаем выбранный принтер
+      const notesStr = order.notes || '';
+      const printerMatch = notesStr.match(/\[Принтер:\s*([^\]]+)\]/);
+      if (printerMatch && printerMatch[1]) {
+        setSelectedPrinter(printerMatch[1].trim());
+      } else {
+        const matchedP = printers.find(p => notesStr.includes(p.name));
+        setSelectedPrinter(matchedP ? matchedP.name : '');
+      }
+
+      // Извлекаем выбранный пластик
+      const filamentMatch = notesStr.match(/\[Пластик:\s*([^\]]+)\]/);
+      if (filamentMatch && filamentMatch[1]) {
+        setSelectedFilament(filamentMatch[1].trim());
+      } else {
+        const matchedF = filaments.find(f => notesStr.includes(f.name));
+        setSelectedFilament(matchedF ? matchedF.name : '');
+      }
+    } else {
+      setInitialSnapshot('');
+      setSelectedPrinter('');
+      setSelectedFilament('');
+      setManualBaseCost('0');
+      setExtraCostItems([]);
+    }
+  });
+
   // Живые часы в шапке
   useEffect(() => {
     if (!isOpen) return;
@@ -1271,80 +1310,7 @@ export function OrderFormModal({
   useEffect(() => {
     if (isOpen) {
       isClosingRef.current = false;
-      queueMicrotask(() => {
-      setActiveTab('item');
-      setIsMiniCalcOpen(false);
-      setIsProductSelectorOpen(false);
-      setPrinterSearch('');
-      setFilamentSearch('');
-      setFormErrors({});
-
-      // Сброс всех полей мини-калькулятора в 0
-      setCalcWeight('0');
-      setCalcHours('0');
-      setCalcMinutes('0');
-      setCalcMarkup('0');
-      setCalcLaborMinutes('0');
-      setCalcLaborRate(settings?.labor_rate_per_hour ? String(settings.labor_rate_per_hour) : '600');
-      setCalcDefect('0');
-      setCalcIsOwnerLabor(settings?.is_owner_labor_default ?? true);
-      setCalcUrgencyPct(0);
-      setCalcDiscountPct(0);
-      setCalcCustomCosts([]);
-      setCalcAppliedFeedback(false);
-
-      if (order) {
-        setInitialSnapshot(JSON.stringify(order));
-
-        // Инициализация базовой себестоимости и доп. расходов
-        if (order.cost_items && order.cost_items.length > 0) {
-          const baseItem = order.cost_items.find(i => i.category === 'Печать' || i.category === 'Базовая себестоимость');
-          const extras = baseItem ? order.cost_items.filter(i => i !== baseItem) : order.cost_items;
-          setManualBaseCost(String(baseItem ? (baseItem.amount || 0) : (order.cost || 0)));
-          setExtraCostItems(extras);
-
-          // Любые кастомные статьи, которых нет в стандартных 5
-          const customFound = extras.filter(
-            ex => !DEFAULT_DIRECT_EXTRA_OPTIONS.some(d => d.category === ex.category)
-          );
-          setCustomExtraOptions(customFound.map(cf => ({
-            id: cf.id || cf.category,
-            category: cf.category,
-            defaultAmount: cf.amount || 100,
-            isCustom: true,
-          })));
-        } else {
-          setManualBaseCost(String(order.cost || 0));
-          setExtraCostItems([]);
-          setCustomExtraOptions([]);
-        }
-
-        // Извлекаем выбранный принтер
-        const notesStr = order.notes || '';
-        const printerMatch = notesStr.match(/\[Принтер:\s*([^\]]+)\]/);
-        if (printerMatch && printerMatch[1]) {
-          setSelectedPrinter(printerMatch[1].trim());
-        } else {
-          const matchedP = printers.find(p => notesStr.includes(p.name));
-          setSelectedPrinter(matchedP ? matchedP.name : '');
-        }
-
-        // Извлекаем выбранный пластик
-        const filamentMatch = notesStr.match(/\[Пластик:\s*([^\]]+)\]/);
-        if (filamentMatch && filamentMatch[1]) {
-          setSelectedFilament(filamentMatch[1].trim());
-        } else {
-          const matchedF = filaments.find(f => notesStr.includes(f.name));
-          setSelectedFilament(matchedF ? matchedF.name : '');
-        }
-      } else {
-        setInitialSnapshot('');
-        setSelectedPrinter('');
-        setSelectedFilament('');
-        setManualBaseCost('0');
-        setExtraCostItems([]);
-      }
-      });
+      queueMicrotask(initializeModal);
     }
   }, [isOpen, order?.id, printers, filaments, settings]);
 
@@ -1458,6 +1424,17 @@ export function OrderFormModal({
     onClose();
   };
 
+  const handleShortcutKeyDown = useEffectEvent((e: KeyboardEvent) => {
+    if (!isOpen) return;
+    if (e.key === 'Escape' && !showUnsavedWarning) {
+      e.preventDefault();
+      handleAttemptClose();
+    } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      document.getElementById('order-modal-save')?.click();
+    }
+  });
+
   const daysBetweenDates = useMemo(() => {
     if (!order?.date || !order?.deadline) return null;
     const p1 = order.date.split('.');
@@ -1510,19 +1487,9 @@ export function OrderFormModal({
 
   // Хоткеи
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
-      if (e.key === 'Escape' && !showUnsavedWarning) {
-        e.preventDefault();
-        handleAttemptClose();
-      } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        document.getElementById('order-modal-save')?.click();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, showUnsavedWarning, order]);
+    window.addEventListener('keydown', handleShortcutKeyDown);
+    return () => window.removeEventListener('keydown', handleShortcutKeyDown);
+  }, []);
 
   if (!order) return null;
 
@@ -1533,20 +1500,11 @@ export function OrderFormModal({
   const profitVal = roundTo2(isIncome ? totalAmount - costVal : -totalAmount);
   const remainingDebt = Math.max(0, roundTo2(totalAmount - (order.payment || 0)));
   const marginPercent = totalAmount > 0 && isIncome ? (profitVal / totalAmount) * 100 : 0;
-  const isFullyPaid = isIncome && (order.payment || 0) >= totalAmount && totalAmount > 0;
   const paymentRatio = totalAmount > 0 ? Math.min(1, Math.max(0, (order.payment || 0) / totalAmount)) : 0;
 
   const tabsList = isIncome ? ORDER_TABS : EXPENSE_TABS;
 
-  // Категории товаров
-  const productCategories = Array.from(
-    new Set((savedCalculations || []).map(p => p.category || 'Разное'))
-  );
-
   const filteredProducts = (savedCalculations || []).filter(item => {
-    if (selectedCategoryFilter !== 'all' && (item.category || 'Разное') !== selectedCategoryFilter) {
-      return false;
-    }
     if (productSearchQuery.trim()) {
       const q = productSearchQuery.toLowerCase();
       const matchesName = item.name?.toLowerCase().includes(q);
@@ -1656,13 +1614,6 @@ export function OrderFormModal({
     });
   };
 
-  const handleApplyDeadlinePreset = (daysFromNow: number) => {
-    const target = new Date();
-    target.setDate(target.getDate() + daysFromNow);
-    const formatted = `${String(target.getDate()).padStart(2, '0')}.${String(target.getMonth() + 1).padStart(2, '0')}.${target.getFullYear()}`;
-    setOrder({ ...order, deadline: formatted });
-  };
-
   const handleApplyPaymentPreset = (ratio: number) => {
     const targetPayment = roundTo2(totalAmount * ratio);
     const payments = [...(order.payments || [])];
@@ -1753,45 +1704,6 @@ export function OrderFormModal({
       payment: order.payment || 0,
       deadline: order.deadline || deadlineStr,
       notes: `Товар: ${prod.name} (${prod.filament_name || 'Пластик'}, ${orderQty} шт)`,
-    });
-  };
-
-  // Добавление пункта расхода
-  const handleAddCostItem = () => {
-    const num = typeof newCostAmount === 'number' ? newCostAmount : parseFloat(String(newCostAmount)) || 0;
-    if (num <= 0) return;
-
-    const newItem: CostItem = {
-      id: crypto.randomUUID(),
-      category: newCostCategory,
-      amount: num,
-      note: newCostNote.trim() || undefined,
-    };
-
-    const currentItems = order.cost_items || [];
-    const updatedItems = [...currentItems, newItem];
-    const totalCost = roundTo2(updatedItems.reduce((sum, it) => sum + (it.amount || 0), 0));
-
-    setOrder({
-      ...order,
-      cost: totalCost,
-      cost_items: updatedItems,
-    });
-
-    setNewCostAmount('');
-    setNewCostNote('');
-  };
-
-  // Удаление пункта расхода
-  const handleDeleteCostItem = (index: number) => {
-    const currentItems = [...(order.cost_items || [])];
-    currentItems.splice(index, 1);
-    const totalCost = roundTo2(currentItems.reduce((sum, it) => sum + (it.amount || 0), 0));
-
-    setOrder({
-      ...order,
-      cost: totalCost,
-      cost_items: currentItems,
     });
   };
 
@@ -2057,8 +1969,6 @@ export function OrderFormModal({
   };
 
   const completedTabsCount = tabsList.filter(t => isTabCompleted(t.id)).length;
-
-  const deadlineInfo = getDeadlineInfo(order.deadline, order.status);
 
   return (
     <AnimatePresence>
