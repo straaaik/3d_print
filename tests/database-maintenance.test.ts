@@ -26,26 +26,21 @@ function withBrowserStorage(run: (storage: MemoryStorage) => Promise<void> | voi
   });
 }
 
-function createDeleteClient(errorTable?: string) {
+function createAtomicClient(error?: unknown) {
   return {
-    from(table: string) {
-      return {
-        delete: () => ({
-          neq: async () => ({ error: table === errorTable ? { message: `failed ${table}` } : null }),
-        }),
-      };
-    },
+    from() { throw new Error('Cloud snapshots must not use non-atomic table writes.'); },
+    rpc: async () => ({ error: error ?? null }),
   };
 }
 
-test('returned Supabase delete error rejects maintenance without clearing local data or queue', async () => {
+test('returned atomic Supabase error rejects maintenance without clearing local data or queue', async () => {
   await withBrowserStorage(async (storage) => {
     storage.setItem(STORAGE_KEYS.FILAMENTS, '[{"id":"keep"}]');
     storage.setItem(STORAGE_KEYS.SYNC_QUEUE, '[{"entity":"filaments"}]');
 
     await assert.rejects(
-      clearAllDatabaseTablesWithClient(createDeleteClient('orders')),
-      /очистка таблицы orders/,
+      clearAllDatabaseTablesWithClient(createAtomicClient({ message: 'failed snapshot' })),
+      /атомарная очистка базы/,
     );
 
     assert.equal(storage.getItem(STORAGE_KEYS.FILAMENTS), '[{"id":"keep"}]');
@@ -111,20 +106,10 @@ test('malformed restore is rejected before cloud writes begin', async () => {
   assert.deepEqual(calls, []);
 });
 
-test('restore maps rows to current owner and uses snapshot RPCs for dependent data', async () => {
-  const writes: Array<{ table: string; rows: unknown }> = [];
+test('restore strips imported owners and delegates ownership to one atomic RPC', async () => {
   const rpcCalls: Array<{ name: string; args: Record<string, unknown> | undefined }> = [];
   const client = {
-    auth: { getUser: async () => ({ data: { user: { id: 'current-user' } }, error: null }) },
-    from(table: string) {
-      return {
-        delete: () => ({ neq: async () => ({ error: null }) }),
-        insert: async (rows: unknown) => {
-          writes.push({ table, rows });
-          return { error: null };
-        },
-      };
-    },
+    from() { throw new Error('Cloud snapshots must not use non-atomic table writes.'); },
     rpc: async (name: string, args?: Record<string, unknown>) => {
       rpcCalls.push({ name, args });
       return { error: null };
@@ -143,34 +128,43 @@ test('restore maps rows to current owner and uses snapshot RPCs for dependent da
     monthlyGoals: { defaultGoal: 0, targetType: 'profit', monthlyGoals: {} },
   }, client);
 
-  const filamentRows = writes.find(write => write.table === 'filaments')?.rows as Record<string, unknown>[];
-  assert.equal(filamentRows[0].user_id, 'current-user');
-  assert.equal((filamentRows[0] as Record<string, unknown>).old_ui_only, undefined);
-  assert.deepEqual(rpcCalls.map(call => call.name), ['restore_collections_snapshot', 'restore_saved_calculations_snapshot', 'restore_orders_snapshot']);
+  assert.deepEqual(rpcCalls.map(call => call.name), ['restore_database_snapshot']);
+  const payload = rpcCalls[0].args?.p_snapshot as Record<string, unknown>;
+  const filamentRows = payload.filaments as Record<string, unknown>[];
+  assert.equal(filamentRows[0].user_id, undefined);
+  assert.equal(filamentRows[0].old_ui_only, undefined);
 });
 
-test('restore preserves backup stock after inventory-aware order restoration', async () => {
+test('missing snapshot migration preserves local data and pending synchronization', async () => {
+  await withBrowserStorage(async (storage) => {
+    storage.setItem(STORAGE_KEYS.FILAMENTS, '[{"id":"keep"}]');
+    storage.setItem(STORAGE_KEYS.SYNC_QUEUE, '[{"entity":"filaments"}]');
+    await assert.rejects(restoreDatabaseSnapshotWithClient({ filaments: [] },
+      createAtomicClient({ code: 'PGRST202' })), /требует обновления базы/);
+    assert.equal(storage.getItem(STORAGE_KEYS.FILAMENTS), '[{"id":"keep"}]');
+    assert.equal(storage.getItem(STORAGE_KEYS.SYNC_QUEUE), '[{"entity":"filaments"}]');
+  });
+});
+
+test('legacy cloud restore omits sections absent from the backup', async () => {
+  let payload: Record<string, unknown> | undefined;
+  await restoreDatabaseSnapshotWithClient({ savedCalculations: [] }, {
+    from() { throw new Error('Non-atomic table write'); },
+    rpc: async (_name, args) => {
+      payload = args?.p_snapshot as Record<string, unknown>;
+      return { error: null };
+    },
+  });
+  assert.deepEqual(payload, { saved_calculations: [] });
+});
+
+test('restore sends exact backup stock in one atomic snapshot', async () => {
   await withBrowserStorage(async (storage) => {
     const calls: Array<{ name: string; args: Record<string, unknown> | undefined }> = [];
-    let availableStock = 0;
     const client = {
-    auth: { getUser: async () => ({ data: { user: { id: 'current-user' } }, error: null }) },
-    from() {
-      return {
-        delete: () => ({ neq: async () => ({ error: null }) }),
-        insert: async () => ({ error: null }),
-      };
-    },
+    from() { throw new Error('Cloud snapshots must not use non-atomic table writes.'); },
     rpc: async (name: string, args?: Record<string, unknown>) => {
       calls.push({ name, args });
-      if (name === 'restore_saved_calculations_snapshot') {
-        const rows = args?.p_items as Array<{ stock_quantity?: number }>;
-        availableStock = rows[0]?.stock_quantity ?? 0;
-      }
-      if (name === 'restore_orders_snapshot') {
-        if (availableStock < 2) return { error: { message: 'INSUFFICIENT_STOCK' } };
-        availableStock -= 2;
-      }
       return { error: null };
     },
     };
@@ -189,15 +183,33 @@ test('restore preserves backup stock after inventory-aware order restoration', a
     monthlyGoals: { defaultGoal: 0, targetType: 'profit', monthlyGoals: {} },
     }, client);
 
-    const calcCalls = calls.filter(call => call.name === 'restore_saved_calculations_snapshot');
-    assert.equal(calcCalls.length, 2);
-    assert.equal((calcCalls[0].args?.p_items as Array<{ stock_quantity: number }>)[0].stock_quantity, 5);
-    assert.equal((calcCalls[1].args?.p_items as Array<{ stock_quantity: number }>)[0].stock_quantity, 3);
-    assert.deepEqual(calls.filter(call => call.name !== 'restore_collections_snapshot').map(call => call.name), [
-      'restore_saved_calculations_snapshot',
-      'restore_orders_snapshot',
-      'restore_saved_calculations_snapshot',
-    ]);
+    assert.deepEqual(calls.map(call => call.name), ['restore_database_snapshot']);
+    const payload = calls[0].args?.p_snapshot as { saved_calculations: Array<{ stock_quantity: number }> };
+    assert.equal(payload.saved_calculations[0].stock_quantity, 3);
     assert.equal(JSON.parse(storage.getItem(STORAGE_KEYS.SAVED_CALCULATIONS) || '[]')[0].stock_quantity, 3);
   });
+});
+
+test('cloud reset uses one atomic RPC and never performs destructive client-side writes', async () => {
+  const calls: Array<{ name: string; args: Record<string, unknown> | undefined }> = [];
+  const client = {
+    from() { throw new Error('Cloud snapshots must not use non-atomic table writes.'); },
+    rpc: async (name: string, args?: Record<string, unknown>) => {
+      calls.push({ name, args });
+      return { error: null };
+    },
+  };
+  const settings = {
+    currency: '₽', electricity_rate: 4.89, default_printer_id: null,
+    labor_rate_per_hour: 0, labor_time_minutes: 15, default_markup_percent: 100, default_defect_percent: 5,
+  };
+
+  await resetAndSeedDatabaseWithClient({
+    filaments: [], printers: [], settings, savedCalculations: [], collections: [], orders: [],
+  }, client);
+
+  assert.deepEqual(calls.map(call => call.name), ['restore_database_snapshot']);
+  assert.deepEqual(Object.keys(calls[0].args?.p_snapshot as object).sort(), [
+    'collections', 'filaments', 'monthly_goals', 'orders', 'printers', 'saved_calculations', 'settings',
+  ]);
 });

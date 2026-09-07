@@ -1035,25 +1035,23 @@ type DatabaseClient = {
   auth?: { getUser?: () => Promise<{ data?: { user?: { id: string } | null }; error?: unknown }> };
 };
 
-const EMPTY_DATABASE_ID = '00000000-0000-0000-0000-000000000000';
-const DATABASE_TABLES = ['monthly_goals', 'orders', 'saved_calculations', 'collections', 'settings', 'filaments', 'printers'] as const;
-
 function requireSupabaseSuccess(operation: string, response: { error?: unknown } | null | undefined): void {
   if (response?.error) throwDatabaseError(operation, response.error);
 }
 
-async function getClientUserId(client: DatabaseClient): Promise<string | undefined> {
-  if (!client.auth?.getUser) return undefined;
-  const { data, error } = await client.auth.getUser();
-  if (error) throwDatabaseError('проверка пользователя восстановления', error);
-  return data?.user?.id;
-}
-
-async function clearCloudDatabaseTables(client: DatabaseClient): Promise<void> {
-  for (const table of DATABASE_TABLES) {
-    const response = await client.from(table).delete().neq('id', EMPTY_DATABASE_ID);
-    requireSupabaseSuccess(`очистка таблицы ${table}`, response);
+async function applyAtomicCloudSnapshot(
+  client: DatabaseClient,
+  snapshot: Record<string, unknown>,
+  operation: string,
+): Promise<void> {
+  if (!client.rpc) {
+    throw new DatabaseOperationError(`${operation}: отсутствует RPC restore_database_snapshot`);
   }
+  const response = await client.rpc('restore_database_snapshot', { p_snapshot: snapshot });
+  if ((response?.error as { code?: string } | undefined)?.code === 'PGRST202') {
+    throw new Error('Облачное восстановление требует обновления базы. Данные и локальный кэш сохранены.');
+  }
+  requireSupabaseSuccess(operation, response);
 }
 
 function clearLocalDatabaseTables(): void {
@@ -1070,7 +1068,17 @@ function clearLocalDatabaseTables(): void {
 
 /** Clears cloud tables first, then makes local caches and the sync queue empty. */
 export async function clearAllDatabaseTablesWithClient(client: DatabaseClient | null): Promise<void> {
-  if (client) await clearCloudDatabaseTables(client);
+  if (client) {
+    await applyAtomicCloudSnapshot(client, {
+      monthly_goals: [],
+      orders: [],
+      saved_calculations: [],
+      collections: [],
+      settings: [],
+      filaments: [],
+      printers: [],
+    }, 'атомарная очистка базы');
+  }
   clearLocalDatabaseTables();
 }
 
@@ -1081,12 +1089,6 @@ export async function clearAllDatabaseTables(): Promise<void> {
 /**
  * Очищает все таблицы и заполняет базу случайно сгенерированными реалистичными данными.
  */
-async function insertRows(client: DatabaseClient, table: string, rows: unknown[] | unknown): Promise<void> {
-  if (Array.isArray(rows) && rows.length === 0) return;
-  const response = await client.from(table).insert(rows);
-  requireSupabaseSuccess(`заполнение таблицы ${table}`, response);
-}
-
 function writeSeedToLocalStorage(seedData: SeedDataResult): void {
   if (typeof window === 'undefined') return;
   writeLocalJson(STORAGE_KEYS.PRINTERS, seedData.printers);
@@ -1102,13 +1104,15 @@ function writeSeedToLocalStorage(seedData: SeedDataResult): void {
 /** Restores generated data without changing local caches until every cloud write has succeeded. */
 export async function resetAndSeedDatabaseWithClient(seedData: SeedDataResult, client: DatabaseClient | null): Promise<SeedDataResult> {
   if (client) {
-    await clearCloudDatabaseTables(client);
-    await insertRows(client, 'printers', seedData.printers);
-    await insertRows(client, 'filaments', seedData.filaments);
-    await insertRows(client, 'settings', seedData.settings);
-    await insertRows(client, 'collections', seedData.collections || []);
-    await insertRows(client, 'saved_calculations', seedData.savedCalculations);
-    await insertRows(client, 'orders', seedData.orders);
+    await applyAtomicCloudSnapshot(client, {
+      printers: seedData.printers.map(item => toPrinterRow(item)),
+      filaments: seedData.filaments.map(item => toFilamentRow(item)),
+      settings: [toSettingsRow(seedData.settings)],
+      collections: (seedData.collections || []).map(item => toCollectionRow(item)),
+      saved_calculations: seedData.savedCalculations.map(item => toSavedCalculationRow(item)),
+      orders: seedData.orders.map(item => toOrderRow(item)),
+      monthly_goals: [],
+    }, 'атомарная очистка и заполнение базы');
   }
   writeSeedToLocalStorage(seedData);
   return seedData;
@@ -1407,79 +1411,18 @@ function toMonthlyGoalRowsForUser(config: MonthlyGoalsConfig, userId?: string): 
   return toMonthlyGoalRows(config).map(row => userId ? { ...row, user_id: userId } : row);
 }
 
-function prepareInventoryForOrderRestore(calculations: SavedCalculation[], orders: Order[]): SavedCalculation[] {
-  const requiredByProduct = new Map<string, number>();
-  for (const order of orders) {
-    if (order.type !== 'income' || !order.product_id) continue;
-    requiredByProduct.set(order.product_id, (requiredByProduct.get(order.product_id) || 0) + Math.max(0, order.quantity || 0));
-  }
-  return calculations.map(calculation => {
-    const required = requiredByProduct.get(calculation.id) || 0;
-    return required > 0
-      ? { ...calculation, stock_quantity: Math.max(0, calculation.stock_quantity || 0) + required }
-      : calculation;
-  });
-}
-
-async function replaceCloudTable(client: DatabaseClient, table: string, rows: unknown[] | unknown): Promise<void> {
-  const deleted = await client.from(table).delete().neq('id', EMPTY_DATABASE_ID);
-  requireSupabaseSuccess(`очистка таблицы ${table}`, deleted);
-  await insertRows(client, table, rows);
-}
-
 async function restoreCloudDatabaseSnapshot(client: DatabaseClient, snapshot: ParsedDataBackup): Promise<void> {
-  const userId = await getClientUserId(client);
-  if (snapshot.filaments !== undefined) await replaceCloudTable(client, 'filaments', snapshot.filaments.map(item => toFilamentRow(item, userId)));
-  if (snapshot.printers !== undefined) await replaceCloudTable(client, 'printers', snapshot.printers.map(item => toPrinterRow(item, userId)));
-  if (snapshot.settings !== undefined) await replaceCloudTable(client, 'settings', snapshot.settings === null ? [] : toSettingsRow(snapshot.settings, userId));
-
-  if (snapshot.collections !== undefined) {
-    const rows = snapshot.collections.map(item => toCollectionRow(item, userId));
-    if (client.rpc) {
-      const response = await client.rpc('restore_collections_snapshot', { p_items: rows });
-      requireSupabaseSuccess('восстановление снимка коллекций', response);
-    } else {
-      await replaceCloudTable(client, 'collections', rows);
-    }
-  }
-
-  const restoreCalculations = async (calculations: SavedCalculation[]) => {
-    const rows = calculations.map(item => toSavedCalculationRow(item, userId));
-    if (client.rpc) {
-      const response = await client.rpc('restore_saved_calculations_snapshot', { p_items: rows });
-      requireSupabaseSuccess('восстановление снимка расчётов', response);
-    } else {
-      await replaceCloudTable(client, 'saved_calculations', rows);
-    }
-  };
-
-  // The order RPC adjusts product stock while replaying orders. Seed a
-  // temporary pre-order stock, then restore the exact backup values after the
-  // replay so the final catalog is byte-for-byte equivalent to the snapshot.
-  const hasInventoryChanges = snapshot.orders?.some(order =>
-    order.type === 'income' && Boolean(order.product_id) && Math.max(0, order.quantity || 0) > 0
-  ) ?? false;
+  const payload: Record<string, unknown> = {};
+  if (snapshot.filaments !== undefined) payload.filaments = snapshot.filaments.map(item => toFilamentRow(item));
+  if (snapshot.printers !== undefined) payload.printers = snapshot.printers.map(item => toPrinterRow(item));
+  if (snapshot.settings !== undefined) payload.settings = snapshot.settings === null ? [] : [toSettingsRow(snapshot.settings)];
+  if (snapshot.collections !== undefined) payload.collections = snapshot.collections.map(item => toCollectionRow(item));
   if (snapshot.savedCalculations !== undefined) {
-    const preparedCalculations = hasInventoryChanges
-      ? prepareInventoryForOrderRestore(snapshot.savedCalculations, snapshot.orders || [])
-      : snapshot.savedCalculations;
-    await restoreCalculations(preparedCalculations);
+    payload.saved_calculations = snapshot.savedCalculations.map(item => toSavedCalculationRow(item));
   }
-  if (snapshot.orders !== undefined) {
-    const rows = snapshot.orders.map(item => toOrderRow(item, userId));
-    if (client.rpc) {
-      const response = await client.rpc('restore_orders_snapshot', { p_orders: rows });
-      requireSupabaseSuccess('восстановление снимка заказов', response);
-    } else {
-      await replaceCloudTable(client, 'orders', rows);
-    }
-  }
-  if (snapshot.savedCalculations !== undefined && hasInventoryChanges) {
-    await restoreCalculations(snapshot.savedCalculations);
-  }
-  if (snapshot.monthlyGoals !== undefined) {
-    await replaceCloudTable(client, 'monthly_goals', toMonthlyGoalRowsForUser(snapshot.monthlyGoals, userId));
-  }
+  if (snapshot.orders !== undefined) payload.orders = snapshot.orders.map(item => toOrderRow(item));
+  if (snapshot.monthlyGoals !== undefined) payload.monthly_goals = toMonthlyGoalRowsForUser(snapshot.monthlyGoals);
+  await applyAtomicCloudSnapshot(client, payload, 'атомарное восстановление снимка базы');
 }
 
 function writeRestoredSnapshotToLocalStorage(snapshot: ParsedDataBackup): void {

@@ -297,9 +297,9 @@ export function CockpitDropdown({
 
   // Фокус на поиск при открытии
   useEffect(() => {
-    if (isOpen && isSearchEnabled) {
-      setTimeout(() => searchInputRef.current?.focus(), 50);
-    }
+    if (!isOpen || !isSearchEnabled) return;
+    const focusTimer = window.setTimeout(() => searchInputRef.current?.focus(), 50);
+    return () => window.clearTimeout(focusTimer);
   }, [isOpen, isSearchEnabled]);
 
   // Определение цвета точки статуса (чистые матовые цвета без неона)
