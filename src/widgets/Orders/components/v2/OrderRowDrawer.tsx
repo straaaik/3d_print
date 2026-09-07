@@ -11,18 +11,16 @@ import {
   ORDER_CHANNELS,
   ContactItem,
   ContactType,
-  CONTACT_TYPES_CONFIG,
   PaymentItem
 } from '../../types';
 import { formatMoney, getDeadlineInfo, roundTo2 } from '../../helpers';
 import { TableDeadlinePicker } from './TableDeadlinePicker';
-import { getContactHref, ALL_CONTACT_TYPES } from './OrderContactsModal';
+import { getContactHref } from './OrderContactsModal';
 import { formatOrderNumber } from './types';
 import {
   Check,
   CheckCircle2,
   Tag,
-  Globe,
   ChevronDown,
   ExternalLink,
   X,
@@ -321,112 +319,6 @@ function StatusDropdownPortal({
   );
 }
 
-interface ContactTypeDropdownPortalProps {
-  targetRect: DOMRect | null;
-  triggerRef?: React.RefObject<HTMLElement | null>;
-  isOpen: boolean;
-  onSelect: (type: ContactType) => void;
-  onClose: () => void;
-  title: string;
-}
-
-function ContactTypeDropdownPortal({
-  targetRect,
-  triggerRef,
-  isOpen,
-  onSelect,
-  onClose,
-  title,
-}: ContactTypeDropdownPortalProps) {
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && dropdownRef.current.contains(e.target as Node)) return;
-      if (triggerRef?.current && triggerRef.current.contains(e.target as Node)) return;
-      onClose();
-    };
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    const handleScroll = () => onClose();
-
-    window.addEventListener('mousedown', handleOutside);
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('scroll', handleScroll, true);
-    window.addEventListener('resize', handleScroll);
-
-    return () => {
-      window.removeEventListener('mousedown', handleOutside);
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('scroll', handleScroll, true);
-      window.removeEventListener('resize', handleScroll);
-    };
-  }, [isOpen, onClose, triggerRef]);
-
-  if (!isOpen || !targetRect || typeof window === 'undefined') return null;
-
-  const width = 175;
-  const height = 280;
-  const spaceBelow = window.innerHeight - targetRect.bottom;
-  const isTop = spaceBelow < height && targetRect.top > spaceBelow;
-  const top = isTop ? targetRect.top - height - 6 : targetRect.bottom + 6;
-  let left = targetRect.left;
-  if (left + width > window.innerWidth - 16) {
-    left = window.innerWidth - width - 16;
-  }
-  if (left < 16) left = 16;
-
-  return createPortal(
-    <motion.div
-      ref={dropdownRef}
-      initial={{ opacity: 0, scale: 0.98, y: isTop ? 3 : -3 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.98, y: isTop ? 3 : -3 }}
-      transition={{ duration: 0.12 }}
-      style={{
-        position: 'fixed',
-        top: Math.max(12, top),
-        left,
-        width,
-        zIndex: 99999,
-      }}
-      onClick={(e) => e.stopPropagation()}
-      className="rounded-xl bg-neutral-950 border border-white/20 shadow-[0_15px_45px_rgba(0,0,0,0.95)] backdrop-blur-2xl overflow-hidden flex flex-col font-mono text-xs select-none"
-    >
-      <div className="px-3 py-1.5 text-[9px] uppercase tracking-wider text-neutral-500 border-b border-white/5 font-semibold bg-white/[0.02]">
-        {title}
-      </div>
-      <div className="divide-y divide-white/[0.04] max-h-56 overflow-y-auto scrollbar-none p-1">
-        {ALL_CONTACT_TYPES.map((t) => {
-          const cfg = CONTACT_TYPES_CONFIG[t];
-          const Icon = cfg?.icon || Globe;
-          return (
-            <button
-              key={t}
-              type="button"
-              onClick={() => {
-                onSelect(t);
-                onClose();
-              }}
-              className="w-full px-2 py-1 rounded flex items-center gap-2 text-left cursor-pointer transition-colors text-xs text-neutral-300 hover:bg-white/10 hover:text-white"
-            >
-              <Icon className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
-              <span className="truncate">{cfg?.label || t}</span>
-            </button>
-          );
-        })}
-      </div>
-      <div className="px-3 py-1 bg-neutral-950 border-t border-white/5 text-[9px] font-mono text-neutral-500 uppercase tracking-wider flex items-center justify-between shrink-0">
-        <span>{ALL_CONTACT_TYPES.length} ТИПОВ</span>
-        <span className="text-neutral-600">3DLABS</span>
-      </div>
-    </motion.div>,
-    document.body
-  );
-}
-
 function extractContactsFromOrder(order: Order): ContactItem[] {
   if (order.contacts && order.contacts.length > 0) {
     return order.contacts.filter(c => c && typeof c.value === 'string');
@@ -447,21 +339,21 @@ function getTodayFormatted(): string {
   return `${day}.${month}.${year}`;
 }
 
-function getInitialPaymentItems(order: Order): PaymentItem[] {
+export function normalizeOrderPaymentItems(order: Order): PaymentItem[] {
   const todayStr = getTodayFormatted();
 
   if (order.payments && order.payments.length > 0) {
     return order.payments.map((p, idx) => {
       if (typeof p === 'number') {
         return {
-          id: `pay-${idx}-${Date.now()}`,
+          id: `pay-${order.id}-${idx}`,
           amount: p,
           date: order.date || todayStr,
           note: idx === 0 ? 'Оплата' : `Платёж #${idx + 1}`,
         };
       }
       return {
-        id: p.id || `pay-${idx}-${Date.now()}`,
+        id: p.id || `pay-${order.id}-${idx}`,
         amount: Number(p.amount) || 0,
         date: p.date || order.date || todayStr,
         note: p.note || '',
@@ -471,7 +363,7 @@ function getInitialPaymentItems(order: Order): PaymentItem[] {
 
   if ((order.payment || 0) > 0) {
     return [{
-      id: `pay-0-${Date.now()}`,
+      id: `pay-${order.id}-0`,
       amount: order.payment || 0,
       date: order.date || todayStr,
       note: 'Оплата заказа',
@@ -481,13 +373,43 @@ function getInitialPaymentItems(order: Order): PaymentItem[] {
   return [];
 }
 
+export function getPaymentCleanupUpdate(
+  paymentItems: readonly PaymentItem[],
+): Pick<Order, 'payment' | 'payments'> | null {
+  if (!paymentItems.some((item) => (Number(item.amount) || 0) <= 0)) {
+    return null;
+  }
 
-export function OrderRowDrawer({
+  const payments = paymentItems.filter((item) => (Number(item.amount) || 0) > 0);
+  const payment = roundTo2(
+    payments.reduce((sum, item) => sum + (Number(item.amount) || 0), 0),
+  );
+
+  return { payment, payments };
+}
+
+function createPaymentItemId(orderId: string, paymentItems: readonly PaymentItem[]): string {
+  const existingIds = new Set(paymentItems.map((item) => item.id));
+  let sequence = paymentItems.length;
+  let candidate = `pay-${orderId}-${sequence}`;
+
+  while (existingIds.has(candidate)) {
+    sequence += 1;
+    candidate = `pay-${orderId}-${sequence}`;
+  }
+
+  return candidate;
+}
+
+export function OrderRowDrawer(props: OrderRowDrawerProps) {
+  const editorKey = `${props.order.id}:${props.order.type}`;
+  return <OrderRowDrawerEditor key={editorKey} {...props} />;
+}
+
+function OrderRowDrawerEditor({
   order,
   onInlineUpdate,
 }: OrderRowDrawerProps) {
-  const underlineColor = 'white';
-
   const isExpense = order.type === 'expense';
   const [customExpenseCategories, setCustomExpenseCategories] = useState<string[]>(() => {
     if (typeof window === 'undefined') return [];
@@ -520,7 +442,7 @@ export function OrderRowDrawer({
   const [cost, setCost] = useState(String(order.cost || 0));
   const [payment, setPayment] = useState(String(order.payment || 0));
   const [notes, setNotes] = useState(order.notes || '');
-  const [paymentItems, setPaymentItems] = useState<PaymentItem[]>(() => getInitialPaymentItems(order));
+  const [paymentItems, setPaymentItems] = useState<PaymentItem[]>(() => normalizeOrderPaymentItems(order));
   const [isSavedNotice, setIsSavedNotice] = useState(false);
 
   // Контакты в стиле скриншота (рукописное зачеркивание / подчеркивание)
@@ -528,8 +450,6 @@ export function OrderRowDrawer({
   const [customContactOptions, setCustomContactOptions] = useState<{ type: ContactType; label: string; placeholder: string; isCustom?: boolean }[]>([]);
   const [isAddingCustomContact, setIsAddingCustomContact] = useState(false);
   const [customContactLabelInput, setCustomContactLabelInput] = useState('');
-  const [copiedContactKey, setCopiedContactKey] = useState<string | null>(null);
-
   // Кастомный выпадающий список статуса через Portal
   const [isStatusOpen, setIsStatusOpen] = useState(false);
   const [statusTargetRect, setStatusTargetRect] = useState<DOMRect | null>(null);
@@ -550,35 +470,22 @@ export function OrderRowDrawer({
     value: string;
   } | null>(null);
 
-  const paymentItemsRef = useRef(paymentItems);
-  paymentItemsRef.current = paymentItems;
+  const cleanupSnapshotRef = useRef({ paymentItems, orderId: order.id, onInlineUpdate });
 
-  const orderIdRef = useRef(order.id);
-  orderIdRef.current = order.id;
-
-  const onInlineUpdateRef = useRef(onInlineUpdate);
-  onInlineUpdateRef.current = onInlineUpdate;
-
-  // Очистка платежей с суммой 0 рублей при закрытии окна
-  const cleanupZeroPayments = () => {
-    const currentItems = paymentItemsRef.current;
-    const hasZero = currentItems.some((it) => (Number(it.amount) || 0) <= 0);
-    if (hasZero) {
-      const cleaned = currentItems.filter((it) => (Number(it.amount) || 0) > 0);
-      const total = roundTo2(cleaned.reduce((sum, it) => sum + (Number(it.amount) || 0), 0));
-      onInlineUpdateRef.current(orderIdRef.current, {
-        payment: total,
-        payments: cleaned,
-      });
-    }
-  };
+  useEffect(() => {
+    cleanupSnapshotRef.current = { paymentItems, orderId: order.id, onInlineUpdate };
+  }, [paymentItems, order.id, onInlineUpdate]);
 
   useEffect(() => {
     return () => {
       // При закрытии этого окна автоматически удаляем все платежи, где 0 рублей
-      cleanupZeroPayments();
+      const snapshot = cleanupSnapshotRef.current;
+      const update = getPaymentCleanupUpdate(snapshot.paymentItems);
+      if (update) {
+        snapshot.onInlineUpdate(snapshot.orderId, update);
+      }
     };
-  }, [order.id]);
+  }, []);
 
   const [expenseCatSearch, setExpenseCatSearch] = useState('');
 
@@ -647,32 +554,6 @@ export function OrderRowDrawer({
       handleSelectExpenseCategory('Пластик и филамент');
     }
   };
-
-  useEffect(() => {
-    setTitle(order.title || '');
-    setQuantity(String(order.quantity || 1));
-    setStatus(order.status || 'Не в работе');
-    setDate(order.date || '');
-    setDeadline(order.deadline || '');
-    setClient(
-      order.type === 'expense'
-        ? (isValidExpenseCategory(order.client) ? (order.client as string) : 'Пластик и филамент')
-        : (order.client || 'Авито')
-    );
-    setClientName(order.client_name || '');
-    setAmount(String(order.amount || 0));
-    setCost(String(order.cost || 0));
-    setPayment(String(order.payment || 0));
-    setNotes(order.notes || '');
-    setContacts(extractContactsFromOrder(order));
-    setPaymentItems(getInitialPaymentItems(order));
-    setIsAddingCustomContact(false);
-    setCustomContactLabelInput('');
-    setPaymentDatePicker(null);
-    setIsAddingCustomCategory(false);
-    setNewCategoryInput('');
-    setExpenseCatSearch('');
-  }, [order.id, order.type]);
 
   const showSavedBadge = () => {
     setIsSavedNotice(true);
@@ -931,7 +812,7 @@ export function OrderRowDrawer({
     const todayStr = getTodayFormatted();
     const note = paymentItems.length === 0 ? 'Полная оплата 100%' : 'Доплата до 100%';
     const newItem: PaymentItem = {
-      id: `pay-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      id: createPaymentItemId(order.id, paymentItems),
       amount: remainingDebt,
       date: todayStr,
       note,
@@ -944,7 +825,7 @@ export function OrderRowDrawer({
 
   const handleAddPaymentItem = (initialAmount = 0, initialNote = '') => {
     const newItem: PaymentItem = {
-      id: `pay-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      id: createPaymentItemId(order.id, paymentItems),
       amount: initialAmount,
       date: getTodayFormatted(),
       note: initialNote,
@@ -978,7 +859,7 @@ export function OrderRowDrawer({
           updatedItems = [];
         } else {
           updatedItems = [{
-            id: paymentItems[0]?.id || `pay-${Date.now()}`,
+            id: paymentItems[0]?.id || createPaymentItemId(order.id, paymentItems),
             amount: num,
             date: paymentItems[0]?.date || getTodayFormatted(),
             note: paymentItems[0]?.note || 'Оплата',

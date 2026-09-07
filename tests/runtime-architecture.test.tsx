@@ -28,6 +28,11 @@ import {
   type WorkspaceDynamicAdapter,
   workspaceDefinitions,
 } from '../src/widgets/CockpitWorkspace/workspaceDefinitions';
+import {
+  getPaymentCleanupUpdate,
+  normalizeOrderPaymentItems,
+} from '../src/widgets/Orders/components/v2/OrderRowDrawer';
+import type { Order } from '../src/widgets/Orders/types';
 
 const source = (path: string) => readFileSync(resolve(path), 'utf8');
 type ElementWithChildren = React.ReactElement<{ children?: React.ReactElement; className?: string }>;
@@ -150,4 +155,60 @@ test('initial data orchestration starts every API operation before any deferred 
     orders: ordersValue,
     monthlyGoals: monthlyGoalsValue,
   });
+});
+
+const paymentOrder: Order = {
+  id: 'order-7',
+  date: '05.09.2026',
+  type: 'income',
+  title: 'Тестовый заказ',
+  amount: 150,
+  cost: 50,
+  payment: 35,
+  payments: [
+    25,
+    { id: '', amount: 10, date: '', note: '' },
+  ],
+  client: 'Сайт',
+  contact: '',
+  deadline: '',
+  status: 'Не в работе',
+  notes: '',
+};
+
+test('legacy order payments normalize to deterministic item identifiers', () => {
+  const first = normalizeOrderPaymentItems(paymentOrder);
+  const second = normalizeOrderPaymentItems(paymentOrder);
+
+  assert.deepEqual(first, second);
+  assert.deepEqual(first, [
+    {
+      id: 'pay-order-7-0',
+      amount: 25,
+      date: '05.09.2026',
+      note: 'Оплата',
+    },
+    {
+      id: 'pay-order-7-1',
+      amount: 10,
+      date: '05.09.2026',
+      note: '',
+    },
+  ]);
+});
+
+test('drawer cleanup removes zero payments and preserves the paid total', () => {
+  assert.deepEqual(getPaymentCleanupUpdate([
+    { id: 'paid', amount: 25, date: '05.09.2026', note: 'Оплата' },
+    { id: 'empty', amount: 0, date: '05.09.2026', note: '' },
+  ]), {
+    payment: 25,
+    payments: [
+      { id: 'paid', amount: 25, date: '05.09.2026', note: 'Оплата' },
+    ],
+  });
+
+  assert.equal(getPaymentCleanupUpdate([
+    { id: 'paid', amount: 25, date: '05.09.2026', note: 'Оплата' },
+  ]), null);
 });
