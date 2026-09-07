@@ -36,7 +36,6 @@ export const OrdersV2KpiCards = React.memo(function OrdersV2KpiCards({
   unpaidOrdersCount,
   currentMonthGoal,
   onOpenGoalModal,
-  selectedMonthLabel,
   isExpanded = false,
 }: OrdersV2KpiCardsProps) {
   const hasGoal = currentMonthGoal > 0;

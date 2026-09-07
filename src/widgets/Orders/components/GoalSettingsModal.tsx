@@ -69,17 +69,22 @@ function HandDrawnUnderline({
   );
 }
 
-export function GoalSettingsModal({
-  isOpen,
+type GoalSettingsModalContentProps = Omit<GoalSettingsModalProps, 'isOpen'>;
+
+function GoalSettingsModalContent({
   onClose,
   currentGoal,
   selectedMonthKey,
   monthLabel,
   onSave,
   currentProfit = 0,
-}: GoalSettingsModalProps) {
-  const [goalAmount, setGoalAmount] = useState<string>('');
-  const [applyToAllMonths, setApplyToAllMonths] = useState<boolean>(false);
+}: GoalSettingsModalContentProps) {
+  const [goalAmount, setGoalAmount] = useState<string>(
+    currentGoal > 0 ? String(currentGoal) : ''
+  );
+  const [applyToAllMonths, setApplyToAllMonths] = useState<boolean>(
+    selectedMonthKey === 'all'
+  );
   const [currentTimeStr, setCurrentTimeStr] = useState('');
 
   // Живые часы в шапке
@@ -99,20 +104,13 @@ export function GoalSettingsModal({
   // Закрытие по Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape') {
         onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  useEffect(() => {
-    if (isOpen) {
-      setGoalAmount(currentGoal > 0 ? String(currentGoal) : '');
-      setApplyToAllMonths(selectedMonthKey === 'all');
-    }
-  }, [isOpen, currentGoal, selectedMonthKey]);
+  }, [onClose]);
 
   const numericGoal = useMemo(() => {
     return Number(goalAmount.replace(/\D/g, '') || 0);
@@ -130,9 +128,7 @@ export function GoalSettingsModal({
   const goalRemaining = numericGoal > 0 ? Math.max(0, numericGoal - safeProfit) : 0;
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 select-none overflow-hidden font-mono">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 select-none overflow-hidden font-mono">
           {/* Стеклянный темный бэкдроп */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -381,8 +377,16 @@ export function GoalSettingsModal({
             </div>
 
           </motion.div>
-        </div>
-      )}
+    </div>
+  );
+}
+
+export function GoalSettingsModal({ isOpen, ...contentProps }: GoalSettingsModalProps) {
+  const formKey = `${contentProps.selectedMonthKey}:${contentProps.currentGoal}`;
+
+  return (
+    <AnimatePresence>
+      {isOpen && <GoalSettingsModalContent key={formKey} {...contentProps} />}
     </AnimatePresence>
   );
 }

@@ -65,13 +65,14 @@ interface OpenNewMonthModalProps {
   orders: Order[];
 }
 
-export function OpenNewMonthModal({
-  isOpen,
+type OpenNewMonthModalContentProps = Omit<OpenNewMonthModalProps, 'isOpen'>;
+
+function OpenNewMonthModalContent({
   onClose,
   onSelectMonth,
   selectedMonthKey,
   orders,
-}: OpenNewMonthModalProps) {
+}: OpenNewMonthModalContentProps) {
   const initialYear = useMemo(() => {
     if (selectedMonthKey && selectedMonthKey !== 'all') {
       const [y] = selectedMonthKey.split('-').map(Number);
@@ -105,24 +106,13 @@ export function OpenNewMonthModal({
   // Закрытие по клавише Esc
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape') {
         onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  useEffect(() => {
-    if (isOpen) {
-      setYear(initialYear);
-      setPickedMonthKey(
-        selectedMonthKey !== 'all'
-          ? selectedMonthKey
-          : `${initialYear}-${String(new Date().getMonth() + 1).padStart(2, '0')}`
-      );
-    }
-  }, [isOpen, initialYear, selectedMonthKey]);
+  }, [onClose]);
 
   const monthStatsMap = useMemo(() => {
     const map = new Map<string, { count: number; income: number; expense: number }>();
@@ -153,9 +143,7 @@ export function OpenNewMonthModal({
   const pickedStats = monthStatsMap.get(pickedMonthKey) || { count: 0, income: 0, expense: 0 };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 select-none overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 select-none overflow-hidden">
           {/* Стеклянный темный бэкдроп */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -361,7 +349,18 @@ export function OpenNewMonthModal({
               </div>
             </div>
           </motion.div>
-        </div>
+    </div>
+  );
+}
+
+export function OpenNewMonthModal({ isOpen, ...contentProps }: OpenNewMonthModalProps) {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <OpenNewMonthModalContent
+          key={contentProps.selectedMonthKey}
+          {...contentProps}
+        />
       )}
     </AnimatePresence>
   );

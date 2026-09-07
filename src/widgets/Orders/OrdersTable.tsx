@@ -86,7 +86,7 @@ export function OrdersTable({
 
   // Стек истории для Alt+Z / Ctrl+Z
   const [historyStack, setHistoryStack] = useState<Order[][]>([]);
-  const { showSuccess, showWarning, showInfo, showError } = useToast();
+  const { showSuccess, showWarning, showInfo } = useToast();
   const {
     savedCalculations,
     isOnline,
@@ -207,7 +207,7 @@ export function OrdersTable({
         console.error('Ошибка загрузки черновика заказа:', err);
       }
     }
-  }, [showInfo]);
+  }, [openOrder, showInfo]);
 
   // Закрытие контекстного меню при клике вне его, скролле или Escape
   useEffect(() => {
@@ -232,9 +232,9 @@ export function OrdersTable({
   }, [setContextMenu]);
 
   // Сохранение в историю для Undo
-  const pushToHistory = (currentOrders: Order[]) => {
+  const pushToHistory = useCallback((currentOrders: Order[]) => {
     setHistoryStack(prev => [...prev.slice(-25), JSON.parse(JSON.stringify(currentOrders))]);
-  };
+  }, []);
 
   // Undo (Alt+Z)
   const handleUndo = useCallback(async () => {

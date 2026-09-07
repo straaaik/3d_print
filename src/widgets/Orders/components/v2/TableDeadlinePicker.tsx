@@ -52,8 +52,11 @@ export interface TableDeadlinePickerProps {
   onClose: () => void;
 }
 
-export function TableDeadlinePicker({
-  isOpen,
+type TableDeadlinePickerContentProps = Omit<TableDeadlinePickerProps, 'isOpen' | 'targetRect'> & {
+  targetRect: DOMRect;
+};
+
+function TableDeadlinePickerContent({
   targetRect,
   triggerRef,
   value,
@@ -62,22 +65,14 @@ export function TableDeadlinePicker({
   showDeadlineBadge = true,
   onChange,
   onClose,
-}: TableDeadlinePickerProps) {
+}: TableDeadlinePickerContentProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const selectedDate = useMemo(() => (value ? parseDate(value) : null), [value]);
   const [viewDate, setViewDate] = useState<Date>(() => selectedDate || new Date());
 
-  // Обновление месяца при открытии с новым значением
-  useEffect(() => {
-    if (isOpen) {
-      setViewDate(selectedDate || new Date());
-    }
-  }, [isOpen, selectedDate]);
-
   // Закрытие при клике вне попапа
   useEffect(() => {
-    if (!isOpen) return;
     const handleMouseDown = (e: MouseEvent) => {
       if (dropdownRef.current && dropdownRef.current.contains(e.target as Node)) {
         return;
@@ -99,7 +94,7 @@ export function TableDeadlinePicker({
       document.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  }, [onClose, triggerRef]);
 
   // Позиционирование попапа (компактный размер 260px x 310px)
   const coords = useMemo(() => {
@@ -214,7 +209,7 @@ export function TableDeadlinePicker({
     return getDeadlineInfo(value, orderStatus);
   }, [value, orderStatus]);
 
-  if (!isOpen || !coords || typeof window === 'undefined') return null;
+  if (!coords || typeof window === 'undefined') return null;
 
   return createPortal(
     <div
@@ -385,5 +380,21 @@ export function TableDeadlinePicker({
       </AnimatePresence>
     </div>,
     document.body
+  );
+}
+
+export function TableDeadlinePicker({
+  isOpen,
+  targetRect,
+  ...contentProps
+}: TableDeadlinePickerProps) {
+  if (!isOpen || !targetRect) return null;
+
+  return (
+    <TableDeadlinePickerContent
+      key={contentProps.value}
+      targetRect={targetRect}
+      {...contentProps}
+    />
   );
 }

@@ -36,19 +36,20 @@ function getTodayFormatted(): string {
 
 function getInitialPaymentItems(order: Order): PaymentItem[] {
   const todayStr = getTodayFormatted();
+  const orderId = order.id || 'draft';
 
   if (order.payments && order.payments.length > 0) {
     return order.payments.map((p, idx) => {
       if (typeof p === 'number') {
         return {
-          id: `pay-${idx}-${Date.now()}`,
+          id: `pay-${orderId}-${idx}`,
           amount: p,
           date: order.date || todayStr,
           note: idx === 0 ? 'Оплата' : `Платеж #${idx + 1}`,
         };
       }
       return {
-        id: p.id || `pay-${idx}-${Date.now()}`,
+        id: p.id || `pay-${orderId}-${idx}`,
         amount: p.amount || 0,
         date: p.date || order.date || todayStr,
         note: p.note || '',
@@ -58,7 +59,7 @@ function getInitialPaymentItems(order: Order): PaymentItem[] {
 
   if ((order.payment || 0) > 0) {
     return [{
-      id: `pay-0-${Date.now()}`,
+      id: `pay-${orderId}-0`,
       amount: order.payment || 0,
       date: order.date || todayStr,
       note: 'Оплата заказа',
@@ -66,20 +67,27 @@ function getInitialPaymentItems(order: Order): PaymentItem[] {
   }
 
   return [{
-    id: `pay-0-${Date.now()}`,
+    id: `pay-${orderId}-0`,
     amount: 0,
     date: todayStr,
     note: '',
   }];
 }
 
-export function OrderPaymentModal({
+function createPaymentItemId(prefix = 'pay'): string {
+  return `${prefix}-${crypto.randomUUID()}`;
+}
+
+type OrderPaymentModalContentProps = Omit<OrderPaymentModalProps, 'isOpen' | 'order'> & {
+  order: Order;
+};
+
+function OrderPaymentModalContent({
   order,
-  isOpen,
   onClose,
   onSave,
-}: OrderPaymentModalProps) {
-  const [items, setItems] = useState<PaymentItem[]>([]);
+}: OrderPaymentModalContentProps) {
+  const [items, setItems] = useState<PaymentItem[]>(() => getInitialPaymentItems(order));
   const [currentTimeStr, setCurrentTimeStr] = useState('');
 
   // Системное время для шапки модального окна
@@ -95,24 +103,14 @@ export function OrderPaymentModal({
     return () => clearInterval(interval);
   }, []);
 
-  // Синхронизация при открытии модалки
-  useEffect(() => {
-    if (isOpen && order) {
-      setItems(getInitialPaymentItems(order));
-    }
-  }, [isOpen, order]);
-
   // Закрытие по Escape
   useEffect(() => {
-    if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  if (!isOpen || !order || typeof window === 'undefined') return null;
+  }, [onClose]);
 
   const totalOrderAmount = order.amount || 0;
   const currentTotalPaid = roundTo2(
@@ -139,7 +137,7 @@ export function OrderPaymentModal({
     setItems((prev) => [
       ...prev,
       {
-        id: `pay-${prev.length}-${Date.now()}`,
+        id: createPaymentItemId(`pay-${prev.length}`),
         amount,
         date: getTodayFormatted(),
         note,
@@ -151,7 +149,7 @@ export function OrderPaymentModal({
     if (items.length <= 1) {
       // Если остался один элемент, просто обнуляем его
       setItems([{
-        id: `pay-0-${Date.now()}`,
+        id: createPaymentItemId('pay-0'),
         amount: 0,
         date: getTodayFormatted(),
         note: '',
@@ -164,7 +162,7 @@ export function OrderPaymentModal({
   // Пресеты
   const handleSetPresetFull = () => {
     setItems([{
-      id: `pay-full-${Date.now()}`,
+      id: createPaymentItemId('pay-full'),
       amount: totalOrderAmount,
       date: getTodayFormatted(),
       note: 'Полная оплата (100%)',
@@ -173,7 +171,7 @@ export function OrderPaymentModal({
 
   const handleSetPresetHalf = () => {
     setItems([{
-      id: `pay-half-${Date.now()}`,
+      id: createPaymentItemId('pay-half'),
       amount: roundTo2(totalOrderAmount * 0.5),
       date: getTodayFormatted(),
       note: 'Предоплата 50%',
@@ -182,7 +180,7 @@ export function OrderPaymentModal({
 
   const handleSetPresetZero = () => {
     setItems([{
-      id: `pay-zero-${Date.now()}`,
+      id: createPaymentItemId('pay-zero'),
       amount: 0,
       date: getTodayFormatted(),
       note: 'Не оплачен',
@@ -203,10 +201,8 @@ export function OrderPaymentModal({
     onClose();
   };
 
-  return createPortal(
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 select-none font-mono">
+  return (
+    <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4 select-none font-mono">
           {/* ФОНОВЫЙ БЛЮР */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -515,7 +511,27 @@ export function OrderPaymentModal({
               </div>
             </div>
           </motion.div>
-        </div>
+    </div>
+  );
+}
+
+export function OrderPaymentModal({
+  order,
+  isOpen,
+  onClose,
+  onSave,
+}: OrderPaymentModalProps) {
+  if (typeof window === 'undefined') return null;
+
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && order && (
+        <OrderPaymentModalContent
+          key={order.id}
+          order={order}
+          onClose={onClose}
+          onSave={onSave}
+        />
       )}
     </AnimatePresence>,
     document.body

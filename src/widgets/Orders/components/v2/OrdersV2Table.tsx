@@ -146,7 +146,7 @@ function TableStatusDropdownPortal({
       window.removeEventListener('scroll', handleScroll, true);
       window.removeEventListener('resize', handleScroll);
     };
-  }, [onClose]);
+  }, [onClose, targetRect]);
 
   if (typeof window === 'undefined') return null;
 
@@ -395,7 +395,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [elevatedOrder]);
+  }, [elevatedOrder, setElevatedOrder]);
 
   const handleOpenContactsModal = (order: Order) => {
     setContextMenu(null);
