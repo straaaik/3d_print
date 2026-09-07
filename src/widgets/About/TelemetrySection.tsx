@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Activity, Sparkles } from 'lucide-react';
 
 export function TelemetrySection() {
   const events = [

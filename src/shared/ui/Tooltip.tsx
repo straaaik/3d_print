@@ -37,7 +37,6 @@ export function Tooltip({
   offset = 6,
 }: TooltipProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -51,7 +50,6 @@ export function Tooltip({
   } | null>(null);
 
   useEffect(() => {
-    setMounted(true);
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
@@ -182,7 +180,7 @@ export function Tooltip({
         {children}
       </div>
 
-      {mounted && typeof document !== 'undefined' && createPortal(
+      {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {isOpen && coords && (
             <motion.div
@@ -293,7 +291,6 @@ export function CustomTooltip({
   align = 'center',
 }: CustomTooltipProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const triggerRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState<{
     rectTop: number;
@@ -302,10 +299,6 @@ export function CustomTooltip({
     arrowLeft: number;
     placement: 'top' | 'bottom';
   } | null>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const updateCoords = useCallback(() => {
     if (!triggerRef.current) return;
@@ -377,7 +370,7 @@ export function CustomTooltip({
         {children}
       </div>
 
-      {mounted && typeof document !== 'undefined' && createPortal(
+      {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {isOpen && coords && (
             <motion.div

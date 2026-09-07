@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Check, Database, RotateCcw, Sliders } from 'lucide-react';
 import { SettingsForm } from '../../../widgets/SettingsForm/SettingsForm';
 import { InventoryCockpitShell } from '../../../widgets/InventoryCockpit/InventoryCockpitShell';
@@ -14,7 +13,6 @@ import { usePersistentState } from '../../../shared/lib/usePersistentState';
 import { SettingsSkeleton } from '../../../shared/ui/CockpitSkeleton';
 
 export default function SettingsPage() {
-  const router = useRouter();
   const { navigate: curtainNavigate } = usePixelCurtain();
   const { isLoading, isOnline, isSettingsDirty, setIsSettingsDirty, settingsSaveRef } = useData();
   const [isExpanded, setIsExpanded] = usePersistentState<boolean>('3d_settings_expanded_view', false);

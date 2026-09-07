@@ -38,7 +38,6 @@ export function CockpitModal({
   footer,
   maxWidth = 'lg',
   variant = 'default',
-  showLeds = true,
 }: CockpitModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();

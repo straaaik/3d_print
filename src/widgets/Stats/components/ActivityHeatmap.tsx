@@ -60,7 +60,7 @@ export function ActivityHeatmap({
   onActiveBucketChange,
   onPinnedBucketChange,
 }: ActivityHeatmapProps) {
-  const { weeks, startDate, endDate, totalOrders, activeDaysCount, totalRevenue, totalResult } = useMemo(() => {
+  const { weeks, startDate, endDate, totalOrders, activeDaysCount, totalRevenue } = useMemo(() => {
     const map = new Map(data.map((item) => [item.key, item]));
     const now = new Date();
     const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -117,7 +117,6 @@ export function ActivityHeatmap({
     let totalOrdersSum = 0;
     let activeDays = 0;
     let totalRevSum = 0;
-    let totalResSum = 0;
 
     const cursor = new Date(alignedStart);
     while (cursor <= alignedEnd) {
@@ -132,7 +131,6 @@ export function ActivityHeatmap({
         if (orders > 0) activeDays += 1;
         totalOrdersSum += orders;
         totalRevSum += revenue;
-        totalResSum += result;
       }
 
       currentWeekDays.push({
@@ -175,7 +173,6 @@ export function ActivityHeatmap({
       totalOrders: totalOrdersSum,
       activeDaysCount: activeDays,
       totalRevenue: totalRevSum,
-      totalResult: totalResSum,
     };
   }, [data, range.endDate, range.startDate]);
 
@@ -319,4 +316,3 @@ export function ActivityHeatmap({
     </StatsChartShell>
   );
 }
-

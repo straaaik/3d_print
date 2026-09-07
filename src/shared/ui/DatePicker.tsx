@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -76,6 +76,12 @@ export function DatePicker({
 
   const selectedDate = useMemo(() => parseToDate(value), [value]);
   const [viewDate, setViewDate] = useState<Date>(selectedDate);
+  const [viewDateValue, setViewDateValue] = useState(value);
+
+  if (viewDateValue !== value) {
+    setViewDateValue(value);
+    setViewDate(selectedDate);
+  }
 
   const displayValue = useMemo(() => {
     if (!value || !value.trim()) return '';
@@ -84,7 +90,7 @@ export function DatePicker({
     return formatDateString(d, format);
   }, [value, format]);
 
-  const updateCoords = () => {
+  const updateCoords = useCallback(() => {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
@@ -112,7 +118,7 @@ export function DatePicker({
         isRight: openRight,
       });
     }
-  };
+  }, [align, dropdownPosition]);
 
   useEffect(() => {
     if (isOpen) {
@@ -124,11 +130,7 @@ export function DatePicker({
       window.removeEventListener('resize', updateCoords);
       window.removeEventListener('scroll', updateCoords, true);
     };
-  }, [isOpen]);
-
-  useEffect(() => {
-    setViewDate(parseToDate(value));
-  }, [value]);
+  }, [isOpen, updateCoords]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Search, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -69,7 +69,7 @@ export function Select({
   const selectedOption = options.find((opt) => opt.value === value);
   const SelectedIcon = selectedOption?.icon;
 
-  const updateCoords = () => {
+  const updateCoords = useCallback(() => {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
@@ -107,7 +107,12 @@ export function Select({
         isTop: openTop,
       });
     }
-  };
+  }, [align, dropdownPosition, dropdownWidth, variant]);
+
+  const closeSelect = useCallback(() => {
+    setIsOpen(false);
+    setSearchQuery('');
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -119,13 +124,7 @@ export function Select({
       window.removeEventListener('resize', updateCoords);
       window.removeEventListener('scroll', updateCoords, true);
     };
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setSearchQuery('');
-    }
-  }, [isOpen]);
+  }, [isOpen, updateCoords]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -134,24 +133,24 @@ export function Select({
         containerRef.current && !containerRef.current.contains(target) &&
         dropdownRef.current && !dropdownRef.current.contains(target)
       ) {
-        setIsOpen(false);
+        closeSelect();
       }
     };
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
+  }, [closeSelect, isOpen]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsOpen(false);
+      if (e.key === 'Escape') closeSelect();
     };
     if (isOpen) {
       window.addEventListener('keydown', handleKeyDown);
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  }, [closeSelect, isOpen]);
 
   const filteredOptions = options.filter((opt) =>
     opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -206,7 +205,10 @@ export function Select({
           disabled={disabled}
           onClick={(e) => {
             e.stopPropagation();
-            if (!disabled) setIsOpen(!isOpen);
+            if (!disabled) {
+              if (isOpen) closeSelect();
+              else setIsOpen(true);
+            }
           }}
           className={`w-full flex items-center justify-between gap-1.5 focus:outline-none transition-all cursor-pointer select-none font-mono ${getSizeStyles()} ${getVariantButtonStyles()} ${
             isModified ? '!border-amber-500/70 shadow-[0_0_10px_rgba(245,158,11,0.15)] bg-amber-500/[0.03]' : ''
@@ -295,7 +297,7 @@ export function Select({
                           key={opt.value}
                           onClick={() => {
                             onChange(opt.value);
-                            setIsOpen(false);
+                            closeSelect();
                           }}
                           className={`flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg cursor-pointer transition-colors select-none whitespace-nowrap gap-2 font-mono ${
                             isSelected

@@ -117,7 +117,7 @@ export function getStoredCategories(): ProductCategory[] {
       }
     }
     return combined;
-  } catch (err) {
+  } catch {
     return INITIAL_PRODUCT_CATEGORIES;
   }
 }
@@ -146,7 +146,7 @@ export function saveNewCategory(name: string, iconName = 'tag'): ProductCategory
     const customOnly = updated.filter(c => !INITIAL_PRODUCT_CATEGORIES.some(init => init.id.toLowerCase() === c.id.toLowerCase()));
     localStorage.setItem('custom_product_categories', JSON.stringify(customOnly));
     return updated;
-  } catch (err) {
+  } catch {
     return INITIAL_PRODUCT_CATEGORIES;
   }
 }

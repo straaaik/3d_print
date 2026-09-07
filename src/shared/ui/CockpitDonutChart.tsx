@@ -132,7 +132,6 @@ export function CockpitDonutChart({
   emptyLabel = 'Нет данных',
   size = 205,
   strokeWidth = 17,
-  activeStrokeWidth = 22,
   showLegend = true,
   maxLegendItems = 8,
   formatValue,

@@ -1,10 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import {
-  Calculator,
-  CheckCircle2
-} from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface SpecItem {

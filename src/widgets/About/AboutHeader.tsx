@@ -1,22 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Box, Menu, X, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../entities/model/AuthProvider';
 
 export function AboutHeader() {
   const { isAuthenticated } = useAuth();
-  const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const navLinks = [
     { label: 'Обзор', href: '#overview' },

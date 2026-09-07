@@ -100,7 +100,7 @@ function getToastStyleConfig(type: ToastType): ToastStyleConfig {
 function ToastItem({ toast, onRemove }: ToastItemProps) {
   const [remainingTime, setRemainingTime] = useState(toast.duration);
   const [isPaused, setIsPaused] = useState(false);
-  const startTimeRef = useRef<number>(Date.now());
+  const startTimeRef = useRef<number>(0);
   const elapsedBeforePauseRef = useRef<number>(0);
   const config = getToastStyleConfig(toast.type);
 

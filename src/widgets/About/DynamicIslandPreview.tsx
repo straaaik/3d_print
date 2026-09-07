@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Box, DollarSign } from 'lucide-react';
 
 export function DynamicIslandPreview() {
   const [activeStep, setActiveStep] = useState(0);
