@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ProductCollection, SavedCalculation, Filament, Printer } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
 import { Select } from '../../../../shared/ui/Select';
@@ -22,40 +22,32 @@ interface AddVariantModalProps {
 
 export function AddVariantModal({
   collection,
+  ...props
+}: AddVariantModalProps) {
+  if (!collection) return null;
+
+  return <AddVariantModalForm key={collection.id} collection={collection} {...props} />;
+}
+
+function AddVariantModalForm({
+  collection,
   onClose,
   savedCalculations,
   filaments,
-  printers,
   onConfirm,
   onNavigateToCalculator,
-}: AddVariantModalProps) {
-  const [variantName, setVariantName] = useState('');
-  const [filamentId, setFilamentId] = useState('');
-  const [weight, setWeight] = useState('50');
-  const [sourceId, setSourceId] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (collection) {
-      const childs = savedCalculations.filter((c) => c.collection_id === collection.id);
-      if (childs.length > 0) {
-        const src = childs[0];
-        setSourceId(src.id);
-        setVariantName(`${src.name} (копия)`);
-        setFilamentId(src.filament_id || filaments[0]?.id || '');
-        setWeight(src.weight_g?.toString() || '50');
-      } else {
-        setSourceId('');
-        setVariantName(`${collection.name} (Вариант 1)`);
-        setFilamentId(filaments[0]?.id || '');
-        setWeight('50');
-      }
-    }
-  }, [collection, savedCalculations, filaments]);
-
-  if (!collection) return null;
-
+}: AddVariantModalProps & { collection: ProductCollection }) {
   const childsInCol = savedCalculations.filter((c) => c.collection_id === collection.id);
+  const initialSource = childsInCol[0];
+  const [variantName, setVariantName] = useState(() =>
+    initialSource ? `${initialSource.name} (копия)` : `${collection.name} (Вариант 1)`
+  );
+  const [filamentId, setFilamentId] = useState(
+    () => initialSource?.filament_id || filaments[0]?.id || ''
+  );
+  const [weight, setWeight] = useState(() => initialSource?.weight_g?.toString() || '50');
+  const [sourceId, setSourceId] = useState(() => initialSource?.id || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

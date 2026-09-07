@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SavedCalculation, Filament, Printer } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
 import { Select, SelectOption } from '../../../../shared/ui/Select';
@@ -16,42 +16,37 @@ interface QuickEditProductModalProps {
 
 export function QuickEditProductModal({
   item,
+  ...props
+}: QuickEditProductModalProps) {
+  if (!item) return null;
+
+  return <QuickEditProductModalForm key={item.id} item={item} {...props} />;
+}
+
+function QuickEditProductModalForm({
+  item,
   filaments,
   printers,
   categoryOptions,
   onClose,
   onSave,
-}: QuickEditProductModalProps) {
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState('Разное');
-  const [tagsInput, setTagsInput] = useState('');
-  const [filamentId, setFilamentId] = useState('');
-  const [printerId, setPrinterId] = useState('');
-  const [weight, setWeight] = useState('0');
-  const [hours, setHours] = useState('0');
-  const [minutes, setMinutes] = useState('0');
-  const [stock, setStock] = useState('0');
-  const [baseCost, setBaseCost] = useState('0');
-  const [finalPrice, setFinalPrice] = useState('0');
+}: QuickEditProductModalProps & { item: SavedCalculation }) {
+  const [name, setName] = useState(() => item.name || '');
+  const [category, setCategory] = useState(() => item.category || 'Разное');
+  const [tagsInput, setTagsInput] = useState(() => item.tags?.join(', ') || '');
+  const [filamentId, setFilamentId] = useState(
+    () => item.filament_id || filaments.find((f) => f.name === item.filament_name)?.id || ''
+  );
+  const [printerId, setPrinterId] = useState(
+    () => item.printer_id || printers.find((p) => p.name === item.printer_name)?.id || ''
+  );
+  const [weight, setWeight] = useState(() => (item.weight_g || 0).toString());
+  const [hours, setHours] = useState(() => (item.hours || 0).toString());
+  const [minutes, setMinutes] = useState(() => (item.minutes || 0).toString());
+  const [stock, setStock] = useState(() => (item.stock_quantity || 0).toString());
+  const [baseCost, setBaseCost] = useState(() => (item.base_cost || 0).toString());
+  const [finalPrice, setFinalPrice] = useState(() => (item.final_price || 0).toString());
   const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    if (item) {
-      setName(item.name || '');
-      setCategory(item.category || 'Разное');
-      setTagsInput(item.tags ? item.tags.join(', ') : '');
-      setFilamentId(item.filament_id || filaments.find((f) => f.name === item.filament_name)?.id || '');
-      setPrinterId(item.printer_id || printers.find((p) => p.name === item.printer_name)?.id || '');
-      setWeight((item.weight_g || 0).toString());
-      setHours((item.hours || 0).toString());
-      setMinutes((item.minutes || 0).toString());
-      setStock((item.stock_quantity || 0).toString());
-      setBaseCost((item.base_cost || 0).toString());
-      setFinalPrice((item.final_price || 0).toString());
-    }
-  }, [item, filaments, printers]);
-
-  if (!item) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

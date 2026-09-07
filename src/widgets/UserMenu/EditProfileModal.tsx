@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Modal } from '../../shared/ui/Modal';
 import { CockpitButton } from '../../shared/ui/CockpitButton';
 import { useAuth } from '../../entities/model/AuthProvider';
@@ -48,8 +48,10 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previousSource, setPreviousSource] = useState({ isOpen, currentUser });
 
-  useEffect(() => {
+  if (previousSource.isOpen !== isOpen || previousSource.currentUser !== currentUser) {
+    setPreviousSource({ isOpen, currentUser });
     if (currentUser) {
       setName(currentUser.name || '');
       setEmail(currentUser.email || '');
@@ -63,7 +65,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
       setShowConfirmPass(false);
       setError(null);
     }
-  }, [currentUser, isOpen]);
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

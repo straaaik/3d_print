@@ -361,7 +361,6 @@ interface ProductsV2TableProps {
 type EditableProductField = 'name' | 'final_price' | 'base_cost' | 'stock_quantity' | 'weight_g' | 'hours' | 'minutes';
 
 export const ProductsV2Table = React.memo(function ProductsV2Table({
-  rows,
   visibleRows,
   visibleCount,
   totalRowsCount,
@@ -374,13 +373,6 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
   isExpanded = false,
   expandedItemIds,
   onToggleExpand,
-  editingNameId,
-  editingNameValue,
-  setEditingNameValue,
-  onSaveRename,
-  onCancelRename,
-  isInlineNameShaking,
-  onStartRename,
   onInlineUpdateProduct,
   onInlineUpdateCollection,
   onSetStock,
@@ -389,7 +381,6 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
   onCreateOrder,
   onLoadIntoCalculator,
   onStageForAssembly,
-  stagedAssemblyParts = [],
   onOpenMoveProduct,
   onOpenStlModal,
   onDelete,

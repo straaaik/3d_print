@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SavedCalculation, ProductCollection, Filament } from '../../../../shared/types';
 import { CatalogTableRow, formatProductArticle, SalesStatInfo } from '../../types';
 import { formatCurrency } from '../../../../shared/lib/format';
 import { getCategoryLucideIcon } from '../../../../shared/lib/categories';
 import {
-  Coins,
   FileCode,
   Edit2,
   Calculator,
@@ -58,9 +57,6 @@ export function ProductRowDrawer({
   onCreateOrder,
   onOpenEditCollection,
   onOpenAddVariantModal,
-  onClose,
-  categoriesList = [],
-  filaments = [],
   salesStat,
 }: ProductRowDrawerProps) {
   const isProduct = row.rowKind === 'product';
@@ -77,8 +73,10 @@ export function ProductRowDrawer({
   const [minutes, setMinutes] = useState<string>(item ? String(item.minutes || 0) : String(row.minutes || 0));
   const [stock, setStock] = useState<number>(item ? item.stock_quantity || 0 : row.stock_quantity || 0);
   const [isSavedNotice, setIsSavedNotice] = useState(false);
+  const [previousSource, setPreviousSource] = useState({ row, item });
 
-  useEffect(() => {
+  if (previousSource.row !== row || previousSource.item !== item) {
+    setPreviousSource({ row, item });
     setName(row.name || '');
     if (item) {
       setPrice(String(item.final_price || 0));
@@ -88,7 +86,7 @@ export function ProductRowDrawer({
       setMinutes(String(item.minutes || 0));
       setStock(item.stock_quantity || 0);
     }
-  }, [row, item]);
+  }
 
   const showSavedBadge = () => {
     setIsSavedNotice(true);

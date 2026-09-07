@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SavedCalculation } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
 import { Input } from '../../../../shared/ui/Input';
@@ -16,27 +16,25 @@ interface CategoryModalProps {
 
 export function CategoryModal({
   item,
+  ...props
+}: CategoryModalProps) {
+  if (!item) return null;
+
+  return <CategoryModalForm key={item.id} item={item} {...props} />;
+}
+
+function CategoryModalForm({
+  item,
   categoryOptions,
   onClose,
   onSave,
   onCreateCategory,
-}: CategoryModalProps) {
-  const [category, setCategory] = useState('Разное');
-  const [tagsInput, setTagsInput] = useState('');
+}: CategoryModalProps & { item: SavedCalculation }) {
+  const [category, setCategory] = useState(() => item.category || 'Разное');
+  const [tagsInput, setTagsInput] = useState(() => item.tags?.join(', ') || '');
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    if (item) {
-      setCategory(item.category || 'Разное');
-      setTagsInput(item.tags ? item.tags.join(', ') : '');
-      setIsCreatingNew(false);
-      setNewCatName('');
-    }
-  }, [item]);
-
-  if (!item) return null;
 
   const handleSelectCategory = (val: string) => {
     if (val === '__new__') {

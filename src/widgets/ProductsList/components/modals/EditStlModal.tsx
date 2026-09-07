@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SavedCalculation } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
 import { Input } from '../../../../shared/ui/Input';
@@ -12,21 +12,21 @@ interface EditStlModalProps {
   onSave: (item: SavedCalculation, stlUrl?: string, stlFileName?: string, stlFileData?: string) => Promise<void>;
 }
 
-export function EditStlModal({ item, onClose, onSave }: EditStlModalProps) {
-  const [url, setUrl] = useState('');
-  const [fileName, setFileName] = useState('');
-  const [fileData, setFileData] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    if (item) {
-      setUrl(item.stl_url || '');
-      setFileName(item.stl_file_name || '');
-      setFileData(item.stl_file_data || '');
-    }
-  }, [item]);
-
+export function EditStlModal({ item, ...props }: EditStlModalProps) {
   if (!item) return null;
+
+  return <EditStlModalForm key={item.id} item={item} {...props} />;
+}
+
+function EditStlModalForm({
+  item,
+  onClose,
+  onSave,
+}: EditStlModalProps & { item: SavedCalculation }) {
+  const [url, setUrl] = useState(() => item.stl_url || '');
+  const [fileName, setFileName] = useState(() => item.stl_file_name || '');
+  const [fileData, setFileData] = useState(() => item.stl_file_data || '');
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

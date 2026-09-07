@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SavedCalculation, ProductCollection } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
@@ -17,6 +17,24 @@ interface MoveProductModalProps {
 
 export function MoveProductModal({
   movingProduct,
+  isBatchMoveOpen,
+  ...props
+}: MoveProductModalProps) {
+  if (!movingProduct && !isBatchMoveOpen) return null;
+
+  const sessionKey = movingProduct?.id ?? 'batch';
+  return (
+    <MoveProductModalForm
+      key={sessionKey}
+      movingProduct={movingProduct}
+      isBatchMoveOpen={isBatchMoveOpen}
+      {...props}
+    />
+  );
+}
+
+function MoveProductModalForm({
+  movingProduct,
   selectedIds,
   isBatchMoveOpen,
   collections,
@@ -26,18 +44,10 @@ export function MoveProductModal({
   onSaveBatch,
 }: MoveProductModalProps) {
   const isOpen = Boolean(movingProduct) || isBatchMoveOpen;
-  const [targetCollectionId, setTargetCollectionId] = useState<string>('none');
+  const [targetCollectionId, setTargetCollectionId] = useState<string>(
+    () => movingProduct?.collection_id || 'none'
+  );
   const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    if (movingProduct) {
-      setTargetCollectionId(movingProduct.collection_id || 'none');
-    } else if (isBatchMoveOpen) {
-      setTargetCollectionId('none');
-    }
-  }, [movingProduct, isBatchMoveOpen]);
-
-  if (!isOpen) return null;
 
   const handleSave = async () => {
     setIsSaving(true);

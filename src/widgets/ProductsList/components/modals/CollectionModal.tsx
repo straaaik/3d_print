@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ProductCollection, SavedCalculation } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
 import { Select, SelectOption } from '../../../../shared/ui/Select';
@@ -39,18 +39,29 @@ export function CollectionModal({
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [productSearch, setProductSearch] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [previousSource, setPreviousSource] = useState({
+    isOpen,
+    editingCollection,
+    savedCalculations,
+  });
 
-  useEffect(() => {
+  if (
+    previousSource.isOpen !== isOpen ||
+    previousSource.editingCollection !== editingCollection ||
+    previousSource.savedCalculations !== savedCalculations
+  ) {
+    setPreviousSource({ isOpen, editingCollection, savedCalculations });
     if (isOpen) {
       if (editingCollection) {
         setName(editingCollection.name || '');
         setCategory(editingCollection.category || 'Разное');
-        setTagsInput(editingCollection.tags ? editingCollection.tags.join(', ') : '');
+        setTagsInput(editingCollection.tags?.join(', ') || '');
         setDescription(editingCollection.description || '');
-        const existingIds = savedCalculations
-          .filter((c) => c.collection_id === editingCollection.id)
-          .map((c) => c.id);
-        setSelectedProductIds(existingIds);
+        setSelectedProductIds(
+          savedCalculations
+            .filter((calculation) => calculation.collection_id === editingCollection.id)
+            .map((calculation) => calculation.id)
+        );
       } else {
         setName('');
         setCategory('Разное');
@@ -60,7 +71,7 @@ export function CollectionModal({
       }
       setProductSearch('');
     }
-  }, [isOpen, editingCollection, savedCalculations]);
+  }
 
   const filteredProducts = useMemo(() => {
     if (!productSearch.trim()) return savedCalculations;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useId, useMemo, useRef, useState } from 'react';
 import { AssemblyPrintedPart, AssemblyHardwareItem, SavedCalculation, Filament, Printer } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
@@ -49,8 +49,16 @@ export function AssemblyModal({
   const [hardware, setHardware] = useState<AssemblyHardwareItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [previousSource, setPreviousSource] = useState({ isOpen, editingAssembly, stagedParts });
+  const localIdPrefix = useId();
+  const nextLocalIdRef = useRef(0);
 
-  useEffect(() => {
+  if (
+    previousSource.isOpen !== isOpen ||
+    previousSource.editingAssembly !== editingAssembly ||
+    previousSource.stagedParts !== stagedParts
+  ) {
+    setPreviousSource({ isOpen, editingAssembly, stagedParts });
     if (isOpen) {
       if (editingAssembly) {
         setName(editingAssembly.name || '');
@@ -67,7 +75,7 @@ export function AssemblyModal({
       }
       setProductSearch('');
     }
-  }, [isOpen, editingAssembly, stagedParts]);
+  }
 
   const singleProducts = useMemo(() => {
     return savedCalculations.filter((c) => c.type !== 'assembly');
@@ -94,8 +102,9 @@ export function AssemblyModal({
     if (existingIndex >= 0) {
       setParts((prev) => prev.filter((_, i) => i !== existingIndex));
     } else {
+      nextLocalIdRef.current += 1;
       const newPart: AssemblyPrintedPart = {
-        id: Math.random().toString(36).substring(2, 9),
+        id: `${localIdPrefix}-catalog-${nextLocalIdRef.current}`,
         product_id: prod.id,
         name: prod.name,
         weight_g: round2(prod.weight_g),
@@ -131,9 +140,10 @@ export function AssemblyModal({
   const handleAddCustomPart = () => {
     const defaultFilament = filaments[0];
     const defaultPrinter = printers[0];
+    nextLocalIdRef.current += 1;
 
     const newPart: AssemblyPrintedPart = {
-      id: Math.random().toString(36).substring(2, 9),
+      id: `${localIdPrefix}-custom-${nextLocalIdRef.current}`,
       name: `Деталь #${parts.length + 1}`,
       weight_g: 50,
       hours: 2,
@@ -152,8 +162,9 @@ export function AssemblyModal({
   };
 
   const handleAddHardware = () => {
+    nextLocalIdRef.current += 1;
     const newHw: AssemblyHardwareItem = {
-      id: Math.random().toString(36).substring(2, 9),
+      id: `${localIdPrefix}-hardware-${nextLocalIdRef.current}`,
       name: 'Винты M3x10',
       quantity: 4,
       cost_per_unit: 3,

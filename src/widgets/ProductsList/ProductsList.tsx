@@ -58,7 +58,7 @@ export function ProductsList({
   onToggleExpand: externalOnToggleExpand,
 }: ProductsListProps = {}) {
   const router = useRouter();
-  const { showWarning, showSuccess, showInfo } = useToast();
+  const { showWarning, showSuccess } = useToast();
   const {
     isOnline,
     savedCalculations,
@@ -104,7 +104,8 @@ export function ProductsList({
   const [searchQuery, setSearchQuery] = usePersistentState<string>('3d_products_search_query', '');
 
   useEffect(() => {
-    setCategoriesList(getStoredCategories());
+    const syncCategoriesFromStorage = () => setCategoriesList(getStoredCategories());
+    syncCategoriesFromStorage();
   }, []);
 
   const handleCreateCategory = (name: string, icon = 'tag') => {
@@ -152,12 +153,26 @@ export function ProductsList({
 
   // 6. Пагинация порциями (Infinite Scroll)
   const PRODUCTS_CHUNK_SIZE = 25;
-  const [visibleCount, setVisibleCount] = useState<number>(PRODUCTS_CHUNK_SIZE);
+  const paginationKey = JSON.stringify([
+    searchQuery,
+    productFilter,
+    stockFilter,
+    onlyBestsellers,
+    selectedCategories,
+  ]);
+  const [pagination, setPagination] = useState(() => ({
+    key: paginationKey,
+    visibleCount: PRODUCTS_CHUNK_SIZE,
+  }));
+  let visibleCount = pagination.visibleCount;
 
-  // Сброс порции при смене фильтров
-  useEffect(() => {
-    setVisibleCount(PRODUCTS_CHUNK_SIZE);
-  }, [searchQuery, productFilter, stockFilter, onlyBestsellers, selectedCategories]);
+  // React permits guarded state adjustment during render when one state value
+  // must reset for a new identity. This keeps the first filtered render capped
+  // without an extra effect-driven render.
+  if (pagination.key !== paginationKey) {
+    visibleCount = PRODUCTS_CHUNK_SIZE;
+    setPagination({ key: paginationKey, visibleCount: PRODUCTS_CHUNK_SIZE });
+  }
 
   // 7. Раскрытие коллекций и сборок
   const [expandedItemIds, setExpandedItemIds] = usePersistentState<Record<string, boolean>>('3d_products_expanded_ids', {});
@@ -515,7 +530,9 @@ export function ProductsList({
         : source.base_cost;
       const newBaseCost = Math.round(filCost * 1.3);
       const newFinalPrice = Math.round(newBaseCost * 2);
-      const { id, created_at, ...restSource } = source;
+      const restSource = { ...source };
+      Reflect.deleteProperty(restSource, 'id');
+      Reflect.deleteProperty(restSource, 'created_at');
 
       await addSavedCalculation({
         ...restSource,
@@ -915,8 +932,14 @@ export function ProductsList({
         visibleRows={visibleRows}
         visibleCount={visibleCount}
         totalRowsCount={sortedRows.length}
-        onLoadMore={() => setVisibleCount((prev) => Math.min(prev + PRODUCTS_CHUNK_SIZE, sortedRows.length))}
-        onShowAll={() => setVisibleCount(sortedRows.length)}
+        onLoadMore={() => setPagination((prev) => ({
+          key: paginationKey,
+          visibleCount: Math.min(
+            (prev.key === paginationKey ? prev.visibleCount : PRODUCTS_CHUNK_SIZE) + PRODUCTS_CHUNK_SIZE,
+            sortedRows.length
+          ),
+        }))}
+        onShowAll={() => setPagination({ key: paginationKey, visibleCount: sortedRows.length })}
         warehouseMetrics={warehouseMetrics}
         singleCount={counts.single}
         assemblyCount={counts.assembly}
