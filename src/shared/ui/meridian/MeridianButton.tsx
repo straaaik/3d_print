@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { MotionSpinner } from '../MotionPrimitives';
 
 export interface MeridianButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'pill-white' | 'pill-cyan' | 'pill-emerald' | 'pill-purple' | 'pill-outline' | 'ghost' | 'bracket' | 'danger';
@@ -63,7 +64,7 @@ export const MeridianButton = React.forwardRef<HTMLButtonElement, MeridianButton
         {...props}
       >
         {loading ? (
-          <span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin shrink-0" />
+          <MotionSpinner className="w-4 h-4 rounded-full border-2 border-current border-t-transparent shrink-0" />
         ) : (
           Icon && iconPosition === 'left' && <Icon className="w-4 h-4 shrink-0" />
         )}

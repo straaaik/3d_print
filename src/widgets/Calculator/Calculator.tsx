@@ -32,6 +32,7 @@ import {
 import { usePersistentState } from '../../shared/lib/usePersistentState';
 import { CockpitDropdown } from '../../shared/ui/CockpitDropdown';
 import { ClientReceiptModal } from './ClientReceiptModal';
+import { MotionRevealDiv } from '../../shared/ui/MotionPrimitives';
 
 const PRODUCT_CATEGORIES_STORAGE_KEY = 'custom_product_categories';
 const SERVER_PRODUCT_CATEGORIES_SNAPSHOT = JSON.stringify(INITIAL_PRODUCT_CATEGORIES);
@@ -1016,7 +1017,7 @@ export function Calculator() {
 
                 {/* Форма добавления нового расхода */}
                 {isAddingCustomCost && (
-                  <div className="p-3 bg-neutral-900/90 border border-cyan-500/30 rounded-xl space-y-2.5 text-xs font-mono animate-in fade-in">
+                  <MotionRevealDiv className="p-3 bg-neutral-900/90 border border-cyan-500/30 rounded-xl space-y-2.5 text-xs font-mono">
                     <div className="flex items-center justify-between text-[11px] text-neutral-400 border-b border-white/10 pb-1.5">
                       <span className="font-bold text-cyan-300">{'// НОВЫЙ РАСХОД'}</span>
                       <button
@@ -1079,7 +1080,7 @@ export function Calculator() {
                         </button>
                       </div>
                     </div>
-                  </div>
+                  </MotionRevealDiv>
                 )}
               </div>
 

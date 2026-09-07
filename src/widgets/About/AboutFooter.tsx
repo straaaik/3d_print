@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Box, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../entities/model/AuthProvider';
+import { MotionPulse } from '../../shared/ui/MotionPrimitives';
 
 export function AboutFooter() {
   const { isAuthenticated } = useAuth();
@@ -16,7 +17,7 @@ export function AboutFooter() {
         <div className="border border-white/15 bg-gradient-to-b from-white/[0.04] to-transparent p-8 sm:p-14 rounded-3xl relative overflow-hidden text-center max-w-4xl mx-auto">
 
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-700/60 text-cyan-300 font-mono text-xs mb-6">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+            <MotionPulse className="w-2 h-2 rounded-full bg-cyan-400" />
             ГОТОВО К ВНЕДРЕНИЮ В ВАШЕЙ МАСТЕРСКОЙ
           </div>
 

@@ -17,6 +17,7 @@ import { CockpitButton } from '@/shared/ui/CockpitButton';
 import { Tooltip } from '@/shared/ui/Tooltip';
 import { usePixelCurtain } from '@/shared/ui/PixelCurtain';
 import { CockpitContentTransition } from '@/shared/ui/CockpitContentTransition';
+import { MotionPulse } from '@/shared/ui/MotionPrimitives';
 
 interface OrdersV2ViewProps {
   isOnline: boolean;
@@ -224,7 +225,7 @@ export const OrdersV2View = React.memo(function OrdersV2View({
                     <div className="flex items-center gap-1.5">
                       <span className="font-bold text-neutral-300">ДЕЙСТВИЯ</span>
                       <span className="flex items-center gap-1 text-[8px] text-emerald-400 font-semibold">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <MotionPulse className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                         READY
                       </span>
                     </div>
@@ -371,7 +372,7 @@ export const OrdersV2View = React.memo(function OrdersV2View({
               
               {/* Динамический зеленый бейдж режима: FULLSCREEN / COMPACT */}
               <span className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2.5 py-0.5 rounded font-bold uppercase tracking-wider shadow-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <MotionPulse className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 {isExpanded ? 'FULLSCREEN' : 'COMPACT'}
               </span>
             </div>
@@ -430,7 +431,7 @@ export const OrdersV2View = React.memo(function OrdersV2View({
               <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 sm:px-3.5 sm:py-2.5 bg-neutral-900/80 border border-white/10 rounded-xl shadow-sm">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs text-neutral-200 font-bold uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <MotionPulse className="w-2 h-2 rounded-full bg-emerald-400" />
                     ПАНЕЛЬ ДЕЙСТВИЙ
                   </span>
                   <span className="text-neutral-600 hidden sm:inline">|</span>

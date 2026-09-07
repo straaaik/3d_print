@@ -6,6 +6,7 @@ import { ShieldX } from 'lucide-react';
 import { AdminPanel } from '../../../widgets/Admin/AdminPanel';
 import { MainNavbar } from '../../../shared/ui/MainNavbar';
 import { useAuth } from '../../../entities/model/AuthProvider';
+import { MotionSpinner } from '../../../shared/ui/MotionPrimitives';
 
 export default function AdminPage() {
   const router = useRouter();
@@ -20,7 +21,7 @@ export default function AdminPage() {
       <div className="flex min-h-screen items-center justify-center bg-dot-grid font-sans">
         <div className="flex select-none flex-col items-center gap-4 text-center">
           {isLoading ? (
-            <div className="h-9 w-9 animate-spin rounded-full border-2 border-white/10 border-t-white" />
+            <MotionSpinner className="h-9 w-9 rounded-full border-2 border-white/10 border-t-white" />
           ) : (
             <ShieldX className="h-9 w-9 text-rose-400" />
           )}

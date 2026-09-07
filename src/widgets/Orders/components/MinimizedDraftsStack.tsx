@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { formatMoney } from '../helpers';
 import { Order } from '../types';
 import { Tooltip } from '../../../shared/ui/Tooltip';
+import { MotionPing, MotionPulse } from '../../../shared/ui/MotionPrimitives';
 
 export interface MinimizedDraft {
   id: string;
@@ -50,8 +51,8 @@ export function MinimizedDraftsStack({
               {/* Левая часть: Индикатор и тип */}
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <div className="relative flex items-center justify-center shrink-0">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
-                  <span className="absolute w-4 h-4 rounded-full bg-amber-400/30 animate-ping" />
+                  <MotionPulse className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                  <MotionPing className="absolute w-4 h-4 rounded-full bg-amber-400/30" />
                 </div>
 
                 <div className="flex flex-col min-w-0 flex-1">

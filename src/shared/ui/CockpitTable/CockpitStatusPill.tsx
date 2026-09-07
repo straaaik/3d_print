@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { CockpitStatusPillProps, CockpitStatusTone } from './types';
+import { MotionPulse } from '../MotionPrimitives';
 
 const toneStyles: Record<CockpitStatusTone, {
   container: string;
@@ -68,8 +69,9 @@ export function CockpitStatusPill({
       {Icon ? (
         <Icon className="w-3 h-3 shrink-0" />
       ) : dot ? (
-        <span
-          className={`w-1.5 h-1.5 rounded-full shrink-0 ${styles.dot} ${pulse ? 'animate-pulse' : ''}`}
+        <MotionPulse
+          active={pulse}
+          className={`w-1.5 h-1.5 rounded-full shrink-0 ${styles.dot}`}
         />
       ) : null}
       <span className="truncate">{label}</span>

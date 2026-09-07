@@ -37,6 +37,7 @@ import { TableDeadlinePicker } from './TableDeadlinePicker';
 import { OrderContactsModal, getContactHref } from './OrderContactsModal';
 import { OrderRowDrawer } from './OrderRowDrawer';
 import { OrderPaymentModal } from './OrderPaymentModal';
+import { MotionPulse } from '@/shared/ui/MotionPrimitives';
 
 const COMPACT_GRID_COLUMNS = '112px 80px 176px minmax(200px, 1.5fr) 144px 128px 96px 144px 112px';
 const EXPANDED_GRID_COLUMNS = '128px 112px 96px 176px 176px minmax(200px, 1.5fr) 192px 128px 144px 128px 112px 128px 144px 144px';
@@ -1845,9 +1846,9 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 <tr ref={sentinelRef} className="block w-full">
                   <td colSpan={14} className="block w-full py-4 text-center">
                     <div className="flex items-center justify-center gap-2">
-                      <span className="text-xs text-neutral-400 font-mono animate-pulse">
+                      <MotionPulse className="text-xs text-neutral-400 font-mono">
                         Загрузка записей...
-                      </span>
+                      </MotionPulse>
                       <button
                         type="button"
                         onClick={onShowAll}
@@ -2668,9 +2669,9 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 <tr ref={sentinelRef} className="block w-full">
                   <td colSpan={9} className="block w-full py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
-                      <span className="text-xs text-neutral-400 font-mono animate-pulse">
+                      <MotionPulse className="text-xs text-neutral-400 font-mono">
                         Загрузка записей...
-                      </span>
+                      </MotionPulse>
                       <button
                         type="button"
                         onClick={onShowAll}

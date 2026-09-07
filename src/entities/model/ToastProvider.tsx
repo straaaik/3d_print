@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip } from '../../shared/ui/Tooltip';
+import { MotionPing, MotionPulse } from '../../shared/ui/MotionPrimitives';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -148,8 +149,8 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
         {/* Круглый контейнер со светящейся точкой */}
         <div className="w-7 h-7 rounded-full bg-white/[0.04] border border-white/10 flex items-center justify-center shrink-0">
           <div className="relative flex items-center justify-center">
-            <span className={`w-2.5 h-2.5 rounded-full ${config.dotColor} animate-pulse`} />
-            <span className={`absolute w-4 h-4 rounded-full ${config.dotGlow} animate-ping`} />
+            <MotionPulse className={`w-2.5 h-2.5 rounded-full ${config.dotColor}`} />
+            <MotionPing className={`absolute w-4 h-4 rounded-full ${config.dotGlow}`} />
           </div>
         </div>
 

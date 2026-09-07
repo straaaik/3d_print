@@ -22,6 +22,7 @@ import {
 import { useAuth } from '../../../entities/model/AuthProvider';
 import { useToast } from '../../../entities/model/ToastProvider';
 import { usePersistentState } from '../../../shared/lib/usePersistentState';
+import { MotionPulse, MotionSpinner } from '../../../shared/ui/MotionPrimitives';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -144,7 +145,7 @@ export default function LoginPage() {
     return (
       <div className="min-h-screen bg-dot-grid flex items-center justify-center font-sans">
         <div className="flex flex-col items-center gap-4 select-none">
-          <div className="w-9 h-9 rounded-full border-2 border-white/10 border-t-white animate-spin" />
+          <MotionSpinner className="w-9 h-9 rounded-full border-2 border-white/10 border-t-white" />
           <p className="text-neutral-400 text-xs font-mono font-semibold">
             Инициализация шлюза авторизации 3D Labs...
           </p>
@@ -205,7 +206,7 @@ export default function LoginPage() {
 
             {/* Индикатор облака */}
             <span className="flex items-center gap-1 text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <MotionPulse className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               Supabase Cloud
             </span>
           </div>
@@ -354,7 +355,7 @@ export default function LoginPage() {
                     className="w-full mt-2 py-3 px-5 rounded-xl bg-white hover:bg-neutral-200 text-neutral-950 font-bold font-mono text-xs sm:text-sm tracking-tight shadow-[0_0_25px_-5px_rgba(255,255,255,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSubmitting ? (
-                      <div className="w-4 h-4 border-2 border-neutral-950/30 border-t-neutral-950 rounded-full animate-spin" />
+                      <MotionSpinner className="w-4 h-4 border-2 border-neutral-950/30 border-t-neutral-950 rounded-full" />
                     ) : (
                       <>
                         <LogIn className="w-4 h-4" />
@@ -516,7 +517,7 @@ export default function LoginPage() {
                     className="w-full mt-2 py-3 px-5 rounded-xl bg-white hover:bg-neutral-200 text-neutral-950 font-bold font-mono text-xs sm:text-sm tracking-tight shadow-[0_0_25px_-5px_rgba(255,255,255,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSubmitting ? (
-                      <div className="w-4 h-4 border-2 border-neutral-950/30 border-t-neutral-950 rounded-full animate-spin" />
+                      <MotionSpinner className="w-4 h-4 border-2 border-neutral-950/30 border-t-neutral-950 rounded-full" />
                     ) : (
                       <>
                         <UserPlus className="w-4 h-4" />
@@ -534,7 +535,7 @@ export default function LoginPage() {
           {/* Нижний статус-бар консоли (Cockpit Status Bar) */}
           <div className="border-t border-white/10 px-4 py-2.5 bg-neutral-950 flex items-center justify-between text-[11px] font-mono text-neutral-500">
             <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              <MotionPulse className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
               <span>TLS 1.3 · SUPABASE AUTH</span>
             </div>
             <span>INVITE-ONLY GATEWAY</span>

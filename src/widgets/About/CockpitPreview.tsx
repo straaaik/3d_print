@@ -11,6 +11,7 @@ import {
   Activity
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { MotionPulse } from '../../shared/ui/MotionPrimitives';
 
 export function CockpitPreview() {
   const [activeTab, setActiveTab] = useState<'orders' | 'calculator' | 'filaments' | 'printers' | 'analytics'>('orders');
@@ -164,7 +165,7 @@ export function CockpitPreview() {
                           <td className="py-2.5 px-3 text-neutral-200 font-sans">Корпус датчика дрона (x8)</td>
                           <td className="py-2.5 px-3">
                             <span className="px-2 py-0.5 rounded-full text-[10px] bg-yellow-950/80 text-yellow-300 border border-yellow-700/60 inline-flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" /> На печати
+                              <MotionPulse className="w-1.5 h-1.5 rounded-full bg-yellow-400" /> На печати
                             </span>
                           </td>
                           <td className="py-2.5 px-3 text-neutral-400">PETG-CF Black</td>
@@ -192,7 +193,7 @@ export function CockpitPreview() {
                           <td className="py-2.5 px-3 text-neutral-200 font-sans">Архитектурный макет 1:50</td>
                           <td className="py-2.5 px-3">
                             <span className="px-2 py-0.5 rounded-full text-[10px] bg-yellow-950/80 text-yellow-300 border border-yellow-700/60 inline-flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" /> На печати
+                              <MotionPulse className="w-1.5 h-1.5 rounded-full bg-yellow-400" /> На печати
                             </span>
                           </td>
                           <td className="py-2.5 px-3 text-neutral-400">PLA Matte White</td>

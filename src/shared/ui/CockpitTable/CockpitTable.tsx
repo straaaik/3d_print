@@ -16,6 +16,7 @@ import {
   Database
 } from 'lucide-react';
 import { usePersistentState } from '../../lib/usePersistentState';
+import { MotionPulseRow } from '../MotionPrimitives';
 
 export function CockpitTable<T>({
   columns,
@@ -343,7 +344,7 @@ export function CockpitTable<T>({
             {/* Loading state skeleton */}
             {isLoading ? (
               Array.from({ length: 5 }).map((_, idx) => (
-                <tr key={`skeleton-${idx}`} className="animate-pulse">
+                <MotionPulseRow key={`skeleton-${idx}`}>
                   {selectable && (
                     <td className="py-3 px-3 text-center">
                       <div className="w-4 h-4 bg-white/5 rounded mx-auto" />
@@ -354,7 +355,7 @@ export function CockpitTable<T>({
                       <div className="h-4 bg-white/5 rounded w-3/4" />
                     </td>
                   ))}
-                </tr>
+                </MotionPulseRow>
               ))
             ) : processedData.length === 0 ? (
               /* Empty state row */

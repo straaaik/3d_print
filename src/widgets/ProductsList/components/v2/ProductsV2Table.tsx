@@ -49,6 +49,7 @@ import { CockpitButton } from '../../../../shared/ui/CockpitButton';
 import { AnimatedPriceNumber } from '../../../../shared/ui/AnimatedPriceNumber';
 import { CockpitStatusPill } from '../../../../shared/ui/CockpitTable/CockpitStatusPill';
 import { ProductRowDrawer } from './ProductRowDrawer';
+import { MotionPulse, MotionRevealDiv } from '../../../../shared/ui/MotionPrimitives';
 
 // Точные моноширинные сетки колонок (CSS Grid) — абсолютная синхронизация thead и tbody
 export const PRODUCTS_EXPANDED_COLUMNS = '112px 96px 144px minmax(220px,1.5fr) 136px 128px 144px 128px 128px 144px 112px 96px 136px';
@@ -1587,9 +1588,9 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 <tr ref={sentinelRef} className="block w-full">
                   <td colSpan={13} className="block w-full py-4 text-center">
                     <div className="flex items-center justify-center gap-2">
-                      <span className="text-xs text-neutral-400 font-mono animate-pulse">
+                      <MotionPulse className="text-xs text-neutral-400 font-mono">
                         Загрузка товаров...
-                      </span>
+                      </MotionPulse>
                       <button
                         type="button"
                         onClick={onShowAll}
@@ -2206,9 +2207,9 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 <tr ref={sentinelRef} className="block w-full">
                   <td colSpan={9} className="block w-full py-4 text-center">
                     <div className="flex items-center justify-center gap-2">
-                      <span className="text-xs text-neutral-400 font-mono animate-pulse">
+                      <MotionPulse className="text-xs text-neutral-400 font-mono">
                         Загрузка товаров...
-                      </span>
+                      </MotionPulse>
                       <button
                         type="button"
                         onClick={onShowAll}
@@ -2299,7 +2300,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
             className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[8000] flex items-center gap-2 p-2 px-3.5 rounded-2xl bg-neutral-950/98 border border-white/15 shadow-[0_20px_60px_rgba(0,0,0,0.9)] backdrop-blur-2xl font-mono text-xs select-none"
           >
             <div className="flex items-center gap-2 pr-3 border-r border-white/10">
-              <span className="w-2 h-2 rounded-full bg-white/80 animate-pulse shrink-0" />
+              <MotionPulse className="w-2 h-2 rounded-full bg-white/80 shrink-0" />
               <span className="text-white font-bold tracking-wider text-[11px]">
                 ВЫБРАНО: <span className="text-white font-mono font-black">{selectedIds.length}</span>
               </span>
@@ -2363,10 +2364,10 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
 
       {/* ПОРТАЛЬНОЕ КОНТЕКСТНОЕ МЕНЮ (ПРАВЫЙ КЛИК МЫШИ) */}
       {typeof document !== 'undefined' && contextMenu && menuCoords && createPortal(
-        <div
+        <MotionRevealDiv
           ref={contextMenuRef}
           style={{ top: `${menuCoords.y}px`, left: `${menuCoords.x}px` }}
-          className="fixed z-[9999] min-w-[210px] rounded-xl border border-white/15 bg-neutral-950/98 p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] backdrop-blur-2xl font-mono text-xs select-none space-y-0.5 animate-in fade-in zoom-in-95 duration-100"
+          className="fixed z-[9999] min-w-[210px] rounded-xl border border-white/15 bg-neutral-950/98 p-1.5 shadow-[0_20px_50px_rgba(0,0,0,0.85)] backdrop-blur-2xl font-mono text-xs select-none space-y-0.5"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="px-2 py-1.5 border-b border-white/10 text-[10px] text-neutral-400 flex items-center justify-between font-bold">
@@ -2542,7 +2543,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
             <Trash2 className="w-3.5 h-3.5" />
             <span>Удалить позицию</span>
           </button>
-        </div>,
+        </MotionRevealDiv>,
         document.body
       )}
 

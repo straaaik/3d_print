@@ -7,6 +7,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../../../entities/model/AuthProvider';
+import { MotionPulse } from '../../../shared/ui/MotionPrimitives';
 import { AboutHeader } from '../../../widgets/About/AboutHeader';
 import { CockpitPreview } from '../../../widgets/About/CockpitPreview';
 import { SpecInteractive } from '../../../widgets/About/SpecInteractive';
@@ -42,7 +43,7 @@ export default function AboutPage() {
 
               {/* Верхний бейдж */}
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-neutral-300 font-mono text-xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                <MotionPulse className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
                 <span>3D-LABS OS · ВСЕМОГУЩИЙ УЧЕТ 3D-ПЕЧАТИ</span>
               </div>
 

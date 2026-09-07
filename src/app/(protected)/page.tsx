@@ -8,6 +8,7 @@ import { useData } from '../../entities/model/DataProvider';
 import { UserProfileMenu } from '../../widgets/UserMenu/UserProfileMenu';
 import { usePixelCurtain } from '../../shared/ui/PixelCurtain';
 import { HubSkeleton } from '../../shared/ui/CockpitSkeleton';
+import { MotionPulse } from '../../shared/ui/MotionPrimitives';
 
 interface HubSection {
   id: string;
@@ -123,7 +124,7 @@ export default function HomePage() {
       {/* Верхний бар: штамп системы и меню пользователя */}
       <div className="w-full flex items-center justify-between z-20">
         <div className="flex items-center gap-2 font-mono text-xs text-neutral-400 tracking-wider">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <MotionPulse className="w-2 h-2 rounded-full bg-emerald-400" />
           <span className="font-semibold text-neutral-300">3D-LABS</span>
           <span className="text-neutral-600">{'//'}</span>
           <span className="text-neutral-400">OPERATIONS HUB</span>
@@ -250,4 +251,3 @@ export default function HomePage() {
     </div>
   );
 }
-

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { MotionPulse } from '../../shared/ui/MotionPrimitives';
 
 export function TelemetrySection() {
   const events = [
@@ -28,7 +29,7 @@ export function TelemetrySection() {
       <div className="border-b border-white/10 px-4 sm:px-6 py-4">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4 font-mono text-xs text-neutral-400">
           <div className="flex items-center gap-2 text-white">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <MotionPulse className="w-2 h-2 rounded-full bg-emerald-400" />
             <span className="font-bold">ТЕЛЕМЕТРИЯ СТУДИИ · ВСЕ ПРОЦЕССЫ СИНХРОНИЗИРОВАНЫ</span>
           </div>
           <div className="hidden md:flex items-center gap-6">

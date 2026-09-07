@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal } from '../../../../shared/ui/Modal';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
 import { RefreshCw, CheckSquare, Package, Zap } from 'lucide-react';
+import { MotionSpinner } from '../../../../shared/ui/MotionPrimitives';
 
 interface RecalculateModalProps {
   isOpen: boolean;
@@ -45,7 +46,9 @@ export function RecalculateModal({
             isActive={true}
             className="border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold flex items-center gap-1.5"
           >
-            <Zap className={`w-3.5 h-3.5 ${isRecalculating ? 'animate-spin' : ''}`} />
+            <MotionSpinner active={isRecalculating} className="inline-flex shrink-0">
+              <Zap className="w-3.5 h-3.5" />
+            </MotionSpinner>
             <span>
               {isRecalculating
                 ? 'Пересчитываем...'
@@ -60,7 +63,9 @@ export function RecalculateModal({
       <div className="space-y-3 pt-1 font-mono text-xs">
         <div className="p-3 bg-neutral-900 border border-white/10 rounded-xl flex items-start gap-3">
           <div className="p-2 rounded-lg bg-white/5 text-cyan-400 shrink-0">
-            <RefreshCw className={`w-4 h-4 ${isRecalculating ? 'animate-spin' : ''}`} />
+            <MotionSpinner active={isRecalculating} className="inline-flex shrink-0">
+              <RefreshCw className="w-4 h-4" />
+            </MotionSpinner>
           </div>
           <div className="space-y-1 text-xs text-neutral-300 font-sans">
             <h4 className="text-white font-bold font-mono text-xs">Актуализация цен каталога</h4>

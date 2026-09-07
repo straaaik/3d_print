@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { MotionPulse } from '../../shared/ui/MotionPrimitives';
 
 export function DynamicIslandPreview() {
   const [activeStep, setActiveStep] = useState(0);
@@ -124,7 +125,11 @@ export function DynamicIslandPreview() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <span className={`w-2.5 h-2.5 rounded-full ${item.color} ${isActive ? 'animate-pulse' : 'opacity-60'}`} />
+                      {isActive ? (
+                        <MotionPulse className={`w-2.5 h-2.5 rounded-full ${item.color}`} />
+                      ) : (
+                        <span className={`w-2.5 h-2.5 rounded-full opacity-60 ${item.color}`} />
+                      )}
                       <span className="font-mono text-xs text-neutral-400">0{idx + 1} · СОБЫТИЕ</span>
                     </div>
                     {isActive && (
@@ -156,7 +161,7 @@ export function DynamicIslandPreview() {
                 {/* Dynamic Island блок */}
                 <div className="relative mx-auto mt-1 flex items-center justify-between gap-2 px-3.5 py-2 rounded-full bg-neutral-900 border border-white/15 text-xs shadow-lg max-w-[240px] w-full">
                   <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${current.color} animate-pulse`} />
+                    <MotionPulse className={`w-2 h-2 rounded-full ${current.color}`} />
                     <span className="font-mono text-[11px] font-bold text-white truncate">{current.islandText}</span>
                   </div>
                   <span className="font-mono text-[10px] text-neutral-400 shrink-0">{current.islandSub}</span>

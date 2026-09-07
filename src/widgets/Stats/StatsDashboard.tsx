@@ -9,6 +9,7 @@ import { CockpitButton } from '../../shared/ui/CockpitButton';
 import { Tooltip } from '../../shared/ui/Tooltip';
 import { usePixelCurtain } from '../../shared/ui/PixelCurtain';
 import { CockpitContentTransition } from '../../shared/ui/CockpitContentTransition';
+import { MotionPulse, MotionPulseDiv } from '../../shared/ui/MotionPrimitives';
 import { useData } from '../../entities/model/DataProvider';
 import { getMonthlyGoalsConfig, getOrders } from '../../shared/api/db';
 import {
@@ -28,7 +29,7 @@ import { PeriodFilterBar } from './components/PeriodFilterBar';
 import { StatsKpiCards } from './components/StatsKpiCards';
 import { StatsEmptyState } from './components/StatsEmptyState';
 
-const ChartSkeleton = () => <div className="min-h-64 animate-pulse rounded-xl border border-white/10 bg-white/[0.03]" />;
+const ChartSkeleton = () => <MotionPulseDiv className="min-h-64 rounded-xl border border-white/10 bg-white/[0.03]" />;
 
 const FinancialDynamicsChart = dynamic(() => import('./components/FinancialDynamicsChart').then((module) => module.FinancialDynamicsChart), { loading: ChartSkeleton });
 const PaymentGapChart = dynamic(() => import('./components/PaymentGapChart').then((module) => module.PaymentGapChart), { loading: ChartSkeleton });
@@ -196,7 +197,9 @@ export function StatsDashboard() {
                 <span className="text-neutral-300 font-semibold">{getOrdersCountLabel(filteredOrdersCount)}</span>
               </div>
 
-              <CockpitButton icon={RefreshCw} onClick={() => void refresh()} disabled={loadState === 'refreshing'} title="Обновить статистику"><span className={loadState === 'refreshing' ? 'animate-pulse' : ''}>Обновить</span></CockpitButton>
+              <CockpitButton icon={RefreshCw} onClick={() => void refresh()} disabled={loadState === 'refreshing'} title="Обновить статистику">
+                <MotionPulse active={loadState === 'refreshing'}>Обновить</MotionPulse>
+              </CockpitButton>
             </div>
           </header>
 

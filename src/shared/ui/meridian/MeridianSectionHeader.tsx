@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { MotionPulse } from '../MotionPrimitives';
 
 export interface MeridianSectionHeaderProps {
   stamp: string;
@@ -34,7 +35,7 @@ export function MeridianSectionHeader({
         <div className="space-y-2">
           {/* Инженерный бейдж */}
           <div className="flex items-center gap-2 font-mono text-xs text-neutral-400">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+            <MotionPulse className="w-2 h-2 rounded-full bg-cyan-400" />
             <span className="text-cyan-400 font-bold uppercase tracking-wider">{stamp}</span>
             <span>·</span>
             <span>3D LABS OS {version}</span>

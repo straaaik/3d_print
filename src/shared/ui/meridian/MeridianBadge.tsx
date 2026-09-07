@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { MotionPing } from '../MotionPrimitives';
 
 export interface MeridianBadgeProps {
   children: React.ReactNode;
@@ -61,7 +62,7 @@ export function MeridianBadge({
     >
       {pulse && (
         <span className="relative flex h-1.5 w-1.5">
-          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${dotColor} opacity-75`} />
+          <MotionPing className={`absolute inline-flex h-full w-full rounded-full ${dotColor}`} />
           <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${dotColor}`} />
         </span>
       )}
