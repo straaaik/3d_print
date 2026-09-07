@@ -52,7 +52,7 @@ export function CockpitPreview() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                  className={`relative px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer whitespace-nowrap ${
+                  className={`relative px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
                     isActive
                       ? 'text-white bg-white/10 border border-white/20 shadow-sm'
                       : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
@@ -92,7 +92,7 @@ export function CockpitPreview() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <motion.div
                     whileHover={{ transform: 'translateY(-2px)' }}
-                    className="border border-white/10 bg-white/[0.02] hover:border-white/20 transition-colors p-3.5 rounded-xl"
+                    className="border border-white/10 bg-white/[0.02] hover:border-white/20 p-3.5 rounded-xl"
                   >
                     <span className="font-mono text-[11px] text-neutral-400 uppercase">Выручка за месяц</span>
                     <div className="mt-1 flex items-baseline gap-2">
@@ -107,7 +107,7 @@ export function CockpitPreview() {
 
                   <motion.div
                     whileHover={{ transform: 'translateY(-2px)' }}
-                    className="border border-white/10 bg-white/[0.02] hover:border-white/20 transition-colors p-3.5 rounded-xl"
+                    className="border border-white/10 bg-white/[0.02] hover:border-white/20 p-3.5 rounded-xl"
                   >
                     <span className="font-mono text-[11px] text-neutral-400 uppercase">Чистая прибыль</span>
                     <div className="mt-1 flex items-baseline gap-2">
@@ -119,7 +119,7 @@ export function CockpitPreview() {
 
                   <motion.div
                     whileHover={{ transform: 'translateY(-2px)' }}
-                    className="border border-white/10 bg-white/[0.02] hover:border-white/20 transition-colors p-3.5 rounded-xl"
+                    className="border border-white/10 bg-white/[0.02] hover:border-white/20 p-3.5 rounded-xl"
                   >
                     <span className="font-mono text-[11px] text-neutral-400 uppercase">Заказов в работе</span>
                     <div className="mt-1 flex items-baseline gap-2">
@@ -131,7 +131,7 @@ export function CockpitPreview() {
 
                   <motion.div
                     whileHover={{ transform: 'translateY(-2px)' }}
-                    className="border border-white/10 bg-white/[0.02] hover:border-white/20 transition-colors p-3.5 rounded-xl"
+                    className="border border-white/10 bg-white/[0.02] hover:border-white/20 p-3.5 rounded-xl"
                   >
                     <span className="font-mono text-[11px] text-neutral-400 uppercase">Сроки и дедлайны</span>
                     <div className="mt-1 flex items-baseline gap-2">
@@ -158,7 +158,7 @@ export function CockpitPreview() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5 font-mono text-xs">
-                        <tr className="hover:bg-white/[0.02] transition-colors">
+                        <tr className="hover:bg-white/[0.02] ">
                           <td className="py-2.5 px-3 font-semibold text-white">#ORD-1082</td>
                           <td className="py-2.5 px-3 text-neutral-300 font-sans">ООО «Аэротех»</td>
                           <td className="py-2.5 px-3 text-neutral-200 font-sans">Корпус датчика дрона (x8)</td>
@@ -172,7 +172,7 @@ export function CockpitPreview() {
                           <td className="py-2.5 px-3 text-right text-emerald-400">100% Оплачено</td>
                         </tr>
 
-                        <tr className="hover:bg-white/[0.02] transition-colors">
+                        <tr className="hover:bg-white/[0.02] ">
                           <td className="py-2.5 px-3 font-semibold text-white">#ORD-1081</td>
                           <td className="py-2.5 px-3 text-neutral-300 font-sans">Константин В.</td>
                           <td className="py-2.5 px-3 text-neutral-200 font-sans">Шестерня редуктора М5</td>
@@ -186,7 +186,7 @@ export function CockpitPreview() {
                           <td className="py-2.5 px-3 text-right text-emerald-400">100% Оплачено</td>
                         </tr>
 
-                        <tr className="hover:bg-white/[0.02] transition-colors">
+                        <tr className="hover:bg-white/[0.02] ">
                           <td className="py-2.5 px-3 font-semibold text-white">#ORD-1080</td>
                           <td className="py-2.5 px-3 text-neutral-300 font-sans">Студия «ДизайнФорм»</td>
                           <td className="py-2.5 px-3 text-neutral-200 font-sans">Архитектурный макет 1:50</td>
@@ -200,7 +200,7 @@ export function CockpitPreview() {
                           <td className="py-2.5 px-3 text-right text-yellow-400">Предоплата 50%</td>
                         </tr>
 
-                        <tr className="hover:bg-white/[0.02] transition-colors">
+                        <tr className="hover:bg-white/[0.02] ">
                           <td className="py-2.5 px-3 font-semibold text-white">#ORD-1079</td>
                           <td className="py-2.5 px-3 text-neutral-300 font-sans">Иван Григорьев</td>
                           <td className="py-2.5 px-3 text-neutral-200 font-sans">Кастомные заглушки авто (x4)</td>
@@ -478,7 +478,7 @@ export function CockpitPreview() {
                       <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end group">
                         <div className="w-full flex items-end justify-center gap-0.5 h-full">
                           <div
-                            className="w-full rounded-t bg-cyan-500/80 group-hover:bg-cyan-400 transition-all"
+                            className="w-full rounded-t bg-cyan-500/80 group-hover:bg-cyan-400 "
                             style={{ height: `${(item.val / 200) * 100}%` }}
                             title={`Выручка: ${item.val} тыс. ₽`}
                           />

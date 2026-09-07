@@ -57,7 +57,7 @@ export function MeridianBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 font-mono font-medium rounded-md border select-none transition-colors ${sizeClasses} ${variantClasses} ${className}`}
+      className={`inline-flex items-center gap-1.5 font-mono font-medium rounded-md border select-none ${sizeClasses} ${variantClasses} ${className}`}
     >
       {pulse && (
         <span className="relative flex h-1.5 w-1.5">

@@ -249,7 +249,7 @@ export function OrderContactsModal({
                       onClick={onClose}
                       title="Закрыть окно"
                       aria-label="Закрыть окно"
-                      className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] hover:scale-125 active:scale-95 transition-all duration-150 cursor-pointer border-none outline-none shrink-0"
+                      className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] duration-150 cursor-pointer border-none outline-none shrink-0"
                     />
                   </Tooltip>
                 </div>
@@ -280,7 +280,7 @@ export function OrderContactsModal({
                 <button
                   type="button"
                   onClick={handleAddContact}
-                  className="px-2.5 py-1 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 hover:border-white/30 text-white transition-all flex items-center gap-1.5 cursor-pointer text-[11px]"
+                  className="px-2.5 py-1 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 hover:border-white/30 text-white flex items-center gap-1.5 cursor-pointer text-[11px]"
                 >
                   <Plus className="w-3 h-3 text-cyan-400" />
                   <span>[ + Добавить контакт ]</span>
@@ -309,7 +309,7 @@ export function OrderContactsModal({
                     return (
                       <div
                         key={idx}
-                        className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-2 hover:border-white/20 transition-all"
+                        className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 space-y-2 hover:border-white/20 "
                       >
                         <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
                           {/* Тип контакта */}
@@ -350,7 +350,7 @@ export function OrderContactsModal({
                               onClick={() => handleRemoveContact(idx)}
                               aria-label={`Удалить контакт ${idx + 1}`}
                               title={`Удалить контакт ${idx + 1}`}
-                              className="p-1.5 rounded-lg border border-white/10 hover:border-rose-500/40 hover:bg-rose-950/40 text-neutral-400 hover:text-rose-300 transition-colors cursor-pointer shrink-0"
+                              className="p-1.5 rounded-lg border border-white/10 hover:border-rose-500/40 hover:bg-rose-950/40 text-neutral-400 hover:text-rose-300 cursor-pointer shrink-0"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -369,7 +369,7 @@ export function OrderContactsModal({
                               <button
                                 type="button"
                                 onClick={() => handleCopy(c.value, idx)}
-                                className={`px-2 py-0.5 rounded border text-[10px] font-mono transition-all flex items-center gap-1 cursor-pointer ${
+                                className={`px-2 py-0.5 rounded border text-[10px] font-mono flex items-center gap-1 cursor-pointer ${
                                   isCopied
                                     ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                                     : 'bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white border-white/10'
@@ -394,7 +394,7 @@ export function OrderContactsModal({
                                   href={href}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="px-2 py-0.5 rounded border border-cyan-500/30 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 transition-all flex items-center gap-1 cursor-pointer text-[10px]"
+                                  className="px-2 py-0.5 rounded border border-cyan-500/30 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 flex items-center gap-1 cursor-pointer text-[10px]"
                                 >
                                   <ExternalLink className="w-2.5 h-2.5" />
                                   <span>Перейти</span>
@@ -415,7 +415,7 @@ export function OrderContactsModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-3 py-1.5 rounded-lg border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                className="px-3 py-1.5 rounded-lg border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white cursor-pointer"
               >
                 [ Закрыть ]
               </button>
@@ -423,7 +423,7 @@ export function OrderContactsModal({
               <button
                 type="button"
                 onClick={handleSave}
-                className="px-4 py-1.5 rounded-lg border border-white/30 bg-white text-neutral-950 hover:bg-neutral-200 font-bold transition-all cursor-pointer shadow-lg shadow-white/10"
+                className="px-4 py-1.5 rounded-lg border border-white/30 bg-white text-neutral-950 hover:bg-neutral-200 font-bold cursor-pointer shadow-lg shadow-white/10"
               >
                 [ Сохранить контакты ]
               </button>

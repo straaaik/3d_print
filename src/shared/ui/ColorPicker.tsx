@@ -51,7 +51,7 @@ export function ColorPicker({
                 <button
                   type="button"
                   onClick={() => onChange(color)}
-                  className="w-5.5 h-5.5 rounded-full border border-black/30 cursor-pointer transition-all flex items-center justify-center relative hover:scale-105 active:scale-95 shadow-inner"
+                  className="w-5.5 h-5.5 rounded-full border border-black/30 cursor-pointer flex items-center justify-center relative shadow-inner"
                   style={{ backgroundColor: color }}
                 >
                   {isSelected && (
@@ -72,7 +72,7 @@ export function ColorPicker({
         {/* Кнопка "Свой цвет" */}
         <Tooltip content={!isDefaultColor ? `Свой цвет: ${value}` : 'Выбрать свой цвет'}>
           <div
-            className={`w-5.5 h-5.5 rounded-full border border-dashed transition-all flex items-center justify-center relative hover:scale-105 active:scale-95 bg-neutral-950 overflow-hidden cursor-pointer ${
+            className={`w-5.5 h-5.5 rounded-full border border-dashed flex items-center justify-center relative bg-neutral-950 overflow-hidden cursor-pointer ${
               !isDefaultColor
                 ? 'border-cyan-400 text-cyan-400'
                 : 'border-white/20 text-neutral-400 hover:text-white'

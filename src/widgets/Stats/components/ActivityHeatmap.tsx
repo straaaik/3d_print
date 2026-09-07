@@ -248,7 +248,7 @@ export function ActivityHeatmap({
                           onMouseEnter={() => onActiveBucketChange(cell.key)}
                           onFocus={() => onActiveBucketChange(cell.key)}
                           onClick={() => onPinnedBucketChange(pinnedBucketKey === cell.key ? null : cell.key)}
-                          className={`relative h-3.5 w-3.5 rounded-[3px] border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 sm:h-4 sm:w-4 ${
+                          className={`relative h-3.5 w-3.5 rounded-[3px] border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50 sm:h-4 sm:w-4 ${
                             LEVELS[level]
                           } ${
                             isSelected

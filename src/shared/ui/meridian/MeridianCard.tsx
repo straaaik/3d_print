@@ -56,7 +56,7 @@ export function MeridianCard({
 
   return (
     <div
-      className={`border rounded-2xl relative overflow-hidden transition-all duration-200 select-none ${variantStyles} ${className}`}
+      className={`border rounded-2xl relative overflow-hidden duration-200 select-none ${variantStyles} ${className}`}
     >
       {/* Верхняя акцентная линия */}
       {accent !== 'none' && (

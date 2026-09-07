@@ -146,7 +146,7 @@ export function SpecInteractive() {
             <div
               key={spec.id}
               onClick={() => setSelectedSpec(spec)}
-              className={`relative py-5 px-3 cursor-pointer transition-all duration-200 group ${
+              className={`relative py-5 px-3 cursor-pointer duration-200 group ${
                 isSelected ? 'bg-white/[0.04]' : 'hover:bg-white/[0.02]'
               }`}
             >
@@ -157,7 +157,7 @@ export function SpecInteractive() {
 
               <div className="grid grid-cols-[2.5rem_1fr] items-baseline gap-4">
                 {/* Буква зоны */}
-                <div className={`font-mono text-2xl font-bold transition-colors ${
+                <div className={`font-mono text-2xl font-bold ${
                   isSelected ? 'text-cyan-400' : 'text-neutral-500 group-hover:text-white'
                 }`}>
                   {spec.letter}.
@@ -178,7 +178,7 @@ export function SpecInteractive() {
                     </span>
                   </div>
 
-                  <h3 className={`text-base sm:text-lg font-bold tracking-tight transition-colors ${
+                  <h3 className={`text-base sm:text-lg font-bold tracking-tight ${
                     isSelected ? 'text-white' : 'text-neutral-300 group-hover:text-white'
                   }`}>
                     {spec.title}
@@ -230,7 +230,7 @@ export function SpecInteractive() {
                 <motion.div
                   key={idx}
                   whileHover={{ transform: 'translateY(-2px)' }}
-                  className="border border-white/10 bg-white/[0.02] hover:border-white/20 transition-colors p-3 rounded-xl"
+                  className="border border-white/10 bg-white/[0.02] hover:border-white/20 p-3 rounded-xl"
                 >
                   <div className="font-mono text-lg sm:text-xl font-bold text-cyan-400">{m.value}</div>
                   <div className="font-mono text-[10px] text-neutral-400 mt-1 uppercase">{m.label}</div>

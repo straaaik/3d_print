@@ -283,7 +283,7 @@ function StatusDropdownPortal({
                 onSelect(st);
                 onClose();
               }}
-              className={`relative w-full px-3 py-1.5 text-left flex items-center justify-between gap-2 transition-colors cursor-pointer text-xs group ${
+              className={`relative w-full px-3 py-1.5 text-left flex items-center justify-between gap-2 cursor-pointer text-xs group ${
                 isSelected
                   ? 'bg-white/10 text-white font-semibold'
                   : 'bg-transparent hover:bg-white/5 text-neutral-300 hover:text-white'
@@ -294,7 +294,7 @@ function StatusDropdownPortal({
               )}
 
               <div className="flex items-center gap-2 min-w-0 flex-1 pl-0.5">
-                <Icon className={`w-3.5 h-3.5 shrink-0 transition-colors ${
+                <Icon className={`w-3.5 h-3.5 shrink-0 ${
                   isSelected ? 'text-white' : 'text-neutral-400 group-hover:text-white'
                 }`} />
                 <span className="truncate text-xs font-mono">
@@ -972,7 +972,7 @@ function OrderRowDrawerEditor({
                   setStatusTargetRect(e.currentTarget.getBoundingClientRect());
                   setIsStatusOpen(true);
                 }}
-                className={`h-8 border rounded-md px-2 flex items-center justify-between gap-1 text-left font-mono text-[11px] transition-all cursor-pointer select-none tracking-wider uppercase shadow-inner shrink-0 ${
+                className={`h-8 border rounded-md px-2 flex items-center justify-between gap-1 text-left font-mono text-[11px] cursor-pointer select-none tracking-wider uppercase shadow-inner shrink-0 ${
                   isStatusOpen
                     ? 'border-white/30 ring-1 ring-white/10 bg-neutral-900 text-white'
                     : 'bg-neutral-950/80 border-white/15 hover:border-white/25 text-white'
@@ -985,7 +985,7 @@ function OrderRowDrawerEditor({
                     {status}
                   </span>
                 </div>
-                <ChevronDown className={`w-3 h-3 transition-transform duration-150 shrink-0 ml-1 text-neutral-400 ${
+                <ChevronDown className={`w-3 h-3 duration-150 shrink-0 ml-1 text-neutral-400 ${
                   isStatusOpen ? 'rotate-180' : ''
                 }`} />
               </button>
@@ -996,7 +996,7 @@ function OrderRowDrawerEditor({
               ref={dateButtonRef}
               type="button"
               onClick={(e) => handleOpenDatePicker('date', e)}
-              className="h-8 flex items-center gap-1.5 border rounded-md px-2 text-[10.5px] transition-colors cursor-pointer select-none shrink-0 bg-black/60 hover:bg-neutral-900 border-white/15 hover:border-white/30 text-neutral-300"
+              className="h-8 flex items-center gap-1.5 border rounded-md px-2 text-[10.5px] cursor-pointer select-none shrink-0 bg-black/60 hover:bg-neutral-900 border-white/15 hover:border-white/30 text-neutral-300"
               title="Клик для выбора даты в календаре"
             >
               <span className="text-[9.5px] font-mono uppercase text-neutral-500">ДАТА:</span>
@@ -1011,7 +1011,7 @@ function OrderRowDrawerEditor({
                 ref={deadlineButtonRef}
                 type="button"
                 onClick={(e) => handleOpenDatePicker('deadline', e)}
-                className="h-8 flex items-center gap-1.5 border rounded-md px-2 text-[10.5px] transition-colors cursor-pointer select-none shrink-0 bg-black/60 hover:bg-neutral-900 border-white/15 hover:border-white/30 text-neutral-300"
+                className="h-8 flex items-center gap-1.5 border rounded-md px-2 text-[10.5px] cursor-pointer select-none shrink-0 bg-black/60 hover:bg-neutral-900 border-white/15 hover:border-white/30 text-neutral-300"
                 title="Клик для выбора дедлайна в календаре"
               >
                 <span className="text-[9.5px] font-mono uppercase text-neutral-500">СРОК:</span>
@@ -1048,7 +1048,7 @@ function OrderRowDrawerEditor({
                 <button
                   type="button"
                   onClick={handleIncrementQuantity}
-                  className="w-3.5 h-3.5 flex items-center justify-center text-xs font-bold transition-colors cursor-pointer leading-none text-[#71717a] hover:text-white"
+                  className="w-3.5 h-3.5 flex items-center justify-center text-xs font-bold cursor-pointer leading-none text-[#71717a] hover:text-white"
                   title="Увеличить тираж на 1"
                 >
                   +
@@ -1057,7 +1057,7 @@ function OrderRowDrawerEditor({
                   type="button"
                   onClick={handleDecrementQuantity}
                   disabled={parseInt(quantity, 10) <= 1}
-                  className="w-3.5 h-3.5 flex items-center justify-center text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer leading-none text-[#71717a] hover:text-white"
+                  className="w-3.5 h-3.5 flex items-center justify-center text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer leading-none text-[#71717a] hover:text-white"
                   title="Уменьшить тираж на 1"
                 >
                   −
@@ -1096,7 +1096,7 @@ function OrderRowDrawerEditor({
                   placeholder="Поиск категории..."
                   value={expenseCatSearch}
                   onChange={(e) => setExpenseCatSearch(e.target.value)}
-                  className="w-full bg-black/40 border border-white/10 focus:border-white/30 rounded-lg pl-8 pr-7 py-1 text-xs text-white placeholder-[#52525b] font-mono focus:outline-none transition-colors"
+                  className="w-full bg-black/40 border border-white/10 focus:border-white/30 rounded-lg pl-8 pr-7 py-1 text-xs text-white placeholder-[#52525b] font-mono focus:outline-none "
                 />
                 {expenseCatSearch && (
                   <button
@@ -1121,7 +1121,7 @@ function OrderRowDrawerEditor({
                       <button
                         type="button"
                         onClick={() => handleSelectExpenseCategory(catItem.label)}
-                        className={`text-left text-xs font-mono transition-colors cursor-pointer py-0.5 inline-flex items-center gap-1.5 ${
+                        className={`text-left text-xs font-mono cursor-pointer py-0.5 inline-flex items-center gap-1.5 ${
                           isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-[#d4d4d8]'
                         }`}
                       >
@@ -1135,7 +1135,7 @@ function OrderRowDrawerEditor({
                         <button
                           type="button"
                           onClick={() => handleDeleteCustomCategory(catItem.label)}
-                          className="text-[#71717a] hover:text-red-400 text-xs px-1 cursor-pointer transition-colors"
+                          className="text-[#71717a] hover:text-red-400 text-xs px-1 cursor-pointer "
                           title="Удалить категорию из списка"
                         >
                           ×
@@ -1169,7 +1169,7 @@ function OrderRowDrawerEditor({
                   <button
                     type="button"
                     onClick={handleCreateCustomCategory}
-                    className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 transition-colors"
+                    className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 "
                     title="Добавить категорию"
                   >
                     <Check className="w-3.5 h-3.5" />
@@ -1180,7 +1180,7 @@ function OrderRowDrawerEditor({
                       setIsAddingCustomCategory(false);
                       setNewCategoryInput('');
                     }}
-                    className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 transition-colors"
+                    className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 "
                     title="Отмена"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -1190,7 +1190,7 @@ function OrderRowDrawerEditor({
                 <button
                   type="button"
                   onClick={() => setIsAddingCustomCategory(true)}
-                  className="text-xs font-mono text-[#71717a] hover:text-white transition-colors cursor-pointer inline-flex items-center gap-1 group pt-1"
+                  className="text-xs font-mono text-[#71717a] hover:text-white cursor-pointer inline-flex items-center gap-1 group pt-1"
                 >
                   <span className="text-neutral-400 group-hover:text-white">+</span>
                   <span className="border-b border-dashed border-[#71717a] group-hover:border-white pb-0.5">
@@ -1255,7 +1255,7 @@ function OrderRowDrawerEditor({
                           onInlineUpdate(order.id, { amount: presetAmt, payment: presetAmt, payments: [presetAmt] });
                           showSavedBadge();
                         }}
-                        className={`px-2 py-0.5 rounded text-xs font-mono transition-colors cursor-pointer border ${
+                        className={`px-2 py-0.5 rounded text-xs font-mono cursor-pointer border ${
                           isSelected
                             ? 'bg-rose-500/20 border-rose-500/40 text-rose-300 font-bold'
                             : 'border-white/10 text-neutral-400 hover:text-white hover:border-white/20 bg-white/[0.02]'
@@ -1348,7 +1348,7 @@ function OrderRowDrawerEditor({
                               <button
                                 type="button"
                                 onClick={() => handleToggleContact(opt.type, opt.label)}
-                                className={`relative py-0.5 text-xs font-mono transition-colors cursor-pointer select-none text-left whitespace-nowrap ${
+                                className={`relative py-0.5 text-xs font-mono cursor-pointer select-none text-left whitespace-nowrap ${
                                   isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-neutral-300'
                                 }`}
                                 title={isSelected ? 'Нажмите, чтобы зачеркнуть контакт' : 'Нажмите, чтобы указать контакт'}
@@ -1364,7 +1364,7 @@ function OrderRowDrawerEditor({
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteCustomContactOption(opt.label)}
-                                  className="text-[#71717a] hover:text-red-400 text-xs px-1 cursor-pointer transition-colors"
+                                  className="text-[#71717a] hover:text-red-400 text-xs px-1 cursor-pointer "
                                   title="Удалить из списка"
                                 >
                                   ×
@@ -1388,7 +1388,7 @@ function OrderRowDrawerEditor({
                                     href={getContactHref(opt.type, activeContact.value) || undefined}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-[#71717a] hover:text-white p-0.5 transition-colors shrink-0"
+                                    className="text-[#71717a] hover:text-white p-0.5 shrink-0"
                                     title="Перейти"
                                   >
                                     <ExternalLink className="w-2.5 h-2.5" />
@@ -1425,7 +1425,7 @@ function OrderRowDrawerEditor({
                           <button
                             type="button"
                             onClick={handleCreateCustomContactOption}
-                            className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 transition-colors"
+                            className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 "
                             title="Добавить контакт"
                           >
                             <Check className="w-3.5 h-3.5" />
@@ -1436,7 +1436,7 @@ function OrderRowDrawerEditor({
                               setIsAddingCustomContact(false);
                               setCustomContactLabelInput('');
                             }}
-                            className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 transition-colors"
+                            className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 "
                             title="Отмена"
                           >
                             <X className="w-3.5 h-3.5" />
@@ -1446,7 +1446,7 @@ function OrderRowDrawerEditor({
                         <button
                           type="button"
                           onClick={() => setIsAddingCustomContact(true)}
-                          className="py-0.5 text-xs font-mono text-[#71717a] hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 select-none"
+                          className="py-0.5 text-xs font-mono text-[#71717a] hover:text-white cursor-pointer flex items-center gap-1.5 select-none"
                         >
                           <span className="text-[#a1a1aa] font-bold">+</span>
                           <span className="border-b border-dashed border-[#71717a] hover:border-white whitespace-nowrap">
@@ -1475,7 +1475,7 @@ function OrderRowDrawerEditor({
                           key={channelName}
                           type="button"
                           onClick={() => handleClientChange(channelName)}
-                          className={`flex items-center gap-2 py-0.5 text-xs font-mono transition-colors cursor-pointer text-left w-full ${
+                          className={`flex items-center gap-2 py-0.5 text-xs font-mono cursor-pointer text-left w-full ${
                             isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-[#d4d4d8]'
                           }`}
                         >
@@ -1621,7 +1621,7 @@ function OrderRowDrawerEditor({
                       <button
                         type="button"
                         onClick={handleSetFullPayment}
-                        className={`py-0.5 text-xs font-mono transition-colors cursor-pointer shrink-0 ${
+                        className={`py-0.5 text-xs font-mono cursor-pointer shrink-0 ${
                           isFullPaid
                             ? 'text-white font-bold'
                             : 'text-[#71717a] hover:text-white'
@@ -1655,7 +1655,7 @@ function OrderRowDrawerEditor({
                     {/* Тонкий аккуратный прогресс-бар в нативном стиле */}
                     <div className="w-full h-1 bg-[#222226] rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-white rounded-full transition-all duration-300"
+                        className="h-full bg-white rounded-full duration-300"
                         style={{ width: `${Math.min(100, Math.max(paidPercent > 0 ? 3 : 0, paidPercent))}%` }}
                       />
                     </div>
@@ -1702,7 +1702,7 @@ function OrderRowDrawerEditor({
                                     value: item.date || getTodayFormatted(),
                                   });
                                 }}
-                                className="text-white hover:text-white border-b border-dashed border-[#71717a] hover:border-white text-[11px] cursor-pointer transition-colors shrink-0"
+                                className="text-white hover:text-white border-b border-dashed border-[#71717a] hover:border-white text-[11px] cursor-pointer shrink-0"
                                 title="Изменить дату платежа"
                               >
                                 {item.date || '—'}
@@ -1735,7 +1735,7 @@ function OrderRowDrawerEditor({
                               <button
                                 type="button"
                                 onClick={() => handleRemovePaymentItem(idx)}
-                                className="text-[#71717a] hover:text-rose-400 text-xs px-0.5 cursor-pointer opacity-40 group-hover:opacity-100 transition-opacity"
+                                className="text-[#71717a] hover:text-rose-400 text-xs px-0.5 cursor-pointer opacity-40 group-hover:opacity-100 "
                                 title="Удалить платёж"
                               >
                                 ×
@@ -1751,7 +1751,7 @@ function OrderRowDrawerEditor({
                       <button
                         type="button"
                         onClick={() => handleAddPaymentItem(debt > 0 ? debt : 0, paymentItems.length === 0 ? 'Предоплата' : `Платёж #${paymentItems.length + 1}`)}
-                        className="py-0.5 text-xs font-mono text-[#71717a] hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 select-none"
+                        className="py-0.5 text-xs font-mono text-[#71717a] hover:text-white cursor-pointer flex items-center gap-1.5 select-none"
                       >
                         <span className="text-[#a1a1aa] font-bold">+</span>
                         <span className="border-b border-dashed border-[#71717a] hover:border-white whitespace-nowrap">

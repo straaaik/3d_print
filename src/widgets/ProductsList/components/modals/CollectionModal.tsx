@@ -187,7 +187,7 @@ export function CollectionModal({
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
             required
             autoFocus
-            className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none transition-colors font-mono"
+            className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none font-mono"
           />
         </div>
 
@@ -215,7 +215,7 @@ export function CollectionModal({
               placeholder="напр. дракон, игрушка, 100%"
               value={tagsInput}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTagsInput(e.target.value)}
-              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none transition-colors font-mono"
+              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none font-mono"
             />
           </div>
         </div>
@@ -231,7 +231,7 @@ export function CollectionModal({
             placeholder="Краткое примечание или пояснение по линейке моделей"
             value={description}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
-            className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none transition-colors font-mono"
+            className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none font-mono"
           />
         </div>
 
@@ -263,7 +263,7 @@ export function CollectionModal({
                 placeholder="Фильтр по названию или ID товара..."
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
-                className="w-full bg-neutral-950 border border-white/10 focus:border-cyan-400 rounded-lg pl-8 pr-7 py-1.5 text-xs text-white placeholder-neutral-600 focus:outline-none transition-colors font-mono"
+                className="w-full bg-neutral-950 border border-white/10 focus:border-cyan-400 rounded-lg pl-8 pr-7 py-1.5 text-xs text-white placeholder-neutral-600 focus:outline-none font-mono"
               />
               {productSearch && (
                 <button
@@ -289,7 +289,7 @@ export function CollectionModal({
                     <div
                       key={prod.id}
                       onClick={() => handleToggleProduct(prod.id)}
-                      className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer transition-all select-none ${
+                      className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer select-none ${
                         isChecked
                           ? 'bg-white/10 border-white/20 text-white font-medium'
                           : 'bg-neutral-950 border-white/5 text-neutral-400 hover:text-white hover:bg-white/5'

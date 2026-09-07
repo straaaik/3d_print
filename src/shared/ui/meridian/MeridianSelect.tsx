@@ -72,7 +72,7 @@ export function MeridianSelect({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full h-10 sm:h-11 bg-neutral-900 border border-white/15 hover:border-white/30 rounded-xl px-3.5 flex items-center justify-between text-left transition-all duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-inner ${
+        className={`w-full h-10 sm:h-11 bg-neutral-900 border border-white/15 hover:border-white/30 rounded-xl px-3.5 flex items-center justify-between text-left duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-inner ${
           isOpen ? 'border-cyan-400 ring-1 ring-cyan-400/30' : ''
         }`}
       >
@@ -94,7 +94,7 @@ export function MeridianSelect({
         </div>
 
         <ChevronDown
-          className={`w-4 h-4 text-neutral-400 transition-transform duration-200 shrink-0 ml-2 ${
+          className={`w-4 h-4 text-neutral-400 duration-200 shrink-0 ml-2 ${
             isOpen ? 'rotate-180 text-cyan-400' : ''
           }`}
         />
@@ -144,7 +144,7 @@ export function MeridianSelect({
                         setIsOpen(false);
                         setSearch('');
                       }}
-                      className={`w-full px-3 py-2 rounded-xl text-left text-xs sm:text-sm font-medium flex items-center justify-between gap-2 transition-all cursor-pointer ${
+                      className={`w-full px-3 py-2 rounded-xl text-left text-xs sm:text-sm font-medium flex items-center justify-between gap-2 cursor-pointer ${
                         isSelected
                           ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-500/40 font-bold'
                           : 'text-neutral-300 hover:text-white hover:bg-white/5 border border-transparent'

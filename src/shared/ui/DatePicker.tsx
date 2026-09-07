@@ -247,7 +247,7 @@ export function DatePicker({
           ref={buttonRef}
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-full h-9 min-h-[36px] flex items-center justify-between bg-neutral-900 border border-white/15 hover:border-white/25 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 focus:outline-none rounded-xl px-3 text-white text-xs font-mono transition-all cursor-pointer select-none ${
+          className={`w-full h-9 min-h-[36px] flex items-center justify-between bg-neutral-900 border border-white/15 hover:border-white/25 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 focus:outline-none rounded-xl px-3 text-white text-xs font-mono cursor-pointer select-none ${
             error ? '!border-rose-500' : ''
           } ${buttonClassName}`}
         >
@@ -283,7 +283,7 @@ export function DatePicker({
                   <button
                     type="button"
                     onClick={handlePrevMonth}
-                    className="p-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                    className="p-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white cursor-pointer"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
@@ -295,7 +295,7 @@ export function DatePicker({
                   <button
                     type="button"
                     onClick={handleNextMonth}
-                    className="p-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                    className="p-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white cursor-pointer"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -321,7 +321,7 @@ export function DatePicker({
                         key={idx}
                         type="button"
                         onClick={() => handleSelectDay(item.date)}
-                        className={`h-7 rounded-lg flex items-center justify-center font-mono text-xs transition-all cursor-pointer ${
+                        className={`h-7 rounded-lg flex items-center justify-center font-mono text-xs cursor-pointer ${
                           selected
                             ? 'bg-white text-neutral-950 font-bold shadow-md'
                             : todayFlag
@@ -350,7 +350,7 @@ export function DatePicker({
                   <button
                     type="button"
                     onClick={() => setIsOpen(false)}
-                    className="text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                    className="text-neutral-400 hover:text-white cursor-pointer"
                   >
                     [ Закрыть ]
                   </button>

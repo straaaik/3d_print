@@ -336,7 +336,7 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
             </div>
           </div>
 
-          <div className="transition-opacity duration-150">
+          <div className=" duration-150">
         {activeTab === 'general' ? (
           <GeneralSettingsTab
             currency={currency}

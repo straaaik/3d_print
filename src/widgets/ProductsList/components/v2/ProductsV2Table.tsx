@@ -147,7 +147,7 @@ function TableCategoryDropdownPortal({
                 onSelect(cat.label);
                 onClose();
               }}
-              className={`w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between gap-2 transition-colors cursor-pointer text-xs group ${
+              className={`w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between gap-2 cursor-pointer text-xs group ${
                 isSelected
                   ? 'bg-white/10 text-white font-semibold'
                   : 'bg-transparent hover:bg-white/5 text-neutral-300 hover:text-white'
@@ -261,7 +261,7 @@ function TableFilamentDropdownPortal({
                 onSelect(f);
                 onClose();
               }}
-              className={`w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between gap-2 transition-colors cursor-pointer text-xs group ${
+              className={`w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between gap-2 cursor-pointer text-xs group ${
                 isSelected
                   ? 'bg-white/10 text-white font-semibold'
                   : 'bg-transparent hover:bg-white/5 text-neutral-300 hover:text-white'
@@ -592,7 +592,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
             <ChevronDown className="w-3 h-3 text-white" />
           )
         ) : (
-          <ChevronDown className="w-3 h-3 text-neutral-600 opacity-0 group-hover:opacity-60 transition-opacity" />
+          <ChevronDown className="w-3 h-3 text-neutral-600 opacity-0 group-hover:opacity-60 " />
         )}
       </span>
     );
@@ -636,7 +636,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                   setElevatedRow(isElevated ? null : row);
                 }
               }}
-              className={`rounded-xl border p-3 focus:outline-none cursor-pointer transition-all ${
+              className={`rounded-xl border p-3 focus:outline-none cursor-pointer ${
                 isElevated
                   ? '!z-50 !border-white/40 !bg-neutral-900/98 !shadow-[0_25px_60px_-10px_rgba(0,0,0,0.95)] ring-1 ring-white/20'
                   : 'border-white/10 bg-white/[0.03] hover:border-white/20'
@@ -760,7 +760,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
             <button
               type="button"
               onClick={onShowAll}
-              className="rounded-lg border border-white/10 bg-white/5 py-2 px-4 text-xs font-mono text-neutral-300 hover:text-white transition-colors"
+              className="rounded-lg border border-white/10 bg-white/5 py-2 px-4 text-xs font-mono text-neutral-300 hover:text-white "
             >
               Показать все ({totalRowsCount})
             </button>
@@ -807,7 +807,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                             onSelectAll?.(visibleRows.map((r) => r.id));
                           }
                         }}
-                        className={`w-3.5 h-3.5 rounded border transition-all flex items-center justify-center shrink-0 cursor-pointer ${
+                        className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 cursor-pointer ${
                           selectedIds.length === visibleRows.length
                             ? 'bg-white border-white text-neutral-950 font-bold'
                             : 'bg-white/20 border-white/40 text-white font-bold'
@@ -824,7 +824,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                     <button
                       type="button"
                       onClick={() => onSort('id')}
-                      className="inline-flex items-center gap-1 hover:text-white transition-colors cursor-pointer group"
+                      className="inline-flex items-center gap-1 hover:text-white cursor-pointer group"
                     >
                       <span>АРТИКУЛ</span>
                       {renderSortIndicator('id')}
@@ -840,7 +840,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 {/* 3. КАТЕГОРИЯ */}
                 <th
                   onClick={() => onSort('category')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group min-w-0"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group min-w-0"
                 >
                   <div className="flex items-center gap-1">
                     <span>КАТЕГОРИЯ</span>
@@ -851,7 +851,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 {/* 4. НАИМЕНОВАНИЕ / ДЕТАЛИ */}
                 <th
                   onClick={() => onSort('name')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group min-w-0"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group min-w-0"
                 >
                   <div className="flex items-center gap-1">
                     <span>НАИМЕНОВАНИЕ / ДЕТАЛИ</span>
@@ -862,7 +862,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 {/* 5. ПЛАСТИК */}
                 <th
                   onClick={() => onSort('filament')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group min-w-0"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group min-w-0"
                 >
                   <div className="flex items-center gap-1">
                     <span>ПЛАСТИК</span>
@@ -873,7 +873,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 {/* 6. ВЕС / ВРЕМЯ */}
                 <th
                   onClick={() => onSort('params')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-center min-w-0"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-center min-w-0"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>ВЕС / ВРЕМЯ</span>
@@ -884,7 +884,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 {/* 7. ОСТАТОК СКЛАДА */}
                 <th
                   onClick={() => onSort('stock')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-center min-w-0"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-center min-w-0"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>ОСТАТОК СКЛАДА</span>
@@ -895,7 +895,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 {/* 8. СЕБЕСТОИМОСТЬ */}
                 <th
                   onClick={() => onSort('cost')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right min-w-0"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right min-w-0"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>СЕБЕСТОИМОСТЬ</span>
@@ -906,7 +906,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 {/* 9. ЦЕНА ПРОДАЖИ */}
                 <th
                   onClick={() => onSort('price')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right min-w-0"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right min-w-0"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>ЦЕНА ПРОДАЖИ</span>
@@ -917,7 +917,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 {/* 10. ПРИБЫЛЬ / МАРЖА */}
                 <th
                   onClick={() => onSort('profit')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right min-w-0"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right min-w-0"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>ПРИБЫЛЬ / МАРЖА</span>
@@ -928,7 +928,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 {/* 11. ПРОДАЖИ (ЗАКАЗЫ) */}
                 <th
                   onClick={() => onSort('sales')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right min-w-0"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right min-w-0"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>ПРОДАЖИ</span>
@@ -1012,7 +1012,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                             setElevatedRow(row);
                           }
                         }}
-                        className={`transition-colors group relative border-b grid w-full items-center ${
+                        className={` group relative border-b grid w-full items-center ${
                           isElevated
                             ? '!z-50 ring-1 ring-white/20 cursor-default'
                             : isBlurred
@@ -1039,7 +1039,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   e.stopPropagation();
                                   onToggleSelect?.(row.id);
                                 }}
-                                className={`w-3.5 h-3.5 rounded border transition-all flex items-center justify-center shrink-0 cursor-pointer ${
+                                className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 cursor-pointer ${
                                   isSelected
                                     ? 'bg-white border-white text-neutral-950 font-bold'
                                     : 'border-white/20 hover:border-white/50 bg-neutral-900/60'
@@ -1055,7 +1055,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 <button
                                   type="button"
                                   onClick={(e) => handleCopyId(e, row.id)}
-                                  className={`px-2 py-0.5 rounded text-[11px] font-mono w-fit font-bold border transition-colors flex items-center gap-1 cursor-pointer ${
+                                  className={`px-2 py-0.5 rounded text-[11px] font-mono w-fit font-bold border flex items-center gap-1 cursor-pointer ${
                                     isCol
                                       ? 'bg-purple-950/50 text-purple-300 border-purple-800/40 hover:bg-purple-900/60'
                                       : isAsm
@@ -1098,7 +1098,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                               setCategoryPicker({ row, targetRect: rect });
                               setFilamentPicker(null);
                             }}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono bg-neutral-900/90 text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 transition-all cursor-pointer group"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono bg-neutral-900/90 text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 cursor-pointer group"
                             title="Клик для быстрой смены категории"
                           >
                             <CatIcon className="w-3 h-3 text-neutral-400 group-hover:text-neutral-300 shrink-0" />
@@ -1117,7 +1117,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                     e.stopPropagation();
                                     onToggleExpand(row.id);
                                   }}
-                                  className={`p-1 rounded-md transition-all shrink-0 cursor-pointer ${
+                                  className={`p-1 rounded-md shrink-0 cursor-pointer ${
                                     isExpandedRow
                                       ? isCol ? 'bg-purple-500 text-white' : 'bg-cyan-500 text-neutral-950 font-bold'
                                       : isCol
@@ -1152,7 +1152,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                     e.stopPropagation();
                                     startEditing(row, 'name', row.name);
                                   }}
-                                  className="font-semibold text-white hover:text-neutral-300 transition-colors block truncate cursor-text"
+                                  className="font-semibold text-white hover:text-neutral-300 block truncate cursor-text"
                                   title={`${row.name} (Клик для редактирования названия)`}
                                 >
                                   {row.name}
@@ -1201,7 +1201,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 setFilamentPicker({ row, targetRect: rect });
                                 setCategoryPicker(null);
                               }}
-                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-mono bg-white/[0.03] text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 transition-all cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-mono bg-white/[0.03] text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 cursor-pointer"
                               title="Клик для быстрой смены пластика"
                             >
                               <span
@@ -1235,7 +1235,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                               <button
                                 type="button"
                                 onClick={(e) => handleStockDelta(e, row, -1)}
-                                className="w-5 h-5 rounded flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white transition-all cursor-pointer active:scale-95"
+                                className="w-5 h-5 rounded flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white cursor-pointer "
                                 title="Уменьшить остаток на 1"
                               >
                                 <Minus className="w-2.5 h-2.5" />
@@ -1249,7 +1249,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   startEditing(row, 'stock_quantity', stock);
                                 }
                               }}
-                              className={`px-2.5 py-0.5 rounded text-xs font-mono font-bold border tabular-nums transition-colors cursor-text ${
+                              className={`px-2.5 py-0.5 rounded text-xs font-mono font-bold border tabular-nums cursor-text ${
                                 stock > 2
                                   ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/40'
                                   : stock > 0
@@ -1279,7 +1279,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                               <button
                                 type="button"
                                 onClick={(e) => handleStockDelta(e, row, 1)}
-                                className="w-5 h-5 rounded flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white transition-all cursor-pointer active:scale-95"
+                                className="w-5 h-5 rounded flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white cursor-pointer "
                                 title="Увеличить остаток на 1"
                               >
                                 <Plus className="w-2.5 h-2.5" />
@@ -1314,7 +1314,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                             <AnimatedPriceNumber
                               value={baseCost}
                               currencySymbol={currencySymbol}
-                              className="text-neutral-400 hover:text-white transition-colors"
+                              className="text-neutral-400 hover:text-white "
                             />
                           )}
                         </td>
@@ -1345,7 +1345,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                             <AnimatedPriceNumber
                               value={finalPrice}
                               currencySymbol={currencySymbol}
-                              className="text-white font-bold hover:text-neutral-300 transition-colors"
+                              className="text-white font-bold hover:text-neutral-300 "
                             />
                           )}
                         </td>
@@ -1407,7 +1407,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                     onOpenStlModal(row.item);
                                   }
                                 }}
-                                className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 inline-flex items-center gap-1 cursor-pointer hover:bg-cyan-900/80 transition-colors"
+                                className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 inline-flex items-center gap-1 cursor-pointer hover:bg-cyan-900/80 "
                               >
                                 <FileCode className="w-3 h-3" />
                                 <span>{isCol ? `${row.stlCount} STL` : 'STL'}</span>
@@ -1427,7 +1427,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   <button
                                     type="button"
                                     onClick={() => onOpenAddVariantModal(row.collection)}
-                                    className="px-2 py-1 rounded-md font-mono text-[11px] font-bold bg-purple-950/80 hover:bg-purple-900 text-purple-200 border border-purple-800/40 flex items-center gap-1 transition-colors cursor-pointer"
+                                    className="px-2 py-1 rounded-md font-mono text-[11px] font-bold bg-purple-950/80 hover:bg-purple-900 text-purple-200 border border-purple-800/40 flex items-center gap-1 cursor-pointer"
                                   >
                                     <Plus className="w-3 h-3" />
                                     <span>Вариант</span>
@@ -1437,7 +1437,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   <button
                                     type="button"
                                     onClick={() => onOpenEditCollection(row.collection)}
-                                    className="p-1.5 rounded-md border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white transition-colors cursor-pointer"
+                                    className="p-1.5 rounded-md border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white cursor-pointer"
                                   >
                                     <Edit2 className="w-3 h-3" />
                                   </button>
@@ -1449,7 +1449,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   <button
                                     type="button"
                                     onClick={() => onCreateOrder(row.item)}
-                                    className="px-2 py-1 rounded-md font-mono text-[11px] font-bold bg-white text-neutral-950 hover:bg-neutral-200 active:scale-95 transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                                    className="px-2 py-1 rounded-md font-mono text-[11px] font-bold bg-white text-neutral-950 hover:bg-neutral-200 cursor-pointer flex items-center gap-1 shadow-sm"
                                   >
                                     <ShoppingCart className="w-3 h-3" />
                                     <span>Заказ</span>
@@ -1460,7 +1460,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   <button
                                     type="button"
                                     onClick={() => onLoadIntoCalculator(row.item)}
-                                    className="p-1.5 rounded-md border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white transition-colors cursor-pointer"
+                                    className="p-1.5 rounded-md border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white cursor-pointer"
                                   >
                                     <CalculatorIcon className="w-3 h-3" />
                                   </button>
@@ -1535,7 +1535,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 </div>
                                 <div className="divide-y divide-white/5">
                                   {row.childItems.map((child) => (
-                                    <div key={child.id} className="py-2 flex items-center justify-between gap-3 hover:bg-white/[0.02] px-2 rounded-lg transition-colors">
+                                    <div key={child.id} className="py-2 flex items-center justify-between gap-3 hover:bg-white/[0.02] px-2 rounded-lg ">
                                       <div className="flex items-center gap-2 min-w-0">
                                         <span className="text-purple-400 font-bold select-none">└─</span>
                                         <span className="font-semibold text-white truncate max-w-xs">{child.name}</span>
@@ -1593,7 +1593,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                       <button
                         type="button"
                         onClick={onShowAll}
-                        className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white border border-white/10 rounded-lg text-xs font-mono transition-colors cursor-pointer"
+                        className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white border border-white/10 rounded-lg text-xs font-mono cursor-pointer"
                       >
                         Показать все ({totalRowsCount})
                       </button>
@@ -1633,7 +1633,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                             onSelectAll?.(visibleRows.map((r) => r.id));
                           }
                         }}
-                        className={`w-3.5 h-3.5 rounded border transition-all flex items-center justify-center shrink-0 cursor-pointer ${
+                        className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 cursor-pointer ${
                           selectedIds.length === visibleRows.length
                             ? 'bg-white border-white text-neutral-950 font-bold'
                             : 'bg-white/20 border-white/40 text-white font-bold'
@@ -1650,7 +1650,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                     <button
                       type="button"
                       onClick={() => onSort('id')}
-                      className="inline-flex items-center gap-1 hover:text-white transition-colors cursor-pointer group"
+                      className="inline-flex items-center gap-1 hover:text-white cursor-pointer group"
                     >
                       <span>АРТИКУЛ / ТИП</span>
                       {renderSortIndicator('id')}
@@ -1661,7 +1661,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 {/* 2. КАТЕГОРИЯ */}
                 <th
                   onClick={() => onSort('category')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group min-w-0"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group min-w-0"
                 >
                   <div className="flex items-center gap-1">
                     <span>КАТЕГОРИЯ</span>
@@ -1672,7 +1672,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 {/* 3. ИЗДЕЛИЕ / ДЕТАЛИ */}
                 <th
                   onClick={() => onSort('name')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group min-w-0"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group min-w-0"
                 >
                   <div className="flex items-center gap-1">
                     <span>ИЗДЕЛИЕ / ДЕТАЛИ</span>
@@ -1683,7 +1683,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 {/* 4. ПЛАСТИК */}
                 <th
                   onClick={() => onSort('filament')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group min-w-0"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group min-w-0"
                 >
                   <div className="flex items-center gap-1">
                     <span>ПЛАСТИК</span>
@@ -1694,7 +1694,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 {/* 5. ВЕС / ВРЕМЯ */}
                 <th
                   onClick={() => onSort('params')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-center min-w-0"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-center min-w-0"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>ВЕС / ВРЕМЯ</span>
@@ -1705,7 +1705,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 {/* 6. ОСТАТОК СКЛАДА */}
                 <th
                   onClick={() => onSort('stock')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-center min-w-0"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-center min-w-0"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>ОСТАТОК СКЛАДА</span>
@@ -1716,7 +1716,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 {/* 7. СЕБЕСТ. / ЦЕНА */}
                 <th
                   onClick={() => onSort('price')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right min-w-0"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right min-w-0"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>СЕБЕСТ. / ЦЕНА</span>
@@ -1727,7 +1727,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 {/* 8. ПРИБЫЛЬ / МАРЖА */}
                 <th
                   onClick={() => onSort('profit')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right min-w-0"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right min-w-0"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>ПРИБЫЛЬ / МАРЖА</span>
@@ -1805,7 +1805,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                             setElevatedRow(row);
                           }
                         }}
-                        className={`transition-colors group relative border-b grid w-full items-center ${
+                        className={` group relative border-b grid w-full items-center ${
                           isElevated
                             ? '!z-50 ring-1 ring-white/20 cursor-default'
                             : isBlurred
@@ -1832,7 +1832,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   e.stopPropagation();
                                   onToggleSelect?.(row.id);
                                 }}
-                                className={`w-3.5 h-3.5 rounded border transition-all flex items-center justify-center shrink-0 cursor-pointer ${
+                                className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 cursor-pointer ${
                                   isSelected
                                     ? 'bg-white border-white text-neutral-950 font-bold'
                                     : 'border-white/20 hover:border-white/50 bg-neutral-900/60'
@@ -1866,7 +1866,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                               setCategoryPicker({ row, targetRect: rect });
                               setFilamentPicker(null);
                             }}
-                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-mono bg-white/[0.03] text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 transition-all cursor-pointer group"
+                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-mono bg-white/[0.03] text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 cursor-pointer group"
                             title="Клик для быстрой смены категории"
                           >
                             <CatIcon className="w-3 h-3 text-neutral-400 group-hover:text-neutral-300 shrink-0" />
@@ -1884,7 +1884,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   e.stopPropagation();
                                   onToggleExpand(row.id);
                                 }}
-                                className={`p-1 rounded-md transition-all shrink-0 cursor-pointer ${
+                                className={`p-1 rounded-md shrink-0 cursor-pointer ${
                                   isExpandedRow
                                     ? isCol ? 'bg-purple-500 text-white' : 'bg-cyan-500 text-neutral-950 font-bold'
                                     : isCol
@@ -1918,7 +1918,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                     e.stopPropagation();
                                     startEditing(row, 'name', row.name);
                                   }}
-                                  className="font-semibold text-white hover:text-neutral-300 transition-colors block truncate cursor-text"
+                                  className="font-semibold text-white hover:text-neutral-300 block truncate cursor-text"
                                   title={`${row.name} (Клик для редактирования названия)`}
                                 >
                                   {row.name}
@@ -1952,7 +1952,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 setFilamentPicker({ row, targetRect: rect });
                                 setCategoryPicker(null);
                               }}
-                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-mono bg-white/[0.03] text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 transition-all cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-mono bg-white/[0.03] text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 cursor-pointer"
                               title="Клик для смены пластика"
                             >
                               <span
@@ -1985,7 +1985,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                               <button
                                 type="button"
                                 onClick={(e) => handleStockDelta(e, row, -1)}
-                                className="w-5 h-5 rounded flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white transition-all cursor-pointer active:scale-95"
+                                className="w-5 h-5 rounded flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white cursor-pointer "
                                 title="Уменьшить остаток на 1"
                               >
                                 <Minus className="w-2.5 h-2.5" />
@@ -2006,7 +2006,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                               <button
                                 type="button"
                                 onClick={(e) => handleStockDelta(e, row, 1)}
-                                className="w-5 h-5 rounded flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white transition-all cursor-pointer active:scale-95"
+                                className="w-5 h-5 rounded flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white cursor-pointer "
                                 title="Увеличить остаток на 1"
                               >
                                 <Plus className="w-2.5 h-2.5" />
@@ -2067,7 +2067,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   <button
                                     type="button"
                                     onClick={() => onCreateOrder(row.item)}
-                                    className="px-2 py-1 rounded-md font-mono text-[11px] font-bold bg-white text-neutral-950 hover:bg-neutral-200 active:scale-95 transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                                    className="px-2 py-1 rounded-md font-mono text-[11px] font-bold bg-white text-neutral-950 hover:bg-neutral-200 cursor-pointer flex items-center gap-1 shadow-sm"
                                   >
                                     <ShoppingCart className="w-3 h-3" />
                                     <span>Заказ</span>
@@ -2077,7 +2077,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   <button
                                     type="button"
                                     onClick={() => onLoadIntoCalculator(row.item)}
-                                    className="p-1.5 rounded-md border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white transition-colors cursor-pointer"
+                                    className="p-1.5 rounded-md border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white cursor-pointer"
                                   >
                                     <CalculatorIcon className="w-3 h-3" />
                                   </button>
@@ -2088,7 +2088,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 <button
                                   type="button"
                                   onClick={() => onOpenEditCollection(row.collection)}
-                                  className="p-1.5 rounded-md border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white transition-colors cursor-pointer"
+                                  className="p-1.5 rounded-md border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white cursor-pointer"
                                 >
                                   <Edit2 className="w-3 h-3" />
                                 </button>
@@ -2161,7 +2161,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 </div>
                                 <div className="divide-y divide-white/5">
                                   {row.childItems.map((child) => (
-                                    <div key={child.id} className="py-2 flex items-center justify-between gap-3 hover:bg-white/[0.02] px-2 rounded-lg transition-colors">
+                                    <div key={child.id} className="py-2 flex items-center justify-between gap-3 hover:bg-white/[0.02] px-2 rounded-lg ">
                                       <div className="flex items-center gap-2 min-w-0">
                                         <span className="text-purple-400 font-bold select-none">└─</span>
                                         <span className="font-semibold text-white truncate max-w-xs">{child.name}</span>
@@ -2212,7 +2212,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                       <button
                         type="button"
                         onClick={onShowAll}
-                        className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white border border-white/10 rounded-lg text-xs font-mono transition-colors cursor-pointer"
+                        className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white border border-white/10 rounded-lg text-xs font-mono cursor-pointer"
                       >
                         Показать все ({totalRowsCount})
                       </button>
@@ -2352,7 +2352,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
             <button
               type="button"
               onClick={onClearSelection}
-              className="p-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer ml-1"
+              className="p-1 rounded-lg hover:bg-white/10 text-neutral-400 hover:text-white cursor-pointer ml-1"
               title="Снять выделение (Esc)"
             >
               <X className="w-4 h-4" />
@@ -2382,7 +2382,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
               onToggleSelect?.(contextMenu.row.id);
               setContextMenu(null);
             }}
-            className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-200 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer font-medium"
+            className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-200 hover:text-white hover:bg-white/10 text-left cursor-pointer font-medium"
           >
             <CheckSquare className={`w-3.5 h-3.5 ${selectedIds.includes(contextMenu.row.id) ? 'text-white' : 'text-neutral-400'}`} />
             <span>{selectedIds.includes(contextMenu.row.id) ? 'Снять выбор' : 'Выбрать'}</span>
@@ -2394,7 +2394,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
               handleCopyId(e, contextMenu.row.id);
               setContextMenu(null);
             }}
-            className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
+            className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 text-left cursor-pointer"
           >
             <Copy className="w-3.5 h-3.5 text-neutral-400" />
             <span>Скопировать ID</span>
@@ -2411,7 +2411,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                       onCreateOrder(pRow.item);
                       setContextMenu(null);
                     }}
-                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-200 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer font-bold"
+                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-200 hover:text-white hover:bg-white/10 text-left cursor-pointer font-bold"
                   >
                     <ShoppingCart className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Создать заказ</span>
@@ -2423,7 +2423,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                       onLoadIntoCalculator(pRow.item);
                       setContextMenu(null);
                     }}
-                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
+                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 text-left cursor-pointer"
                   >
                     <CalculatorIcon className="w-3.5 h-3.5 text-neutral-400" />
                     <span>В Калькулятор</span>
@@ -2435,7 +2435,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                       onStageForAssembly(pRow.item);
                       setContextMenu(null);
                     }}
-                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
+                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 text-left cursor-pointer"
                   >
                     <Layers className="w-3.5 h-3.5 text-neutral-400" />
                     <span>В черновик сборки</span>
@@ -2447,7 +2447,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                       onOpenStlModal(pRow.item);
                       setContextMenu(null);
                     }}
-                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
+                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 text-left cursor-pointer"
                   >
                     <FileCode className="w-3.5 h-3.5 text-neutral-400" />
                     <span>3D STL модель</span>
@@ -2459,7 +2459,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                       onOpenCategoryModal(pRow.item);
                       setContextMenu(null);
                     }}
-                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
+                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 text-left cursor-pointer"
                   >
                     <Tag className="w-3.5 h-3.5 text-neutral-400" />
                     <span>Сменить категорию</span>
@@ -2471,7 +2471,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                       onOpenMoveProduct(pRow.item);
                       setContextMenu(null);
                     }}
-                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
+                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 text-left cursor-pointer"
                   >
                     <FolderInput className="w-3.5 h-3.5 text-purple-400" />
                     <span>В коллекцию...</span>
@@ -2483,7 +2483,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                       onOpenQuickEditModal(pRow.item);
                       setContextMenu(null);
                     }}
-                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
+                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 text-left cursor-pointer"
                   >
                     <Edit2 className="w-3.5 h-3.5 text-neutral-400" />
                     <span>Редактировать</span>
@@ -2502,7 +2502,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                       onOpenAddVariantModal(cRow.collection);
                       setContextMenu(null);
                     }}
-                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-purple-300 hover:text-white hover:bg-purple-950/50 transition-colors text-left cursor-pointer font-bold"
+                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-purple-300 hover:text-white hover:bg-purple-950/50 text-left cursor-pointer font-bold"
                   >
                     <Plus className="w-3.5 h-3.5 text-purple-400" />
                     <span>+ Вариант в коллекцию</span>
@@ -2514,7 +2514,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                       onOpenEditCollection(cRow.collection);
                       setContextMenu(null);
                     }}
-                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 transition-colors text-left cursor-pointer"
+                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 text-left cursor-pointer"
                   >
                     <Edit2 className="w-3.5 h-3.5 text-neutral-400" />
                     <span>Настройки коллекции</span>
@@ -2537,7 +2537,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
               }
               setContextMenu(null);
             }}
-            className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors text-left cursor-pointer"
+            className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-left cursor-pointer"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>Удалить позицию</span>

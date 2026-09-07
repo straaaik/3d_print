@@ -413,7 +413,7 @@ export function Calculator() {
                 <button
                   type="button"
                   onClick={() => curtainNavigate('/')}
-                  className="w-3 h-3 rounded-full bg-red-500/80 border border-red-400/40 hover:bg-red-500 hover:scale-125 active:scale-95 transition-all duration-150 cursor-pointer outline-none shadow-sm shadow-red-500/30"
+                  className="w-3 h-3 rounded-full bg-red-500/80 border border-red-400/40 hover:bg-red-500 duration-150 cursor-pointer outline-none shadow-sm shadow-red-500/30"
                 />
               </Tooltip>
               <span className="w-3 h-3 rounded-full bg-yellow-500/80 border border-yellow-400/40 inline-block" />
@@ -452,7 +452,7 @@ export function Calculator() {
                 accentColor="cyan"
                 align="right"
               >
-                <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white transition-colors ml-0.5 shrink-0 cursor-help" />
+                <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white ml-0.5 shrink-0 cursor-help" />
               </CustomTooltip>
             </div>
 
@@ -501,7 +501,7 @@ export function Calculator() {
               <div className="grid grid-cols-2 gap-3">
                 
                 {/* 1. Вес детали */}
-                <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all p-3.5 rounded-xl flex flex-col justify-between">
+                <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 p-3.5 rounded-xl flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between">
                       <label className="text-[11px] font-mono text-neutral-400 block">Вес детали (грамм)</label>
@@ -512,7 +512,7 @@ export function Calculator() {
                         accentColor="cyan"
                         align="left"
                       >
-                        <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white transition-colors shrink-0 cursor-help" />
+                        <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white shrink-0 cursor-help" />
                       </CustomTooltip>
                     </div>
                     <div className="mt-1 flex items-baseline gap-1">
@@ -560,7 +560,7 @@ export function Calculator() {
                 </div>
 
                 {/* 2. Время печати */}
-                <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all p-3.5 rounded-xl flex flex-col justify-between">
+                <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 p-3.5 rounded-xl flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between">
                       <label className="text-[11px] font-mono text-neutral-400 block">Время печати</label>
@@ -571,7 +571,7 @@ export function Calculator() {
                         accentColor="cyan"
                         align="left"
                       >
-                        <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white transition-colors shrink-0 cursor-help" />
+                        <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white shrink-0 cursor-help" />
                       </CustomTooltip>
                     </div>
                     <div className="mt-1 flex items-baseline gap-1 font-mono text-xl sm:text-2xl font-bold text-white">
@@ -627,7 +627,7 @@ export function Calculator() {
                 </div>
 
                 {/* 3. Электроэнергия + Износ */}
-                <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all p-3.5 rounded-xl flex flex-col justify-between">
+                <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 p-3.5 rounded-xl flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between">
                       <label className="text-[11px] font-mono text-neutral-400 block">Электроэнергия + Износ</label>
@@ -638,7 +638,7 @@ export function Calculator() {
                         accentColor="cyan"
                         align="left"
                       >
-                        <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white transition-colors shrink-0 cursor-help" />
+                        <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white shrink-0 cursor-help" />
                       </CustomTooltip>
                     </div>
                     <div className="mt-1 text-xl sm:text-2xl font-bold font-mono text-white">
@@ -651,7 +651,7 @@ export function Calculator() {
                 </div>
 
                 {/* 4. Коэффициент наценки */}
-                <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all p-3.5 rounded-xl flex flex-col justify-between">
+                <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 p-3.5 rounded-xl flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between">
                       <label className="text-[11px] font-mono text-neutral-400 block">Коэффициент наценки</label>
@@ -661,7 +661,7 @@ export function Calculator() {
                         formula="Цена печати = Себестоимость печати × (1 + Наценка% / 100)"
                         align="left"
                       >
-                        <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white transition-colors shrink-0 cursor-help" />
+                        <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white shrink-0 cursor-help" />
                       </CustomTooltip>
                     </div>
                     <div className="mt-1 flex items-baseline gap-2">
@@ -680,7 +680,7 @@ export function Calculator() {
                           key={mVal}
                           type="button"
                           onClick={() => setCalcMarkup(mVal.toString())}
-                          className={`px-1.5 py-0.2 rounded transition-colors ${
+                          className={`px-1.5 py-0.2 rounded ${
                             parseInt(currentMarkup) === mVal ? 'bg-emerald-500/20 text-emerald-300 font-bold' : 'text-neutral-500 hover:text-white'
                           }`}
                         >
@@ -706,7 +706,7 @@ export function Calculator() {
               {/* Карточки труда и брака */}
               <div className="grid grid-cols-2 gap-3">
                 {/* 5. Ручной труд мастера */}
-                <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all p-3.5 rounded-xl flex flex-col justify-between">
+                <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 p-3.5 rounded-xl flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
@@ -718,7 +718,7 @@ export function Calculator() {
                           accentColor="emerald"
                           align="left"
                         >
-                          <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white transition-colors shrink-0 cursor-help" />
+                          <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white shrink-0 cursor-help" />
                         </CustomTooltip>
                       </div>
                       <span className="text-[10px] font-mono text-neutral-500">
@@ -752,7 +752,7 @@ export function Calculator() {
                       <button
                         type="button"
                         onClick={() => setCalcIsOwnerLabor(!calcIsOwnerLabor)}
-                        className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer text-[10px] ${
+                        className={`px-1.5 py-0.5 rounded cursor-pointer text-[10px] ${
                           calcIsOwnerLabor 
                             ? 'bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30' 
                             : 'bg-white/5 text-neutral-400 hover:text-white border border-white/10'
@@ -765,7 +765,7 @@ export function Calculator() {
                 </div>
 
                 {/* 6. Технологический брак */}
-                <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all p-3.5 rounded-xl flex flex-col justify-between">
+                <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 p-3.5 rounded-xl flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
@@ -776,7 +776,7 @@ export function Calculator() {
                           formula="Брак(₽) = (Пластик + Ток + Амортизация) × (Брак% / 100)"
                           align="left"
                         >
-                          <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white transition-colors shrink-0 cursor-help" />
+                          <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white shrink-0 cursor-help" />
                         </CustomTooltip>
                       </div>
                       {result.defectCost > 0 && (
@@ -812,7 +812,7 @@ export function Calculator() {
                           key={dVal}
                           type="button"
                           onClick={() => setCalcDefect(dVal.toString())}
-                          className={`px-1.5 py-0.2 rounded transition-colors cursor-pointer ${
+                          className={`px-1.5 py-0.2 rounded cursor-pointer ${
                             parseInt(currentDefect) === dVal 
                               ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30' 
                               : 'text-neutral-500 hover:text-white'
@@ -827,7 +827,7 @@ export function Calculator() {
               </div>
 
               {/* 7. Дополнительные услуги и расходы */}
-              <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 transition-all p-3.5 rounded-xl space-y-3.5">
+              <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 p-3.5 rounded-xl space-y-3.5">
                 {/* Шапка карточки */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -840,7 +840,7 @@ export function Calculator() {
                       formula="Услуги(₽) = Сумма(за заказ) + Сумма(за шт × Тираж)"
                       align="left"
                     >
-                      <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white transition-colors shrink-0 cursor-help" />
+                      <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white shrink-0 cursor-help" />
                     </CustomTooltip>
                     {calcCustomCostItems.length > 0 && (
                       <span className="text-[10px] font-mono text-cyan-300 font-bold bg-cyan-950/60 border border-cyan-800/40 px-1.5 py-0.2 rounded">
@@ -865,7 +865,7 @@ export function Calculator() {
                       return (
                         <div
                           key={cat.id}
-                          className="flex items-center gap-1.5 p-1 px-2.5 rounded-lg text-xs font-mono border bg-cyan-950/40 border-cyan-500/40 text-cyan-300 shadow-sm transition-all"
+                          className="flex items-center gap-1.5 p-1 px-2.5 rounded-lg text-xs font-mono border bg-cyan-950/40 border-cyan-500/40 text-cyan-300 shadow-sm "
                         >
                           <span className="font-bold flex items-center gap-1 text-cyan-300 shrink-0">
                             <span className="text-cyan-400">✓</span>
@@ -873,7 +873,7 @@ export function Calculator() {
                           </span>
 
                           {/* Поле редактирования цены */}
-                          <div className="flex items-center gap-1 bg-neutral-950 border border-cyan-500/40 rounded px-1.5 py-0.5 focus-within:border-cyan-300 transition-colors">
+                          <div className="flex items-center gap-1 bg-neutral-950 border border-cyan-500/40 rounded px-1.5 py-0.5 focus-within:border-cyan-300 ">
                             <input
                               type="number"
                               min="0"
@@ -895,7 +895,7 @@ export function Calculator() {
                               onClick={() => {
                                 setCalcCustomCostItems(prev => prev.map(i => i.id === cat.id ? { ...i, isPerUnit: !i.isPerUnit } : i));
                               }}
-                              className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors cursor-pointer font-bold ${
+                              className={`px-1.5 py-0.5 rounded text-[10px] border cursor-pointer font-bold ${
                                 activeItem.isPerUnit 
                                   ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50' 
                                   : 'bg-neutral-900 text-cyan-400 border-cyan-500/30 hover:text-white'
@@ -912,7 +912,7 @@ export function Calculator() {
                               onClick={() => {
                                 setCalcCustomCostItems(prev => prev.filter(i => i.id !== cat.id));
                               }}
-                              className="p-0.5 text-neutral-400 hover:text-rose-400 transition-colors cursor-pointer ml-0.5"
+                              className="p-0.5 text-neutral-400 hover:text-rose-400 cursor-pointer ml-0.5"
                             >
                               <X className="w-3.5 h-3.5" />
                             </button>
@@ -935,7 +935,7 @@ export function Calculator() {
                             isEnabled: true
                           }]);
                         }}
-                        className="px-2.5 py-1.5 rounded-lg text-xs border transition-all cursor-pointer flex items-center gap-1 bg-white/[0.02] hover:bg-white/[0.06] text-neutral-400 border-white/10 hover:border-white/20 hover:text-white"
+                        className="px-2.5 py-1.5 rounded-lg text-xs border cursor-pointer flex items-center gap-1 bg-white/[0.02] hover:bg-white/[0.06] text-neutral-400 border-white/10 hover:border-white/20 hover:text-white"
                       >
                         <span>+</span>
                         <span>{cat.name}</span>
@@ -947,14 +947,14 @@ export function Calculator() {
                   {(calcCustomCostItems || []).filter(item => !DEFAULT_COST_CATEGORIES.some(cat => cat.id === item.id)).map((customItem) => (
                     <div
                       key={customItem.id}
-                      className="flex items-center gap-1.5 p-1 px-2.5 rounded-lg text-xs font-mono border bg-cyan-950/40 border-cyan-500/40 text-cyan-300 shadow-sm transition-all"
+                      className="flex items-center gap-1.5 p-1 px-2.5 rounded-lg text-xs font-mono border bg-cyan-950/40 border-cyan-500/40 text-cyan-300 shadow-sm "
                     >
                       <span className="font-bold flex items-center gap-1 text-cyan-300 shrink-0">
                         <span className="text-cyan-400">✓</span>
                         <span>{customItem.name}</span>
                       </span>
 
-                      <div className="flex items-center gap-1 bg-neutral-950 border border-cyan-500/40 rounded px-1.5 py-0.5 focus-within:border-cyan-300 transition-colors">
+                      <div className="flex items-center gap-1 bg-neutral-950 border border-cyan-500/40 rounded px-1.5 py-0.5 focus-within:border-cyan-300 ">
                         <input
                           type="number"
                           min="0"
@@ -975,7 +975,7 @@ export function Calculator() {
                           onClick={() => {
                             setCalcCustomCostItems(prev => prev.map(i => i.id === customItem.id ? { ...i, isPerUnit: !i.isPerUnit } : i));
                           }}
-                          className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors cursor-pointer font-bold ${
+                          className={`px-1.5 py-0.5 rounded text-[10px] border cursor-pointer font-bold ${
                             customItem.isPerUnit 
                               ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50' 
                               : 'bg-neutral-900 text-cyan-400 border-cyan-500/30 hover:text-white'
@@ -991,7 +991,7 @@ export function Calculator() {
                           onClick={() => {
                             setCalcCustomCostItems(prev => prev.filter(i => i.id !== customItem.id));
                           }}
-                          className="p-0.5 text-neutral-400 hover:text-rose-400 transition-colors cursor-pointer ml-0.5"
+                          className="p-0.5 text-neutral-400 hover:text-rose-400 cursor-pointer ml-0.5"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>
@@ -1003,7 +1003,7 @@ export function Calculator() {
                   <button
                     type="button"
                     onClick={() => setIsAddingCustomCost(!isAddingCustomCost)}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs border transition-all cursor-pointer flex items-center gap-1 font-mono ${
+                    className={`px-2.5 py-1.5 rounded-lg text-xs border cursor-pointer flex items-center gap-1 font-mono ${
                       isAddingCustomCost
                         ? 'bg-cyan-950/60 text-cyan-300 border-cyan-500/40 font-bold'
                         : 'bg-white/[0.02] hover:bg-white/[0.06] text-neutral-300 border-dashed border-white/20 hover:border-white/40 hover:text-white'
@@ -1022,7 +1022,7 @@ export function Calculator() {
                       <button
                         type="button"
                         onClick={() => setIsAddingCustomCost(false)}
-                        className="text-neutral-500 hover:text-white transition-colors"
+                        className="text-neutral-500 hover:text-white "
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -1050,7 +1050,7 @@ export function Calculator() {
                         <button
                           type="button"
                           onClick={() => setNewCostIsPerUnit(!newCostIsPerUnit)}
-                          className={`flex-1 h-8 rounded-lg text-[10px] border transition-colors cursor-pointer font-bold ${
+                          className={`flex-1 h-8 rounded-lg text-[10px] border cursor-pointer font-bold ${
                             newCostIsPerUnit ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' : 'bg-neutral-950 text-neutral-400 border-white/15 hover:text-white'
                           }`}
                         >
@@ -1073,7 +1073,7 @@ export function Calculator() {
                             setNewCostIsPerUnit(false);
                             setIsAddingCustomCost(false);
                           }}
-                          className="px-3 h-8 bg-cyan-400 text-neutral-950 font-bold rounded-lg hover:bg-cyan-300 transition-colors cursor-pointer text-xs shrink-0"
+                          className="px-3 h-8 bg-cyan-400 text-neutral-950 font-bold rounded-lg hover:bg-cyan-300 cursor-pointer text-xs shrink-0"
                         >
                           Добавить
                         </button>
@@ -1223,7 +1223,7 @@ export function Calculator() {
                       accentColor="neutral"
                       align="right"
                     >
-                      <HelpCircle className="w-3.5 h-3.5 text-neutral-600 hover:text-neutral-950 transition-colors shrink-0 cursor-help" />
+                      <HelpCircle className="w-3.5 h-3.5 text-neutral-600 hover:text-neutral-950 shrink-0 cursor-help" />
                     </CustomTooltip>
                   </div>
                   
@@ -1262,7 +1262,7 @@ export function Calculator() {
                   type="button"
                   onClick={handleCreateOrderDirectly}
                   disabled={!filamentId || filaments.length === 0}
-                  className="w-full py-3 rounded-full bg-neutral-950 text-white hover:bg-neutral-800 active:scale-[0.99] font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-3 rounded-full bg-neutral-950 text-white hover:bg-neutral-800 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ShoppingBag className="w-3.5 h-3.5" />
                   <span>В Заказы (Оформить)</span>
@@ -1273,7 +1273,7 @@ export function Calculator() {
                   type="button"
                   onClick={() => setIsClientReceiptOpen(true)}
                   disabled={!filamentId || filaments.length === 0}
-                  className="w-full py-2.5 rounded-xl bg-neutral-950/10 hover:bg-neutral-950/20 border border-neutral-950/30 text-neutral-950 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-2.5 rounded-xl bg-neutral-950/10 hover:bg-neutral-950/20 border border-neutral-950/30 text-neutral-950 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Share2 className="w-3.5 h-3.5" />
                   <span>Чек для клиента (PNG / PDF)</span>
@@ -1284,7 +1284,7 @@ export function Calculator() {
                     type="button"
                     onClick={handleOpenSaveModal}
                     disabled={!filamentId || filaments.length === 0}
-                    className="py-2 rounded-xl bg-neutral-300/70 hover:bg-neutral-300 border border-neutral-400/80 text-neutral-950 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="py-2 rounded-xl bg-neutral-300/70 hover:bg-neutral-300 border border-neutral-400/80 text-neutral-950 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Package className="w-3.5 h-3.5 text-neutral-700" />
                     <span>В Каталог</span>
@@ -1294,7 +1294,7 @@ export function Calculator() {
                     type="button"
                     onClick={handleCopyClientMessage}
                     disabled={!filamentId || filaments.length === 0}
-                    className={`py-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed ${
+                    className={`py-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                       copied 
                         ? 'bg-emerald-200 text-emerald-900 border-emerald-400' 
                         : 'bg-neutral-300/70 hover:bg-neutral-300 text-neutral-950 border-neutral-400/80'

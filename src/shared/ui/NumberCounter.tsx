@@ -94,7 +94,7 @@ export function NumberCounter({
         </span>
       )}
 
-      <div className={`flex items-center rounded-xl h-9 min-h-[36px] overflow-hidden transition-colors select-none ${
+      <div className={`flex items-center rounded-xl h-9 min-h-[36px] overflow-hidden select-none ${
         disabled
           ? 'bg-neutral-950 border border-white/5 opacity-40 cursor-not-allowed'
           : isModified
@@ -105,7 +105,7 @@ export function NumberCounter({
           type="button"
           onClick={handleDecrement}
           disabled={disabled || value <= min}
-          className="h-full px-2.5 text-neutral-400 hover:text-white hover:bg-white/10 active:scale-[0.88] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-neutral-400 disabled:active:scale-100 transition-all flex items-center justify-center border-r border-white/10 cursor-pointer disabled:cursor-not-allowed"
+          className="h-full px-2.5 text-neutral-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-neutral-400 flex items-center justify-center border-r border-white/10 cursor-pointer disabled:cursor-not-allowed"
         >
           <Minus size={13} />
         </button>
@@ -145,7 +145,7 @@ export function NumberCounter({
           type="button"
           onClick={handleIncrement}
           disabled={disabled || value >= max}
-          className="h-full px-2.5 text-neutral-400 hover:text-white hover:bg-white/10 active:scale-[0.88] disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-neutral-400 disabled:active:scale-100 transition-all flex items-center justify-center border-l border-white/10 cursor-pointer disabled:cursor-not-allowed"
+          className="h-full px-2.5 text-neutral-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-neutral-400 flex items-center justify-center border-l border-white/10 cursor-pointer disabled:cursor-not-allowed"
         >
           <Plus size={13} />
         </button>

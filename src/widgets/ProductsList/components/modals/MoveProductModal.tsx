@@ -96,7 +96,7 @@ function MoveProductModalForm({
           {/* Вариант: Без коллекции */}
           <div
             onClick={() => setTargetCollectionId('none')}
-            className={`p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition-all ${
+            className={`p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer ${
               targetCollectionId === 'none'
                 ? 'bg-white/10 border-white/25 text-white font-semibold'
                 : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white'
@@ -120,7 +120,7 @@ function MoveProductModalForm({
               <div
                 key={col.id}
                 onClick={() => setTargetCollectionId(col.id)}
-                className={`p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition-all ${
+                className={`p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer ${
                   isSelected
                     ? 'bg-white/10 border-white/25 text-white font-semibold'
                     : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white'

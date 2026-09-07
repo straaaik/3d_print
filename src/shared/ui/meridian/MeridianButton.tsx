@@ -36,15 +36,15 @@ export const MeridianButton = React.forwardRef<HTMLButtonElement, MeridianButton
 
     const variantClasses = {
       'pill-white':
-        'bg-white text-neutral-950 hover:bg-neutral-200 active:scale-[0.98] shadow-[0_0_20px_-3px_rgba(255,255,255,0.35)] font-bold border border-transparent',
+        'bg-white text-neutral-950 hover:bg-neutral-200 shadow-[0_0_20px_-3px_rgba(255,255,255,0.35)] font-bold border border-transparent',
       'pill-cyan':
-        'bg-cyan-400 text-neutral-950 hover:bg-cyan-300 active:scale-[0.98] shadow-[0_0_20px_-3px_rgba(6,182,212,0.4)] font-bold border border-transparent',
+        'bg-cyan-400 text-neutral-950 hover:bg-cyan-300 shadow-[0_0_20px_-3px_rgba(6,182,212,0.4)] font-bold border border-transparent',
       'pill-emerald':
-        'bg-emerald-500 text-neutral-950 hover:bg-emerald-400 active:scale-[0.98] shadow-[0_0_20px_-3px_rgba(16,185,129,0.4)] font-bold border border-transparent',
+        'bg-emerald-500 text-neutral-950 hover:bg-emerald-400 shadow-[0_0_20px_-3px_rgba(16,185,129,0.4)] font-bold border border-transparent',
       'pill-purple':
-        'bg-purple-500 text-white hover:bg-purple-400 active:scale-[0.98] shadow-[0_0_20px_-3px_rgba(168,85,247,0.4)] font-bold border border-transparent',
+        'bg-purple-500 text-white hover:bg-purple-400 shadow-[0_0_20px_-3px_rgba(168,85,247,0.4)] font-bold border border-transparent',
       'pill-outline':
-        'bg-white/[0.03] hover:bg-white/10 text-white border border-white/15 hover:border-white/30 font-medium active:scale-[0.98]',
+        'bg-white/[0.03] hover:bg-white/10 text-white border border-white/15 hover:border-white/30 font-medium ',
       ghost:
         'bg-transparent hover:bg-white/5 text-neutral-300 hover:text-white border border-transparent font-medium',
       bracket:
@@ -57,7 +57,7 @@ export const MeridianButton = React.forwardRef<HTMLButtonElement, MeridianButton
       <button
         ref={ref}
         disabled={disabled || loading}
-        className={`inline-flex items-center justify-center font-sans tracking-tight transition-all duration-200 cursor-pointer select-none disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed ${
+        className={`inline-flex items-center justify-center font-sans tracking-tight duration-200 cursor-pointer select-none disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed ${
           fullWidth ? 'w-full' : ''
         } ${sizeClasses} ${variantClasses} ${className}`}
         {...props}

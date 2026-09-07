@@ -205,7 +205,7 @@ export const MonthSelector = React.memo(function MonthSelector({
         disabled={disabled}
         aria-label="Предыдущий месяц"
         title="Предыдущий месяц"
-          className="w-6 min-w-[24px] max-w-[24px] h-full rounded-lg text-neutral-400 hover:text-white hover:bg-white/5 active:scale-90 transition-all cursor-pointer flex items-center justify-center shrink-0 disabled:opacity-40 disabled:pointer-events-none"
+          className="w-6 min-w-[24px] max-w-[24px] h-full rounded-lg text-neutral-400 hover:text-white hover:bg-white/5 cursor-pointer flex items-center justify-center shrink-0 disabled:opacity-40 disabled:pointer-events-none"
         >
           <ChevronLeft className="w-3.5 h-3.5 shrink-0" />
         </button>
@@ -219,7 +219,7 @@ export const MonthSelector = React.memo(function MonthSelector({
           disabled={disabled}
           aria-label={`Выбрать месяц: ${currentDisplayText}`}
           title={`Выбрать месяц: ${currentDisplayText}`}
-          className={`min-w-0 flex-1 h-full mx-0.5 flex items-center justify-center gap-1.5 px-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer overflow-hidden ${
+          className={`min-w-0 flex-1 h-full mx-0.5 flex items-center justify-center gap-1.5 px-1.5 rounded-lg text-xs font-mono cursor-pointer overflow-hidden ${
             isSelectedOrOpen
               ? 'bg-neutral-800 border border-white/15 text-white shadow-sm font-semibold'
               : 'bg-transparent border border-transparent text-neutral-400 hover:text-white hover:bg-white/5'
@@ -240,7 +240,7 @@ export const MonthSelector = React.memo(function MonthSelector({
         disabled={disabled}
         aria-label="Следующий месяц"
         title="Следующий месяц"
-          className="w-6 min-w-[24px] max-w-[24px] h-full rounded-lg text-neutral-400 hover:text-white hover:bg-white/5 active:scale-90 transition-all cursor-pointer flex items-center justify-center shrink-0 disabled:opacity-40 disabled:pointer-events-none"
+          className="w-6 min-w-[24px] max-w-[24px] h-full rounded-lg text-neutral-400 hover:text-white hover:bg-white/5 cursor-pointer flex items-center justify-center shrink-0 disabled:opacity-40 disabled:pointer-events-none"
         >
           <ChevronRight className="w-3.5 h-3.5 shrink-0" />
         </button>
@@ -267,7 +267,7 @@ export const MonthSelector = React.memo(function MonthSelector({
                       onSelectMonth(opt.value);
                       setIsOpen(false);
                     }}
-                    className={`relative w-full px-3 py-2 text-left flex items-center justify-between gap-2 transition-colors cursor-pointer text-xs ${
+                    className={`relative w-full px-3 py-2 text-left flex items-center justify-between gap-2 cursor-pointer text-xs ${
                       isSelected
                         ? 'bg-white/10 text-white font-semibold'
                         : 'bg-transparent hover:bg-white/5 text-neutral-300 hover:text-white'

@@ -41,7 +41,7 @@ export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonPr
         ref={ref}
         type={props.type || 'button'}
         disabled={disabled}
-        className={`group font-mono flex items-center gap-1.5 transition-all cursor-pointer border rounded-lg active:scale-95 ${sizeStyles} ${
+        className={`group font-mono flex items-center gap-1.5 cursor-pointer border rounded-lg ${sizeStyles} ${
           disabled
             ? 'border-white/5 bg-white/[0.02] text-neutral-600 opacity-40 cursor-not-allowed'
             : isActive
@@ -53,7 +53,7 @@ export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonPr
         {dotColor && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor}`} />}
         {Icon && (
           <Icon
-            className={`w-3 h-3 transition-colors shrink-0 ${
+            className={`w-3 h-3 shrink-0 ${
               disabled
                 ? 'text-neutral-600'
                 : isActive
@@ -64,7 +64,7 @@ export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonPr
         )}
         <span className="inline-flex items-center gap-1">
           <span
-            className={`transition-colors duration-150 ${
+            className={` duration-150 ${
               disabled
                 ? 'text-neutral-600'
                 : isActive
@@ -77,7 +77,7 @@ export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonPr
           <span className="leading-none">{children}</span>
           {badge !== undefined && badge !== null && (
             <span
-              className={`text-[10px] leading-none transition-colors ${
+              className={`text-[10px] leading-none ${
                 isActive ? 'text-white/90 font-bold' : 'text-neutral-400 group-hover:text-white/80'
               }`}
             >
@@ -85,7 +85,7 @@ export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonPr
             </span>
           )}
           <span
-            className={`transition-colors duration-150 ${
+            className={` duration-150 ${
               disabled
                 ? 'text-neutral-600'
                 : isActive

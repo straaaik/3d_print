@@ -10,7 +10,7 @@ export function StableNavLabel({ isActive, children }: StableNavLabelProps) {
   return (
     <span className="grid whitespace-nowrap">
       <span
-        className={`col-start-1 row-start-1 font-sans text-xs transition-colors duration-150 ${
+        className={`col-start-1 row-start-1 font-sans text-xs duration-150 ${
           isActive
             ? 'text-white font-bold'
             : 'text-neutral-400 group-hover:text-white font-normal'

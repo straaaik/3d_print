@@ -63,10 +63,10 @@ export function UserProfileMenu() {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-neutral-900 border border-white/10 hover:border-white/20 hover:bg-neutral-800 transition-all shadow-md cursor-pointer backdrop-blur-xl group"
+        className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-neutral-900 border border-white/10 hover:border-white/20 hover:bg-neutral-800 shadow-md cursor-pointer backdrop-blur-xl group"
       >
         <div
-          className="w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs text-neutral-950 shadow-sm shrink-0 transition-transform group-hover:scale-105"
+          className="w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs text-neutral-950 shadow-sm shrink-0 "
           style={{ backgroundColor: currentUser.avatar_color || '#06B6D4' }}
         >
           {initial}
@@ -88,7 +88,7 @@ export function UserProfileMenu() {
         )}
 
         <ChevronDown
-          className={`w-3 h-3 text-neutral-400 group-hover:text-white transition-transform duration-200 ${
+          className={`w-3 h-3 text-neutral-400 group-hover:text-white duration-200 ${
             isOpen ? 'rotate-180 text-cyan-400' : ''
           }`}
         />
@@ -142,7 +142,7 @@ export function UserProfileMenu() {
                     setIsOpen(false);
                     curtainNavigate('/');
                   }}
-                  className="w-full px-2.5 py-1.5 rounded-lg text-xs font-mono text-neutral-300 hover:text-white hover:bg-white/10 flex items-center gap-2 transition-all cursor-pointer"
+                  className="w-full px-2.5 py-1.5 rounded-lg text-xs font-mono text-neutral-300 hover:text-white hover:bg-white/10 flex items-center gap-2 cursor-pointer"
                 >
                   <LayoutGrid className="w-3.5 h-3.5 text-emerald-400" />
                   <span>Главный хаб (Меню)</span>
@@ -155,7 +155,7 @@ export function UserProfileMenu() {
                   setIsOpen(false);
                   setIsEditModalOpen(true);
                 }}
-                className="w-full px-2.5 py-1.5 rounded-lg text-xs font-mono text-neutral-300 hover:text-white hover:bg-white/10 flex items-center gap-2 transition-all cursor-pointer"
+                className="w-full px-2.5 py-1.5 rounded-lg text-xs font-mono text-neutral-300 hover:text-white hover:bg-white/10 flex items-center gap-2 cursor-pointer"
               >
                 <Edit3 className="w-3.5 h-3.5 text-cyan-400" />
                 <span>Редактировать профиль</span>
@@ -168,7 +168,7 @@ export function UserProfileMenu() {
                     setIsOpen(false);
                     router.push('/admin');
                   }}
-                  className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-mono flex items-center gap-2 transition-all cursor-pointer ${
+                  className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-mono flex items-center gap-2 cursor-pointer ${
                     pathname === '/admin'
                       ? 'bg-white/15 text-white font-bold'
                       : 'text-neutral-300 hover:text-white hover:bg-white/10'
@@ -185,7 +185,7 @@ export function UserProfileMenu() {
                   setIsOpen(false);
                   router.push('/settings');
                 }}
-                className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-mono flex items-center gap-2 transition-all cursor-pointer ${
+                className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-mono flex items-center gap-2 cursor-pointer ${
                   pathname === '/settings'
                     ? 'bg-white/15 text-white font-bold'
                     : 'text-neutral-300 hover:text-white hover:bg-white/10'
@@ -201,7 +201,7 @@ export function UserProfileMenu() {
                   setIsOpen(false);
                   router.push('/about');
                 }}
-                className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-mono flex items-center gap-2 transition-all cursor-pointer ${
+                className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-mono flex items-center gap-2 cursor-pointer ${
                   pathname === '/about'
                     ? 'bg-white/15 text-white font-bold'
                     : 'text-neutral-300 hover:text-white hover:bg-white/10'
@@ -222,7 +222,7 @@ export function UserProfileMenu() {
                 setIsOpen(false);
                 setIsLogoutModalOpen(true);
               }}
-              className="w-full px-2.5 py-1.5 rounded-lg text-xs font-mono text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 flex items-center gap-2 transition-all cursor-pointer"
+              className="w-full px-2.5 py-1.5 rounded-lg text-xs font-mono text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 flex items-center gap-2 cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span>Выйти из аккаунта</span>

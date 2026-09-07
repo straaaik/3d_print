@@ -41,7 +41,7 @@ export function SettingsWorkspaceNav({ activeTab, onSelectTab, changesMap }: {
               type="button"
               aria-current={isActive ? 'page' : undefined}
               onClick={() => onSelectTab(section.id)}
-              className={`group flex w-full items-start gap-3 rounded-lg border px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
+              className={`group flex w-full items-start gap-3 rounded-lg border px-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
                 isActive ? 'border-white/15 bg-white/[0.08] text-white' : 'border-transparent text-neutral-400 hover:border-white/10 hover:bg-white/[0.035] hover:text-neutral-200'
               }`}
             >

@@ -36,7 +36,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                 e.target.select();
               }
             }}
-            className={`w-full h-9 min-h-[36px] bg-neutral-900 border border-white/15 hover:border-white/25 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 focus:outline-none rounded-xl px-3 text-white text-xs font-mono transition-all placeholder-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed ${
+            className={`w-full h-9 min-h-[36px] bg-neutral-900 border border-white/15 hover:border-white/25 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 focus:outline-none rounded-xl px-3 text-white text-xs font-mono placeholder-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed ${
               isModified ? '!border-amber-500/70 shadow-[0_0_10px_rgba(245,158,11,0.15)] bg-amber-500/[0.03]' : ''
             } ${
               error || isShaking ? '!border-rose-500/80 focus:!border-rose-500 shadow-sm shadow-rose-500/20' : ''

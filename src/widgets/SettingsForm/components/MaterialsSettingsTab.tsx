@@ -71,7 +71,7 @@ export function MaterialsSettingsTab({
             return (
               <div
                 key={cfg.id}
-                className={`p-4 rounded-xl border flex flex-col justify-between gap-3 bg-neutral-950/90 transition-all ${
+                className={`p-4 rounded-xl border flex flex-col justify-between gap-3 bg-neutral-950/90 ${
                   isChanged
                     ? 'border-amber-500/60 shadow-sm'
                     : 'border-white/10 hover:border-white/20'

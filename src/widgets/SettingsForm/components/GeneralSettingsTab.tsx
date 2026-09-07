@@ -87,7 +87,7 @@ export function GeneralSettingsTab({
                   key={cur.symbol}
                   type="button"
                   onClick={() => setCurrency(cur.symbol)}
-                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer select-none font-mono ${
+                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 cursor-pointer select-none font-mono ${
                     isSelected
                       ? 'bg-white/15 border-white/30 text-white font-bold shadow-sm'
                       : 'bg-neutral-900 border-white/10 text-neutral-300 hover:border-white/20 hover:bg-white/5'
@@ -159,7 +159,7 @@ export function GeneralSettingsTab({
                     key={p.rate}
                     type="button"
                     onClick={() => setElectricityRate(p.rate.toString())}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-mono border transition-all cursor-pointer text-left flex items-center justify-between ${
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-mono border cursor-pointer text-left flex items-center justify-between ${
                       parseFloat(electricityRate) === p.rate
                         ? 'bg-cyan-950/60 border-cyan-500/50 text-cyan-300 font-bold'
                         : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-neutral-200 hover:border-white/20'

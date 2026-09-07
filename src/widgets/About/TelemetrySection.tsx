@@ -119,7 +119,7 @@ export function TelemetrySection() {
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {events.map((ev, i) => (
-                      <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                      <tr key={i} className="hover:bg-white/[0.02] ">
                         <td className="py-3 px-3.5 text-neutral-400 whitespace-nowrap">{ev.time}</td>
                         <td className="py-3 px-3.5">
                           <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-neutral-300 text-[10px]">

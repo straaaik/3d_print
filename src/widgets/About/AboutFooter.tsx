@@ -32,7 +32,7 @@ export function AboutFooter() {
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
               href={isAuthenticated ? '/orders' : '/login'}
-              className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl font-bold tracking-tight text-sm h-12 px-8 bg-white text-neutral-950 hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-[0_0_30px_-5px_rgba(255,255,255,0.5)] cursor-pointer"
+              className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl font-bold tracking-tight text-sm h-12 px-8 bg-white text-neutral-950 hover:bg-neutral-200 shadow-[0_0_30px_-5px_rgba(255,255,255,0.5)] cursor-pointer"
             >
               <span className="flex items-center gap-2">
                 {isAuthenticated ? 'Перейти в консоль управления' : 'Начать работу с 3D Labs'}
@@ -42,7 +42,7 @@ export function AboutFooter() {
 
             <a
               href="#overview"
-              className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl font-semibold text-sm h-12 px-6 border border-white/20 text-white hover:bg-white/5 transition-all"
+              className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl font-semibold text-sm h-12 px-6 border border-white/20 text-white hover:bg-white/5 "
             >
               Изучить возможности
             </a>
@@ -77,12 +77,12 @@ export function AboutFooter() {
         <div className="space-y-3">
           <div className="font-mono text-xs font-bold text-white uppercase tracking-wider">Модули</div>
           <ul className="space-y-2 text-xs">
-            <li><Link href="/calculator" className="hover:text-cyan-400 transition-colors">Калькулятор печати</Link></li>
-            <li><Link href="/orders" className="hover:text-cyan-400 transition-colors">Воронка заказов (CRM)</Link></li>
-            <li><Link href="/products" className="hover:text-cyan-400 transition-colors">Каталог и сборки</Link></li>
-            <li><Link href="/filaments" className="hover:text-cyan-400 transition-colors">Склад филаментов</Link></li>
-            <li><Link href="/printers" className="hover:text-cyan-400 transition-colors">Парк принтеров</Link></li>
-            <li><Link href="/stats" className="hover:text-cyan-400 transition-colors">Статистика</Link></li>
+            <li><Link href="/calculator" className="hover:text-cyan-400 ">Калькулятор печати</Link></li>
+            <li><Link href="/orders" className="hover:text-cyan-400 ">Воронка заказов (CRM)</Link></li>
+            <li><Link href="/products" className="hover:text-cyan-400 ">Каталог и сборки</Link></li>
+            <li><Link href="/filaments" className="hover:text-cyan-400 ">Склад филаментов</Link></li>
+            <li><Link href="/printers" className="hover:text-cyan-400 ">Парк принтеров</Link></li>
+            <li><Link href="/stats" className="hover:text-cyan-400 ">Статистика</Link></li>
           </ul>
         </div>
 
@@ -104,9 +104,9 @@ export function AboutFooter() {
           <div className="font-mono text-xs font-bold text-white uppercase tracking-wider">Вход в систему</div>
           <ul className="space-y-2 text-xs">
             <li><Link href="/login" className="text-cyan-400 hover:underline">Авторизация по ключу</Link></li>
-            <li><Link href="/orders" className="hover:text-white transition-colors">Панель заказов</Link></li>
-            <li><Link href="/admin" className="hover:text-white transition-colors">Панель администратора</Link></li>
-            <li><Link href="/settings" className="hover:text-white transition-colors">Настройки тарифов</Link></li>
+            <li><Link href="/orders" className="hover:text-white ">Панель заказов</Link></li>
+            <li><Link href="/admin" className="hover:text-white ">Панель администратора</Link></li>
+            <li><Link href="/settings" className="hover:text-white ">Настройки тарифов</Link></li>
           </ul>
         </div>
 

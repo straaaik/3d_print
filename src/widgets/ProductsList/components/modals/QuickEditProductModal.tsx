@@ -122,7 +122,7 @@ function QuickEditProductModalForm({
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
             required
             autoFocus
-            className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none transition-colors font-mono"
+            className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none font-mono"
           />
         </div>
 
@@ -143,7 +143,7 @@ function QuickEditProductModalForm({
               placeholder="напр. дракон, игрушка"
               value={tagsInput}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTagsInput(e.target.value)}
-              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none transition-colors font-mono"
+              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none font-mono"
             />
           </div>
         </div>

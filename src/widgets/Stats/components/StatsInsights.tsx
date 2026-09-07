@@ -29,7 +29,7 @@ export function StatsInsights({ insights }: { insights: StatsInsight[] }) {
             <motion.article
               whileHover={{ transform: 'translateY(-2px)' }}
               key={insight.id}
-              className={`flex min-h-28 flex-col justify-between rounded-xl border transition-colors p-3 ${style.shell}`}
+              className={`flex min-h-28 flex-col justify-between rounded-xl border p-3 ${style.shell}`}
             >
               <div className="flex items-start gap-2.5"><Icon aria-hidden="true" className={`mt-0.5 h-4 w-4 shrink-0 ${style.iconClass}`} /><div><h3 className="font-mono text-[11px] font-bold text-white">{insight.title}</h3><p className="mt-1 text-xs leading-relaxed text-neutral-400">{insight.detail}</p></div></div>
               {insight.href ? <CockpitButton icon={ArrowRight} className="mt-3 self-end" onClick={() => router.push(insight.href!)}>Подробнее</CockpitButton> : null}

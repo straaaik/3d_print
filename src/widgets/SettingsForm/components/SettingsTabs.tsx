@@ -75,7 +75,7 @@ export function SettingsTabs({
             key={tab.id}
             type="button"
             onClick={() => onSelectTab(tab.id)}
-            className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer min-w-0 ${
+            className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-xl text-xs font-mono font-semibold cursor-pointer min-w-0 ${
               isLastOnMobile ? 'col-span-2 sm:col-span-1' : ''
             } ${
               isActive

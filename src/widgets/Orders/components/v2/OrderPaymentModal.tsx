@@ -233,7 +233,7 @@ function OrderPaymentModalContent({
                       onClick={onClose}
                       title="Закрыть окно"
                       aria-label="Закрыть окно"
-                      className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] hover:scale-125 active:scale-95 transition-all duration-150 cursor-pointer border-none outline-none shrink-0"
+                      className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] duration-150 cursor-pointer border-none outline-none shrink-0"
                     />
                   </Tooltip>
                 </div>
@@ -312,7 +312,7 @@ function OrderPaymentModalContent({
                 </div>
                 <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full transition-all duration-300 ${
+                    className={`h-full rounded-full duration-300 ${
                       paidPercent >= 100
                         ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]'
                         : paidPercent >= 35
@@ -332,21 +332,21 @@ function OrderPaymentModalContent({
                 <button
                   type="button"
                   onClick={handleSetPresetZero}
-                  className="px-2 py-0.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-[10px] text-neutral-300 hover:text-white transition-colors cursor-pointer"
+                  className="px-2 py-0.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-[10px] text-neutral-300 hover:text-white cursor-pointer"
                 >
                   0 ₽ Не оплачен
                 </button>
                 <button
                   type="button"
                   onClick={handleSetPresetHalf}
-                  className="px-2 py-0.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-[10px] text-amber-300 hover:text-amber-200 transition-colors cursor-pointer"
+                  className="px-2 py-0.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-[10px] text-amber-300 hover:text-amber-200 cursor-pointer"
                 >
                   50% Предоплата ({formatMoney(roundTo2(totalOrderAmount * 0.5))} ₽)
                 </button>
                 <button
                   type="button"
                   onClick={handleSetPresetFull}
-                  className="px-2 py-0.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-[10px] text-emerald-300 hover:text-emerald-200 transition-colors cursor-pointer"
+                  className="px-2 py-0.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-[10px] text-emerald-300 hover:text-emerald-200 cursor-pointer"
                 >
                   100% Оплачен ({formatMoney(totalOrderAmount)} ₽)
                 </button>
@@ -354,7 +354,7 @@ function OrderPaymentModalContent({
                   <button
                     type="button"
                     onClick={handleAddRemainingDebtPart}
-                    className="px-2 py-0.5 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-[10px] text-amber-300 font-bold transition-colors cursor-pointer flex items-center gap-1 ml-auto"
+                    className="px-2 py-0.5 rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-[10px] text-amber-300 font-bold cursor-pointer flex items-center gap-1 ml-auto"
                     title="Добавить строку с суммой оставшегося долга"
                   >
                     <Plus className="w-3 h-3" />
@@ -385,7 +385,7 @@ function OrderPaymentModalContent({
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -6 }}
                       transition={{ duration: 0.15 }}
-                      className="bg-neutral-900/60 border border-white/10 rounded-xl p-2.5 space-y-2 group/part hover:border-white/20 transition-colors"
+                      className="bg-neutral-900/60 border border-white/10 rounded-xl p-2.5 space-y-2 group/part hover:border-white/20 "
                     >
                       {/* Верхняя строка части платежа: бейдж # и кнопка удаления */}
                       <div className="flex items-center justify-between">
@@ -403,7 +403,7 @@ function OrderPaymentModalContent({
                         <button
                           type="button"
                           onClick={() => handleRemoveItem(idx)}
-                          className="p-1 rounded hover:bg-rose-500/20 text-neutral-500 hover:text-rose-400 transition-colors cursor-pointer"
+                          className="p-1 rounded hover:bg-rose-500/20 text-neutral-500 hover:text-rose-400 cursor-pointer"
                           title="Удалить эту часть"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -425,7 +425,7 @@ function OrderPaymentModalContent({
                               value={item.amount === 0 ? '' : item.amount}
                               onChange={(e) => handleAmountChange(idx, e.target.value)}
                               placeholder="0"
-                              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 focus:outline-none rounded-lg px-2.5 py-1.5 text-xs text-emerald-400 font-bold font-mono tracking-wide placeholder-neutral-600 transition-colors"
+                              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 focus:outline-none rounded-lg px-2.5 py-1.5 text-xs text-emerald-400 font-bold font-mono tracking-wide placeholder-neutral-600 "
                             />
                             <span className="absolute right-2.5 text-xs text-neutral-500 pointer-events-none font-bold">
                               ₽
@@ -453,7 +453,7 @@ function OrderPaymentModalContent({
                               value={item.date || ''}
                               onChange={(e) => handleUpdateItem(idx, { date: e.target.value })}
                               placeholder="ДД.ММ.ГГГГ"
-                              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 focus:outline-none rounded-lg pl-7 pr-2.5 py-1.5 text-xs text-neutral-200 font-mono tracking-wide placeholder-neutral-600 transition-colors"
+                              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 focus:outline-none rounded-lg pl-7 pr-2.5 py-1.5 text-xs text-neutral-200 font-mono tracking-wide placeholder-neutral-600 "
                             />
                             <Calendar className="w-3.5 h-3.5 text-neutral-500 absolute left-2.5 pointer-events-none" />
                           </div>
@@ -467,7 +467,7 @@ function OrderPaymentModalContent({
                           value={item.note || ''}
                           onChange={(e) => handleUpdateItem(idx, { note: e.target.value })}
                           placeholder="Примечание (напр. Предоплата, Аванс, Наличные, Перевод)..."
-                          className="w-full bg-neutral-950/60 border border-white/10 focus:border-white/25 focus:outline-none rounded-lg px-2.5 py-1 text-[11px] text-neutral-300 placeholder-neutral-600 font-mono transition-colors"
+                          className="w-full bg-neutral-950/60 border border-white/10 focus:border-white/25 focus:outline-none rounded-lg px-2.5 py-1 text-[11px] text-neutral-300 placeholder-neutral-600 font-mono "
                         />
                       </div>
                     </motion.div>
@@ -479,7 +479,7 @@ function OrderPaymentModalContent({
               <button
                 type="button"
                 onClick={() => handleAddItem(debt > 0 ? debt : 0, debt > 0 ? 'Доплата' : '')}
-                className="w-full py-2 border border-dashed border-white/20 hover:border-white/40 rounded-xl flex items-center justify-center gap-2 text-neutral-400 hover:text-white transition-all cursor-pointer bg-white/[0.02] hover:bg-white/[0.05]"
+                className="w-full py-2 border border-dashed border-white/20 hover:border-white/40 rounded-xl flex items-center justify-center gap-2 text-neutral-400 hover:text-white cursor-pointer bg-white/[0.02] hover:bg-white/[0.05]"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span className="text-xs font-semibold">Добавить часть оплаты</span>

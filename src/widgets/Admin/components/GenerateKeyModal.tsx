@@ -122,7 +122,7 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
                   key={num}
                   type="button"
                   onClick={() => setCount(num)}
-                  className={`py-2 rounded-xl text-xs font-mono font-bold transition-all border cursor-pointer ${
+                  className={`py-2 rounded-xl text-xs font-mono font-bold border cursor-pointer ${
                     count === num
                       ? 'bg-white text-neutral-950 border-white shadow-sm'
                       : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white hover:bg-white/5'
@@ -144,7 +144,7 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
               <button
                 type="button"
                 onClick={() => setRole('user')}
-                className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+                className={`p-3 rounded-xl border text-left flex flex-col gap-1 cursor-pointer ${
                   role === 'user'
                     ? 'bg-cyan-950/60 border-cyan-500/50 text-white shadow-sm'
                     : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white'
@@ -162,7 +162,7 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
               <button
                 type="button"
                 onClick={() => setRole('admin')}
-                className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
+                className={`p-3 rounded-xl border text-left flex flex-col gap-1 cursor-pointer ${
                   role === 'admin'
                     ? 'bg-amber-950/50 border-amber-500/40 text-white shadow-sm'
                     : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white'
@@ -259,7 +259,7 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
               return (
                 <div
                   key={keyItem.id}
-                  className="bg-neutral-900 border border-white/15 rounded-xl p-2.5 flex items-center justify-between gap-3 hover:border-white/30 transition-colors"
+                  className="bg-neutral-900 border border-white/15 rounded-xl p-2.5 flex items-center justify-between gap-3 hover:border-white/30 "
                 >
                   <div className="min-w-0 flex-1">
                     <div className="font-mono text-sm font-bold text-amber-300 tracking-wider">
@@ -281,7 +281,7 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
                   <button
                     type="button"
                     onClick={() => copySingleKey(keyItem)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-mono font-semibold flex items-center gap-1.5 cursor-pointer ${
                       isCopied
                         ? 'bg-emerald-600 text-white'
                         : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'

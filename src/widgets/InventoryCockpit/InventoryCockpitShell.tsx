@@ -39,7 +39,7 @@ export function InventoryWindowControls({
           type="button"
           onClick={onRequestClose}
           aria-label="Перейти на главную"
-          className="h-3 w-3 rounded-full border border-rose-400/40 bg-rose-500/80 shadow-sm shadow-rose-500/20 transition-all duration-150 hover:scale-125 hover:bg-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+          className="h-3 w-3 rounded-full border border-rose-400/40 bg-rose-500/80 shadow-sm shadow-rose-500/20 duration-150 hover:bg-rose-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
         />
       </Tooltip>
       <Tooltip content={isExpanded ? 'Свернуть рабочую область' : 'Компактный режим уже включён'}>
@@ -48,7 +48,7 @@ export function InventoryWindowControls({
           onClick={() => onExpandedChange(false)}
           disabled={!isExpanded}
           aria-label="Свернуть рабочую область"
-          className="h-3 w-3 rounded-full border border-amber-400/40 bg-amber-500/80 transition-all duration-150 enabled:hover:scale-125 enabled:hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+          className="h-3 w-3 rounded-full border border-amber-400/40 bg-amber-500/80 duration-150 enabled:hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
         />
       </Tooltip>
       <Tooltip content={isExpanded ? 'Рабочая область уже развёрнута' : 'Развернуть на весь экран'}>
@@ -57,7 +57,7 @@ export function InventoryWindowControls({
           onClick={() => onExpandedChange(true)}
           disabled={isExpanded}
           aria-label="Развернуть рабочую область"
-          className="h-3 w-3 rounded-full border border-emerald-400/40 bg-emerald-500/80 transition-all duration-150 enabled:hover:scale-125 enabled:hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+          className="h-3 w-3 rounded-full border border-emerald-400/40 bg-emerald-500/80 duration-150 enabled:hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
         />
       </Tooltip>
     </div>

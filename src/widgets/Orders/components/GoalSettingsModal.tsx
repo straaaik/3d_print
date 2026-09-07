@@ -161,7 +161,7 @@ function GoalSettingsModalContent({
                       onClick={onClose}
                       title="Закрыть окно"
                       aria-label="Закрыть окно"
-                      className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] hover:scale-125 active:scale-95 transition-all duration-150 cursor-pointer border-none outline-none"
+                      className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] duration-150 cursor-pointer border-none outline-none"
                     />
                   </Tooltip>
                 </div>
@@ -199,7 +199,7 @@ function GoalSettingsModalContent({
                   )}
                 </div>
 
-                <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#141416]/90 border border-[#26262b] focus-within:border-white/40 transition-colors">
+                <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#141416]/90 border border-[#26262b] focus-within:border-white/40 ">
                   <input
                     type="text"
                     inputMode="numeric"
@@ -231,7 +231,7 @@ function GoalSettingsModalContent({
                         key={amt}
                         type="button"
                         onClick={() => setGoalAmount(String(amt))}
-                        className={`py-0.5 text-xs font-mono transition-colors cursor-pointer ${
+                        className={`py-0.5 text-xs font-mono cursor-pointer ${
                           isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
                         }`}
                       >
@@ -255,7 +255,7 @@ function GoalSettingsModalContent({
                       onChange={(e) => setApplyToAllMonths(e.target.checked)}
                       className="w-4 h-4 rounded bg-[#121214] border-white/20 text-cyan-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                     />
-                    <span className="text-xs text-[#a1a1aa] group-hover:text-white transition-colors">
+                    <span className="text-xs text-[#a1a1aa] group-hover:text-white ">
                       Сделать эту сумму целью по умолчанию для всех месяцев
                     </span>
                   </label>
@@ -325,7 +325,7 @@ function GoalSettingsModalContent({
                 {/* Полоса прогресса к цели */}
                 <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden relative">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${
+                    className={`h-full rounded-full duration-500 ${
                       isGoalReached
                         ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]'
                         : numericGoal > 0
@@ -346,7 +346,7 @@ function GoalSettingsModalContent({
                   <button
                     type="button"
                     onClick={() => setGoalAmount('0')}
-                    className="text-xs font-mono text-[#71717a] hover:text-rose-400 transition-colors flex items-center gap-1.5 cursor-pointer select-none"
+                    className="text-xs font-mono text-[#71717a] hover:text-rose-400 flex items-center gap-1.5 cursor-pointer select-none"
                   >
                     <RotateCcw className="w-3 h-3" />
                     <span>[ Сбросить цель ]</span>
@@ -360,7 +360,7 @@ function GoalSettingsModalContent({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-3.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-[#a1a1aa] hover:text-white hover:bg-white/[0.08] hover:border-white/20 transition-all cursor-pointer text-xs font-mono select-none"
+                  className="px-3.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-[#a1a1aa] hover:text-white hover:bg-white/[0.08] hover:border-white/20 cursor-pointer text-xs font-mono select-none"
                 >
                   [ Закрыть ]
                 </button>
@@ -368,7 +368,7 @@ function GoalSettingsModalContent({
                 <button
                   type="button"
                   onClick={() => handleSave()}
-                  className="px-4 py-1.5 rounded-lg bg-white text-black font-bold hover:bg-neutral-200 transition-all cursor-pointer text-xs font-mono select-none shadow-md flex items-center gap-1.5"
+                  className="px-4 py-1.5 rounded-lg bg-white text-black font-bold hover:bg-neutral-200 cursor-pointer text-xs font-mono select-none shadow-md flex items-center gap-1.5"
                 >
                   <Check className="w-3.5 h-3.5" />
                   <span>[ Сохранить цель ]</span>

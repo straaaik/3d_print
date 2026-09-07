@@ -195,7 +195,7 @@ function TableStatusDropdownPortal({
                 onUpdateStatus(order, st);
                 onClose();
               }}
-              className={`w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between gap-2 transition-colors cursor-pointer text-xs group ${
+              className={`w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between gap-2 cursor-pointer text-xs group ${
                 isSelected
                   ? 'bg-white/10 text-white font-semibold'
                   : 'bg-transparent hover:bg-white/5 text-neutral-300 hover:text-white'
@@ -308,7 +308,7 @@ function TableChannelDropdownPortal({
                 onInlineUpdate(order.id, { client: cl });
                 onClose();
               }}
-              className={`w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between gap-2 transition-colors cursor-pointer text-xs group ${
+              className={`w-full px-2.5 py-1.5 rounded-lg flex items-center justify-between gap-2 cursor-pointer text-xs group ${
                 isSelected
                   ? 'bg-white/10 text-white font-semibold'
                   : 'bg-transparent hover:bg-white/5 text-neutral-300 hover:text-white'
@@ -611,7 +611,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
             <ChevronDown className="w-3 h-3 text-cyan-400" />
           )
         ) : (
-          <ChevronDown className="w-3 h-3 text-neutral-600 opacity-0 group-hover:opacity-60 transition-opacity" />
+          <ChevronDown className="w-3 h-3 text-neutral-600 opacity-0 group-hover:opacity-60 " />
         )}
       </span>
     );
@@ -687,7 +687,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 layout: { duration: 0.38, ease: [0.16, 1, 0.3, 1] },
               }}
               onClick={() => setElevatedOrder(isElevated ? null : order)}
-              className={`relative rounded-xl border p-3 cursor-pointer transition-all ${
+              className={`relative rounded-xl border p-3 cursor-pointer ${
                 isElevated
                   ? '!z-50 !border-white/40 !bg-neutral-900/98 !shadow-[0_25px_60px_-10px_rgba(0,0,0,0.95)] ring-1 ring-white/20'
                   : 'border-white/10 bg-white/[0.03] hover:border-white/20'
@@ -828,7 +828,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 1. № ЗАКАЗА */}
                 <th 
                   onClick={() => onSort('order_number')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group w-32"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group w-32"
                 >
                   <div className="flex items-center gap-1">
                     <span>№ ЗАКАЗА</span>
@@ -839,7 +839,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 2. ДАТА */}
                 <th 
                   onClick={() => onSort('date')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-center w-28"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-center w-28"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>ДАТА</span>
@@ -850,7 +850,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 3. ТИП */}
                 <th 
                   onClick={() => onSort('type')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-center w-24"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-center w-24"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>ТИП</span>
@@ -861,7 +861,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 4. ИМЯ КЛИЕНТА */}
                 <th 
                   onClick={() => onSort('client_name')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group w-44"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group w-44"
                 >
                   <div className="flex items-center gap-1">
                     <span>ИМЯ КЛИЕНТА</span>
@@ -877,7 +877,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 6. ИЗДЕЛИЕ / ТОВАР */}
                 <th 
                   onClick={() => onSort('title')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group w-56"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group w-56"
                 >
                   <div className="flex items-center gap-1">
                     <span>ИЗДЕЛИЕ / ТОВАР</span>
@@ -893,7 +893,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 8. ИТОГО */}
                 <th 
                   onClick={() => onSort('amount')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right w-32"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right w-32"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>ИТОГО</span>
@@ -904,7 +904,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 9. СЕБЕСТОИМОСТЬ */}
                 <th 
                   onClick={() => onSort('cost')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right w-36"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right w-36"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>СЕБЕСТОИМОСТЬ</span>
@@ -915,7 +915,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 10. СТАТУС */}
                 <th 
                   onClick={() => onSort('status')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group w-32"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group w-32"
                 >
                   <div className="flex items-center gap-1">
                     <span>СТАТУС</span>
@@ -926,7 +926,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 11. ДЕДЛАЙН */}
                 <th 
                   onClick={() => onSort('deadline')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-left w-28"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-left w-28"
                 >
                   <div className="flex items-center justify-start gap-1">
                     <span>ДЕДЛАЙН</span>
@@ -937,7 +937,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 12. ОПЛАЧЕНО */}
                 <th 
                   onClick={() => onSort('payment')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right w-32"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right w-32"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>ОПЛАЧЕНО</span>
@@ -948,7 +948,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 13. ОСТАТОК (ДОЛГ) */}
                 <th 
                   onClick={() => onSort('debt')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right w-36"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right w-36"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>ОСТАТОК (ДОЛГ)</span>
@@ -959,7 +959,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 14. ЧИСТАЯ ПРИБЫЛЬ */}
                 <th 
                   onClick={() => onSort('net_profit')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right w-36"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right w-36"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>ПРИБЫЛЬ / МАРЖА</span>
@@ -1057,7 +1057,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                           setElevatedOrder(order);
                         }
                       }}
-                      className={`transition-colors group relative border-b grid w-full items-center ${
+                      className={` group relative border-b grid w-full items-center ${
                         isElevated 
                           ? '!z-50 ring-1 ring-white/20 cursor-default' 
                           : isBlurred
@@ -1096,10 +1096,10 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                         <button
                           type="button"
                           onClick={(e) => handleOpenDatePicker(order, 'date', e)}
-                          className="inline-flex flex-col items-center justify-center gap-0.5 leading-tight cursor-pointer group/date p-1 -m-1 rounded-lg hover:bg-white/5 transition-all text-center mx-auto"
+                          className="inline-flex flex-col items-center justify-center gap-0.5 leading-tight cursor-pointer group/date p-1 -m-1 rounded-lg hover:bg-white/5 text-center mx-auto"
                           title="Клик для выбора даты заказа в календаре"
                         >
-                          <span className="text-neutral-200 font-medium group-hover/date:text-neutral-400 transition-colors">
+                          <span className="text-neutral-200 font-medium group-hover/date:text-neutral-400 ">
                             {order.date || '—'}
                           </span>
                           {dayOfWeek && (
@@ -1119,7 +1119,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               e.stopPropagation();
                               onToggleType(order);
                             }}
-                            className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border transition-all cursor-pointer hover:scale-105 active:scale-95 ${
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border cursor-pointer ${
                               isIncome 
                                 ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20' 
                                 : 'bg-rose-500/10 text-rose-300 border-rose-500/30 hover:bg-rose-500/20'
@@ -1173,7 +1173,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                     e.stopPropagation();
                                     startEditing(order, 'client_name', order.client_name || '');
                                   }}
-                                  className="font-semibold text-xs truncate max-w-[140px] cursor-text transition-colors block text-white hover:text-neutral-400"
+                                  className="font-semibold text-xs truncate max-w-[140px] cursor-text block text-white hover:text-neutral-400"
                                   title={order.client_name}
                                 >
                                   {order.client_name}
@@ -1189,7 +1189,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                     setActiveChannelDropdown(isChannelMenuOpen ? null : { order, targetRect: rect });
                                     setActiveStatusDropdown(null);
                                   }}
-                                  className={`px-1.5 py-0.2 rounded text-[9px] font-mono border flex items-center gap-1 w-fit cursor-pointer hover:border-white/30 transition-colors ${clientCfg?.badgeStyle || 'bg-white/5 border-white/10 text-neutral-300'}`}
+                                  className={`px-1.5 py-0.2 rounded text-[9px] font-mono border flex items-center gap-1 w-fit cursor-pointer hover:border-white/30 ${clientCfg?.badgeStyle || 'bg-white/5 border-white/10 text-neutral-300'}`}
                                   title="Клик для смены канала"
                                 >
                                   <ClientIcon className="w-2.5 h-2.5 shrink-0" />
@@ -1228,14 +1228,14 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                         e.stopPropagation();
                                         handleOpenContactsModal(order);
                                       }}
-                                      className="flex items-center gap-1.5 text-neutral-300 hover:text-white transition-colors truncate text-left cursor-pointer min-w-0 flex-1"
+                                      className="flex items-center gap-1.5 text-neutral-300 hover:text-white truncate text-left cursor-pointer min-w-0 flex-1"
                                       title="Клик для управления контактами"
                                     >
                                       <CIcon className="w-3 h-3 text-neutral-400 shrink-0" />
                                       <span className="truncate">{c.value}</span>
                                     </button>
 
-                                    <div className="flex items-center gap-1 shrink-0 opacity-80 group-hover/c-row:opacity-100 transition-opacity">
+                                    <div className="flex items-center gap-1 shrink-0 opacity-80 group-hover/c-row:opacity-100 ">
                                       {/* Скопировать */}
                                       <Tooltip content={isCopied ? 'Скопировано!' : 'Скопировать'}>
                                         <button
@@ -1244,7 +1244,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                             e.stopPropagation();
                                             handleCopyContact(c.value);
                                           }}
-                                          className="p-1 rounded hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                                          className="p-1 rounded hover:bg-white/10 text-neutral-400 hover:text-white cursor-pointer"
                                         >
                                           {isCopied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                                         </button>
@@ -1258,7 +1258,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             onClick={(e) => e.stopPropagation()}
-                                            className="p-1 rounded hover:bg-white/10 text-neutral-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                                            className="p-1 rounded hover:bg-white/10 text-neutral-400 hover:text-cyan-300 cursor-pointer"
                                           >
                                             <ExternalLink className="w-3 h-3" />
                                           </a>
@@ -1275,7 +1275,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                   e.stopPropagation();
                                   handleOpenContactsModal(order);
                                 }}
-                                className="text-[11px] font-mono text-neutral-500 hover:text-neutral-300 italic flex items-center gap-1 transition-colors cursor-pointer group/noc w-fit py-0.5"
+                                className="text-[11px] font-mono text-neutral-500 hover:text-neutral-300 italic flex items-center gap-1 cursor-pointer group/noc w-fit py-0.5"
                                 title="Клик для добавления контактов"
                               >
                                 <Plus className="w-3 h-3 text-neutral-600 group-hover/noc:text-neutral-400" />
@@ -1307,7 +1307,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                   e.stopPropagation();
                                   startEditing(order, 'title', order.title);
                                 }}
-                                className="font-semibold text-neutral-100 hover:text-neutral-400 text-xs truncate cursor-text transition-colors"
+                                className="font-semibold text-neutral-100 hover:text-neutral-400 text-xs truncate cursor-text "
                                 title={order.title || 'Печать 3D-детали'}
                               >
                                 {order.title || 'Печать 3D-детали'}
@@ -1332,7 +1332,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                     e.stopPropagation();
                                     startEditing(order, 'quantity', order.quantity || 1);
                                   }}
-                                  className="text-[10px] font-mono text-neutral-300 hover:text-neutral-400 shrink-0 font-bold cursor-pointer transition-colors"
+                                  className="text-[10px] font-mono text-neutral-300 hover:text-neutral-400 shrink-0 font-bold cursor-pointer "
                                   title="Клик для изменения тиража"
                                 >
                                   ×{quantity}
@@ -1377,7 +1377,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               e.stopPropagation();
                               startEditing(order, 'notes', order.notes || '');
                             }}
-                            className="text-[11px] max-w-[220px] leading-snug text-neutral-200 hover:text-neutral-400 whitespace-pre-wrap cursor-text transition-colors"
+                            className="text-[11px] max-w-[220px] leading-snug text-neutral-200 hover:text-neutral-400 whitespace-pre-wrap cursor-text "
                             title="Клик для изменения заметок"
                           >
                             {order.notes || <span className="text-neutral-600 font-mono">—</span>}
@@ -1421,7 +1421,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               <AnimatedPriceNumber
                                 value={order.amount || 0}
                                 currencySymbol="₽"
-                                className="font-bold text-white group-hover/amt:text-neutral-400 text-xs transition-colors"
+                                className="font-bold text-white group-hover/amt:text-neutral-400 text-xs "
                               />
                             </div>
 
@@ -1505,7 +1505,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               <AnimatedPriceNumber
                                 value={order.cost}
                                 currencySymbol="₽"
-                                className="font-bold text-neutral-200 group-hover/cost:text-neutral-400 text-xs transition-colors"
+                                className="font-bold text-neutral-200 group-hover/cost:text-neutral-400 text-xs "
                               />
                             ) : (
                               <span className="font-bold text-neutral-500 text-xs flex items-baseline gap-0.5">
@@ -1562,7 +1562,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               setActiveStatusDropdown(isStatusMenuOpen ? null : { order, targetRect: rect });
                               setActiveChannelDropdown(null);
                             }}
-                            className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold border transition-all cursor-pointer shadow-sm ${statusInfo.badgeClass}`}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold border cursor-pointer shadow-sm ${statusInfo.badgeClass}`}
                             title="Клик для смены статуса"
                           >
                             {statusInfo.label}
@@ -1578,14 +1578,14 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                           <button
                             type="button"
                             onClick={(e) => handleOpenDatePicker(order, 'deadline', e)}
-                            className="inline-flex flex-col items-start justify-center gap-0.5 font-mono leading-tight cursor-pointer group/dl transition-all rounded-lg p-1 -m-1 hover:bg-white/5 text-left"
+                            className="inline-flex flex-col items-start justify-center gap-0.5 font-mono leading-tight cursor-pointer group/dl rounded-lg p-1 -m-1 hover:bg-white/5 text-left"
                             title={
                               deadline
                                 ? `Дедлайн: ${order.deadline || '—'} (${deadline.isOverdue ? `просрочен на ${Math.abs(deadline.daysDiff)} дн.` : deadline.daysDiff === 0 ? 'срок сдачи сегодня' : deadline.daysDiff === 1 ? 'срок сдачи завтра' : `осталось ${deadline.daysDiff} дн.`})`
                                 : 'Клик для выбора дедлайна в календаре'
                             }
                           >
-                            <span className="text-[11px] text-neutral-200 group-hover/dl:text-neutral-400 font-semibold transition-colors">
+                            <span className="text-[11px] text-neutral-200 group-hover/dl:text-neutral-400 font-semibold ">
                               {order.deadline || '—'}
                             </span>
                             {deadline && (
@@ -1624,13 +1624,13 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               e.stopPropagation();
                               startEditing(order, 'payment', order.payment ?? 0);
                             }}
-                            className="flex flex-col items-end gap-0.5 leading-tight cursor-pointer group/pay p-1 -m-1 rounded-lg hover:bg-white/5 transition-colors"
+                            className="flex flex-col items-end gap-0.5 leading-tight cursor-pointer group/pay p-1 -m-1 rounded-lg hover:bg-white/5 "
                             title="Клик для изменения суммы списания"
                           >
                             <AnimatedPriceNumber
                               value={paidAmount}
                               currencySymbol="₽"
-                              className="text-rose-400 group-hover:text-rose-300 font-bold text-xs transition-colors"
+                              className="text-rose-400 group-hover:text-rose-300 font-bold text-xs "
                             />
                             
                             {/* История транзакций платежей с датами */}
@@ -1656,13 +1656,13 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               e.stopPropagation();
                               handleOpenPaymentModal(order);
                             }}
-                            className="flex flex-col items-end gap-0.5 leading-tight cursor-pointer group/pay p-1 -m-1 rounded-lg hover:bg-white/5 transition-colors"
+                            className="flex flex-col items-end gap-0.5 leading-tight cursor-pointer group/pay p-1 -m-1 rounded-lg hover:bg-white/5 "
                             title="Клик для управления оплатой и частями"
                           >
                             <AnimatedPriceNumber
                               value={paidAmount}
                               currencySymbol="₽"
-                              className="text-emerald-400 group-hover/pay:text-emerald-300 font-bold text-xs transition-colors"
+                              className="text-emerald-400 group-hover/pay:text-emerald-300 font-bold text-xs "
                             />
                             
                             {/* История транзакций платежей с датами */}
@@ -1705,7 +1705,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                 e.stopPropagation();
                                 startEditing(order, 'payment', order.payment ?? 0);
                               }}
-                              className="flex flex-col items-end gap-0.5 leading-tight cursor-pointer p-1 -m-1 rounded-lg hover:bg-white/5 transition-colors"
+                              className="flex flex-col items-end gap-0.5 leading-tight cursor-pointer p-1 -m-1 rounded-lg hover:bg-white/5 "
                               title="Клик для изменения списания"
                             >
                               <AnimatedPriceNumber
@@ -1717,7 +1717,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                 <div className="flex items-center gap-1.5 w-[90px] mt-0.5">
                                   <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
                                     <div 
-                                      className="h-full rounded-full transition-all duration-300 bg-rose-500 shadow-[0_0_4px_rgba(244,63,94,0.5)]"
+                                      className="h-full rounded-full duration-300 bg-rose-500 shadow-[0_0_4px_rgba(244,63,94,0.5)]"
                                       style={{ width: `${paidPercent}%` }}
                                     />
                                   </div>
@@ -1743,7 +1743,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               <div className="flex items-center gap-1.5 w-[90px] mt-0.5">
                                 <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
                                   <div 
-                                    className={`h-full rounded-full transition-all duration-300 ${
+                                    className={`h-full rounded-full duration-300 ${
                                       paidPercent >= 35
                                         ? 'bg-amber-400 shadow-[0_0_4px_rgba(251,191,36,0.5)]'
                                         : paidPercent > 0
@@ -1851,7 +1851,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                       <button
                         type="button"
                         onClick={onShowAll}
-                        className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-cyan-400 border border-white/10 rounded-lg text-xs font-mono transition-colors"
+                        className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-cyan-400 border border-white/10 rounded-lg text-xs font-mono "
                       >
                         Показать все ({orders.length})
                       </button>
@@ -1877,7 +1877,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 1. № ЗАКАЗА И ДАТА */}
                 <th 
                   onClick={() => onSort('order_number')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group w-28"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group w-28"
                 >
                   <div className="flex items-center gap-1">
                     <span>№ / ДАТА</span>
@@ -1888,7 +1888,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 2. ТИП */}
                 <th 
                   onClick={() => onSort('type')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-center w-20"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-center w-20"
                 >
                   <div className="flex items-center justify-center gap-1">
                     <span>ТИП</span>
@@ -1899,7 +1899,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 3. КЛИЕНТ / КАНАЛ */}
                 <th 
                   onClick={() => onSort('client_name')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group w-44"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group w-44"
                 >
                   <div className="flex items-center gap-1">
                     <span>КЛИЕНТ / КАНАЛ</span>
@@ -1910,7 +1910,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 4. ИЗДЕЛИЕ / ЗАМЕТКИ */}
                 <th 
                   onClick={() => onSort('title')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group w-56"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group w-56"
                 >
                   <div className="flex items-center gap-1">
                     <span>ИЗДЕЛИЕ / ЗАМЕТКИ</span>
@@ -1921,7 +1921,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 7. ИТОГО / СЕБЕСТОИМОСТЬ */}
                 <th 
                   onClick={() => onSort('amount')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right w-36"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right w-36"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>ИТОГО / СЕБЕСТ.</span>
@@ -1932,7 +1932,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 5. СТАТУС */}
                 <th 
                   onClick={() => onSort('status')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group w-32"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group w-32"
                 >
                   <div className="flex items-center gap-1">
                     <span>СТАТУС</span>
@@ -1943,7 +1943,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 6. ДЕДЛАЙН */}
                 <th 
                   onClick={() => onSort('deadline')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-left w-24"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-left w-24"
                 >
                   <div className="flex items-center justify-start gap-1">
                     <span>ДЕДЛАЙН</span>
@@ -1954,7 +1954,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 8. ОПЛАТА / ОСТАТОК */}
                 <th 
                   onClick={() => onSort('payment')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right w-36"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right w-36"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>ОПЛАТА / ОСТАТОК</span>
@@ -1965,7 +1965,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 {/* 9. ЧИСТАЯ ПРИБЫЛЬ */}
                 <th 
                   onClick={() => onSort('net_profit')}
-                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white transition-colors group text-right w-28"
+                  className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right w-28"
                 >
                   <div className="flex items-center justify-end gap-1">
                     <span>ПРИБЫЛЬ</span>
@@ -2049,7 +2049,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                           setElevatedOrder(order);
                         }
                       }}
-                      className={`transition-colors group relative border-b grid w-full items-center ${
+                      className={` group relative border-b grid w-full items-center ${
                         isElevated 
                           ? '!z-50 ring-1 ring-white/20 cursor-default' 
                           : isBlurred
@@ -2070,7 +2070,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                           <button
                             type="button"
                             onClick={(e) => handleOpenDatePicker(order, 'date', e)}
-                            className="text-[10.5px] text-neutral-400 hover:text-neutral-200 font-mono px-2 py-0.5 rounded hover:bg-white/5 cursor-pointer transition-colors text-center w-full"
+                            className="text-[10.5px] text-neutral-400 hover:text-neutral-200 font-mono px-2 py-0.5 rounded hover:bg-white/5 cursor-pointer text-center w-full"
                             title="Клик для выбора даты заказа в календаре"
                           >
                             {order.date || '—'}
@@ -2086,7 +2086,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                             e.stopPropagation();
                             onToggleType(order);
                           }}
-                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border transition-all cursor-pointer hover:scale-105 active:scale-95 ${
+                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border cursor-pointer ${
                             isIncome 
                               ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20' 
                               : 'bg-rose-500/10 text-rose-300 border-rose-500/30 hover:bg-rose-500/20'
@@ -2129,7 +2129,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                     e.stopPropagation();
                                     startEditing(order, 'client_name', order.client_name || '');
                                   }}
-                                  className="font-semibold text-xs truncate max-w-[160px] cursor-text transition-colors block text-neutral-200 hover:text-white"
+                                  className="font-semibold text-xs truncate max-w-[160px] cursor-text block text-neutral-200 hover:text-white"
                                   title={order.client_name}
                                 >
                                   {order.client_name}
@@ -2146,7 +2146,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                     setActiveChannelDropdown(isChannelMenuOpen ? null : { order, targetRect: rect });
                                     setActiveStatusDropdown(null);
                                   }}
-                                  className={`px-1.5 py-0.2 rounded text-[9px] font-mono border flex items-center gap-1 w-fit cursor-pointer hover:border-white/30 transition-colors ${clientCfg?.badgeStyle || 'bg-white/5 border-white/10 text-neutral-300'}`}
+                                  className={`px-1.5 py-0.2 rounded text-[9px] font-mono border flex items-center gap-1 w-fit cursor-pointer hover:border-white/30 ${clientCfg?.badgeStyle || 'bg-white/5 border-white/10 text-neutral-300'}`}
                                   title="Клик для смены канала"
                                 >
                                   <ClientIcon className="w-2.5 h-2.5 shrink-0" />
@@ -2163,7 +2163,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                       e.stopPropagation();
                                       handleOpenContactsModal(order);
                                     }}
-                                    className="flex items-center gap-1 text-neutral-400 hover:text-white transition-colors truncate text-left cursor-pointer min-w-0"
+                                    className="flex items-center gap-1 text-neutral-400 hover:text-white truncate text-left cursor-pointer min-w-0"
                                     title="Клик для изменения контактов"
                                   >
                                     {(() => {
@@ -2173,7 +2173,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                     <span className="truncate">{allContacts[0].value}</span>
                                   </button>
 
-                                  <div className="flex items-center gap-0.5 shrink-0 opacity-80 group-hover/c-row:opacity-100 transition-opacity">
+                                  <div className="flex items-center gap-0.5 shrink-0 opacity-80 group-hover/c-row:opacity-100 ">
                                     {/* Скопировать */}
                                     <Tooltip content={copiedContact === allContacts[0].value ? 'Скопировано!' : 'Скопировать'}>
                                       <button
@@ -2182,7 +2182,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                           e.stopPropagation();
                                           handleCopyContact(allContacts[0].value);
                                         }}
-                                        className="p-0.5 rounded hover:bg-white/10 text-neutral-500 hover:text-white transition-colors cursor-pointer"
+                                        className="p-0.5 rounded hover:bg-white/10 text-neutral-500 hover:text-white cursor-pointer"
                                       >
                                         {copiedContact === allContacts[0].value ? <Check className="w-2.5 h-2.5 text-emerald-400" /> : <Copy className="w-2.5 h-2.5" />}
                                       </button>
@@ -2196,7 +2196,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           onClick={(e) => e.stopPropagation()}
-                                          className="p-0.5 rounded hover:bg-white/10 text-neutral-500 hover:text-cyan-300 transition-colors cursor-pointer"
+                                          className="p-0.5 rounded hover:bg-white/10 text-neutral-500 hover:text-cyan-300 cursor-pointer"
                                         >
                                           <ExternalLink className="w-2.5 h-2.5" />
                                         </a>
@@ -2211,7 +2211,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                     e.stopPropagation();
                                     handleOpenContactsModal(order);
                                   }}
-                                  className="text-[9.5px] font-mono text-neutral-500 hover:text-neutral-300 italic flex items-center gap-1 transition-colors cursor-pointer group/noc"
+                                  className="text-[9.5px] font-mono text-neutral-500 hover:text-neutral-300 italic flex items-center gap-1 cursor-pointer group/noc"
                                   title="Клик для добавления контакта"
                                 >
                                   <Plus className="w-2.5 h-2.5 text-neutral-600 group-hover/noc:text-neutral-400" />
@@ -2248,7 +2248,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                   e.stopPropagation();
                                   startEditing(order, 'title', order.title);
                                 }}
-                                className="font-medium text-neutral-200 hover:text-neutral-400 text-xs truncate cursor-text transition-colors"
+                                className="font-medium text-neutral-200 hover:text-neutral-400 text-xs truncate cursor-text "
                                 title="Клик для изменения наименования"
                               >
                                 {order.title || 'Печать 3D-детали'}
@@ -2273,7 +2273,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                     e.stopPropagation();
                                     startEditing(order, 'quantity', order.quantity || 1);
                                   }}
-                                  className="text-[10px] font-mono text-neutral-300 hover:text-neutral-400 shrink-0 cursor-pointer transition-colors"
+                                  className="text-[10px] font-mono text-neutral-300 hover:text-neutral-400 shrink-0 cursor-pointer "
                                   title="Клик для изменения тиража"
                                 >
                                   ×{order.quantity || 1}
@@ -2299,7 +2299,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                 e.stopPropagation();
                                 startEditing(order, 'notes', order.notes || '');
                               }}
-                              className="text-[10px] text-neutral-400 hover:text-neutral-300 font-sans truncate block leading-tight cursor-text transition-colors"
+                              className="text-[10px] text-neutral-400 hover:text-neutral-300 font-sans truncate block leading-tight cursor-text "
                               title="Клик для изменения заметок"
                             >
                               {order.notes || <span className="text-neutral-600 font-mono text-[9px]">+ заметка</span>}
@@ -2344,7 +2344,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               <AnimatedPriceNumber
                                 value={order.amount || 0}
                                 currencySymbol="₽"
-                                className="font-bold text-white group-hover/c-amt:text-neutral-400 text-xs transition-colors"
+                                className="font-bold text-white group-hover/c-amt:text-neutral-400 text-xs "
                               />
                             </div>
                           )}
@@ -2405,7 +2405,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                   e.stopPropagation();
                                   startEditing(order, 'cost', order.cost || 0);
                                 }}
-                                className="text-[10px] text-neutral-500 hover:text-neutral-300 font-mono cursor-text transition-colors flex items-baseline gap-0.5"
+                                className="text-[10px] text-neutral-500 hover:text-neutral-300 font-mono cursor-text flex items-baseline gap-0.5"
                                 title="Клик для изменения себестоимости"
                               >
                                 <span>себест.</span>
@@ -2421,7 +2421,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                   e.stopPropagation();
                                   startEditing(order, 'cost', 0);
                                 }}
-                                className="text-[10px] text-neutral-500 hover:text-neutral-300 font-mono cursor-text transition-colors"
+                                className="text-[10px] text-neutral-500 hover:text-neutral-300 font-mono cursor-text "
                                 title="Клик для изменения себестоимости"
                               >
                                 — себест.
@@ -2447,7 +2447,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               setActiveStatusDropdown(isStatusMenuOpen ? null : { order, targetRect: rect });
                               setActiveChannelDropdown(null);
                             }}
-                            className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border transition-all cursor-pointer ${statusInfo.badgeClass}`}
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border cursor-pointer ${statusInfo.badgeClass}`}
                             title="Клик для смены статуса"
                           >
                             {statusInfo.label}
@@ -2463,14 +2463,14 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                           <button
                             type="button"
                             onClick={(e) => handleOpenDatePicker(order, 'deadline', e)}
-                            className="inline-flex flex-col items-start justify-center gap-0.5 font-mono leading-tight cursor-pointer group/c-dl transition-all rounded-lg p-1 -m-1 hover:bg-white/5 text-left"
+                            className="inline-flex flex-col items-start justify-center gap-0.5 font-mono leading-tight cursor-pointer group/c-dl rounded-lg p-1 -m-1 hover:bg-white/5 text-left"
                             title={
                               deadline
                                 ? `Дедлайн: ${order.deadline || '—'} (${deadline.isOverdue ? `просрочен на ${Math.abs(deadline.daysDiff)} дн.` : deadline.daysDiff === 0 ? 'срок сдачи сегодня' : deadline.daysDiff === 1 ? 'срок сдачи завтра' : `осталось ${deadline.daysDiff} дн.`})`
                                 : 'Клик для выбора дедлайна в календаре'
                             }
                           >
-                            <span className="text-[11px] text-neutral-200 group-hover/c-dl:text-neutral-400 transition-colors">
+                            <span className="text-[11px] text-neutral-200 group-hover/c-dl:text-neutral-400 ">
                               {order.deadline || '—'}
                             </span>
                             {deadline && (
@@ -2509,13 +2509,13 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               e.stopPropagation();
                               startEditing(order, 'payment', order.payment ?? 0);
                             }}
-                            className="flex flex-col items-end gap-0.5 leading-tight cursor-pointer group/c-pay p-1 -m-1 rounded-lg hover:bg-white/5 transition-colors"
+                            className="flex flex-col items-end gap-0.5 leading-tight cursor-pointer group/c-pay p-1 -m-1 rounded-lg hover:bg-white/5 "
                             title="Клик для изменения суммы списания"
                           >
                             <AnimatedPriceNumber
                               value={paidAmount}
                               currencySymbol="₽"
-                              className="text-rose-400 group-hover:text-rose-300 font-bold text-xs transition-colors"
+                              className="text-rose-400 group-hover:text-rose-300 font-bold text-xs "
                             />
                             {debtAmount > 0 && (
                               <>
@@ -2531,7 +2531,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                   <div className="flex items-center gap-1.5 w-[85px] mt-0.5">
                                     <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
                                       <div 
-                                        className="h-full rounded-full transition-all duration-300 bg-rose-500 shadow-[0_0_4px_rgba(244,63,94,0.5)]"
+                                        className="h-full rounded-full duration-300 bg-rose-500 shadow-[0_0_4px_rgba(244,63,94,0.5)]"
                                         style={{ width: `${paidPercent}%` }}
                                       />
                                     </div>
@@ -2549,13 +2549,13 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               e.stopPropagation();
                               handleOpenPaymentModal(order);
                             }}
-                            className="flex items-center justify-end w-full cursor-pointer group/c-pay p-1 -m-1 rounded-lg hover:bg-white/5 transition-colors"
+                            className="flex items-center justify-end w-full cursor-pointer group/c-pay p-1 -m-1 rounded-lg hover:bg-white/5 "
                             title="Клик для управления оплатой"
                           >
                             <AnimatedPriceNumber
                               value={paidAmount}
                               currencySymbol="₽"
-                              className="text-emerald-400 group-hover/c-pay:text-emerald-300 font-bold text-xs transition-colors"
+                              className="text-emerald-400 group-hover/c-pay:text-emerald-300 font-bold text-xs "
                             />
                           </div>
                         ) : (
@@ -2564,13 +2564,13 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               e.stopPropagation();
                               handleOpenPaymentModal(order);
                             }}
-                            className="flex flex-col items-end gap-0.5 leading-tight cursor-pointer group/c-pay p-1 -m-1 rounded-lg hover:bg-white/5 transition-colors"
+                            className="flex flex-col items-end gap-0.5 leading-tight cursor-pointer group/c-pay p-1 -m-1 rounded-lg hover:bg-white/5 "
                             title="Клик для управления оплатой и частями"
                           >
                             <AnimatedPriceNumber
                               value={paidAmount}
                               currencySymbol="₽"
-                              className="text-emerald-400 group-hover/c-pay:text-emerald-300 font-bold text-xs transition-colors"
+                              className="text-emerald-400 group-hover/c-pay:text-emerald-300 font-bold text-xs "
                             />
                             <span className="text-[10px] text-neutral-400 font-mono flex items-baseline gap-0.5">
                               <span>долг.</span>
@@ -2584,7 +2584,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               <div className="flex items-center gap-1.5 w-[85px] mt-0.5">
                                 <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
                                   <div 
-                                    className={`h-full rounded-full transition-all duration-300 ${
+                                    className={`h-full rounded-full duration-300 ${
                                       paidPercent >= 35
                                         ? 'bg-amber-400 shadow-[0_0_4px_rgba(251,191,36,0.5)]'
                                         : paidPercent > 0
@@ -2674,7 +2674,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                       <button
                         type="button"
                         onClick={onShowAll}
-                        className="px-2.5 py-0.5 bg-white/5 hover:bg-white/10 text-cyan-400 border border-white/10 rounded text-xs font-mono transition-colors"
+                        className="px-2.5 py-0.5 bg-white/5 hover:bg-white/10 text-cyan-400 border border-white/10 rounded text-xs font-mono "
                       >
                         Показать все ({orders.length})
                       </button>
@@ -2712,7 +2712,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                     onOpenEditModal(contextMenu.order);
                     setContextMenu(null);
                   }}
-                  className="w-full px-2.5 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer text-xs"
+                  className="w-full px-2.5 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 cursor-pointer text-xs"
                 >
                   <Edit2 className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                   <span className="truncate leading-none">Редактировать в форме</span>
@@ -2724,7 +2724,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                     onDuplicateOrder(contextMenu.order);
                     setContextMenu(null);
                   }}
-                  className="w-full px-2.5 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer text-xs"
+                  className="w-full px-2.5 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 cursor-pointer text-xs"
                 >
                   <Copy className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                   <span className="truncate leading-none">Дублировать</span>
@@ -2737,7 +2737,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                       onCopyContact(contextMenu.order.client_name || contextMenu.order.contact);
                       setContextMenu(null);
                     }}
-                    className="w-full px-2.5 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer text-xs"
+                    className="w-full px-2.5 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 cursor-pointer text-xs"
                   >
                     <Phone className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                     <span className="truncate leading-none">Копировать имя / контакт</span>
@@ -2752,7 +2752,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                     onRequestDelete(contextMenu.order);
                     setContextMenu(null);
                   }}
-                  className="w-full px-2.5 py-1.5 rounded-lg flex items-center gap-2 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 transition-colors cursor-pointer text-xs"
+                  className="w-full px-2.5 py-1.5 rounded-lg flex items-center gap-2 text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 cursor-pointer text-xs"
                 >
                   <Trash2 className="w-3.5 h-3.5 shrink-0" />
                   <span className="truncate leading-none">Удалить</span>

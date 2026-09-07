@@ -232,7 +232,7 @@ export function Table<T>({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Поиск по реестру..."
-                className="w-full pl-8.5 pr-8 py-1.5 bg-neutral-950/90 border border-white/10 focus:border-white/25 rounded-xl text-xs font-mono text-neutral-200 placeholder:text-neutral-600 outline-none transition-all"
+                className="w-full pl-8.5 pr-8 py-1.5 bg-neutral-950/90 border border-white/10 focus:border-white/25 rounded-xl text-xs font-mono text-neutral-200 placeholder:text-neutral-600 outline-none "
               />
               {searchQuery && (
                 <button
@@ -274,7 +274,7 @@ export function Table<T>({
                   <th
                     key={col.key}
                     onClick={() => handleSort(col)}
-                    className={`py-3 px-3.5 whitespace-nowrap transition-colors ${
+                    className={`py-3 px-3.5 whitespace-nowrap ${
                       col.sortable ? 'cursor-pointer hover:text-white group' : ''
                     } ${
                       col.align === 'right'
@@ -303,7 +303,7 @@ export function Table<T>({
                               <ChevronDown className="w-3.5 h-3.5 text-white" />
                             )
                           ) : (
-                            <ChevronDown className="w-3 h-3 text-neutral-600 opacity-0 group-hover:opacity-60 transition-opacity" />
+                            <ChevronDown className="w-3 h-3 text-neutral-600 opacity-0 group-hover:opacity-60 " />
                           )}
                         </span>
                       )}
@@ -338,7 +338,7 @@ export function Table<T>({
 
                 return (
                   <React.Fragment key={key}>
-                    <tr className={`hover:bg-white/[0.03] transition-colors ${customClass}`}>
+                    <tr className={`hover:bg-white/[0.03] ${customClass}`}>
                       {columns.map((col) => (
                         <td
                           key={col.key}

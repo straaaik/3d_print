@@ -38,7 +38,7 @@ export function AboutHeader() {
             <span className="text-white/20">|</span>
             <Link
               href={isAuthenticated ? '/orders' : '/login'}
-              className="text-white hover:text-cyan-400 transition-colors inline-flex items-center gap-1 font-sans font-semibold"
+              className="text-white hover:text-cyan-400 inline-flex items-center gap-1 font-sans font-semibold"
             >
               {isAuthenticated ? 'Перейти в консоль' : 'Войти в систему'}
               <ArrowRight className="w-3 h-3" />
@@ -49,15 +49,15 @@ export function AboutHeader() {
 
       {/* Плавающая шапка в стиле капсулы Meridian */}
       <header
-        className={`fixed top-10 left-0 right-0 z-40 transition-all duration-300 pointer-events-none px-4 sm:px-6`}
+        className={`fixed top-10 left-0 right-0 z-40 duration-300 pointer-events-none px-4 sm:px-6`}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           {/* Логотип 3D Labs */}
           <Link
             href="/about"
-            className="pointer-events-auto flex items-center gap-2.5 bg-neutral-950/80 hover:bg-neutral-900/90 border border-white/15 backdrop-blur-xl px-3.5 py-2 rounded-xl text-white shadow-2xl transition-all group"
+            className="pointer-events-auto flex items-center gap-2.5 bg-neutral-950/80 hover:bg-neutral-900/90 border border-white/15 backdrop-blur-xl px-3.5 py-2 rounded-xl text-white shadow-2xl group"
           >
-            <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-transform">
+            <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 ">
               <Box className="w-4 h-4" />
             </div>
             <div className="flex items-baseline gap-1.5 font-sans">
@@ -72,11 +72,11 @@ export function AboutHeader() {
               <a
                 key={item.label}
                 href={item.href}
-                className="relative px-3.5 py-1.5 text-xs font-mono tracking-wider text-neutral-400 hover:text-white transition-colors duration-200 group"
+                className="relative px-3.5 py-1.5 text-xs font-mono tracking-wider text-neutral-400 hover:text-white duration-200 group"
               >
-                <span className="text-neutral-600 group-hover:text-cyan-400 transition-colors mr-0.5">[</span>
+                <span className="text-neutral-600 group-hover:text-cyan-400 mr-0.5">[</span>
                 <span className="font-sans font-medium text-xs">{item.label}</span>
-                <span className="text-neutral-600 group-hover:text-cyan-400 transition-colors ml-0.5">]</span>
+                <span className="text-neutral-600 group-hover:text-cyan-400 ml-0.5">]</span>
               </a>
             ))}
           </nav>
@@ -85,7 +85,7 @@ export function AboutHeader() {
           <div className="pointer-events-auto flex items-center gap-2">
             <Link
               href={isAuthenticated ? '/orders' : '/login'}
-              className="relative inline-flex items-center justify-center rounded-xl font-semibold tracking-tight text-xs h-9 px-4 sm:px-5 bg-white text-neutral-950 hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-[0_0_20px_-3px_rgba(255,255,255,0.4)] cursor-pointer"
+              className="relative inline-flex items-center justify-center rounded-xl font-semibold tracking-tight text-xs h-9 px-4 sm:px-5 bg-white text-neutral-950 hover:bg-neutral-200 shadow-[0_0_20px_-3px_rgba(255,255,255,0.4)] cursor-pointer"
             >
               <span className="flex items-center gap-1.5">
                 {isAuthenticated ? 'Открыть панель' : 'Войти по ключу'}

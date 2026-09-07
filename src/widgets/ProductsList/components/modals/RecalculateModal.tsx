@@ -80,7 +80,7 @@ export function RecalculateModal({
               type="button"
               onClick={() => setScope('selected')}
               disabled={selectedCount === 0}
-              className={`p-3 rounded-xl border flex items-center justify-between text-left transition-all cursor-pointer ${
+              className={`p-3 rounded-xl border flex items-center justify-between text-left cursor-pointer ${
                 scope === 'selected'
                   ? 'bg-white/10 border-white/25 text-white font-bold shadow-sm'
                   : selectedCount === 0
@@ -103,7 +103,7 @@ export function RecalculateModal({
             <button
               type="button"
               onClick={() => setScope('all')}
-              className={`p-3 rounded-xl border flex items-center justify-between text-left transition-all cursor-pointer ${
+              className={`p-3 rounded-xl border flex items-center justify-between text-left cursor-pointer ${
                 scope === 'all'
                   ? 'bg-white/10 border-white/25 text-white font-bold shadow-sm'
                   : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white'

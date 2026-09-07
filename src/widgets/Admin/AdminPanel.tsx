@@ -516,7 +516,7 @@ function KeysTable({ keys, copiedKeyId, onCopy, onDelete }: { keys: Registration
             ) : keys.map((key) => {
               const status = getRegistrationKeyStatus(key);
               return (
-                <tr key={key.id} className="transition-colors hover:bg-white/[0.035]">
+                <tr key={key.id} className=" hover:bg-white/[0.035]">
                   <td className="px-3 py-3"><span className="font-bold tracking-wider text-amber-300">{key.key}</span></td>
                   <td className="px-3 py-3"><KeyStatusBadge status={status} /></td>
                   <td className="px-3 py-3 text-neutral-300">{key.role_to_grant === 'admin' ? 'ADMIN' : 'USER'}</td>
@@ -524,8 +524,8 @@ function KeysTable({ keys, copiedKeyId, onCopy, onDelete }: { keys: Registration
                   <td className="max-w-52 truncate px-3 py-3 text-neutral-400">{key.used_by_email || '—'}</td>
                   <td className="px-3 py-3 text-neutral-400">{key.expires_at ? new Date(key.expires_at).toLocaleDateString('ru-RU') : 'Бессрочно'}</td>
                   <td className="px-3 py-3"><div className="flex justify-end gap-1">
-                    <Tooltip content="Скопировать ключ"><button type="button" onClick={() => onCopy(key)} className="rounded-lg border border-white/10 bg-white/5 p-1.5 text-neutral-400 transition-colors hover:text-white" aria-label="Скопировать ключ">{copiedKeyId === key.id ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}</button></Tooltip>
-                    <Tooltip content="Удалить ключ"><button type="button" onClick={() => onDelete(key)} className="rounded-lg border border-rose-500/15 bg-rose-500/5 p-1.5 text-rose-400 transition-colors hover:bg-rose-500/10" aria-label="Удалить ключ"><Trash2 className="h-3.5 w-3.5" /></button></Tooltip>
+                    <Tooltip content="Скопировать ключ"><button type="button" onClick={() => onCopy(key)} className="rounded-lg border border-white/10 bg-white/5 p-1.5 text-neutral-400 hover:text-white" aria-label="Скопировать ключ">{copiedKeyId === key.id ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}</button></Tooltip>
+                    <Tooltip content="Удалить ключ"><button type="button" onClick={() => onDelete(key)} className="rounded-lg border border-rose-500/15 bg-rose-500/5 p-1.5 text-rose-400 hover:bg-rose-500/10" aria-label="Удалить ключ"><Trash2 className="h-3.5 w-3.5" /></button></Tooltip>
                   </div></td>
                 </tr>
               );
@@ -552,9 +552,9 @@ function UsersTable({ users, currentUserId, onToggleRole, onToggleStatus, onDele
             {users.length === 0 ? <tr><td colSpan={6} className="px-3 py-12 text-center text-neutral-500">[ ПОЛЬЗОВАТЕЛИ НЕ НАЙДЕНЫ ]</td></tr> : users.map((user) => {
               const isSelf = user.id === currentUserId;
               return (
-                <tr key={user.id} className="transition-colors hover:bg-white/[0.035]">
+                <tr key={user.id} className=" hover:bg-white/[0.035]">
                   <td className="px-3 py-3"><div className="flex min-w-0 items-center gap-2.5"><span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 font-sans font-bold text-white" style={{ backgroundColor: user.avatar_color || '#262626' }}>{user.name?.charAt(0).toUpperCase() || '?'}</span><div className="min-w-0"><div className="flex items-center gap-1.5"><span className="truncate font-sans font-semibold text-white">{user.name}</span>{isSelf && <span className="rounded border border-white/10 bg-white/5 px-1.5 text-[8px] text-neutral-400">ВЫ</span>}</div><span className="block truncate text-[10px] text-neutral-500">{user.email}</span></div></div></td>
-                  <td className="px-3 py-3"><button type="button" disabled={isSelf} onClick={() => onToggleRole(user)} className={`rounded border px-2 py-1 text-[9px] font-bold transition-colors ${user.role === 'admin' ? 'border-amber-800/40 bg-amber-950/50 text-amber-300' : 'border-cyan-800/40 bg-cyan-950/50 text-cyan-300'} disabled:cursor-default disabled:opacity-60`}>{user.role === 'admin' ? 'ADMIN' : 'USER'}</button></td>
+                  <td className="px-3 py-3"><button type="button" disabled={isSelf} onClick={() => onToggleRole(user)} className={`rounded border px-2 py-1 text-[9px] font-bold ${user.role === 'admin' ? 'border-amber-800/40 bg-amber-950/50 text-amber-300' : 'border-cyan-800/40 bg-cyan-950/50 text-cyan-300'} disabled:cursor-default disabled:opacity-60`}>{user.role === 'admin' ? 'ADMIN' : 'USER'}</button></td>
                   <td className="px-3 py-3"><button type="button" disabled={isSelf} onClick={() => onToggleStatus(user)} className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-[9px] font-bold ${user.is_active ? 'border-emerald-800/40 bg-emerald-950/50 text-emerald-400' : 'border-rose-800/40 bg-rose-950/50 text-rose-400'} disabled:cursor-default disabled:opacity-60`}>{user.is_active ? <UserCheck className="h-3 w-3" /> : <UserX className="h-3 w-3" />}{user.is_active ? 'ACTIVE' : 'BLOCKED'}</button></td>
                   <td className="px-3 py-3 text-neutral-400">{new Date(user.created_at).toLocaleDateString('ru-RU')}</td>
                   <td className="max-w-44 truncate px-3 py-3 text-[10px] text-amber-300/80">{user.registration_key_used || '—'}</td>

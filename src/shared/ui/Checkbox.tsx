@@ -203,7 +203,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
               duration: 0.2,
               ease: 'easeOut',
             }}
-            className={`relative flex items-center justify-center border transition-all duration-200 shrink-0 ${
+            className={`relative flex items-center justify-center border duration-200 shrink-0 ${
               currentSize.box
             } ${currentSize.radius} ${
               isActive
@@ -280,7 +280,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             <div className="flex flex-col select-none pt-0.5">
               {label && (
                 <span
-                  className={`font-medium ${currentSize.text} leading-none transition-colors ${
+                  className={`font-medium ${currentSize.text} leading-none ${
                     disabled
                       ? 'text-gray-500'
                       : isChecked

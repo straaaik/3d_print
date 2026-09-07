@@ -142,7 +142,7 @@ function AddVariantModalForm({
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVariantName(e.target.value)}
             required
             autoFocus
-            className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none transition-colors font-mono"
+            className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none font-mono"
           />
         </div>
 
@@ -174,7 +174,7 @@ function AddVariantModalForm({
               placeholder="Масса в граммах"
               value={weight}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWeight(e.target.value)}
-              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-neutral-600 focus:outline-none transition-colors"
+              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-neutral-600 focus:outline-none "
             />
           </div>
         </div>

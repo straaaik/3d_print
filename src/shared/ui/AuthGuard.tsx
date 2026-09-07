@@ -122,7 +122,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
           <button
             type="button"
             onClick={() => router.replace('/login')}
-            className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-neutral-200 active:scale-[0.98] text-neutral-950 font-bold font-mono text-xs transition-all cursor-pointer shadow-md"
+            className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-neutral-200 text-neutral-950 font-bold font-mono text-xs cursor-pointer shadow-md"
           >
             [ Перейти к авторизации ]
           </button>
@@ -151,7 +151,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
           <button
             type="button"
             onClick={() => router.replace('/orders')}
-            className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-neutral-200 active:scale-[0.98] text-neutral-950 font-bold font-mono text-xs transition-all cursor-pointer shadow-md"
+            className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-neutral-200 text-neutral-950 font-bold font-mono text-xs cursor-pointer shadow-md"
           >
             [ Вернуться к заказам ]
           </button>

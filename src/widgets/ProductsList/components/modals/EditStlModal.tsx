@@ -122,7 +122,7 @@ function EditStlModalForm({
                   <button
                     type="button"
                     onClick={handleDownload}
-                    className="p-1.5 text-neutral-400 hover:text-white rounded hover:bg-white/10 transition-colors cursor-pointer"
+                    className="p-1.5 text-neutral-400 hover:text-white rounded hover:bg-white/10 cursor-pointer"
                   >
                     <Download size={14} />
                   </button>
@@ -134,7 +134,7 @@ function EditStlModalForm({
                       setFileData('');
                       setFileName('');
                     }}
-                    className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/40 transition-colors cursor-pointer"
+                    className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/40 cursor-pointer"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -142,8 +142,8 @@ function EditStlModalForm({
               </div>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center p-4 bg-neutral-900 border border-dashed border-white/15 hover:border-cyan-400/60 rounded-xl cursor-pointer transition-colors group">
-              <Upload size={18} className="text-neutral-400 group-hover:text-cyan-400 mb-1 transition-colors" />
+            <label className="flex flex-col items-center justify-center p-4 bg-neutral-900 border border-dashed border-white/15 hover:border-cyan-400/60 rounded-xl cursor-pointer group">
+              <Upload size={18} className="text-neutral-400 group-hover:text-cyan-400 mb-1 " />
               <span className="text-xs text-neutral-300 font-mono group-hover:text-white">
                 [ Загрузить STL файл ]
               </span>

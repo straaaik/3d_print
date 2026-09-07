@@ -45,7 +45,7 @@ export function MinimizedDraftsStack({
               exit={{ opacity: 0, x: 50, scale: 0.9, transition: { duration: 0.15 } }}
               transition={{ type: 'spring', stiffness: 380, damping: 28 }}
               onClick={() => onRestore(draft.id)}
-              className="pointer-events-auto group relative flex items-center justify-between gap-3.5 py-2.5 px-3.5 rounded-xl border border-white/15 bg-neutral-950/95 shadow-[0_10px_35px_rgba(0,0,0,0.85)] backdrop-blur-2xl font-mono text-xs cursor-pointer hover:border-white/40 hover:bg-neutral-900/95 transition-all w-[280px] sm:w-[320px]"
+              className="pointer-events-auto group relative flex items-center justify-between gap-3.5 py-2.5 px-3.5 rounded-xl border border-white/15 bg-neutral-950/95 shadow-[0_10px_35px_rgba(0,0,0,0.85)] backdrop-blur-2xl font-mono text-xs cursor-pointer hover:border-white/40 hover:bg-neutral-900/95 w-[280px] sm:w-[320px]"
             >
               {/* Левая часть: Индикатор и тип */}
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -63,7 +63,7 @@ export function MinimizedDraftsStack({
                     }`}>
                       {isIncome ? 'ДОХОД' : 'РАСХОД'}
                     </span>
-                    <span className="text-white font-medium truncate text-xs group-hover:text-amber-200 transition-colors">
+                    <span className="text-white font-medium truncate text-xs group-hover:text-amber-200 ">
                       {title}
                     </span>
                   </div>
@@ -86,7 +86,7 @@ export function MinimizedDraftsStack({
                       e.stopPropagation();
                       onRestore(draft.id);
                     }}
-                    className="p-1 rounded-md text-[#71717a] hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                    className="p-1 rounded-md text-[#71717a] hover:text-white hover:bg-white/10 cursor-pointer"
                   >
                     <span className="text-xs">↗</span>
                   </button>
@@ -99,7 +99,7 @@ export function MinimizedDraftsStack({
                       e.stopPropagation();
                       onDiscard(draft.id);
                     }}
-                    className="p-1 rounded-md text-[#71717a] hover:text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
+                    className="p-1 rounded-md text-[#71717a] hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
                   >
                     <span className="text-sm font-bold leading-none">×</span>
                   </button>

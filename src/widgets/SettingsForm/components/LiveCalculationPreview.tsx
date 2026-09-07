@@ -97,7 +97,7 @@ export function LiveCalculationPreview({
                 key={cat}
                 type="button"
                 onClick={() => setTestCategory(cat)}
-                className={`px-2 py-0.5 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                className={`px-2 py-0.5 rounded-lg text-xs font-mono font-semibold cursor-pointer flex items-center gap-1 ${
                   isSelected
                     ? 'bg-white/15 text-white border border-white/20 font-bold'
                     : 'text-neutral-400 hover:text-white hover:bg-white/5'

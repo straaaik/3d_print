@@ -63,7 +63,7 @@ export function DeleteCollectionModal({
           {/* Вариант 1: Расформировать */}
           <div
             onClick={() => setDeleteWithProducts(false)}
-            className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+            className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer ${
               !deleteWithProducts
                 ? 'bg-white/10 border-white/25 text-white font-semibold shadow-sm'
                 : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white'
@@ -90,7 +90,7 @@ export function DeleteCollectionModal({
           {/* Вариант 2: Удалить вместе с товарами */}
           <div
             onClick={() => setDeleteWithProducts(true)}
-            className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+            className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer ${
               deleteWithProducts
                 ? 'bg-rose-950/40 border-rose-800/60 text-white font-semibold shadow-sm'
                 : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white'

@@ -280,14 +280,14 @@ function PhysicsQuantitySlider({
         onPointerCancel={handlePointerUp}
         className="relative h-6 flex items-center cursor-pointer group py-2 touch-none"
       >
-        <div className="w-full h-1 bg-[#27272c] group-hover:bg-[#383840] rounded-full transition-colors" />
+        <div className="w-full h-1 bg-[#27272c] group-hover:bg-[#383840] rounded-full " />
 
         <div
           style={{ left: `${percent}%` }}
-          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white transition-transform duration-100 flex items-center justify-center pointer-events-none ${
+          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white duration-100 flex items-center justify-center pointer-events-none ${
             isDragging
               ? 'scale-125'
-              : 'group-hover:scale-125'
+              : ''
           }`}
         >
           <div className="w-1.5 h-1.5 bg-[#121214] rounded-full" />
@@ -303,7 +303,7 @@ function PhysicsQuantitySlider({
               key={qty}
               type="button"
               onClick={() => onChange(qty)}
-              className={`py-0.5 text-xs font-mono transition-colors cursor-pointer ${
+              className={`py-0.5 text-xs font-mono cursor-pointer ${
                 isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
               }`}
             >
@@ -350,11 +350,11 @@ function NativeVerticalStatusList({
               key={st}
               type="button"
               onClick={() => onChange(st)}
-              className={`group flex items-center gap-2.5 py-1 text-sm font-mono transition-colors cursor-pointer ${
+              className={`group flex items-center gap-2.5 py-1 text-sm font-mono cursor-pointer ${
                 isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-[#d4d4d8]'
               }`}
             >
-              <Icon className={`w-3.5 h-3.5 shrink-0 transition-colors ${isSelected ? 'text-white' : iconColor}`} />
+              <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-white' : iconColor}`} />
               <span className="relative inline-block">
                 <span>{st}</span>
                 <HandDrawnUnderline isSelected={isSelected} />
@@ -391,11 +391,11 @@ function NativeVerticalChannelList({
               key={ch}
               type="button"
               onClick={() => onChange(ch)}
-              className={`group flex items-center gap-2.5 py-1 text-sm font-mono transition-colors cursor-pointer ${
+              className={`group flex items-center gap-2.5 py-1 text-sm font-mono cursor-pointer ${
                 isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-[#d4d4d8]'
               }`}
             >
-              <Icon className={`w-3.5 h-3.5 shrink-0 transition-colors ${isSelected ? 'text-white' : 'text-[#71717a] group-hover:text-[#d4d4d8]'}`} />
+              <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-white' : 'text-[#71717a] group-hover:text-[#d4d4d8]'}`} />
               <span className="relative inline-block">
                 <span>{ch}</span>
                 <HandDrawnUnderline isSelected={isSelected} />
@@ -502,7 +502,7 @@ function NativeEmbeddedCalendar({
               key={p.label}
               type="button"
               onClick={() => onChange(p.dateStr)}
-              className={`py-0.5 text-xs font-mono transition-colors cursor-pointer ${
+              className={`py-0.5 text-xs font-mono cursor-pointer ${
                 isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
               }`}
             >
@@ -517,7 +517,7 @@ function NativeEmbeddedCalendar({
           <button
             type="button"
             onClick={() => onChange('')}
-            className="py-0.5 text-xs font-mono transition-colors cursor-pointer text-[#f87171] hover:text-white"
+            className="py-0.5 text-xs font-mono cursor-pointer text-[#f87171] hover:text-white"
           >
             <span>[сброс]</span>
           </button>
@@ -541,7 +541,7 @@ function NativeEmbeddedCalendar({
                     setViewMonth(viewMonth - 1);
                   }
                 }}
-                className="w-5 h-5 rounded text-[#71717a] hover:text-white flex items-center justify-center cursor-pointer text-sm transition-colors"
+                className="w-5 h-5 rounded text-[#71717a] hover:text-white flex items-center justify-center cursor-pointer text-sm "
               >
                 ‹
               </button>
@@ -555,7 +555,7 @@ function NativeEmbeddedCalendar({
                     setViewMonth(viewMonth + 1);
                   }
                 }}
-                className="w-5 h-5 rounded text-[#71717a] hover:text-white flex items-center justify-center cursor-pointer text-sm transition-colors"
+                className="w-5 h-5 rounded text-[#71717a] hover:text-white flex items-center justify-center cursor-pointer text-sm "
               >
                 ›
               </button>
@@ -588,7 +588,7 @@ function NativeEmbeddedCalendar({
                 key={dayNum}
                 type="button"
                 onClick={() => handleSelectDay(dayNum)}
-                className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center font-mono text-xs sm:text-sm transition-colors cursor-pointer ${
+                className={`w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center font-mono text-xs sm:text-sm cursor-pointer ${
                   isCurrentSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
                 }`}
               >
@@ -757,7 +757,7 @@ function NativeDualDateCalendar({
               setViewMonth(startDateObj.getMonth());
             }
           }}
-          className={`flex items-center gap-2 text-sm font-mono transition-colors cursor-pointer text-left ${
+          className={`flex items-center gap-2 text-sm font-mono cursor-pointer text-left ${
             activeDateType === 'start' ? 'text-white font-bold' : 'text-[#71717a] hover:text-[#d4d4d8]'
           }`}
         >
@@ -778,7 +778,7 @@ function NativeDualDateCalendar({
               setViewMonth(endDateObj.getMonth());
             }
           }}
-          className={`flex items-center gap-2 text-sm font-mono transition-colors cursor-pointer text-left ${
+          className={`flex items-center gap-2 text-sm font-mono cursor-pointer text-left ${
             activeDateType === 'end' ? 'text-white font-bold' : 'text-[#71717a] hover:text-[#d4d4d8]'
           }`}
         >
@@ -804,7 +804,7 @@ function NativeDualDateCalendar({
                 setViewMonth(viewMonth - 1);
               }
             }}
-            className="w-6 h-6 rounded text-[#71717a] hover:text-white flex items-center justify-center cursor-pointer text-base transition-colors"
+            className="w-6 h-6 rounded text-[#71717a] hover:text-white flex items-center justify-center cursor-pointer text-base "
             title="Предыдущий месяц"
           >
             ‹
@@ -822,7 +822,7 @@ function NativeDualDateCalendar({
                 setViewMonth(viewMonth + 1);
               }
             }}
-            className="w-6 h-6 rounded text-[#71717a] hover:text-white flex items-center justify-center cursor-pointer text-base transition-colors"
+            className="w-6 h-6 rounded text-[#71717a] hover:text-white flex items-center justify-center cursor-pointer text-base "
             title="Следующий месяц"
           >
             ›
@@ -864,7 +864,7 @@ function NativeDualDateCalendar({
                 key={dayNum}
                 type="button"
                 onClick={() => handleSelectDay(dayNum)}
-                className={`w-full h-8 rounded flex items-center justify-center font-mono text-xs sm:text-sm transition-all cursor-pointer ${
+                className={`w-full h-8 rounded flex items-center justify-center font-mono text-xs sm:text-sm cursor-pointer ${
                   isBoth
                     ? 'text-white font-bold bg-neutral-800'
                     : isStart
@@ -916,7 +916,7 @@ function NativeDualDateCalendar({
             <button
               type="button"
               onClick={() => handleDaysInputChange(String((parseInt(daysInput, 10) || 0) + 1))}
-              className="w-4 h-4 flex items-center justify-center text-sm font-bold text-[#71717a] hover:text-white transition-colors cursor-pointer leading-none"
+              className="w-4 h-4 flex items-center justify-center text-sm font-bold text-[#71717a] hover:text-white cursor-pointer leading-none"
               title="Увеличить на 1 день"
             >
               +
@@ -925,7 +925,7 @@ function NativeDualDateCalendar({
               type="button"
               onClick={() => handleDaysInputChange(String(Math.max(0, (parseInt(daysInput, 10) || 0) - 1)))}
               disabled={(parseInt(daysInput, 10) || 0) <= 0}
-              className="w-4 h-4 flex items-center justify-center text-sm font-bold text-[#71717a] hover:text-white disabled:text-[#3f3f46] disabled:cursor-not-allowed transition-colors cursor-pointer leading-none"
+              className="w-4 h-4 flex items-center justify-center text-sm font-bold text-[#71717a] hover:text-white disabled:text-[#3f3f46] disabled:cursor-not-allowed cursor-pointer leading-none"
               title="Уменьшить на 1 день"
             >
               −
@@ -957,7 +957,7 @@ function NativeDualDateCalendar({
                     onChangeEndDate(p.dateStr);
                   }
                 }}
-                className={`py-0.5 text-xs font-mono transition-colors cursor-pointer ${
+                className={`py-0.5 text-xs font-mono cursor-pointer ${
                   isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
                 }`}
               >
@@ -975,7 +975,7 @@ function NativeDualDateCalendar({
             <button
               type="button"
               onClick={() => (activeDateType === 'start' ? onChangeStartDate('') : onChangeEndDate(''))}
-              className="py-0.5 text-xs font-mono transition-colors cursor-pointer text-[#71717a] hover:text-[#f87171]"
+              className="py-0.5 text-xs font-mono cursor-pointer text-[#71717a] hover:text-[#f87171]"
             >
               <span>[сброс]</span>
             </button>
@@ -2006,14 +2006,14 @@ export function OrderFormModal({
                     onClick={handleAttemptClose}
                     title="Закрыть окно"
                     aria-label="Закрыть окно заказа"
-                    className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] hover:scale-125 active:scale-95 transition-all duration-150 cursor-pointer border-none outline-none"
+                    className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] duration-150 cursor-pointer border-none outline-none"
                   />
                   <button
                     type="button"
                     onClick={onMinimize ? onMinimize : undefined}
                     title="Свернуть черновик"
                     aria-label="Свернуть черновик заказа"
-                    className={`w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#fbbf24] hover:scale-125 active:scale-95 transition-all duration-150 border-none outline-none ${
+                    className={`w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#fbbf24] duration-150 border-none outline-none ${
                       onMinimize ? 'cursor-pointer' : 'cursor-default'
                     }`}
                   />
@@ -2041,13 +2041,13 @@ export function OrderFormModal({
                 <button
                   type="button"
                   onClick={() => setOrder({ ...order, type: 'income' })}
-                  className={`flex items-center gap-1.5 px-3 h-full rounded-lg text-xs font-medium transition-all cursor-pointer group ${
+                  className={`flex items-center gap-1.5 px-3 h-full rounded-lg text-xs font-medium cursor-pointer group ${
                     isIncome
                       ? 'bg-neutral-800 border border-white/15 text-white shadow-sm font-semibold'
                       : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
                   }`}
                 >
-                  <TrendingUp className={`w-3.5 h-3.5 transition-colors ${
+                  <TrendingUp className={`w-3.5 h-3.5 ${
                     isIncome ? 'text-cyan-400' : 'text-neutral-400 group-hover:text-white'
                   }`} />
                   <span>Доход</span>
@@ -2056,13 +2056,13 @@ export function OrderFormModal({
                 <button
                   type="button"
                   onClick={() => setOrder({ ...order, type: 'expense' })}
-                  className={`flex items-center gap-1.5 px-3 h-full rounded-lg text-xs font-medium transition-all cursor-pointer group ${
+                  className={`flex items-center gap-1.5 px-3 h-full rounded-lg text-xs font-medium cursor-pointer group ${
                     !isIncome
                       ? 'bg-neutral-800 border border-white/15 text-white shadow-sm font-semibold'
                       : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
                   }`}
                 >
-                  <TrendingDown className={`w-3.5 h-3.5 transition-colors ${
+                  <TrendingDown className={`w-3.5 h-3.5 ${
                     !isIncome ? 'text-rose-400' : 'text-neutral-400 group-hover:text-white'
                   }`} />
                   <span>Расход</span>
@@ -2105,7 +2105,7 @@ export function OrderFormModal({
                             key={tab.id}
                             type="button"
                             onClick={() => setActiveTab(tab.id)}
-                            className={`relative w-full flex items-center justify-between px-3 py-2 rounded-lg font-mono text-xs transition-colors cursor-pointer text-left select-none ${
+                            className={`relative w-full flex items-center justify-between px-3 py-2 rounded-lg font-mono text-xs cursor-pointer text-left select-none ${
                               isActive
                                 ? 'text-white font-semibold'
                                 : 'text-[#8e8e93] hover:text-white hover:bg-[#161619]'
@@ -2124,12 +2124,12 @@ export function OrderFormModal({
                               />
                             )}
                             <div className="relative z-10 flex items-center gap-2.5 min-w-0">
-                              <Icon className={`w-3.5 h-3.5 shrink-0 transition-colors ${isActive ? 'text-white' : 'text-[#71717a]'}`} />
+                              <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-[#71717a]'}`} />
                               <span className="truncate">{tab.code}</span>
                             </div>
 
                             {/* Индикаторная точка: зеленая если блок заполнен, серая если не заполнен */}
-                            <span className={`relative z-10 w-2 h-2 rounded-full shrink-0 ml-2 transition-colors ${
+                            <span className={`relative z-10 w-2 h-2 rounded-full shrink-0 ml-2 ${
                               isCompleted
                                 ? 'bg-[#34d399]'
                                 : 'bg-[#36363c]'
@@ -2158,7 +2158,7 @@ export function OrderFormModal({
                           placeholder="Поиск модели..."
                           value={productSearchQuery}
                           onChange={e => setProductSearchQuery(e.target.value)}
-                          className="w-full bg-[#161619] border border-[#27272c] focus:border-white/40 rounded-md pl-7 pr-6 py-1 text-xs text-white placeholder-[#52525b] font-mono focus:outline-none transition-colors"
+                          className="w-full bg-[#161619] border border-[#27272c] focus:border-white/40 rounded-md pl-7 pr-6 py-1 text-xs text-white placeholder-[#52525b] font-mono focus:outline-none "
                         />
                         {productSearchQuery && (
                           <button
@@ -2187,7 +2187,7 @@ export function OrderFormModal({
                                 key={prod.id}
                                 type="button"
                                 onClick={() => handleSelectProduct(prod)}
-                                className={`w-full py-1.5 px-2 rounded-lg font-mono text-left transition-all cursor-pointer border flex flex-col gap-0.5 group shrink-0 ${
+                                className={`w-full py-1.5 px-2 rounded-lg font-mono text-left cursor-pointer border flex flex-col gap-0.5 group shrink-0 ${
                                   isSelected
                                     ? 'bg-[#1e1e22] text-white border-white/30 shadow-sm'
                                     : 'bg-[#141416]/70 border-[#222226] text-[#a1a1aa] hover:text-white hover:bg-[#18181c] hover:border-[#383840]'
@@ -2237,7 +2237,7 @@ export function OrderFormModal({
                           placeholder="Поиск в истории..."
                           value={expenseHistorySearchQuery}
                           onChange={e => setExpenseHistorySearchQuery(e.target.value)}
-                          className="w-full bg-[#161619] border border-[#27272c] focus:border-white/40 rounded-md pl-7 pr-6 py-1 text-xs text-white placeholder-[#52525b] font-mono focus:outline-none transition-colors"
+                          className="w-full bg-[#161619] border border-[#27272c] focus:border-white/40 rounded-md pl-7 pr-6 py-1 text-xs text-white placeholder-[#52525b] font-mono focus:outline-none "
                         />
                         {expenseHistorySearchQuery && (
                           <button
@@ -2265,7 +2265,7 @@ export function OrderFormModal({
                                 key={exp.id}
                                 type="button"
                                 onClick={() => handleSelectPastExpense(exp)}
-                                className={`w-full py-1.5 px-2 rounded-lg font-mono text-left transition-all cursor-pointer border flex flex-col gap-0.5 group shrink-0 ${
+                                className={`w-full py-1.5 px-2 rounded-lg font-mono text-left cursor-pointer border flex flex-col gap-0.5 group shrink-0 ${
                                   isSelected
                                     ? 'bg-[#1e1e22] text-white border-white/30 shadow-sm'
                                     : 'bg-[#141416]/70 border-[#222226] text-[#a1a1aa] hover:text-white hover:bg-[#18181c] hover:border-[#383840]'
@@ -2310,7 +2310,7 @@ export function OrderFormModal({
                   {/* Прогресс-линия заполненности формы */}
                   <div className="w-full h-1 bg-[#1c1c20] rounded-full overflow-hidden">
                     <div 
-                      className={`h-full transition-all duration-300 rounded-full ${
+                      className={`h-full duration-300 rounded-full ${
                         completedTabsCount === tabsList.length ? 'bg-[#34d399]' : 'bg-white'
                       }`}
                       style={{ width: `${Math.max(6, (completedTabsCount / tabsList.length) * 100)}%` }}
@@ -2385,7 +2385,7 @@ export function OrderFormModal({
                                     <button
                                       type="button"
                                       onClick={() => handleQuantityChange((order.quantity || 1) + 1)}
-                                      className="w-4 h-4 flex items-center justify-center text-sm font-bold text-[#71717a] hover:text-white transition-colors cursor-pointer leading-none"
+                                      className="w-4 h-4 flex items-center justify-center text-sm font-bold text-[#71717a] hover:text-white cursor-pointer leading-none"
                                       title="Увеличить на 1"
                                     >
                                       +
@@ -2394,7 +2394,7 @@ export function OrderFormModal({
                                       type="button"
                                       onClick={() => handleQuantityChange(Math.max(1, (order.quantity || 1) - 1))}
                                       disabled={(order.quantity || 1) <= 1}
-                                      className="w-4 h-4 flex items-center justify-center text-sm font-bold text-[#71717a] hover:text-white disabled:text-[#3f3f46] disabled:cursor-not-allowed transition-colors cursor-pointer leading-none"
+                                      className="w-4 h-4 flex items-center justify-center text-sm font-bold text-[#71717a] hover:text-white disabled:text-[#3f3f46] disabled:cursor-not-allowed cursor-pointer leading-none"
                                       title="Уменьшить на 1"
                                     >
                                       −
@@ -2432,7 +2432,7 @@ export function OrderFormModal({
                                       placeholder="Поиск принтера..."
                                       value={printerSearch}
                                       onChange={e => setPrinterSearch(e.target.value)}
-                                      className="w-full bg-[#18181b] border border-[#27272c] focus:border-white/40 rounded-md pl-7 pr-6 py-0.5 text-xs text-white placeholder-[#52525b] font-mono focus:outline-none transition-colors"
+                                      className="w-full bg-[#18181b] border border-[#27272c] focus:border-white/40 rounded-md pl-7 pr-6 py-0.5 text-xs text-white placeholder-[#52525b] font-mono focus:outline-none "
                                     />
                                     {printerSearch && (
                                       <button
@@ -2455,7 +2455,7 @@ export function OrderFormModal({
                                             key={p.id}
                                             type="button"
                                             onClick={() => handleSelectPrinter(p.name)}
-                                            className={`flex items-center gap-2.5 py-0.5 text-xs font-mono transition-colors cursor-pointer text-left w-full ${
+                                            className={`flex items-center gap-2.5 py-0.5 text-xs font-mono cursor-pointer text-left w-full ${
                                               isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-[#d4d4d8]'
                                             }`}
                                           >
@@ -2484,7 +2484,7 @@ export function OrderFormModal({
                                               key={pName}
                                               type="button"
                                               onClick={() => handleSelectPrinter(pName)}
-                                              className={`flex items-center gap-2.5 py-0.5 text-xs font-mono transition-colors cursor-pointer text-left w-full ${
+                                              className={`flex items-center gap-2.5 py-0.5 text-xs font-mono cursor-pointer text-left w-full ${
                                                 isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-[#d4d4d8]'
                                               }`}
                                             >
@@ -2520,7 +2520,7 @@ export function OrderFormModal({
                                       placeholder="Поиск пластика..."
                                       value={filamentSearch}
                                       onChange={e => setFilamentSearch(e.target.value)}
-                                      className="w-full bg-[#18181b] border border-[#27272c] focus:border-white/40 rounded-md pl-7 pr-6 py-0.5 text-xs text-white placeholder-[#52525b] font-mono focus:outline-none transition-colors"
+                                      className="w-full bg-[#18181b] border border-[#27272c] focus:border-white/40 rounded-md pl-7 pr-6 py-0.5 text-xs text-white placeholder-[#52525b] font-mono focus:outline-none "
                                     />
                                     {filamentSearch && (
                                       <button
@@ -2543,7 +2543,7 @@ export function OrderFormModal({
                                             key={f.id}
                                             type="button"
                                             onClick={() => handleSelectFilament(f.name)}
-                                            className={`flex items-center gap-2.5 py-0.5 text-xs font-mono transition-colors cursor-pointer text-left w-full ${
+                                            className={`flex items-center gap-2.5 py-0.5 text-xs font-mono cursor-pointer text-left w-full ${
                                               isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-[#d4d4d8]'
                                             }`}
                                           >
@@ -2572,7 +2572,7 @@ export function OrderFormModal({
                                               key={fName}
                                               type="button"
                                               onClick={() => handleSelectFilament(fName)}
-                                              className={`flex items-center gap-2.5 py-0.5 text-xs font-mono transition-colors cursor-pointer text-left w-full ${
+                                              className={`flex items-center gap-2.5 py-0.5 text-xs font-mono cursor-pointer text-left w-full ${
                                                 isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-[#d4d4d8]'
                                               }`}
                                             >
@@ -2626,7 +2626,7 @@ export function OrderFormModal({
                                     placeholder="Поиск категории..."
                                     value={expenseCatSearch}
                                     onChange={e => setExpenseCatSearch(e.target.value)}
-                                    className="w-full bg-[#18181b] border border-[#27272c] focus:border-white/40 rounded-md pl-7 pr-6 py-1 text-xs text-white placeholder-[#52525b] font-mono focus:outline-none transition-colors"
+                                    className="w-full bg-[#18181b] border border-[#27272c] focus:border-white/40 rounded-md pl-7 pr-6 py-1 text-xs text-white placeholder-[#52525b] font-mono focus:outline-none "
                                   />
                                   {expenseCatSearch && (
                                     <button
@@ -2650,7 +2650,7 @@ export function OrderFormModal({
                                         <button
                                           type="button"
                                           onClick={() => setOrder({ ...order, client: cat })}
-                                          className={`text-xs font-mono text-left transition-colors cursor-pointer min-w-0 flex-1 ${
+                                          className={`text-xs font-mono text-left cursor-pointer min-w-0 flex-1 ${
                                             isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-[#d4d4d8]'
                                           }`}
                                         >
@@ -2667,7 +2667,7 @@ export function OrderFormModal({
                                               e.stopPropagation();
                                               handleDeleteCustomExpenseCat(cat);
                                             }}
-                                            className="text-[#71717a] hover:text-rose-400 text-xs px-1 font-mono cursor-pointer transition-colors"
+                                            className="text-[#71717a] hover:text-rose-400 text-xs px-1 font-mono cursor-pointer "
                                             title="Удалить категорию"
                                           >
                                             ×
@@ -2684,7 +2684,7 @@ export function OrderFormModal({
                                     <button
                                       type="button"
                                       onClick={() => setIsAddingExpenseCat(true)}
-                                      className="py-1 text-xs font-mono text-[#71717a] hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 select-none"
+                                      className="py-1 text-xs font-mono text-[#71717a] hover:text-white cursor-pointer flex items-center gap-1.5 select-none"
                                     >
                                       <span className="text-[#a1a1aa] font-bold">+</span>
                                       <span className="border-b border-dashed border-[#71717a] hover:border-white whitespace-nowrap">
@@ -2714,7 +2714,7 @@ export function OrderFormModal({
                                         <button
                                           type="button"
                                           onClick={handleCreateCustomExpenseCat}
-                                          className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 transition-colors"
+                                          className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 "
                                           title="Сохранить (Enter)"
                                         >
                                           <Check className="w-3.5 h-3.5" />
@@ -2725,7 +2725,7 @@ export function OrderFormModal({
                                             setIsAddingExpenseCat(false);
                                             setNewExpenseCatInput('');
                                           }}
-                                          className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 transition-colors"
+                                          className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 "
                                           title="Отмена (Esc)"
                                         >
                                           <X className="w-3.5 h-3.5" />
@@ -2755,9 +2755,9 @@ export function OrderFormModal({
                                     onClose();
                                     router.push('/calculator');
                                   }}
-                                  className="flex items-center gap-1.5 text-xs text-[#a1a1aa] hover:text-white font-mono select-none cursor-pointer transition-colors group"
+                                  className="flex items-center gap-1.5 text-xs text-[#a1a1aa] hover:text-white font-mono select-none cursor-pointer group"
                                 >
-                                  <CalculatorIcon className="w-3.5 h-3.5 text-[#71717a] group-hover:text-white transition-colors" />
+                                  <CalculatorIcon className="w-3.5 h-3.5 text-[#71717a] group-hover:text-white " />
                                   <span className="border-b border-dashed border-[#71717a] group-hover:border-white">
                                     открыть калькулятор 3D-печати ↗
                                   </span>
@@ -2801,7 +2801,7 @@ export function OrderFormModal({
                                               key={amt}
                                               type="button"
                                               onClick={() => handleUpdateBaseAmount(String(amt))}
-                                              className={`py-0.5 text-xs font-mono transition-colors cursor-pointer ${
+                                              className={`py-0.5 text-xs font-mono cursor-pointer ${
                                                 isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
                                               }`}
                                             >
@@ -2834,7 +2834,7 @@ export function OrderFormModal({
                                                   key={pct}
                                                   type="button"
                                                   onClick={() => handleApplyUrgency('percent', pct)}
-                                                  className={`py-0.5 text-xs font-mono transition-colors cursor-pointer ${
+                                                  className={`py-0.5 text-xs font-mono cursor-pointer ${
                                                     isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
                                                   }`}
                                                 >
@@ -2866,7 +2866,7 @@ export function OrderFormModal({
                                                   key={pct}
                                                   type="button"
                                                   onClick={() => handleApplyDiscount('percent', pct)}
-                                                  className={`py-0.5 text-xs font-mono transition-colors cursor-pointer ${
+                                                  className={`py-0.5 text-xs font-mono cursor-pointer ${
                                                     isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
                                                   }`}
                                                 >
@@ -2912,7 +2912,7 @@ export function OrderFormModal({
                                                   <button
                                                     type="button"
                                                     onClick={() => handleToggleExtraCostCategory(opt.category, currentAmount)}
-                                                    className={`relative py-0.5 text-xs font-mono transition-colors cursor-pointer select-none text-left whitespace-nowrap ${
+                                                    className={`relative py-0.5 text-xs font-mono cursor-pointer select-none text-left whitespace-nowrap ${
                                                       isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-neutral-300'
                                                     }`}
                                                     title={isSelected ? 'Нажмите, чтобы зачеркнуть расход' : 'Нажмите, чтобы включить расход'}
@@ -2931,7 +2931,7 @@ export function OrderFormModal({
                                                     <button
                                                       type="button"
                                                       onClick={() => handleDeleteCustomExtraCategory(opt.category)}
-                                                      className="text-[#71717a] hover:text-red-400 text-xs px-1 cursor-pointer transition-colors"
+                                                      className="text-[#71717a] hover:text-red-400 text-xs px-1 cursor-pointer "
                                                       title="Удалить из списка"
                                                     >
                                                       ×
@@ -2962,7 +2962,7 @@ export function OrderFormModal({
                                                   <button
                                                     type="button"
                                                     onClick={() => handleToggleExtraCostCategory(opt.category, opt.defaultAmount)}
-                                                    className="text-[11px] text-[#52525b] hover:text-[#71717a] font-mono transition-colors cursor-pointer whitespace-nowrap"
+                                                    className="text-[11px] text-[#52525b] hover:text-[#71717a] font-mono cursor-pointer whitespace-nowrap"
                                                   >
                                                     +{opt.defaultAmount} ₽
                                                   </button>
@@ -2977,7 +2977,7 @@ export function OrderFormModal({
                                               <button
                                                 type="button"
                                                 onClick={() => setIsAddingCustomCost(true)}
-                                                className="py-1 text-xs font-mono text-[#71717a] hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 select-none"
+                                                className="py-1 text-xs font-mono text-[#71717a] hover:text-white cursor-pointer flex items-center gap-1.5 select-none"
                                               >
                                                 <span className="text-[#a1a1aa] font-bold">+</span>
                                                 <span className="border-b border-dashed border-[#71717a] hover:border-white whitespace-nowrap">Добавить свой расход в список</span>
@@ -3019,7 +3019,7 @@ export function OrderFormModal({
                                                     <button
                                                       type="button"
                                                       onClick={handleCreateCustomExtraCostItem}
-                                                      className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 transition-colors"
+                                                      className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 "
                                                       title="Сохранить (Enter)"
                                                     >
                                                       <Check className="w-3.5 h-3.5" />
@@ -3031,7 +3031,7 @@ export function OrderFormModal({
                                                         setCustomCostCategoryInput('');
                                                         setCustomCostAmountInput('');
                                                       }}
-                                                      className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 transition-colors"
+                                                      className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 "
                                                       title="Отмена (Esc)"
                                                     >
                                                       <X className="w-3.5 h-3.5" />
@@ -3075,7 +3075,7 @@ export function OrderFormModal({
                                                   key={c}
                                                   type="button"
                                                   onClick={() => handleUpdateManualBaseCost(String(c))}
-                                                  className={`py-0.5 text-xs font-mono transition-colors cursor-pointer whitespace-nowrap ${
+                                                  className={`py-0.5 text-xs font-mono cursor-pointer whitespace-nowrap ${
                                                     isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
                                                   }`}
                                                 >
@@ -3120,7 +3120,7 @@ export function OrderFormModal({
                                                   key={pct}
                                                   type="button"
                                                   onClick={() => handleApplyPaymentPreset(ratio)}
-                                                  className={`py-0.5 text-xs font-mono transition-colors cursor-pointer whitespace-nowrap ${
+                                                  className={`py-0.5 text-xs font-mono cursor-pointer whitespace-nowrap ${
                                                     isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
                                                   }`}
                                                 >
@@ -3182,7 +3182,7 @@ export function OrderFormModal({
                                                 key={wVal}
                                                 type="button"
                                                 onClick={() => setCalcWeight(wVal)}
-                                                className={`py-0.5 text-xs font-mono transition-colors cursor-pointer ${
+                                                className={`py-0.5 text-xs font-mono cursor-pointer ${
                                                   isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
                                                 }`}
                                               >
@@ -3251,7 +3251,7 @@ export function OrderFormModal({
                                                   setCalcHours(tOpt.h);
                                                   setCalcMinutes(tOpt.m);
                                                 }}
-                                                className={`py-0.5 text-xs font-mono transition-colors cursor-pointer ${
+                                                className={`py-0.5 text-xs font-mono cursor-pointer ${
                                                   isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
                                                 }`}
                                               >
@@ -3298,7 +3298,7 @@ export function OrderFormModal({
                                                 key={mVal}
                                                 type="button"
                                                 onClick={() => setCalcMarkup(mVal)}
-                                                className={`py-0.5 text-xs font-mono transition-colors cursor-pointer ${
+                                                className={`py-0.5 text-xs font-mono cursor-pointer ${
                                                   isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
                                                 }`}
                                               >
@@ -3345,7 +3345,7 @@ export function OrderFormModal({
                                                 key={dVal}
                                                 type="button"
                                                 onClick={() => setCalcDefect(dVal)}
-                                                className={`py-0.5 text-xs font-mono transition-colors cursor-pointer ${
+                                                className={`py-0.5 text-xs font-mono cursor-pointer ${
                                                   isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
                                                 }`}
                                               >
@@ -3374,7 +3374,7 @@ export function OrderFormModal({
                                           <button
                                             type="button"
                                             onClick={() => setCalcIsOwnerLabor(!calcIsOwnerLabor)}
-                                            className={`px-1.5 py-0.2 rounded text-[10px] border transition-colors cursor-pointer ${
+                                            className={`px-1.5 py-0.2 rounded text-[10px] border cursor-pointer ${
                                               calcIsOwnerLabor
                                                 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
                                                 : 'bg-neutral-900 text-neutral-400 border-white/10'
@@ -3405,7 +3405,7 @@ export function OrderFormModal({
                                                 key={lVal}
                                                 type="button"
                                                 onClick={() => setCalcLaborMinutes(lVal)}
-                                                className={`py-0.5 text-xs font-mono transition-colors cursor-pointer ${
+                                                className={`py-0.5 text-xs font-mono cursor-pointer ${
                                                   isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
                                                 }`}
                                               >
@@ -3440,7 +3440,7 @@ export function OrderFormModal({
                                                     key={pct}
                                                     type="button"
                                                     onClick={() => setCalcUrgencyPct(pct)}
-                                                    className={`py-0.5 text-xs font-mono transition-colors cursor-pointer ${
+                                                    className={`py-0.5 text-xs font-mono cursor-pointer ${
                                                       isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
                                                     }`}
                                                   >
@@ -3472,7 +3472,7 @@ export function OrderFormModal({
                                                     key={pct}
                                                     type="button"
                                                     onClick={() => setCalcDiscountPct(pct)}
-                                                    className={`py-0.5 text-xs font-mono transition-colors cursor-pointer ${
+                                                    className={`py-0.5 text-xs font-mono cursor-pointer ${
                                                       isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
                                                     }`}
                                                   >
@@ -3533,7 +3533,7 @@ export function OrderFormModal({
                                                   onClick={() => {
                                                     setCalcCustomCosts(prev => prev.map(i => i.id === cat.id ? { ...i, isPerUnit: !i.isPerUnit } : i));
                                                   }}
-                                                  className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors cursor-pointer font-bold ${
+                                                  className={`px-1.5 py-0.5 rounded text-[10px] border cursor-pointer font-bold ${
                                                     activeItem.isPerUnit
                                                       ? 'bg-white/20 text-white border-white/40'
                                                       : 'bg-neutral-900 text-[#a1a1aa] border-white/10'
@@ -3547,7 +3547,7 @@ export function OrderFormModal({
                                                   onClick={() => {
                                                     setCalcCustomCosts(prev => prev.filter(i => i.id !== cat.id));
                                                   }}
-                                                  className="hover:text-red-400 px-1 text-xs font-bold transition-colors cursor-pointer"
+                                                  className="hover:text-red-400 px-1 text-xs font-bold cursor-pointer"
                                                   title="Удалить услугу"
                                                 >
                                                   ×
@@ -3572,7 +3572,7 @@ export function OrderFormModal({
                                                   },
                                                 ]);
                                               }}
-                                              className="px-2.5 py-1 rounded-lg text-xs font-mono border border-white/10 bg-white/[0.02] text-[#71717a] hover:text-white hover:border-white/20 transition-all cursor-pointer flex items-center gap-1"
+                                              className="px-2.5 py-1 rounded-lg text-xs font-mono border border-white/10 bg-white/[0.02] text-[#71717a] hover:text-white hover:border-white/20 cursor-pointer flex items-center gap-1"
                                             >
                                               <span>+</span>
                                               <span>{cat.name}</span>
@@ -3611,7 +3611,7 @@ export function OrderFormModal({
                                       <button
                                         type="button"
                                         onClick={handleApplyCalculationToOrder}
-                                        className={`w-full py-3 px-4 rounded-xl font-mono text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg select-none ${
+                                        className={`w-full py-3 px-4 rounded-xl font-mono text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-lg select-none ${
                                           calcAppliedFeedback
                                             ? 'bg-emerald-500 text-black border border-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.4)]'
                                             : 'bg-white hover:bg-neutral-200 text-black border border-white shadow-[0_0_20px_rgba(255,255,255,0.15)]'
@@ -3660,7 +3660,7 @@ export function OrderFormModal({
                                         key={amt}
                                         type="button"
                                         onClick={() => setOrder({ ...order, amount: amt })}
-                                        className={`py-0.5 text-xs font-mono transition-colors cursor-pointer ${
+                                        className={`py-0.5 text-xs font-mono cursor-pointer ${
                                           isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
                                         }`}
                                       >
@@ -3764,7 +3764,7 @@ export function OrderFormModal({
                                           <button
                                             type="button"
                                             onClick={() => handleToggleContact(opt.type, opt.label)}
-                                            className={`relative py-0.5 text-xs font-mono transition-colors cursor-pointer select-none text-left whitespace-nowrap ${
+                                            className={`relative py-0.5 text-xs font-mono cursor-pointer select-none text-left whitespace-nowrap ${
                                               isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-neutral-300'
                                             }`}
                                             title={isSelected ? 'Нажмите, чтобы зачеркнуть контакт' : 'Нажмите, чтобы указать контакт'}
@@ -3781,7 +3781,7 @@ export function OrderFormModal({
                                             <button
                                               type="button"
                                               onClick={() => handleDeleteCustomContactOption(opt.label)}
-                                              className="text-[#71717a] hover:text-red-400 text-xs px-1 cursor-pointer transition-colors"
+                                              className="text-[#71717a] hover:text-red-400 text-xs px-1 cursor-pointer "
                                               title="Удалить из списка"
                                             >
                                               ×
@@ -3812,7 +3812,7 @@ export function OrderFormModal({
                                       <button
                                         type="button"
                                         onClick={() => setIsAddingCustomContact(true)}
-                                        className="py-1 text-xs font-mono text-[#71717a] hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 select-none"
+                                        className="py-1 text-xs font-mono text-[#71717a] hover:text-white cursor-pointer flex items-center gap-1.5 select-none"
                                       >
                                         <span className="text-[#a1a1aa] font-bold">+</span>
                                         <span className="border-b border-dashed border-[#71717a] hover:border-white whitespace-nowrap">
@@ -3839,7 +3839,7 @@ export function OrderFormModal({
                                           <button
                                             type="button"
                                             onClick={handleCreateCustomContactOption}
-                                            className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 transition-colors"
+                                            className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 "
                                             title="Сохранить (Enter)"
                                           >
                                             <Check className="w-3.5 h-3.5" />
@@ -3850,7 +3850,7 @@ export function OrderFormModal({
                                               setIsAddingCustomContact(false);
                                               setCustomContactLabelInput('');
                                             }}
-                                            className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 transition-colors"
+                                            className="p-1 text-neutral-400 hover:text-white text-xs font-mono cursor-pointer rounded hover:bg-white/10 "
                                             title="Отмена (Esc)"
                                           >
                                             <X className="w-3.5 h-3.5" />
@@ -3882,7 +3882,7 @@ export function OrderFormModal({
                               placeholder="Адрес доставки, ПВЗ СДЭК, Boxberry, пожелания по постобработке, цвету или любые комментарии к заказу..."
                               value={order.notes || ''}
                               onChange={e => setOrder({ ...order, notes: e.target.value })}
-                              className="w-full bg-[#121214] border border-[#27272c] focus:border-white/40 rounded-xl p-3 text-xs text-white placeholder-[#52525b] focus:outline-none resize-none font-mono leading-relaxed transition-colors"
+                              className="w-full bg-[#121214] border border-[#27272c] focus:border-white/40 rounded-xl p-3 text-xs text-white placeholder-[#52525b] focus:outline-none resize-none font-mono leading-relaxed "
                             />
                           </div>
                         </div>
@@ -3901,7 +3901,7 @@ export function OrderFormModal({
                             placeholder="Укажите поставщика, магазин (напр. Ozon, Filamentarno), трек-номер, номер чека или комментарии..."
                             value={order.notes || ''}
                             onChange={e => setOrder({ ...order, notes: e.target.value })}
-                            className="w-full bg-[#18181b] border border-[#27272c] focus:border-white/40 rounded-xl p-3 text-xs text-white placeholder-[#52525b] focus:outline-none resize-none font-mono leading-relaxed transition-colors"
+                            className="w-full bg-[#18181b] border border-[#27272c] focus:border-white/40 rounded-xl p-3 text-xs text-white placeholder-[#52525b] focus:outline-none resize-none font-mono leading-relaxed "
                           />
                         </div>
                       )}
@@ -4160,7 +4160,7 @@ export function OrderFormModal({
                         {/* Тонкий аккуратный прогресс-бар */}
                         <div className="w-full h-1 bg-[#222226] rounded-full overflow-hidden">
                           <div 
-                            className="h-full bg-white rounded-full transition-all duration-300"
+                            className="h-full bg-white rounded-full duration-300"
                             style={{ width: `${Math.min(100, Math.max(paymentRatio > 0 ? 4 : 0, paymentRatio * 100))}%` }}
                           />
                         </div>
@@ -4255,7 +4255,7 @@ export function OrderFormModal({
                     type="button"
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className="w-full py-2 rounded-lg bg-white hover:bg-[#e4e4e7] active:scale-[0.99] text-black font-semibold text-xs font-mono transition-all cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-wait"
+                    className="w-full py-2 rounded-lg bg-white hover:bg-[#e4e4e7] text-black font-semibold text-xs font-mono cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-wait"
                   >
                     {isSubmitting ? 'Сохранение…' : order.id
                       ? (isIncome ? 'Сохранить изменения' : 'Сохранить расход') 
@@ -4265,7 +4265,7 @@ export function OrderFormModal({
                   <button
                     type="button"
                     onClick={handleAttemptClose}
-                    className="w-full py-1.5 rounded-lg bg-transparent hover:bg-white/5 border border-white/10 text-[#71717a] hover:text-white text-xs font-mono transition-all cursor-pointer"
+                    className="w-full py-1.5 rounded-lg bg-transparent hover:bg-white/5 border border-white/10 text-[#71717a] hover:text-white text-xs font-mono cursor-pointer"
                   >
                     Закрыть [Esc]
                   </button>
@@ -4324,7 +4324,7 @@ export function OrderFormModal({
                     <button
                       type="button"
                       onClick={() => setShowUnsavedWarning(false)}
-                      className="w-full py-1.5 text-center text-[11px] text-[#71717a] hover:text-white transition-colors cursor-pointer"
+                      className="w-full py-1.5 text-center text-[11px] text-[#71717a] hover:text-white cursor-pointer"
                     >
                       [ Продолжить редактирование ]
                     </button>

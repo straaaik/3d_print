@@ -69,7 +69,7 @@ export function QuickStepper({
       )}
 
       <div
-        className={`flex items-center rounded-xl h-9 min-h-[36px] overflow-hidden transition-all select-none ${
+        className={`flex items-center rounded-xl h-9 min-h-[36px] overflow-hidden select-none ${
           disabled
             ? 'bg-neutral-950 border border-white/5 opacity-40 cursor-not-allowed'
             : isModified
@@ -82,7 +82,7 @@ export function QuickStepper({
             type="button"
             onClick={() => handleStep('down')}
             disabled={disabled || value <= min}
-            className="h-full px-2.5 text-neutral-400 hover:text-white hover:bg-white/10 active:scale-90 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-neutral-500 transition-all flex items-center justify-center border-r border-white/10 cursor-pointer disabled:cursor-not-allowed"
+            className="h-full px-2.5 text-neutral-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-neutral-500 flex items-center justify-center border-r border-white/10 cursor-pointer disabled:cursor-not-allowed"
           >
             <Minus size={13} />
           </button>
@@ -131,7 +131,7 @@ export function QuickStepper({
             type="button"
             onClick={() => handleStep('up')}
             disabled={disabled || value >= max}
-            className="h-full px-2.5 text-neutral-400 hover:text-white hover:bg-white/10 active:scale-90 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-neutral-500 transition-all flex items-center justify-center border-l border-white/10 cursor-pointer disabled:cursor-not-allowed"
+            className="h-full px-2.5 text-neutral-400 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-neutral-500 flex items-center justify-center border-l border-white/10 cursor-pointer disabled:cursor-not-allowed"
           >
             <Plus size={13} />
           </button>
@@ -150,7 +150,7 @@ export function QuickStepper({
                   onChange(preset);
                   setLocalVal(preset.toString());
                 }}
-                className={`px-2 py-0.5 text-[11px] font-mono rounded-lg transition-all cursor-pointer border ${
+                className={`px-2 py-0.5 text-[11px] font-mono rounded-lg cursor-pointer border ${
                   isSelected
                     ? 'bg-white/15 text-white border-white/30 font-bold'
                     : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white hover:bg-white/5'

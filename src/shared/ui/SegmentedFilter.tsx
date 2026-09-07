@@ -53,7 +53,7 @@ export function SegmentedFilter<Value extends string>({
             aria-label={option.ariaLabel ?? option.label}
             disabled={disabled}
             onClick={() => onChange(option.value)}
-            className={`group relative flex h-full cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 select-none ${
+            className={`group relative flex h-full cursor-pointer items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/70 disabled:cursor-not-allowed disabled:opacity-40 sm:px-3 select-none ${
               isActive
                 ? 'text-white'
                 : 'text-neutral-400 hover:bg-white/5 hover:text-white'
@@ -73,16 +73,16 @@ export function SegmentedFilter<Value extends string>({
             )}
             <Icon
               aria-hidden="true"
-              className={`relative z-10 h-3.5 w-3.5 shrink-0 transition-colors ${
+              className={`relative z-10 h-3.5 w-3.5 shrink-0 ${
                 isActive ? 'text-cyan-400' : 'text-neutral-400 group-hover:text-white'
               }`}
             />
-            <span className={`relative z-10 transition-colors ${isActive ? 'text-white' : 'text-neutral-400 group-hover:text-white'}`}>
+            <span className={`relative z-10 ${isActive ? 'text-white' : 'text-neutral-400 group-hover:text-white'}`}>
               {option.label}
             </span>
             {option.badge !== undefined && option.badge !== null ? (
               <span
-                className={`relative z-10 rounded px-1.5 py-0.5 font-mono text-[10px] leading-none transition-colors ${
+                className={`relative z-10 rounded px-1.5 py-0.5 font-mono text-[10px] leading-none ${
                   isActive
                     ? 'bg-cyan-500/20 text-cyan-300'
                     : 'bg-white/5 text-neutral-400 group-hover:text-neutral-300'

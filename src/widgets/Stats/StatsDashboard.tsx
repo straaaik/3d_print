@@ -170,7 +170,7 @@ export function StatsDashboard() {
                   <button
                     type="button"
                     onClick={() => curtainNavigate('/')}
-                    className="h-3 w-3 rounded-full border border-red-400/40 bg-red-500/80 hover:bg-red-500 hover:scale-125 active:scale-95 transition-all duration-150 cursor-pointer outline-none shadow-sm shadow-red-500/30"
+                    className="h-3 w-3 rounded-full border border-red-400/40 bg-red-500/80 hover:bg-red-500 duration-150 cursor-pointer outline-none shadow-sm shadow-red-500/30"
                   />
                 </Tooltip>
                 <span className="h-3 w-3 rounded-full border border-yellow-400/40 bg-yellow-500/80" />

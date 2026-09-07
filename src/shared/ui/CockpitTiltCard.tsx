@@ -303,7 +303,7 @@ export const CockpitTiltCard = React.memo(function CockpitTiltCard({
                   transform: 'rotateY(0deg) translateZ(1px)',
                 }
           }
-          className={`relative z-10 flex h-full w-full flex-col justify-between overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] shadow-sm transition-colors hover:border-white/20 ${className} ${isFlipped && shouldReduceMotion ? 'hidden' : ''}`}
+          className={`relative z-10 flex h-full w-full flex-col justify-between overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] shadow-sm hover:border-white/20 ${className} ${isFlipped && shouldReduceMotion ? 'hidden' : ''}`}
         >
           {/* Мягкий рассеянный световой след курсора */}
           {!shouldReduceMotion && (
@@ -311,7 +311,7 @@ export const CockpitTiltCard = React.memo(function CockpitTiltCard({
               <motion.div
                 aria-hidden="true"
                 style={{ opacity: smoothGlareOpacity, background: glareBackground }}
-                className="pointer-events-none absolute inset-0 z-20 rounded-xl transition-opacity"
+                className="pointer-events-none absolute inset-0 z-20 rounded-xl "
               />
               <motion.div
                 aria-hidden="true"
@@ -350,7 +350,7 @@ export const CockpitTiltCard = React.memo(function CockpitTiltCard({
                 <motion.div
                   aria-hidden="true"
                   style={{ opacity: smoothGlareOpacity, background: glareBackground }}
-                  className="pointer-events-none absolute inset-0 z-20 rounded-xl transition-opacity"
+                  className="pointer-events-none absolute inset-0 z-20 rounded-xl "
                 />
                 <motion.div
                   aria-hidden="true"

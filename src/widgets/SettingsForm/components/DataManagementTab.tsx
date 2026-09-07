@@ -164,13 +164,13 @@ export function DataManagementTab({
             <button
               type="button"
               onClick={handleExportData}
-              className="p-3.5 rounded-xl bg-neutral-900 border border-white/10 hover:border-cyan-400/50 flex items-center gap-3 text-left transition-all cursor-pointer select-none group"
+              className="p-3.5 rounded-xl bg-neutral-900 border border-white/10 hover:border-cyan-400/50 flex items-center gap-3 text-left cursor-pointer select-none group"
             >
-              <div className="p-2.5 rounded-lg bg-cyan-950/60 text-cyan-400 border border-cyan-800/40 group-hover:scale-105 transition-transform">
+              <div className="p-2.5 rounded-lg bg-cyan-950/60 text-cyan-400 border border-cyan-800/40 ">
                 <Download size={18} />
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors font-mono">
+                <span className="text-xs font-bold text-white group-hover:text-cyan-300 font-mono">
                   Экспортировать бэкап
                 </span>
                 <span className="text-[10px] text-neutral-400 font-sans">
@@ -190,13 +190,13 @@ export function DataManagementTab({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="p-3.5 rounded-xl bg-neutral-900 border border-white/10 hover:border-cyan-400/50 flex items-center gap-3 text-left transition-all cursor-pointer select-none group"
+              className="p-3.5 rounded-xl bg-neutral-900 border border-white/10 hover:border-cyan-400/50 flex items-center gap-3 text-left cursor-pointer select-none group"
             >
-              <div className="p-2.5 rounded-lg bg-cyan-950/60 text-cyan-400 border border-cyan-800/40 group-hover:scale-105 transition-transform">
+              <div className="p-2.5 rounded-lg bg-cyan-950/60 text-cyan-400 border border-cyan-800/40 ">
                 <Upload size={18} />
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors font-mono">
+                <span className="text-xs font-bold text-white group-hover:text-cyan-300 font-mono">
                   Импортировать из файла
                 </span>
                 <span className="text-[10px] text-neutral-400 font-sans">

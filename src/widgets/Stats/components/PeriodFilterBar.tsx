@@ -137,7 +137,7 @@ export function PeriodFilterBar({
               setIsCustomOpen(false);
               onSelectPreset('all');
             }}
-            className={`px-3 h-9 rounded-xl text-xs font-mono font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 h-9 rounded-xl text-xs font-mono font-semibold whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
               selectedPreset === 'all'
                 ? 'bg-neutral-800 text-white border border-white/15 shadow-sm font-bold'
                 : 'bg-neutral-950/80 text-neutral-400 hover:text-white hover:bg-white/5 border border-white/10'
@@ -157,7 +157,7 @@ export function PeriodFilterBar({
                 key={p.id}
                 type="button"
                 onClick={() => handleShortcutClick(p.id)}
-                className={`px-2.5 h-9 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                className={`px-2.5 h-9 rounded-xl text-xs font-mono font-semibold cursor-pointer whitespace-nowrap ${
                   isActive
                     ? 'bg-neutral-800 text-white border border-white/15 font-bold shadow-sm'
                     : 'bg-neutral-950/80 text-neutral-400 hover:text-neutral-200 border border-white/10 hover:bg-white/5'
@@ -171,7 +171,7 @@ export function PeriodFilterBar({
           <button
             type="button"
             onClick={handleCustomToggle}
-            className={`px-2.5 h-9 rounded-xl text-xs font-mono font-semibold transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
+            className={`px-2.5 h-9 rounded-xl text-xs font-mono font-semibold cursor-pointer flex items-center gap-1 whitespace-nowrap ${
               selectedPreset === 'custom' || isCustomOpen
                 ? 'bg-neutral-800 text-white border border-white/15 font-bold shadow-sm'
                 : 'bg-neutral-950/80 text-neutral-400 hover:text-neutral-200 border border-white/10 hover:bg-white/5'
@@ -179,7 +179,7 @@ export function PeriodFilterBar({
           >
             <Calendar className="w-3.5 h-3.5 text-neutral-400" />
             <span>Даты</span>
-            <ChevronDown className={`w-3 h-3 transition-transform ${isCustomOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-3 h-3 ${isCustomOpen ? 'rotate-180' : ''}`} />
           </button>
         </div>
       </div>
@@ -218,7 +218,7 @@ export function PeriodFilterBar({
                 });
                 onSelectPreset('custom');
               }}
-              className="flex-1 h-9 px-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-white/10 text-neutral-300 hover:text-white text-xs font-medium transition-colors flex items-center justify-center cursor-pointer font-mono"
+              className="flex-1 h-9 px-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-white/10 text-neutral-300 hover:text-white text-xs font-medium flex items-center justify-center cursor-pointer font-mono"
             >
               С 1 числа месяца
             </button>
@@ -230,7 +230,7 @@ export function PeriodFilterBar({
                   onSelectPreset('all');
                   setIsCustomOpen(false);
                 }}
-                className="h-9 px-3 rounded-xl bg-neutral-900 hover:bg-rose-950/40 text-neutral-400 hover:text-rose-300 border border-white/10 hover:border-rose-500/30 text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer font-mono"
+                className="h-9 px-3 rounded-xl bg-neutral-900 hover:bg-rose-950/40 text-neutral-400 hover:text-rose-300 border border-white/10 hover:border-rose-500/30 text-xs font-medium flex items-center justify-center gap-1 cursor-pointer font-mono"
               >
                 <X className="w-3.5 h-3.5" />
                 <span>Сброс</span>

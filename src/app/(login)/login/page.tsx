@@ -160,9 +160,9 @@ export default function LoginPage() {
       <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between select-none">
         <Link 
           href="/about" 
-          className="flex items-center gap-2.5 font-mono text-xs text-neutral-300 hover:text-white transition-colors group"
+          className="flex items-center gap-2.5 font-mono text-xs text-neutral-300 hover:text-white group"
         >
-          <div className="w-7 h-7 rounded-lg bg-neutral-900 border border-white/15 flex items-center justify-center text-white group-hover:border-white/30 transition-colors shadow-sm">
+          <div className="w-7 h-7 rounded-lg bg-neutral-900 border border-white/15 flex items-center justify-center text-white group-hover:border-white/30 shadow-sm">
             <Layers className="w-3.5 h-3.5 text-cyan-400" />
           </div>
           <div className="flex items-center gap-1.5">
@@ -174,7 +174,7 @@ export default function LoginPage() {
 
         <Link
           href="/about"
-          className="px-3 py-1.5 rounded-lg font-mono text-xs flex items-center gap-1.5 transition-all border border-white/10 bg-white/5 text-neutral-400 hover:text-white hover:bg-white/10 hover:border-white/20"
+          className="px-3 py-1.5 rounded-lg font-mono text-xs flex items-center gap-1.5 border border-white/10 bg-white/5 text-neutral-400 hover:text-white hover:bg-white/10 hover:border-white/20"
         >
           <Sparkles className="w-3 h-3 text-cyan-400" />
           <span>[ О системе ]</span>
@@ -241,7 +241,7 @@ export default function LoginPage() {
                   setActiveTab('login');
                   setFormError(null);
                 }}
-                className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                className={`py-2 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === 'login'
                     ? 'bg-white/15 text-white font-bold border border-white/20 shadow-sm'
                     : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
@@ -257,7 +257,7 @@ export default function LoginPage() {
                   setActiveTab('register');
                   setFormError(null);
                 }}
-                className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                className={`py-2 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeTab === 'register'
                     ? 'bg-white/15 text-white font-bold border border-white/20 shadow-sm'
                     : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
@@ -301,7 +301,7 @@ export default function LoginPage() {
                     <label htmlFor="login-email" className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider block">
                       {'// Электронная почта'}
                     </label>
-                    <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl px-3 py-2 transition-all flex items-center gap-2.5">
+                    <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl px-3 py-2 flex items-center gap-2.5">
                       <Mail className="w-4 h-4 text-neutral-500 shrink-0" />
                       <input
                         id="login-email"
@@ -322,7 +322,7 @@ export default function LoginPage() {
                     <label htmlFor="login-password" className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider block">
                       {'// Пароль доступа'}
                     </label>
-                    <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl px-3 py-2 transition-all flex items-center gap-2.5">
+                    <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl px-3 py-2 flex items-center gap-2.5">
                       <Lock className="w-4 h-4 text-neutral-500 shrink-0" />
                       <input
                         id="login-password"
@@ -340,7 +340,7 @@ export default function LoginPage() {
                         onClick={() => setShowPassword(!showPassword)}
                         aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
                         title={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
-                        className="text-neutral-500 hover:text-white transition-colors cursor-pointer shrink-0"
+                        className="text-neutral-500 hover:text-white cursor-pointer shrink-0"
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -351,7 +351,7 @@ export default function LoginPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full mt-2 py-3 px-5 rounded-xl bg-white hover:bg-neutral-200 active:scale-[0.98] text-neutral-950 font-bold font-mono text-xs sm:text-sm tracking-tight transition-all shadow-[0_0_25px_-5px_rgba(255,255,255,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full mt-2 py-3 px-5 rounded-xl bg-white hover:bg-neutral-200 text-neutral-950 font-bold font-mono text-xs sm:text-sm tracking-tight shadow-[0_0_25px_-5px_rgba(255,255,255,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSubmitting ? (
                       <div className="w-4 h-4 border-2 border-neutral-950/30 border-t-neutral-950 rounded-full animate-spin" />
@@ -387,7 +387,7 @@ export default function LoginPage() {
                     <label htmlFor="registration-name" className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider block">
                       {'// Имя или название студии'}
                     </label>
-                    <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl px-3 py-2 transition-all flex items-center gap-2.5">
+                    <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl px-3 py-2 flex items-center gap-2.5">
                       <UserIcon className="w-4 h-4 text-neutral-500 shrink-0" />
                       <input
                         id="registration-name"
@@ -408,7 +408,7 @@ export default function LoginPage() {
                     <label htmlFor="registration-email" className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider block">
                       {'// Рабочая почта'}
                     </label>
-                    <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl px-3 py-2 transition-all flex items-center gap-2.5">
+                    <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl px-3 py-2 flex items-center gap-2.5">
                       <Mail className="w-4 h-4 text-neutral-500 shrink-0" />
                       <input
                         id="registration-email"
@@ -430,7 +430,7 @@ export default function LoginPage() {
                       <label htmlFor="registration-password" className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider block">
                         {'// Пароль'}
                       </label>
-                      <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl px-3 py-2 transition-all flex items-center gap-2">
+                      <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl px-3 py-2 flex items-center gap-2">
                         <Lock className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
                         <input
                           id="registration-password"
@@ -448,7 +448,7 @@ export default function LoginPage() {
                           onClick={() => setShowPassword(!showPassword)}
                           aria-label={showPassword ? 'Скрыть пароль регистрации' : 'Показать пароль регистрации'}
                           title={showPassword ? 'Скрыть пароль регистрации' : 'Показать пароль регистрации'}
-                          className="text-neutral-500 hover:text-white transition-colors cursor-pointer"
+                          className="text-neutral-500 hover:text-white cursor-pointer"
                         >
                           {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
@@ -459,7 +459,7 @@ export default function LoginPage() {
                       <label htmlFor="registration-password-confirmation" className="text-[11px] font-mono text-neutral-400 uppercase tracking-wider block">
                         {'// Повтор пароля'}
                       </label>
-                      <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl px-3 py-2 transition-all flex items-center gap-2">
+                      <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 focus-within:border-cyan-400/80 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl px-3 py-2 flex items-center gap-2">
                         <Lock className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
                         <input
                           id="registration-password-confirmation"
@@ -477,7 +477,7 @@ export default function LoginPage() {
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                           aria-label={showConfirmPassword ? 'Скрыть подтверждение пароля' : 'Показать подтверждение пароля'}
                           title={showConfirmPassword ? 'Скрыть подтверждение пароля' : 'Показать подтверждение пароля'}
-                          className="text-neutral-500 hover:text-white transition-colors cursor-pointer"
+                          className="text-neutral-500 hover:text-white cursor-pointer"
                         >
                           {showConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                         </button>
@@ -494,7 +494,7 @@ export default function LoginPage() {
                       </label>
                       <span className="text-[10px] font-mono text-neutral-500">ТРЕБУЕТСЯ</span>
                     </div>
-                    <div className="bg-amber-950/20 border border-amber-500/40 focus-within:border-amber-400 focus-within:ring-1 focus-within:ring-amber-400/30 rounded-xl px-3 py-2 transition-all flex items-center gap-2">
+                    <div className="bg-amber-950/20 border border-amber-500/40 focus-within:border-amber-400 focus-within:ring-1 focus-within:ring-amber-400/30 rounded-xl px-3 py-2 flex items-center gap-2">
                       <input
                         id="registration-key"
                         name="registration_key"
@@ -513,7 +513,7 @@ export default function LoginPage() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full mt-2 py-3 px-5 rounded-xl bg-white hover:bg-neutral-200 active:scale-[0.98] text-neutral-950 font-bold font-mono text-xs sm:text-sm tracking-tight transition-all shadow-[0_0_25px_-5px_rgba(255,255,255,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full mt-2 py-3 px-5 rounded-xl bg-white hover:bg-neutral-200 text-neutral-950 font-bold font-mono text-xs sm:text-sm tracking-tight shadow-[0_0_25px_-5px_rgba(255,255,255,0.35)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSubmitting ? (
                       <div className="w-4 h-4 border-2 border-neutral-950/30 border-t-neutral-950 rounded-full animate-spin" />

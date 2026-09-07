@@ -80,7 +80,7 @@ export function InventoryRegistryAction({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className={`rounded-lg border p-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${danger ? 'border-rose-500/20 bg-rose-500/5 text-rose-300 hover:bg-rose-500/10' : 'border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10 hover:text-white'}`}
+      className={`rounded-lg border p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${danger ? 'border-rose-500/20 bg-rose-500/5 text-rose-300 hover:bg-rose-500/10' : 'border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10 hover:text-white'}`}
     >
       <Icon className="h-3.5 w-3.5" />
     </button>
@@ -128,8 +128,8 @@ export function InventoryRegistryTable<T, S extends string>({
 
         {hasMore ? (
           <div className="grid grid-cols-2 gap-2 pt-1">
-            <button type="button" onClick={onLoadMore} className="rounded-lg border border-white/10 bg-white/5 py-2 font-mono text-[11px] text-neutral-300 transition-colors hover:bg-white/10">Ещё</button>
-            <button type="button" onClick={onShowAll} className="rounded-lg border border-white/10 bg-white/5 py-2 font-mono text-[11px] text-neutral-300 transition-colors hover:bg-white/10">Показать все</button>
+            <button type="button" onClick={onLoadMore} className="rounded-lg border border-white/10 bg-white/5 py-2 font-mono text-[11px] text-neutral-300 hover:bg-white/10">Ещё</button>
+            <button type="button" onClick={onShowAll} className="rounded-lg border border-white/10 bg-white/5 py-2 font-mono text-[11px] text-neutral-300 hover:bg-white/10">Показать все</button>
           </div>
         ) : null}
       </div>
@@ -156,13 +156,13 @@ export function InventoryRegistryTable<T, S extends string>({
                       <button
                         type="button"
                         onClick={() => onSort?.(nextInventorySort(currentSort ?? column.sort!.desc, column.sort!))}
-                        className={`group flex w-full items-center gap-1 transition-colors hover:text-white ${alignClass(column.align)}`}
+                        className={`group flex w-full items-center gap-1 hover:text-white ${alignClass(column.align)}`}
                       >
                         <span>{column.header}</span>
                         <span className="inline-flex h-3 w-3 shrink-0 items-center justify-center">
                           {activeDirection === 'ascending' ? <ChevronUp className="h-3 w-3 text-cyan-400" /> : null}
                           {activeDirection === 'descending' ? <ChevronDown className="h-3 w-3 text-cyan-400" /> : null}
-                          {activeDirection === 'none' ? <ChevronDown className="h-3 w-3 text-neutral-600 opacity-0 transition-opacity group-hover:opacity-60" /> : null}
+                          {activeDirection === 'none' ? <ChevronDown className="h-3 w-3 text-neutral-600 opacity-0 group-hover:opacity-60" /> : null}
                         </span>
                       </button>
                     ) : (
@@ -186,7 +186,7 @@ export function InventoryRegistryTable<T, S extends string>({
                   event.preventDefault();
                   onRowClick(item);
                 }}
-                className={`group transition-colors hover:bg-white/[0.04] ${onRowClick ? 'cursor-pointer focus-visible:bg-white/[0.04] focus-visible:outline-none' : ''}`}
+                className={`group hover:bg-white/[0.04] ${onRowClick ? 'cursor-pointer focus-visible:bg-white/[0.04] focus-visible:outline-none' : ''}`}
               >
                 {visibleColumns.map((column) => {
                   const cellClassName = typeof column.cellClassName === 'function' ? column.cellClassName(item) : column.cellClassName ?? '';
@@ -208,8 +208,8 @@ export function InventoryRegistryTable<T, S extends string>({
           <span>RECORDS: {visibleCount}/{totalCount}</span>
           {hasMore ? (
             <>
-              <button type="button" onClick={onLoadMore} className="text-neutral-300 transition-colors hover:text-white">[ ЕЩЁ ]</button>
-              <button type="button" onClick={onShowAll} className="text-neutral-300 transition-colors hover:text-white">[ ВСЕ ]</button>
+              <button type="button" onClick={onLoadMore} className="text-neutral-300 hover:text-white">[ ЕЩЁ ]</button>
+              <button type="button" onClick={onShowAll} className="text-neutral-300 hover:text-white">[ ВСЕ ]</button>
             </>
           ) : null}
         </div>

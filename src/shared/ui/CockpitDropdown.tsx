@@ -315,19 +315,19 @@ export function CockpitDropdown({
   // Стили кнопок-триггеров в точной палитре интерфейса (neutral-950 / white/10)
   const getButtonStyles = () => {
     if (variant === 'ghost') {
-      return `bg-neutral-950/80 hover:bg-neutral-900 text-white font-mono text-[11px] font-bold py-1.5 px-2.5 rounded-lg border border-white/15 hover:border-white/25 transition-all flex items-center justify-between gap-2 cursor-pointer select-none tracking-wider uppercase backdrop-blur-md shadow-sm ${
+      return `bg-neutral-950/80 hover:bg-neutral-900 text-white font-mono text-[11px] font-bold py-1.5 px-2.5 rounded-lg border border-white/15 hover:border-white/25 flex items-center justify-between gap-2 cursor-pointer select-none tracking-wider uppercase backdrop-blur-md shadow-sm ${
         isOpen ? 'border-white/30 ring-1 ring-white/10 bg-neutral-900 text-white' : ''
       }`;
     }
 
     if (variant === 'card') {
-      return `bg-neutral-950/80 hover:bg-neutral-900 text-white font-mono text-[11px] font-bold py-1.5 px-2.5 rounded-lg border border-white/10 hover:border-white/20 transition-all flex items-center justify-between gap-2 cursor-pointer select-none max-w-full tracking-wider uppercase backdrop-blur-md shadow-sm ${
+      return `bg-neutral-950/80 hover:bg-neutral-900 text-white font-mono text-[11px] font-bold py-1.5 px-2.5 rounded-lg border border-white/10 hover:border-white/20 flex items-center justify-between gap-2 cursor-pointer select-none max-w-full tracking-wider uppercase backdrop-blur-md shadow-sm ${
         isOpen ? 'border-white/30 ring-1 ring-white/10 bg-neutral-900 text-white' : ''
       }`;
     }
 
     if (variant === 'pill') {
-      return `bg-neutral-950/80 hover:bg-neutral-900 border border-white/15 hover:border-white/25 text-white font-mono text-xs font-bold py-1.5 px-3 rounded-lg transition-all flex items-center justify-between gap-2 cursor-pointer select-none tracking-wider uppercase backdrop-blur-md shadow-sm ${
+      return `bg-neutral-950/80 hover:bg-neutral-900 border border-white/15 hover:border-white/25 text-white font-mono text-xs font-bold py-1.5 px-3 rounded-lg flex items-center justify-between gap-2 cursor-pointer select-none tracking-wider uppercase backdrop-blur-md shadow-sm ${
         isOpen ? 'border-white/30 ring-1 ring-white/10 bg-neutral-900 text-white' : ''
       }`;
     }
@@ -336,7 +336,7 @@ export function CockpitDropdown({
       const isFilterActive = multiSelect
         ? Boolean(values && values.length > 0 && !values.includes('all'))
         : Boolean(value && value !== 'all');
-      return `w-full h-full rounded-lg px-3 text-xs font-mono transition-all flex items-center ${
+      return `w-full h-full rounded-lg px-3 text-xs font-mono flex items-center ${
         showChevron ? 'justify-between' : 'justify-center'
       } gap-2 cursor-pointer select-none tracking-wide ${
         isFilterActive || isOpen
@@ -346,7 +346,7 @@ export function CockpitDropdown({
     }
 
     // Default: 'input'
-    return `w-full h-9 bg-neutral-950/80 border border-white/15 hover:border-white/25 rounded-lg px-2.5 flex items-center justify-between gap-2 text-left font-mono text-xs text-white transition-all cursor-pointer select-none tracking-wider uppercase shadow-inner ${
+    return `w-full h-9 bg-neutral-950/80 border border-white/15 hover:border-white/25 rounded-lg px-2.5 flex items-center justify-between gap-2 text-left font-mono text-xs text-white cursor-pointer select-none tracking-wider uppercase shadow-inner ${
       isOpen ? 'border-white/30 ring-1 ring-white/10 bg-neutral-900' : ''
     }`;
   };
@@ -413,7 +413,7 @@ export function CockpitDropdown({
 
         {showChevron && (
           <ChevronDown
-            className={`w-3.5 h-3.5 text-neutral-400 transition-transform duration-150 shrink-0 ml-1.5 ${
+            className={`w-3.5 h-3.5 text-neutral-400 duration-150 shrink-0 ml-1.5 ${
               isOpen ? 'rotate-180 text-white' : ''
             }`}
           />
@@ -517,7 +517,7 @@ export function CockpitDropdown({
                           aria-selected={isSelected}
                           onClick={() => handleOptionClick(opt.value)}
                           onMouseEnter={() => setActiveOptionIndex(index)}
-                          className={`relative w-full px-3 py-2 text-left flex items-center justify-between gap-2 transition-colors cursor-pointer text-xs group ${
+                          className={`relative w-full px-3 py-2 text-left flex items-center justify-between gap-2 cursor-pointer text-xs group ${
                             isSelected
                               ? 'bg-white/10 text-white font-semibold'
                               : index === activeIndex
@@ -533,7 +533,7 @@ export function CockpitDropdown({
                           {/* Чекбокс слева в multiSelect режиме */}
                           {multiSelect && (
                             <div
-                              className={`w-3.5 h-3.5 rounded flex items-center justify-center transition-all shrink-0 ${
+                              className={`w-3.5 h-3.5 rounded flex items-center justify-center shrink-0 ${
                                 isSelected
                                   ? 'bg-white text-neutral-950'
                                   : 'border border-white/25 bg-white/5 group-hover:border-white/40'
@@ -549,7 +549,7 @@ export function CockpitDropdown({
                           <div className="flex items-center gap-2 min-w-0 flex-1 pl-0.5">
                             {/* Бесцветная иконка опции (если есть) */}
                             {opt.icon && (
-                              <opt.icon className="w-3.5 h-3.5 shrink-0 text-neutral-400 group-hover:text-white transition-colors" />
+                              <opt.icon className="w-3.5 h-3.5 shrink-0 text-neutral-400 group-hover:text-white " />
                             )}
 
                             <span className="truncate text-xs font-mono leading-none">
@@ -600,7 +600,7 @@ export function CockpitDropdown({
                         e.stopPropagation();
                         onMultiChange?.(['all']);
                       }}
-                      className="text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer"
+                      className="text-cyan-400 hover:text-cyan-300 cursor-pointer"
                     >
                       [ СБРОСИТЬ ВСЕ ]
                     </button>

@@ -275,7 +275,7 @@ export function AssemblyModal({
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
             required
             autoFocus
-            className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none transition-colors font-mono"
+            className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none font-mono"
           />
         </div>
 
@@ -310,7 +310,7 @@ export function AssemblyModal({
                 placeholder="Фильтр деталей из каталога..."
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
-                className="w-full bg-neutral-950 border border-white/10 focus:border-cyan-400 rounded-lg pl-8 pr-7 py-1.5 text-xs text-white placeholder-neutral-600 focus:outline-none transition-colors font-mono"
+                className="w-full bg-neutral-950 border border-white/10 focus:border-cyan-400 rounded-lg pl-8 pr-7 py-1.5 text-xs text-white placeholder-neutral-600 focus:outline-none font-mono"
               />
               {productSearch && (
                 <button
@@ -339,7 +339,7 @@ export function AssemblyModal({
                     <div
                       key={prod.id}
                       onClick={() => handleToggleCatalogProduct(prod)}
-                      className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer transition-all select-none ${
+                      className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer select-none ${
                         isChecked
                           ? 'bg-white/10 border-white/20 text-white font-medium'
                           : 'bg-neutral-950 border-white/5 text-neutral-400 hover:text-white hover:bg-white/5'
@@ -555,7 +555,7 @@ export function AssemblyModal({
                           <button
                             type="button"
                             onClick={() => setHardware((prev) => prev.filter((_, i) => i !== index))}
-                            className="p-1 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/40 transition-colors cursor-pointer"
+                            className="p-1 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/40 cursor-pointer"
                           >
                             <Trash2 size={13} />
                           </button>
@@ -612,7 +612,7 @@ export function AssemblyModal({
 
           <div
             onClick={() => setIsOwnerLabor(!isOwnerLabor)}
-            className={`p-2.5 rounded-lg border flex items-center justify-between cursor-pointer transition-all select-none ${
+            className={`p-2.5 rounded-lg border flex items-center justify-between cursor-pointer select-none ${
               isOwnerLabor
                 ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-300'
                 : 'bg-neutral-950 border-white/5 text-neutral-400 hover:text-white'

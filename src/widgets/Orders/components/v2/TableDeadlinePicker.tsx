@@ -243,28 +243,28 @@ function TableDeadlinePickerContent({
               <button
                 type="button"
                 onClick={() => handleQuickPreset(0)}
-                className="py-0.5 px-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 text-[9px] font-mono transition-all text-center cursor-pointer"
+                className="py-0.5 px-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 text-[9px] font-mono text-center cursor-pointer"
               >
                 Сегодня
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickPreset(1)}
-                className="py-0.5 px-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 text-[9px] font-mono transition-all text-center cursor-pointer"
+                className="py-0.5 px-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 text-[9px] font-mono text-center cursor-pointer"
               >
                 Завтра
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickPreset(2)}
-                className="py-0.5 px-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 text-[9px] font-mono transition-all text-center cursor-pointer"
+                className="py-0.5 px-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 text-[9px] font-mono text-center cursor-pointer"
               >
                 +2 дня
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickPreset(3)}
-                className="py-0.5 px-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 text-[9px] font-mono transition-all text-center cursor-pointer"
+                className="py-0.5 px-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 text-[9px] font-mono text-center cursor-pointer"
               >
                 +3 дня
               </button>
@@ -274,14 +274,14 @@ function TableDeadlinePickerContent({
               <button
                 type="button"
                 onClick={() => handleQuickPreset(7)}
-                className="py-0.5 px-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 text-[9px] font-mono transition-all text-center cursor-pointer"
+                className="py-0.5 px-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 text-[9px] font-mono text-center cursor-pointer"
               >
                 +1 нед. (7 дн.)
               </button>
               <button
                 type="button"
                 onClick={() => handleQuickPreset(14)}
-                className="py-0.5 px-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 text-[9px] font-mono transition-all text-center cursor-pointer"
+                className="py-0.5 px-1 rounded bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 text-[9px] font-mono text-center cursor-pointer"
               >
                 +2 нед. (14 дн.)
               </button>
@@ -293,7 +293,7 @@ function TableDeadlinePickerContent({
             <button
               type="button"
               onClick={handlePrevMonth}
-              className="p-1 rounded hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1 rounded hover:bg-white/10 text-neutral-400 hover:text-white cursor-pointer"
               title="Предыдущий месяц"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
@@ -306,7 +306,7 @@ function TableDeadlinePickerContent({
             <button
               type="button"
               onClick={handleNextMonth}
-              className="p-1 rounded hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              className="p-1 rounded hover:bg-white/10 text-neutral-400 hover:text-white cursor-pointer"
               title="Следующий месяц"
             >
               <ChevronRight className="w-3.5 h-3.5" />
@@ -333,7 +333,7 @@ function TableDeadlinePickerContent({
                   key={idx}
                   type="button"
                   onClick={() => handleSelectDay(item.date)}
-                  className={`h-6 rounded flex items-center justify-center font-mono text-[10px] transition-all cursor-pointer ${
+                  className={`h-6 rounded flex items-center justify-center font-mono text-[10px] cursor-pointer ${
                     selected
                       ? 'bg-white text-neutral-950 font-bold shadow-md'
                       : todayFlag

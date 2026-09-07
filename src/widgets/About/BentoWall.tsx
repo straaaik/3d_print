@@ -78,11 +78,11 @@ export function BentoWall() {
             return (
               <div
                 key={idx}
-                className={`${card.colSpan} border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] transition-all p-6 sm:p-8 rounded-2xl flex flex-col justify-between group shadow-lg hover:border-white/20`}
+                className={`${card.colSpan} border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] p-6 sm:p-8 rounded-2xl flex flex-col justify-between group shadow-lg hover:border-white/20`}
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 group-hover:scale-105 transition-transform">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-cyan-400 ">
                       <Icon className="w-5 h-5" />
                     </div>
                     <span className="font-mono text-[10px] text-neutral-400 uppercase px-2 py-0.5 rounded border border-white/10 bg-white/5">

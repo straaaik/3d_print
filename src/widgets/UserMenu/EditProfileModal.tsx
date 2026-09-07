@@ -135,7 +135,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
         {/* Верхняя плашка с текущим аватаром */}
         <div className="bg-neutral-900 border border-white/10 rounded-2xl p-4 flex flex-col sm:flex-row items-center gap-4">
           <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center font-extrabold text-2xl text-neutral-950 shadow-xl shrink-0 transition-colors"
+            className="w-16 h-16 rounded-2xl flex items-center justify-center font-extrabold text-2xl text-neutral-950 shadow-xl shrink-0 "
             style={{ backgroundColor: avatarColor }}
           >
             {name ? name.charAt(0).toUpperCase() : '?'}
@@ -152,8 +152,8 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
                   key={color}
                   type="button"
                   onClick={() => setAvatarColor(color)}
-                  className={`w-6 h-6 rounded-lg transition-transform cursor-pointer flex items-center justify-center ${
-                    avatarColor === color ? 'scale-110 ring-2 ring-white shadow-md' : 'hover:scale-105 opacity-70 hover:opacity-100'
+                  className={`w-6 h-6 rounded-lg cursor-pointer flex items-center justify-center ${
+                    avatarColor === color ? 'scale-110 ring-2 ring-white shadow-md' : ' opacity-70 hover:opacity-100'
                   }`}
                   style={{ backgroundColor: color }}
                 >
@@ -178,7 +178,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Ваше имя"
-            className="w-full h-9 bg-neutral-900 border border-white/15 hover:border-white/25 focus:border-cyan-400 rounded-xl px-3 text-xs text-white focus:outline-none transition-colors font-sans"
+            className="w-full h-9 bg-neutral-900 border border-white/15 hover:border-white/25 focus:border-cyan-400 rounded-xl px-3 text-xs text-white focus:outline-none font-sans"
           />
         </div>
 
@@ -194,7 +194,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="name@example.com"
-            className="w-full h-9 bg-neutral-900 border border-white/15 hover:border-white/25 focus:border-cyan-400 rounded-xl px-3 text-xs text-white focus:outline-none transition-colors font-mono"
+            className="w-full h-9 bg-neutral-900 border border-white/15 hover:border-white/25 focus:border-cyan-400 rounded-xl px-3 text-xs text-white focus:outline-none font-mono"
           />
         </div>
 
@@ -220,7 +220,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
           <button
             type="button"
             onClick={() => setIsChangingPassword(!isChangingPassword)}
-            className="text-xs font-mono font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="text-xs font-mono font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1.5 cursor-pointer"
           >
             <Lock className="w-3.5 h-3.5" />
             <span>{isChangingPassword ? '[ Отменить смену пароля ]' : '[ Изменить пароль аккаунта ]'}</span>
@@ -247,7 +247,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
                 <button
                   type="button"
                   onClick={() => setShowCurrentPass(!showCurrentPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white cursor-pointer"
                 >
                   {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -274,7 +274,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
                   <button
                     type="button"
                     onClick={() => setShowNewPass(!showNewPass)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white cursor-pointer"
                   >
                     {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -296,7 +296,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
                   <button
                     type="button"
                     onClick={() => setShowConfirmPass(!showConfirmPass)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white cursor-pointer"
                   >
                     {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>

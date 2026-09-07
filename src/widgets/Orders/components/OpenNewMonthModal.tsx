@@ -172,7 +172,7 @@ function OpenNewMonthModalContent({
                     <button
                       type="button"
                       onClick={onClose}
-                      className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] hover:scale-125 active:scale-95 transition-all duration-150 cursor-pointer border-none outline-none"
+                      className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] duration-150 cursor-pointer border-none outline-none"
                     />
                   </Tooltip>
                 </div>
@@ -209,7 +209,7 @@ function OpenNewMonthModalContent({
                   <button
                     type="button"
                     onClick={() => setYear((y) => y - 1)}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[#a1a1aa] hover:text-white hover:bg-white/10 transition-colors cursor-pointer text-xs font-mono"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[#a1a1aa] hover:text-white hover:bg-white/10 cursor-pointer text-xs font-mono"
                   >
                     <ChevronLeft className="w-4 h-4" />
                     <span className="hidden sm:inline">{year - 1}</span>
@@ -231,7 +231,7 @@ function OpenNewMonthModalContent({
                   <button
                     type="button"
                     onClick={() => setYear((y) => y + 1)}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[#a1a1aa] hover:text-white hover:bg-white/10 transition-colors cursor-pointer text-xs font-mono"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[#a1a1aa] hover:text-white hover:bg-white/10 cursor-pointer text-xs font-mono"
                   >
                     <span className="hidden sm:inline">{year + 1}</span>
                     <ChevronRight className="w-4 h-4" />
@@ -256,7 +256,7 @@ function OpenNewMonthModalContent({
                         onSelectMonth(monthKey);
                         onClose();
                       }}
-                      className={`p-3 rounded-xl font-mono text-left transition-all cursor-pointer border flex flex-col justify-between min-h-[82px] relative overflow-hidden group ${
+                      className={`p-3 rounded-xl font-mono text-left cursor-pointer border flex flex-col justify-between min-h-[82px] relative overflow-hidden group ${
                         isPicked
                           ? 'bg-[#1e1e22] text-white border-white/40 shadow-lg ring-1 ring-white/20'
                           : 'bg-[#141416]/70 border-[#222226] text-[#a1a1aa] hover:text-white hover:bg-[#18181c] hover:border-[#383840]'
@@ -334,7 +334,7 @@ function OpenNewMonthModalContent({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-3.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-[#a1a1aa] hover:text-white hover:bg-white/[0.08] hover:border-white/20 transition-all cursor-pointer text-xs font-mono select-none"
+                  className="px-3.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-[#a1a1aa] hover:text-white hover:bg-white/[0.08] hover:border-white/20 cursor-pointer text-xs font-mono select-none"
                 >
                   [ Закрыть ]
                 </button>
@@ -342,7 +342,7 @@ function OpenNewMonthModalContent({
                 <button
                   type="button"
                   onClick={handleConfirm}
-                  className="px-4 py-1.5 rounded-lg bg-white text-black font-bold hover:bg-neutral-200 transition-all cursor-pointer text-xs font-mono select-none shadow-md"
+                  className="px-4 py-1.5 rounded-lg bg-white text-black font-bold hover:bg-neutral-200 cursor-pointer text-xs font-mono select-none shadow-md"
                 >
                   [ Открыть {formatMonthKeyLabel(pickedMonthKey)} → ]
                 </button>

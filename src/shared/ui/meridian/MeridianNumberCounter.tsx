@@ -53,13 +53,13 @@ export function MeridianNumberCounter({
         </label>
       )}
 
-      <div className="flex items-center h-10 sm:h-11 bg-neutral-900 border border-white/15 hover:border-white/30 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl p-1 transition-all duration-200 shadow-inner">
+      <div className="flex items-center h-10 sm:h-11 bg-neutral-900 border border-white/15 hover:border-white/30 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl p-1 duration-200 shadow-inner">
         {/* Кнопка минус */}
         <button
           type="button"
           onClick={handleDecrement}
           disabled={value <= min}
-          className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white transition-colors cursor-pointer disabled:opacity-30 disabled:pointer-events-none shrink-0"
+          className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white cursor-pointer disabled:opacity-30 disabled:pointer-events-none shrink-0"
         >
           <Minus className="w-3.5 h-3.5" />
         </button>
@@ -86,7 +86,7 @@ export function MeridianNumberCounter({
           type="button"
           onClick={handleIncrement}
           disabled={value >= max}
-          className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white transition-colors cursor-pointer disabled:opacity-30 disabled:pointer-events-none shrink-0"
+          className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white cursor-pointer disabled:opacity-30 disabled:pointer-events-none shrink-0"
         >
           <Plus className="w-3.5 h-3.5" />
         </button>

@@ -243,7 +243,7 @@ export function CockpitTable<T>({
                     value={searchQuery}
                     onChange={(e) => handleSearchChange(e.target.value)}
                     placeholder={searchPlaceholder}
-                    className="w-full pl-8.5 pr-8 py-1.5 bg-neutral-950/90 border border-white/10 focus:border-white/25 rounded-lg text-xs font-mono text-neutral-200 placeholder:text-neutral-600 outline-none transition-all"
+                    className="w-full pl-8.5 pr-8 py-1.5 bg-neutral-950/90 border border-white/10 focus:border-white/25 rounded-lg text-xs font-mono text-neutral-200 placeholder:text-neutral-600 outline-none "
                   />
                   {searchQuery && (
                     <button
@@ -310,7 +310,7 @@ export function CockpitTable<T>({
                     key={col.id}
                     onClick={() => canSort && handleSort(col.sortKey || col.id)}
                     style={{ width: col.width, minWidth: col.minWidth }}
-                    className={`py-3 px-3.5 whitespace-nowrap transition-colors ${
+                    className={`py-3 px-3.5 whitespace-nowrap ${
                       canSort ? 'cursor-pointer hover:text-white group' : ''
                     } ${col.hideOnMobile ? 'hidden md:table-cell' : ''} ${
                       col.headerClassName || ''
@@ -327,7 +327,7 @@ export function CockpitTable<T>({
                               <ChevronDown className="w-3.5 h-3.5 text-white" />
                             )
                           ) : (
-                            <ChevronDown className="w-3 h-3 text-neutral-600 opacity-0 group-hover:opacity-60 transition-opacity" />
+                            <ChevronDown className="w-3 h-3 text-neutral-600 opacity-0 group-hover:opacity-60 " />
                           )}
                         </span>
                       )}
@@ -443,7 +443,7 @@ export function CockpitTable<T>({
                       onClick={() => onRowClick && onRowClick(item, rowIndex)}
                       onDoubleClick={() => onRowDoubleClick && onRowDoubleClick(item, rowIndex)}
                       onContextMenu={(e) => onRowContextMenu && onRowContextMenu(e, item, rowIndex)}
-                      className={`hover:bg-white/[0.03] transition-colors ${
+                      className={`hover:bg-white/[0.03] ${
                         isSelected ? 'bg-white/[0.04]' : ''
                       } ${onRowClick ? 'cursor-pointer' : ''} ${customRowClass}`}
                     >

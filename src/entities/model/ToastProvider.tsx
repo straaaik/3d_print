@@ -141,7 +141,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
       transition={{ type: 'spring', stiffness: 380, damping: 28 }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      className={`pointer-events-auto group relative flex items-center justify-between gap-3 py-2.5 px-3.5 rounded-xl border border-white/15 bg-neutral-950/95 shadow-[0_12px_35px_rgba(0,0,0,0.85)] backdrop-blur-2xl font-mono text-xs hover:border-white/40 hover:bg-neutral-900/95 transition-all w-[300px] sm:w-[340px] overflow-hidden ${config.hoverBorderClass}`}
+      className={`pointer-events-auto group relative flex items-center justify-between gap-3 py-2.5 px-3.5 rounded-xl border border-white/15 bg-neutral-950/95 shadow-[0_12px_35px_rgba(0,0,0,0.85)] backdrop-blur-2xl font-mono text-xs hover:border-white/40 hover:bg-neutral-900/95 w-[300px] sm:w-[340px] overflow-hidden ${config.hoverBorderClass}`}
     >
       {/* Левая часть: Круглый индикатор со светящейся точкой и контент */}
       <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -190,7 +190,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
                 toast.action?.onClick();
                 onRemove(toast.id);
               }}
-              className="p-1 rounded-md text-neutral-400 hover:text-cyan-300 hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-1 rounded-md text-neutral-400 hover:text-cyan-300 hover:bg-white/10 cursor-pointer"
             >
               <span className="text-xs">↗</span>
             </button>
@@ -204,7 +204,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
               e.stopPropagation();
               onRemove(toast.id);
             }}
-            className="p-1 rounded-md text-neutral-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            className="p-1 rounded-md text-neutral-400 hover:text-white hover:bg-white/10 cursor-pointer"
           >
             <span className="text-sm font-bold leading-none">×</span>
           </button>
@@ -215,7 +215,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
       {toast.duration > 0 && (
         <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/5 overflow-hidden pointer-events-none">
           <div
-            className={`h-full transition-all duration-75 ease-linear ${config.progressBarClass}`}
+            className={`h-full duration-75 ease-linear ${config.progressBarClass}`}
             style={{ width: `${progressPercent}%` }}
           />
         </div>

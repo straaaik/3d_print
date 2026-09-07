@@ -122,7 +122,7 @@ export const ProductsV2FilterBar = React.memo(function ProductsV2FilterBar({
       {/* 1. СЛЕВА: Поиск в стиле капсулы */}
       <div className="bg-neutral-950/80 border border-white/10 p-1 rounded-xl w-48 sm:w-56 h-10 shrink-0 shadow-inner flex items-center">
         <div
-          className={`flex items-center w-full h-full px-2.5 rounded-lg text-xs font-mono transition-all ${
+          className={`flex items-center w-full h-full px-2.5 rounded-lg text-xs font-mono ${
             isSearchActive
               ? 'bg-neutral-800 border border-white/15 text-white shadow-sm'
               : 'bg-transparent border border-transparent text-neutral-400 hover:text-white hover:bg-white/5'
@@ -143,7 +143,7 @@ export const ProductsV2FilterBar = React.memo(function ProductsV2FilterBar({
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="text-neutral-400 hover:text-white p-0.5 rounded cursor-pointer transition-colors shrink-0 ml-1"
+                className="text-neutral-400 hover:text-white p-0.5 rounded cursor-pointer shrink-0 ml-1"
               >
                 <X size={12} />
               </button>
@@ -194,7 +194,7 @@ export const ProductsV2FilterBar = React.memo(function ProductsV2FilterBar({
         <button
           type="button"
           onClick={() => setOnlyBestsellers(!onlyBestsellers)}
-          className={`flex items-center gap-1.5 px-3 h-10 rounded-xl border text-xs font-mono font-medium transition-all cursor-pointer select-none ${
+          className={`flex items-center gap-1.5 px-3 h-10 rounded-xl border text-xs font-mono font-medium cursor-pointer select-none ${
             onlyBestsellers
               ? 'bg-amber-950/50 border-amber-500/40 text-amber-300 shadow-sm shadow-amber-500/10'
               : 'bg-neutral-950/80 border-white/10 text-neutral-400 hover:text-neutral-200 hover:border-white/20'
@@ -216,7 +216,7 @@ export const ProductsV2FilterBar = React.memo(function ProductsV2FilterBar({
             <button
               type="button"
               onClick={handleReset}
-              className="flex items-center justify-center w-10 h-10 rounded-xl border border-white/10 bg-neutral-950/80 text-neutral-400 hover:text-white hover:border-white/25 hover:bg-white/5 transition-all cursor-pointer shrink-0"
+              className="flex items-center justify-center w-10 h-10 rounded-xl border border-white/10 bg-neutral-950/80 text-neutral-400 hover:text-white hover:border-white/25 hover:bg-white/5 cursor-pointer shrink-0"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>

@@ -118,7 +118,7 @@ export const OrdersV2FilterBar = React.memo(function OrdersV2FilterBar({
       {/* 1. СЛЕВА: Поиск в стиле капсулы со скриншота */}
       <div className="bg-neutral-950/80 border border-white/10 p-1 rounded-xl w-full sm:w-64 xl:w-48 h-10 shrink-0 shadow-inner flex items-center">
         <div
-          className={`flex items-center w-full h-full px-2.5 rounded-lg text-xs font-mono transition-all ${
+          className={`flex items-center w-full h-full px-2.5 rounded-lg text-xs font-mono ${
             isSearchActive
               ? 'bg-neutral-800 border border-white/15 text-white shadow-sm'
               : 'bg-transparent border border-transparent text-neutral-400 hover:text-white hover:bg-white/5'
@@ -141,7 +141,7 @@ export const OrdersV2FilterBar = React.memo(function OrdersV2FilterBar({
                 onClick={() => setSearchQuery('')}
                 aria-label="Очистить поиск заказов"
                 title="Очистить поиск заказов"
-                className="text-neutral-400 hover:text-white p-0.5 rounded cursor-pointer transition-colors shrink-0 ml-1"
+                className="text-neutral-400 hover:text-white p-0.5 rounded cursor-pointer shrink-0 ml-1"
               >
                 <X size={12} />
               </button>

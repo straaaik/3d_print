@@ -25,7 +25,7 @@ export function StatsChartShell({
   return (
     <section
       aria-label={title}
-      className={`rounded-xl border border-white/10 bg-white/[0.03] transition-colors hover:border-white/20 ${className}`}
+      className={`rounded-xl border border-white/10 bg-white/[0.03] hover:border-white/20 ${className}`}
     >
       <div className="flex flex-col gap-3 border-b border-white/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">

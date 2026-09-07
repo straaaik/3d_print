@@ -54,14 +54,14 @@ export function FaqSection() {
                 <button
                   type="button"
                   onClick={() => setOpenIndex(isOpen ? null : idx)}
-                  className="w-full flex items-center justify-between text-left gap-4 font-sans text-base sm:text-lg font-bold text-white hover:text-cyan-400 transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-between text-left gap-4 font-sans text-base sm:text-lg font-bold text-white hover:text-cyan-400 cursor-pointer"
                 >
                   <span className="flex items-center gap-3">
                     <span className="font-mono text-xs text-neutral-500 font-normal">0{idx + 1}.</span>
                     <span>{faq.q}</span>
                   </span>
                   <ChevronDown
-                    className={`w-5 h-5 text-neutral-400 transition-transform duration-200 shrink-0 ${
+                    className={`w-5 h-5 text-neutral-400 duration-200 shrink-0 ${
                       isOpen ? 'rotate-180 text-cyan-400' : ''
                     }`}
                   />

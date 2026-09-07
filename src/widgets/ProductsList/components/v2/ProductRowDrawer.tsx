@@ -290,7 +290,7 @@ export function ProductRowDrawer({
                 <button
                   type="button"
                   onClick={() => handleStockDelta(1)}
-                  className="w-3.5 h-3.5 flex items-center justify-center text-xs font-bold transition-colors cursor-pointer leading-none text-[#71717a] hover:text-white"
+                  className="w-3.5 h-3.5 flex items-center justify-center text-xs font-bold cursor-pointer leading-none text-[#71717a] hover:text-white"
                   title="Увеличить остаток на 1"
                 >
                   +
@@ -299,7 +299,7 @@ export function ProductRowDrawer({
                   type="button"
                   onClick={() => handleStockDelta(-1)}
                   disabled={stock <= 0}
-                  className="w-3.5 h-3.5 flex items-center justify-center text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer leading-none text-[#71717a] hover:text-white"
+                  className="w-3.5 h-3.5 flex items-center justify-center text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer leading-none text-[#71717a] hover:text-white"
                   title="Уменьшить остаток на 1"
                 >
                   −
@@ -542,7 +542,7 @@ export function ProductRowDrawer({
                           key={presetPct}
                           type="button"
                           onClick={() => handleApplyMarkupPreset(presetPct)}
-                          className={`px-1.5 py-0.5 rounded text-[10px] font-mono transition-colors cursor-pointer border ${
+                          className={`px-1.5 py-0.5 rounded text-[10px] font-mono cursor-pointer border ${
                             isActive
                               ? 'bg-white text-neutral-950 font-bold border-white'
                               : 'border-white/10 text-neutral-400 hover:text-white hover:border-white/20 bg-white/[0.02]'
@@ -571,7 +571,7 @@ export function ProductRowDrawer({
                   {/* Тонкий прогресс-бар в нативном стиле */}
                   <div className="w-full h-1 bg-[#222226] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-white rounded-full transition-all duration-300"
+                      className="h-full bg-white rounded-full duration-300"
                       style={{ width: `${Math.min(100, Math.max(0, marginPercent))}%` }}
                     />
                   </div>

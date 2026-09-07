@@ -139,7 +139,7 @@ export function LaborSettingsTab({
             {/* Опция 1: Личный труд владельца */}
             <div
               onClick={() => setIsOwnerLaborDefault(true)}
-              className={`p-3.5 rounded-xl border flex flex-col gap-2 transition-all cursor-pointer select-none ${
+              className={`p-3.5 rounded-xl border flex flex-col gap-2 cursor-pointer select-none ${
                 isOwnerLaborDefault
                   ? 'bg-emerald-950/40 border-emerald-500/50 shadow-sm'
                   : 'bg-neutral-900 border-white/10 hover:border-white/20'
@@ -167,7 +167,7 @@ export function LaborSettingsTab({
             {/* Опция 2: Наемный мастер */}
             <div
               onClick={() => setIsOwnerLaborDefault(false)}
-              className={`p-3.5 rounded-xl border flex flex-col gap-2 transition-all cursor-pointer select-none ${
+              className={`p-3.5 rounded-xl border flex flex-col gap-2 cursor-pointer select-none ${
                 !isOwnerLaborDefault
                   ? 'bg-cyan-950/40 border-cyan-500/50 shadow-sm'
                   : 'bg-neutral-900 border-white/10 hover:border-white/20'
@@ -216,7 +216,7 @@ export function LaborSettingsTab({
             {/* За весь заказ */}
             <div
               onClick={() => setIsLaborPerUnitDefault(false)}
-              className={`p-3.5 rounded-xl border flex flex-col gap-2 transition-all cursor-pointer select-none ${
+              className={`p-3.5 rounded-xl border flex flex-col gap-2 cursor-pointer select-none ${
                 !isLaborPerUnitDefault
                   ? 'bg-amber-950/40 border-amber-500/50 shadow-sm'
                   : 'bg-neutral-900 border-white/10 hover:border-white/20'
@@ -244,7 +244,7 @@ export function LaborSettingsTab({
             {/* За каждую штуку */}
             <div
               onClick={() => setIsLaborPerUnitDefault(true)}
-              className={`p-3.5 rounded-xl border flex flex-col gap-2 transition-all cursor-pointer select-none ${
+              className={`p-3.5 rounded-xl border flex flex-col gap-2 cursor-pointer select-none ${
                 isLaborPerUnitDefault
                   ? 'bg-emerald-950/40 border-emerald-500/50 shadow-sm'
                   : 'bg-neutral-900 border-white/10 hover:border-white/20'

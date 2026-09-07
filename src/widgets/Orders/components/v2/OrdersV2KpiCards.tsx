@@ -245,7 +245,7 @@ export const OrdersV2KpiCards = React.memo(function OrdersV2KpiCards({
         <div className="mt-2">
           <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden relative">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${
+              className={`h-full rounded-full duration-500 ${
                 isGoalReached
                   ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]'
                   : hasGoal
@@ -277,12 +277,12 @@ export const OrdersV2KpiCards = React.memo(function OrdersV2KpiCards({
               <button
                 type="button"
                 onClick={onOpenGoalModal}
-                className="flex items-center gap-1 text-neutral-400 hover:text-cyan-300 transition-colors cursor-pointer group"
+                className="flex items-center gap-1 text-neutral-400 hover:text-cyan-300 cursor-pointer group"
               >
                 <span className="group-hover:underline">
                   {hasGoal ? `${progressPercent.toFixed(0)}%` : 'Цель'}
                 </span>
-                <Settings className="w-3 h-3 text-neutral-500 group-hover:text-cyan-300 transition-transform group-hover:rotate-45" />
+                <Settings className="w-3 h-3 text-neutral-500 group-hover:text-cyan-300 group-hover:rotate-45" />
               </button>
             </Tooltip>
           </div>

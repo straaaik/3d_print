@@ -379,7 +379,7 @@ export function CockpitDonutChart({
                 onMouseLeave={() => setActiveId(null)}
                 onFocus={() => setActiveId(item.id)}
                 onBlur={() => setActiveId(null)}
-                className={`group flex items-center gap-2 rounded-md border px-2 py-1 text-left font-mono text-[10.5px] transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-cyan-500/50 ${
+                className={`group flex items-center gap-2 rounded-md border px-2 py-1 text-left font-mono text-[10.5px] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-cyan-500/50 ${
                   isHovered
                     ? 'border-white/25 bg-white/10 shadow-sm'
                     : hasOtherHovered
@@ -389,7 +389,7 @@ export function CockpitDonutChart({
               >
                 {/* Color Dot */}
                 <span
-                  className="h-2 w-2 shrink-0 rounded-full transition-transform group-hover:scale-125"
+                  className="h-2 w-2 shrink-0 rounded-full "
                   style={{ backgroundColor: color }}
                   aria-hidden="true"
                 />

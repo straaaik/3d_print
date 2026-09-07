@@ -116,7 +116,7 @@ export function DynamicIslandPreview() {
                 <div
                   key={item.id}
                   onClick={() => setActiveStep(idx)}
-                  className={`p-4 sm:p-5 rounded-2xl border transition-all cursor-pointer ${
+                  className={`p-4 sm:p-5 rounded-2xl border cursor-pointer ${
                     isActive
                       ? 'bg-white/[0.05] border-white/25 shadow-lg shadow-black/40'
                       : 'bg-white/[0.01] border-white/10 hover:bg-white/[0.03] hover:border-white/20'
@@ -205,10 +205,10 @@ export function DynamicIslandPreview() {
                     </div>
 
                     <div className="pt-2 space-y-1.5">
-                      <button className="w-full py-2 rounded-xl bg-white text-black font-bold text-xs hover:bg-neutral-200 transition-colors">
+                      <button className="w-full py-2 rounded-xl bg-white text-black font-bold text-xs hover:bg-neutral-200 ">
                         {current.phoneCard.action}
                       </button>
-                      <button className="w-full py-2 rounded-xl border border-white/20 text-neutral-300 text-xs hover:bg-white/5 transition-colors">
+                      <button className="w-full py-2 rounded-xl border border-white/20 text-neutral-300 text-xs hover:bg-white/5 ">
                         {current.phoneCard.action2}
                       </button>
                     </div>

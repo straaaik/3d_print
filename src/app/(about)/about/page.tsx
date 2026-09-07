@@ -61,7 +61,7 @@ export default function AboutPage() {
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <Link
                   href={isAuthenticated ? '/orders' : '/login'}
-                  className="inline-flex items-center justify-center rounded-xl font-bold tracking-tight text-sm h-12 px-7 bg-white text-neutral-950 hover:bg-neutral-200 active:scale-[0.98] transition-all shadow-[0_0_25px_-5px_rgba(255,255,255,0.4)] cursor-pointer"
+                  className="inline-flex items-center justify-center rounded-xl font-bold tracking-tight text-sm h-12 px-7 bg-white text-neutral-950 hover:bg-neutral-200 shadow-[0_0_25px_-5px_rgba(255,255,255,0.4)] cursor-pointer"
                 >
                   <span className="flex items-center gap-2">
                     {isAuthenticated ? 'Открыть панель управления' : 'Начать работу с 3D Labs'}
@@ -71,7 +71,7 @@ export default function AboutPage() {
 
                 <a
                   href="#specs"
-                  className="inline-flex items-center justify-center rounded-xl font-semibold text-sm h-12 px-6 border border-white/15 text-white hover:bg-white/5 transition-all"
+                  className="inline-flex items-center justify-center rounded-xl font-semibold text-sm h-12 px-6 border border-white/15 text-white hover:bg-white/5 "
                 >
                   Все модули системы ↓
                 </a>

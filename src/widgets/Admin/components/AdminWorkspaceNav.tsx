@@ -39,7 +39,7 @@ export function AdminWorkspaceNav({ activeTab, onSelectTab, keyCount, userCount 
               type="button"
               aria-current={isActive ? 'page' : undefined}
               onClick={() => onSelectTab(section.id)}
-              className={`flex w-full items-start gap-3 rounded-lg border px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${isActive ? 'border-white/15 bg-white/[0.08]' : 'border-transparent hover:border-white/10 hover:bg-white/[0.035]'}`}
+              className={`flex w-full items-start gap-3 rounded-lg border px-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${isActive ? 'border-white/15 bg-white/[0.08]' : 'border-transparent hover:border-white/10 hover:bg-white/[0.035]'}`}
             >
               <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${isActive ? 'border-cyan-500/25 bg-cyan-500/[0.08] text-cyan-400' : 'border-white/10 bg-neutral-950 text-neutral-500'}`}><Icon className="h-3.5 w-3.5" /></span>
               <span className="min-w-0 flex-1">

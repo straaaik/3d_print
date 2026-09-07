@@ -99,7 +99,7 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
           <button
             type="button"
             onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="flex items-center gap-2.5 bg-neutral-950/85 hover:bg-neutral-900/90 border border-white/15 backdrop-blur-xl px-3 py-1.5 rounded-xl text-white shadow-2xl transition-all cursor-pointer group"
+            className="flex items-center gap-2.5 bg-neutral-950/85 hover:bg-neutral-900/90 border border-white/15 backdrop-blur-xl px-3 py-1.5 rounded-xl text-white shadow-2xl cursor-pointer group"
           >
             {/* Аватарка (розовый сквиркл со скриншота) */}
             <div
@@ -121,7 +121,7 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
 
             {/* Стрелочка */}
             <ChevronDown
-              className={`w-3.5 h-3.5 text-neutral-400 transition-transform duration-200 ${
+              className={`w-3.5 h-3.5 text-neutral-400 duration-200 ${
                 isProfileOpen ? 'rotate-180 text-white' : 'group-hover:text-white'
               }`}
             />
@@ -147,7 +147,7 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
                 <Link
                   href="/"
                   onClick={() => setIsProfileOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-neutral-300 hover:text-white hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-neutral-300 hover:text-white hover:bg-white/10 "
                 >
                   <LayoutGrid className="w-4 h-4 text-emerald-400" />
                   <span className="font-sans font-medium text-xs">Главный хаб</span>
@@ -157,7 +157,7 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
                 <Link
                   href="/settings"
                   onClick={() => setIsProfileOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-neutral-300 hover:text-white hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-neutral-300 hover:text-white hover:bg-white/10 "
                 >
                   <Settings className="w-4 h-4 text-neutral-400" />
                   <span className="font-sans font-medium text-xs">Настройки мастерской</span>
@@ -168,7 +168,7 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
                   <Link
                     href="/admin"
                     onClick={() => setIsProfileOpen(false)}
-                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-neutral-300 hover:text-white hover:bg-white/10 transition-colors"
+                    className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-neutral-300 hover:text-white hover:bg-white/10 "
                   >
                     <ShieldCheck className="w-4 h-4 text-emerald-400" />
                     <span className="font-sans font-medium text-xs">Панель администратора</span>
@@ -179,7 +179,7 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
                 <Link
                   href="/about"
                   onClick={() => setIsProfileOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-neutral-300 hover:text-white hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-neutral-300 hover:text-white hover:bg-white/10 "
                 >
                   <Info className="w-4 h-4 text-cyan-400" />
                   <span className="font-sans font-medium text-xs">О системе 3D Labs</span>
@@ -196,7 +196,7 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
                     await logout();
                     router.push('/login');
                   }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-950/30 transition-colors text-left cursor-pointer"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-400 hover:text-rose-300 hover:bg-rose-950/30 text-left cursor-pointer"
                 >
                   <LogOut className="w-4 h-4" />
                   <span className="font-sans font-medium text-xs">Выйти из аккаунта</span>
@@ -212,13 +212,13 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
         >
           {NAV_ITEMS.map((item) => {
             const isActive = activeId === item.id;
-            const linkClass = "relative px-3.5 py-1.5 text-xs font-mono tracking-wider flex items-center transition-colors duration-150 focus:outline-none cursor-pointer group";
+            const linkClass = "relative px-3.5 py-1.5 text-xs font-mono tracking-wider flex items-center duration-150 focus:outline-none cursor-pointer group";
 
             const content = (
               <>
                 {/* Открывающая скобка (меняет только цвет и жирность) */}
                 <span
-                  className={`mr-0.5 font-mono transition-colors duration-150 ${
+                  className={`mr-0.5 font-mono duration-150 ${
                     isActive ? 'text-cyan-400 font-bold' : 'text-neutral-600 group-hover:text-cyan-400'
                   }`}
                 >
@@ -230,7 +230,7 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
 
                 {/* Закрывающая скобка (меняет только цвет и жирность) */}
                 <span
-                  className={`ml-0.5 font-mono transition-colors duration-150 ${
+                  className={`ml-0.5 font-mono duration-150 ${
                     isActive ? 'text-cyan-400 font-bold' : 'text-neutral-600 group-hover:text-cyan-400'
                   }`}
                 >

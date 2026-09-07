@@ -210,7 +210,7 @@ export function Select({
               else setIsOpen(true);
             }
           }}
-          className={`w-full flex items-center justify-between gap-1.5 focus:outline-none transition-all cursor-pointer select-none font-mono ${getSizeStyles()} ${getVariantButtonStyles()} ${
+          className={`w-full flex items-center justify-between gap-1.5 focus:outline-none cursor-pointer select-none font-mono ${getSizeStyles()} ${getVariantButtonStyles()} ${
             isModified ? '!border-amber-500/70 shadow-[0_0_10px_rgba(245,158,11,0.15)] bg-amber-500/[0.03]' : ''
           } ${
             error ? '!border-rose-500' : ''
@@ -299,7 +299,7 @@ export function Select({
                             onChange(opt.value);
                             closeSelect();
                           }}
-                          className={`flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg cursor-pointer transition-colors select-none whitespace-nowrap gap-2 font-mono ${
+                          className={`flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg cursor-pointer select-none whitespace-nowrap gap-2 font-mono ${
                             isSelected
                               ? (opt.badgeStyle
                                   ? `${opt.badgeStyle} font-bold border`
