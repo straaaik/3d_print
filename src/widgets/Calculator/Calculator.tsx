@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../entities/model/DataProvider';
@@ -13,6 +13,7 @@ import { usePixelCurtain } from '../../shared/ui/PixelCurtain';
 import { CockpitContentTransition } from '../../shared/ui/CockpitContentTransition';
 import { 
   getStoredCategories, 
+  INITIAL_PRODUCT_CATEGORIES,
   ProductCategory
 } from '../../shared/lib/categories';
 import { DEFAULT_COST_CATEGORIES } from '../../shared/lib/costCategories';
@@ -32,6 +33,33 @@ import { usePersistentState } from '../../shared/lib/usePersistentState';
 import { CockpitDropdown } from '../../shared/ui/CockpitDropdown';
 import { ClientReceiptModal } from './ClientReceiptModal';
 
+const PRODUCT_CATEGORIES_STORAGE_KEY = 'custom_product_categories';
+const SERVER_PRODUCT_CATEGORIES_SNAPSHOT = JSON.stringify(INITIAL_PRODUCT_CATEGORIES);
+
+function subscribeToProductCategories(onStoreChange: () => void) {
+  if (typeof window === 'undefined') return () => undefined;
+
+  const handleStorage = (event: StorageEvent) => {
+    if (
+      event.storageArea === window.localStorage
+      && (event.key === PRODUCT_CATEGORIES_STORAGE_KEY || event.key === null)
+    ) {
+      onStoreChange();
+    }
+  };
+
+  window.addEventListener('storage', handleStorage);
+  return () => window.removeEventListener('storage', handleStorage);
+}
+
+function getProductCategoriesSnapshot() {
+  return JSON.stringify(getStoredCategories());
+}
+
+function getServerProductCategoriesSnapshot() {
+  return SERVER_PRODUCT_CATEGORIES_SNAPSHOT;
+}
+
 export function Calculator() {
   const router = useRouter();
   const { navigate: curtainNavigate } = usePixelCurtain();
@@ -41,9 +69,7 @@ export function Calculator() {
     filaments, 
     printers, 
     settings, 
-    savedCalculations,
     collections,
-    addCollection,
     addSavedCalculation, 
     calcWeight: weightG,
     setCalcWeight: setWeightG,
@@ -60,7 +86,6 @@ export function Calculator() {
     calcLaborMinutes,
     setCalcLaborMinutes,
     calcLaborRate,
-    setCalcLaborRate,
     calcMarkup,
     setCalcMarkup,
     calcDefect,
@@ -68,32 +93,33 @@ export function Calculator() {
     calcIsOwnerLabor,
     setCalcIsOwnerLabor,
     calcIsLaborPerUnit,
-    setCalcIsLaborPerUnit,
     calcDiscountType,
-    setCalcDiscountType,
     calcDiscountValue,
-    setCalcDiscountValue,
     calcUrgencyType,
-    setCalcUrgencyType,
     calcUrgencyValue,
-    setCalcUrgencyValue,
     calcCustomCostItems,
     setCalcCustomCostItems,
     resetCalculator
   } = useData();
 
   // Состояние модалки сохранения в каталог
-  const [categoriesList, setCategoriesList] = useState<ProductCategory[]>([]);
+  const categoriesSnapshot = useSyncExternalStore(
+    subscribeToProductCategories,
+    getProductCategoriesSnapshot,
+    getServerProductCategoriesSnapshot,
+  );
+  const categoriesList = useMemo(
+    () => JSON.parse(categoriesSnapshot) as ProductCategory[],
+    [categoriesSnapshot],
+  );
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
   const [calculationName, setCalculationName] = usePersistentState('3d_calc_save_name', '');
   const [calculationCategory, setCalculationCategory] = usePersistentState<string>('3d_calc_save_cat', 'Разное');
   const [calculationTags, setCalculationTags] = usePersistentState('3d_calc_save_tags', '');
   const [stockQuantity, setStockQuantity] = useState('0');
 
-  // Состояние выбора и создания коллекции
+  // Состояние выбора коллекции
   const [selectedCollectionId, setSelectedCollectionId] = usePersistentState<string>('3d_calc_save_collection_id', 'none');
-  const [isCreatingCollection, setIsCreatingCollection] = useState(false);
-  const [newCollectionName, setNewCollectionName] = useState('');
 
   // Добавление произвольного расхода
   const [isAddingCustomCost, setIsAddingCustomCost] = useState(false);
@@ -107,16 +133,6 @@ export function Calculator() {
   const [stlFileData, setStlFileData] = usePersistentState('3d_calc_stl_file_data', '');
   const [copied, setCopied] = useState(false);
   const [isClientReceiptOpen, setIsClientReceiptOpen] = useState(false);
-
-  useEffect(() => {
-    setCategoriesList(getStoredCategories());
-  }, []);
-
-  useEffect(() => {
-    if (isSaveModalOpen) {
-      setStockQuantity(quantity || '1');
-    }
-  }, [isSaveModalOpen, quantity]);
 
   useEffect(() => {
     if (filaments.length > 0 && !filamentId) {
@@ -134,7 +150,6 @@ export function Calculator() {
   }, [printers, settings, printerId, setPrinterId]);
 
   const currencySymbol = settings?.currency ?? '₽';
-  const defaultMarkupValue = settings?.default_markup_percent ?? 100;
   const defaultDefectValue = settings?.default_defect_percent ?? 5;
   const defaultLaborRateValue = settings?.labor_rate_per_hour ?? 0;
   const defaultLaborMinutesValue = settings?.labor_time_minutes ?? 15;
@@ -235,6 +250,11 @@ export function Calculator() {
         setTimeout(() => setCopied(false), 2000);
       });
     }
+  };
+
+  const handleOpenSaveModal = () => {
+    setStockQuantity(quantity || '1');
+    setIsSaveModalOpen(true);
   };
 
   const handleCreateOrderDirectly = () => {
@@ -1262,7 +1282,7 @@ export function Calculator() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setIsSaveModalOpen(true)}
+                    onClick={handleOpenSaveModal}
                     disabled={!filamentId || filaments.length === 0}
                     className="py-2 rounded-xl bg-neutral-300/70 hover:bg-neutral-300 border border-neutral-400/80 text-neutral-950 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
