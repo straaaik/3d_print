@@ -233,7 +233,7 @@ function OrderPaymentModalContent({
                       onClick={onClose}
                       title="Закрыть окно"
                       aria-label="Закрыть окно"
-                      className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] duration-150 cursor-pointer border-none outline-none shrink-0"
+                      className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] cursor-pointer border-none outline-none shrink-0"
                     />
                   </Tooltip>
                 </div>
@@ -312,7 +312,7 @@ function OrderPaymentModalContent({
                 </div>
                 <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                   <div
-                    className={`h-full rounded-full duration-300 ${
+                    className={`h-full rounded-full ${
                       paidPercent >= 100
                         ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]'
                         : paidPercent >= 35

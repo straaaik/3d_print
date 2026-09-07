@@ -2,20 +2,20 @@
 
 import React, { useState, useEffect, useEffectEvent, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Order, 
-  OrderStatus, 
-  CostItem, 
-  SavedCalculation 
+import {
+  Order,
+  OrderStatus,
+  CostItem,
+  SavedCalculation
 } from '../types';
-import { 
-  ALL_STATUSES, 
-  STATUS_CONFIG, 
-  CLIENT_CONFIG 
+import {
+  ALL_STATUSES,
+  STATUS_CONFIG,
+  CLIENT_CONFIG
 } from '../types';
-import { 
-  formatMoney, 
-  roundTo2, 
+import {
+  formatMoney,
+  roundTo2,
   calculateOrderFinancials
 } from '../helpers';
 import { DEFAULT_COST_CATEGORIES } from '../../../shared/lib/costCategories';
@@ -24,20 +24,20 @@ import { calculateCost } from '../../../features/calculate-cost/model/calculate'
 import { CustomCostItem, ContactType } from '../../../shared/types';
 import {
 
-  Package, 
-  Search, 
-  DollarSign, 
-  Flame, 
-  Tag, 
-  Receipt, 
-  NotebookPen, 
-  Check, 
-  Clock, 
-  Calendar, 
-  AlertTriangle, 
-  Layers, 
-  Wrench, 
-  X, 
+  Package,
+  Search,
+  DollarSign,
+  Flame,
+  Tag,
+  Receipt,
+  NotebookPen,
+  Check,
+  Clock,
+  Calendar,
+  AlertTriangle,
+  Layers,
+  Wrench,
+  X,
   User,
   Printer,
   TrendingUp,
@@ -284,7 +284,7 @@ function PhysicsQuantitySlider({
 
         <div
           style={{ left: `${percent}%` }}
-          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white duration-100 flex items-center justify-center pointer-events-none ${
+          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 rounded-full bg-white flex items-center justify-center pointer-events-none ${
             isDragging
               ? 'scale-125'
               : ''
@@ -2006,14 +2006,14 @@ export function OrderFormModal({
                     onClick={handleAttemptClose}
                     title="Закрыть окно"
                     aria-label="Закрыть окно заказа"
-                    className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] duration-150 cursor-pointer border-none outline-none"
+                    className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] cursor-pointer border-none outline-none"
                   />
                   <button
                     type="button"
                     onClick={onMinimize ? onMinimize : undefined}
                     title="Свернуть черновик"
                     aria-label="Свернуть черновик заказа"
-                    className={`w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#fbbf24] duration-150 border-none outline-none ${
+                    className={`w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#fbbf24] border-none outline-none ${
                       onMinimize ? 'cursor-pointer' : 'cursor-default'
                     }`}
                   />
@@ -2078,11 +2078,11 @@ export function OrderFormModal({
             </div>
 
             {/* 2. Трёхколоночная рабочая консоль с поддержкой переключения разделов колёсиком */}
-            <div 
+            <div
               onWheel={handleWheelNavigation}
               className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden"
             >
-              
+
               {/* ========================================================================= */}
               {/* КОЛОНКА 1: РАЗДЕЛЫ ЗАКАЗА (SERVICES / НАВИГАЦИЯ)                          */}
               {/* ========================================================================= */}
@@ -2172,7 +2172,7 @@ export function OrderFormModal({
                       </div>
 
                       {/* Список моделей во всю оставшуюся высоту, без полосы прокрутки */}
-                      <div 
+                      <div
                         onWheel={(e) => e.stopPropagation()}
                         data-scrollable="true"
                         className="flex flex-col gap-1 overflow-y-auto flex-1 min-h-0 w-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden overscroll-contain"
@@ -2251,7 +2251,7 @@ export function OrderFormModal({
                       </div>
 
                       {/* Список прошлых расходов во всю оставшуюся высоту */}
-                      <div 
+                      <div
                         onWheel={(e) => e.stopPropagation()}
                         data-scrollable="true"
                         className="flex flex-col gap-1 overflow-y-auto flex-1 min-h-0 w-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden overscroll-contain"
@@ -2309,8 +2309,8 @@ export function OrderFormModal({
 
                   {/* Прогресс-линия заполненности формы */}
                   <div className="w-full h-1 bg-[#1c1c20] rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full duration-300 rounded-full ${
+                    <div
+                      className={`h-full rounded-full ${
                         completedTabsCount === tabsList.length ? 'bg-[#34d399]' : 'bg-white'
                       }`}
                       style={{ width: `${Math.max(6, (completedTabsCount / tabsList.length) * 100)}%` }}
@@ -2323,7 +2323,7 @@ export function OrderFormModal({
               {/* КОЛОНКА 2: ЦЕНТРАЛЬНАЯ РАБОЧАЯ ОБЛАСТЬ (ВВОД ДАННЫХ)                      */}
               {/* ========================================================================= */}
               <div className="flex-1 flex flex-col min-w-0 bg-[#18181c] overflow-hidden">
-                
+
                 {/* Верхняя строка статуса раздела */}
                 <div className="px-6 py-3 border-b border-[#26262b] flex items-center justify-between gap-3 bg-[#18181c] shrink-0">
                   <div className="flex items-center gap-2 font-mono text-xs">
@@ -2339,7 +2339,7 @@ export function OrderFormModal({
 
                 {/* Контент центральной области без прокрутки */}
                 <div className="flex-1 p-4 space-y-2.5 flex flex-col justify-between overflow-hidden">
-                  
+
                   <div className="space-y-3">
                     {/* Главная цифра Hero Stat / Нативный минималистичный ввод */}
                     <div className="space-y-1">
@@ -3148,7 +3148,7 @@ export function OrderFormModal({
                                   >
                                     {/* 1. Сетка основных параметров печати (4 блока Cockpit) */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 pt-1">
-                                      
+
                                       {/* 1. Вес изделия / расход материала */}
                                       <div className="space-y-1.5 font-mono select-none">
                                         <div className="flex items-center justify-between text-[11px] text-[#71717a] uppercase tracking-wider font-semibold">
@@ -3363,7 +3363,7 @@ export function OrderFormModal({
 
                                     {/* 2. Секция: Ручной труд, Срочность/Скидка и Дополнительные услуги */}
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 pt-3 border-t border-[#222226]">
-                                      
+
                                       {/* 5. Ручной труд мастера */}
                                       <div className="space-y-1.5 font-mono select-none">
                                         <div className="flex items-center justify-between text-[11px] text-[#71717a] uppercase tracking-wider font-semibold">
@@ -3981,7 +3981,7 @@ export function OrderFormModal({
               {/* КОЛОНКА 3: СВОДКА ЗАКАЗА / РАСХОДА (CLEAN NATIVE TELEMETRY)                */}
               {/* ========================================================================= */}
               <div className="w-full lg:w-[280px] xl:w-[300px] shrink-0 border-t lg:border-t-0 lg:border-l border-[#222226] bg-[#111113] flex flex-col justify-between p-4 font-mono text-xs select-none overflow-y-auto min-h-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                
+
                 {isIncome ? (
                   /* ========================================================================= */
                   /* СВОДКА ДЛЯ ДОХОДА (ЗАКАЗ КЛИЕНТА)                                         */
@@ -4159,8 +4159,8 @@ export function OrderFormModal({
 
                         {/* Тонкий аккуратный прогресс-бар */}
                         <div className="w-full h-1 bg-[#222226] rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-white rounded-full duration-300"
+                          <div
+                            className="h-full bg-white rounded-full "
                             style={{ width: `${Math.min(100, Math.max(paymentRatio > 0 ? 4 : 0, paymentRatio * 100))}%` }}
                           />
                         </div>
@@ -4258,7 +4258,7 @@ export function OrderFormModal({
                     className="w-full py-2 rounded-lg bg-white hover:bg-[#e4e4e7] text-black font-semibold text-xs font-mono cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-wait"
                   >
                     {isSubmitting ? 'Сохранение…' : order.id
-                      ? (isIncome ? 'Сохранить изменения' : 'Сохранить расход') 
+                      ? (isIncome ? 'Сохранить изменения' : 'Сохранить расход')
                       : (isIncome ? 'Создать заказ' : 'Записать расход')}
                   </button>
 

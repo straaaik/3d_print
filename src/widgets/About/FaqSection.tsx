@@ -61,7 +61,7 @@ export function FaqSection() {
                     <span>{faq.q}</span>
                   </span>
                   <ChevronDown
-                    className={`w-5 h-5 text-neutral-400 duration-200 shrink-0 ${
+                    className={`w-5 h-5 text-neutral-400 shrink-0 ${
                       isOpen ? 'rotate-180 text-cyan-400' : ''
                     }`}
                   />

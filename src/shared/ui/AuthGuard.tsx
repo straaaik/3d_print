@@ -5,11 +5,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../../entities/model/AuthProvider';
 import { ShieldAlert, Lock } from 'lucide-react';
 
-import { 
-  CockpitWorkspaceSkeleton, 
-  HubSkeleton, 
-  SettingsSkeleton, 
-  OrdersSkeleton 
+import {
+  CockpitWorkspaceSkeleton,
+  HubSkeleton,
+  SettingsSkeleton,
+  OrdersSkeleton
 } from './CockpitSkeleton';
 import { MainNavbar } from './MainNavbar';
 import { isPublicAuthPath } from '../lib/safeRedirect';

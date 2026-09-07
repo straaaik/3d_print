@@ -72,7 +72,7 @@ export function MeridianSelect({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full h-10 sm:h-11 bg-neutral-900 border border-white/15 hover:border-white/30 rounded-xl px-3.5 flex items-center justify-between text-left duration-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-inner ${
+        className={`w-full h-10 sm:h-11 bg-neutral-900 border border-white/15 hover:border-white/30 rounded-xl px-3.5 flex items-center justify-between text-left cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shadow-inner ${
           isOpen ? 'border-cyan-400 ring-1 ring-cyan-400/30' : ''
         }`}
       >
@@ -94,7 +94,7 @@ export function MeridianSelect({
         </div>
 
         <ChevronDown
-          className={`w-4 h-4 text-neutral-400 duration-200 shrink-0 ml-2 ${
+          className={`w-4 h-4 text-neutral-400 shrink-0 ml-2 ${
             isOpen ? 'rotate-180 text-cyan-400' : ''
           }`}
         />

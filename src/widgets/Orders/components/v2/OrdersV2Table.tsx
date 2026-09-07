@@ -1,34 +1,34 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { 
-  Order, 
-  OrderStatus, 
+import {
+  Order,
+  OrderStatus,
   ContactType,
   CONTACT_TYPES_CONFIG,
-  SortField, 
-  SortOrder, 
-  SavedCalculation, 
-  CLIENT_CONFIG, 
+  SortField,
+  SortOrder,
+  SavedCalculation,
+  CLIENT_CONFIG,
   STATUS_CONFIG,
   ALL_STATUSES,
   ALL_CLIENTS,
 } from '../../types';
 import { formatMoney, roundTo2, getDeadlineInfo } from '../../helpers';
 import { formatOrderNumber, getPaymentBadgeInfo, getStatusBadgeV2 } from './types';
-import { 
-  ChevronUp, 
-  ChevronDown, 
-  Edit2, 
-  Copy, 
-  Trash2, 
-  Package, 
-  Phone, 
-  Flame, 
+import {
+  ChevronUp,
+  ChevronDown,
+  Edit2,
+  Copy,
+  Trash2,
+  Package,
+  Phone,
+  Flame,
   Globe,
-  Check, 
+  Check,
   CheckCircle2,
-  ExternalLink, 
-  Plus, 
+  ExternalLink,
+  Plus,
 } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { Tooltip } from '@/shared/ui/Tooltip';
@@ -43,16 +43,16 @@ const COMPACT_GRID_COLUMNS = '112px 80px 176px minmax(200px, 1.5fr) 144px 128px 
 const EXPANDED_GRID_COLUMNS = '128px 112px 96px 176px 176px minmax(200px, 1.5fr) 192px 128px 144px 128px 112px 128px 144px 144px';
 const SURFACE_EASE = [0.16, 1, 0.3, 1] as const;
 
-export type EditableField = 
-  | 'date' 
-  | 'client_name' 
-  | 'contact' 
-  | 'title' 
-  | 'quantity' 
-  | 'notes' 
-  | 'amount' 
-  | 'cost' 
-  | 'deadline' 
+export type EditableField =
+  | 'date'
+  | 'client_name'
+  | 'contact'
+  | 'title'
+  | 'quantity'
+  | 'notes'
+  | 'amount'
+  | 'cost'
+  | 'deadline'
   | 'payment';
 
 interface OrdersV2TableProps {
@@ -812,7 +812,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
       </div>
 
       {/* ОСНОВНОЕ ТЕЛО ТАБЛИЦЫ */}
-      <div 
+      <div
         onClick={() => {
           if (elevatedOrder) setElevatedOrder(null);
         }}
@@ -832,12 +832,12 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
               transition={surfaceTransition}
               className={`block w-full ${elevatedOrder ? 'pointer-events-none select-none' : ''}`}
             >
-              <tr 
+              <tr
                 className="bg-neutral-900/95 border-b border-white/10 text-neutral-400 font-mono text-[10px] sm:text-[11px] uppercase tracking-wider sticky top-0 z-20 grid items-center"
                 style={{ gridTemplateColumns: EXPANDED_GRID_COLUMNS }}
               >
                 {/* 1. № ЗАКАЗА */}
-                <th 
+                <th
                   onClick={() => onSort('order_number')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group w-32"
                 >
@@ -848,7 +848,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 2. ДАТА */}
-                <th 
+                <th
                   onClick={() => onSort('date')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-center w-28"
                 >
@@ -859,7 +859,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 3. ТИП */}
-                <th 
+                <th
                   onClick={() => onSort('type')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-center w-24"
                 >
@@ -870,7 +870,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 4. ИМЯ КЛИЕНТА */}
-                <th 
+                <th
                   onClick={() => onSort('client_name')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group w-44"
                 >
@@ -886,7 +886,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 6. ИЗДЕЛИЕ / ТОВАР */}
-                <th 
+                <th
                   onClick={() => onSort('title')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group w-56"
                 >
@@ -902,7 +902,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 8. ИТОГО */}
-                <th 
+                <th
                   onClick={() => onSort('amount')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right w-32"
                 >
@@ -913,7 +913,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 9. СЕБЕСТОИМОСТЬ */}
-                <th 
+                <th
                   onClick={() => onSort('cost')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right w-36"
                 >
@@ -924,7 +924,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 10. СТАТУС */}
-                <th 
+                <th
                   onClick={() => onSort('status')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group w-32"
                 >
@@ -935,7 +935,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 11. ДЕДЛАЙН */}
-                <th 
+                <th
                   onClick={() => onSort('deadline')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-left w-28"
                 >
@@ -946,7 +946,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 12. ОПЛАЧЕНО */}
-                <th 
+                <th
                   onClick={() => onSort('payment')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right w-32"
                 >
@@ -957,7 +957,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 13. ОСТАТОК (ДОЛГ) */}
-                <th 
+                <th
                   onClick={() => onSort('debt')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right w-36"
                 >
@@ -968,7 +968,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 14. ЧИСТАЯ ПРИБЫЛЬ */}
-                <th 
+                <th
                   onClick={() => onSort('net_profit')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right w-36"
                 >
@@ -1024,8 +1024,8 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                   );
 
                   // Контакты
-                  const allContacts = order.contacts && order.contacts.length > 0 
-                    ? order.contacts 
+                  const allContacts = order.contacts && order.contacts.length > 0
+                    ? order.contacts
                     : (order.contact ? [{ type: 'phone' as const, value: order.contact }] : []);
 
                   // Клиент инфо
@@ -1069,12 +1069,12 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                         }
                       }}
                       className={` group relative border-b grid w-full items-center ${
-                        isElevated 
-                          ? '!z-50 ring-1 ring-white/20 cursor-default' 
+                        isElevated
+                          ? '!z-50 ring-1 ring-white/20 cursor-default'
                           : isBlurred
                           ? 'pointer-events-none select-none border-white/5'
-                          : isContextMenuActive 
-                          ? '!bg-neutral-800/90 text-white border-white/5 cursor-pointer' 
+                          : isContextMenuActive
+                          ? '!bg-neutral-800/90 text-white border-white/5 cursor-pointer'
                           : 'border-white/5 cursor-pointer'
                       }`}
                       style={{ gridTemplateColumns: EXPANDED_GRID_COLUMNS }}
@@ -1131,8 +1131,8 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               onToggleType(order);
                             }}
                             className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border cursor-pointer ${
-                              isIncome 
-                                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20' 
+                              isIncome
+                                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
                                 : 'bg-rose-500/10 text-rose-300 border-rose-500/30 hover:bg-rose-500/20'
                             }`}
                             title="Клик для переключения Доход / Расход"
@@ -1154,7 +1154,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                       </td>
 
                       {/* 4. ИМЯ КЛИЕНТА И КАНАЛ (ИНЛАЙН-РЕДАКТИРОВАНИЕ) */}
-                      <td 
+                      <td
                         onDoubleClick={(e) => {
                           if (isIncome && (!editingCell || editingCell.orderId !== order.id)) {
                             e.stopPropagation();
@@ -1351,7 +1351,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               )
                             )}
                           </div>
-                          
+
                           <div className="flex flex-wrap items-center gap-1 text-[10px] font-mono text-neutral-400">
                             {quantity > 1 && isIncome && (
                               <span className="text-neutral-300 font-semibold flex items-baseline gap-0.5">
@@ -1383,7 +1383,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                             placeholder="Заметки к заказу..."
                           />
                         ) : (
-                          <div 
+                          <div
                             onClick={(e) => {
                               e.stopPropagation();
                               startEditing(order, 'notes', order.notes || '');
@@ -1413,7 +1413,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                             <span className="text-neutral-500 font-normal ml-0.5 select-none text-xs">₽</span>
                           </div>
                         ) : (
-                          <div 
+                          <div
                             onClick={(e) => {
                               e.stopPropagation();
                               startEditing(order, 'amount', order.amount || 0);
@@ -1504,7 +1504,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                             <span className="text-neutral-500 font-normal ml-0.5 select-none text-xs">₽</span>
                           </div>
                         ) : (
-                          <div 
+                          <div
                             onClick={(e) => {
                               e.stopPropagation();
                               startEditing(order, 'cost', order.cost || 0);
@@ -1558,7 +1558,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                       </td>
 
                       {/* 10. СТАТУС (ВЫБОР СТАТУСА) */}
-                      <td 
+                      <td
                         className="py-2.5 px-3 whitespace-nowrap relative"
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -1630,7 +1630,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                             <span className="text-neutral-500 font-normal select-none text-xs">₽</span>
                           </div>
                         ) : isExpense ? (
-                          <div 
+                          <div
                             onClick={(e) => {
                               e.stopPropagation();
                               startEditing(order, 'payment', order.payment ?? 0);
@@ -1643,7 +1643,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               currencySymbol="₽"
                               className="text-rose-400 group-hover:text-rose-300 font-bold text-xs "
                             />
-                            
+
                             {/* История транзакций платежей с датами */}
                             {order.payments && order.payments.length > 0 ? (
                               <div className="flex flex-col items-end gap-0.5 mt-0.5">
@@ -1662,7 +1662,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                             )}
                           </div>
                         ) : (
-                          <div 
+                          <div
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenPaymentModal(order);
@@ -1675,7 +1675,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               currencySymbol="₽"
                               className="text-emerald-400 group-hover/pay:text-emerald-300 font-bold text-xs "
                             />
-                            
+
                             {/* История транзакций платежей с датами */}
                             {order.payments && order.payments.length > 0 ? (
                               <div className="flex flex-col items-end gap-0.5 mt-0.5">
@@ -1700,7 +1700,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                       <td className="py-2.5 px-3 whitespace-nowrap text-right font-mono text-xs">
                         {isExpense ? (
                           debtAmount <= 0 ? (
-                            <span 
+                            <span
                               onClick={(e) => {
                                 e.stopPropagation();
                                 startEditing(order, 'payment', order.payment ?? 0);
@@ -1711,7 +1711,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               —
                             </span>
                           ) : (
-                            <div 
+                            <div
                               onClick={(e) => {
                                 e.stopPropagation();
                                 startEditing(order, 'payment', order.payment ?? 0);
@@ -1727,8 +1727,8 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               <Tooltip content={`Списано: ${paidPercent.toFixed(0)}% (${formatMoney(paidAmount)} из ${formatMoney(totalAmount)})`}>
                                 <div className="flex items-center gap-1.5 w-[90px] mt-0.5">
                                   <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                    <div 
-                                      className="h-full rounded-full duration-300 bg-rose-500 shadow-[0_0_4px_rgba(244,63,94,0.5)]"
+                                    <div
+                                      className="h-full rounded-full bg-rose-500 shadow-[0_0_4px_rgba(244,63,94,0.5)]"
                                       style={{ width: `${paidPercent}%` }}
                                     />
                                   </div>
@@ -1753,8 +1753,8 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                             <Tooltip content={`Оплачено: ${paidPercent.toFixed(0)}% (${formatMoney(paidAmount)} из ${formatMoney(totalAmount)})`}>
                               <div className="flex items-center gap-1.5 w-[90px] mt-0.5">
                                 <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                  <div 
-                                    className={`h-full rounded-full duration-300 ${
+                                  <div
+                                    className={`h-full rounded-full ${
                                       paidPercent >= 35
                                         ? 'bg-amber-400 shadow-[0_0_4px_rgba(251,191,36,0.5)]'
                                         : paidPercent > 0
@@ -1820,7 +1820,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                     {/* Нижняя выезжающая панель: редактируемая информация о заказе */}
                     <AnimatePresence>
                       {isElevated && (
-                        <td 
+                        <td
                           className="p-0 border-0 col-span-full w-full"
                           style={{ gridColumn: '1 / -1' }}
                         >
@@ -1886,12 +1886,12 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
               transition={surfaceTransition}
               className={`block w-full ${elevatedOrder ? 'pointer-events-none select-none' : ''}`}
             >
-              <tr 
+              <tr
                 className="bg-neutral-900/90 border-b border-white/10 text-neutral-400 font-mono text-[10px] sm:text-[11px] uppercase tracking-wider grid items-center"
                 style={{ gridTemplateColumns: COMPACT_GRID_COLUMNS }}
               >
                 {/* 1. № ЗАКАЗА И ДАТА */}
-                <th 
+                <th
                   onClick={() => onSort('order_number')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group w-28"
                 >
@@ -1902,7 +1902,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 2. ТИП */}
-                <th 
+                <th
                   onClick={() => onSort('type')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-center w-20"
                 >
@@ -1913,7 +1913,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 3. КЛИЕНТ / КАНАЛ */}
-                <th 
+                <th
                   onClick={() => onSort('client_name')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group w-44"
                 >
@@ -1924,7 +1924,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 4. ИЗДЕЛИЕ / ЗАМЕТКИ */}
-                <th 
+                <th
                   onClick={() => onSort('title')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group w-56"
                 >
@@ -1935,7 +1935,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 7. ИТОГО / СЕБЕСТОИМОСТЬ */}
-                <th 
+                <th
                   onClick={() => onSort('amount')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right w-36"
                 >
@@ -1946,7 +1946,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 5. СТАТУС */}
-                <th 
+                <th
                   onClick={() => onSort('status')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group w-32"
                 >
@@ -1957,7 +1957,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 6. ДЕДЛАЙН */}
-                <th 
+                <th
                   onClick={() => onSort('deadline')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-left w-24"
                 >
@@ -1968,7 +1968,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 8. ОПЛАТА / ОСТАТОК */}
-                <th 
+                <th
                   onClick={() => onSort('payment')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right w-36"
                 >
@@ -1979,7 +1979,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 </th>
 
                 {/* 9. ЧИСТАЯ ПРИБЫЛЬ */}
-                <th 
+                <th
                   onClick={() => onSort('net_profit')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right w-28"
                 >
@@ -2025,8 +2025,8 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
 
                   const clientCfg = CLIENT_CONFIG[order.client] || CLIENT_CONFIG['Другое'];
                   const ClientIcon = clientCfg?.icon || Globe;
-                  const allContacts = order.contacts && order.contacts.length > 0 
-                    ? order.contacts 
+                  const allContacts = order.contacts && order.contacts.length > 0
+                    ? order.contacts
                     : (order.contact ? [{ type: 'phone' as const, value: order.contact }] : []);
 
                   const isContextMenuActive = contextMenu?.order.id === order.id;
@@ -2066,12 +2066,12 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                         }
                       }}
                       className={` group relative border-b grid w-full items-center ${
-                        isElevated 
-                          ? '!z-50 ring-1 ring-white/20 cursor-default' 
+                        isElevated
+                          ? '!z-50 ring-1 ring-white/20 cursor-default'
                           : isBlurred
                           ? 'pointer-events-none select-none border-white/5'
-                          : isContextMenuActive 
-                          ? '!bg-neutral-800/90 text-white border-white/5 cursor-pointer' 
+                          : isContextMenuActive
+                          ? '!bg-neutral-800/90 text-white border-white/5 cursor-pointer'
                           : 'border-white/5 cursor-pointer'
                       }`}
                       style={{ gridTemplateColumns: COMPACT_GRID_COLUMNS }}
@@ -2103,8 +2103,8 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                             onToggleType(order);
                           }}
                           className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border cursor-pointer ${
-                            isIncome 
-                              ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20' 
+                            isIncome
+                              ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
                               : 'bg-rose-500/10 text-rose-300 border-rose-500/30 hover:bg-rose-500/20'
                           }`}
                           title="Клик для переключения Доход / Расход"
@@ -2114,7 +2114,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                       </td>
 
                       {/* 3. КЛИЕНТ И КАНАЛ / КОНТАКТ (ИНЛАЙН-РЕДАКТИРОВАНИЕ) */}
-                      <td 
+                      <td
                         onDoubleClick={(e) => {
                           if (isIncome && (!editingCell || editingCell.orderId !== order.id)) {
                             e.stopPropagation();
@@ -2140,7 +2140,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                             <>
                               {/* 1. СВЕРХУ: Имя клиента (если указано) */}
                               {Boolean(order.client_name?.trim()) && (
-                                <span 
+                                <span
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     startEditing(order, 'client_name', order.client_name || '');
@@ -2259,7 +2259,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                 placeholder="Название изделия"
                               />
                             ) : (
-                              <span 
+                              <span
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   startEditing(order, 'title', order.title);
@@ -2284,7 +2284,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                   className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-neutral-400 font-mono text-xs p-0 m-0 w-12 text-center shadow-none"
                                 />
                               ) : (
-                                <span 
+                                <span
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     startEditing(order, 'quantity', order.quantity || 1);
@@ -2310,7 +2310,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               placeholder="Заметки..."
                             />
                           ) : (
-                            <span 
+                            <span
                               onClick={(e) => {
                                 e.stopPropagation();
                                 startEditing(order, 'notes', order.notes || '');
@@ -2342,7 +2342,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               <span className="text-neutral-500 font-normal ml-0.5 select-none text-xs">₽</span>
                             </div>
                           ) : (
-                            <div 
+                            <div
                               onClick={(e) => {
                                 e.stopPropagation();
                                 startEditing(order, 'amount', order.amount || 0);
@@ -2416,7 +2416,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                 <span className="text-neutral-500 font-normal select-none text-[10px]">₽</span>
                               </div>
                             ) : order.cost ? (
-                              <span 
+                              <span
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   startEditing(order, 'cost', order.cost || 0);
@@ -2432,7 +2432,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                 />
                               </span>
                             ) : (
-                              <span 
+                              <span
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   startEditing(order, 'cost', 0);
@@ -2448,7 +2448,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                       </td>
 
                       {/* 5. СТАТУС (ВЫБОР СТАТУСА) */}
-                      <td 
+                      <td
                         className="py-2 px-3 whitespace-nowrap relative"
                         onClick={(e) => e.stopPropagation()}
                       >
@@ -2520,7 +2520,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                             <span className="text-neutral-500 font-normal select-none text-xs">₽</span>
                           </div>
                         ) : isExpense ? (
-                          <div 
+                          <div
                             onClick={(e) => {
                               e.stopPropagation();
                               startEditing(order, 'payment', order.payment ?? 0);
@@ -2546,8 +2546,8 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                                 <Tooltip content={`Списано: ${paidPercent.toFixed(0)}% (${formatMoney(paidAmount)} из ${formatMoney(totalAmount)})`}>
                                   <div className="flex items-center gap-1.5 w-[85px] mt-0.5">
                                     <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
-                                      <div 
-                                        className="h-full rounded-full duration-300 bg-rose-500 shadow-[0_0_4px_rgba(244,63,94,0.5)]"
+                                      <div
+                                        className="h-full rounded-full bg-rose-500 shadow-[0_0_4px_rgba(244,63,94,0.5)]"
                                         style={{ width: `${paidPercent}%` }}
                                       />
                                     </div>
@@ -2560,7 +2560,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                             )}
                           </div>
                         ) : paidPercent >= 100 ? (
-                          <div 
+                          <div
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenPaymentModal(order);
@@ -2575,7 +2575,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                             />
                           </div>
                         ) : (
-                          <div 
+                          <div
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenPaymentModal(order);
@@ -2599,8 +2599,8 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                             <Tooltip content={`Оплачено: ${paidPercent.toFixed(0)}% (${formatMoney(paidAmount)} из ${formatMoney(totalAmount)})`}>
                               <div className="flex items-center gap-1.5 w-[85px] mt-0.5">
                                 <div className="flex-1 h-1 bg-white/10 rounded-full overflow-hidden">
-                                  <div 
-                                    className={`h-full rounded-full duration-300 ${
+                                  <div
+                                    className={`h-full rounded-full ${
                                       paidPercent >= 35
                                         ? 'bg-amber-400 shadow-[0_0_4px_rgba(251,191,36,0.5)]'
                                         : paidPercent > 0
@@ -2648,7 +2648,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                     {/* Нижняя выезжающая панель: редактируемая информация о заказе */}
                     <AnimatePresence>
                       {isElevated && (
-                        <td 
+                        <td
                           className="p-0 border-0 col-span-full w-full"
                           style={{ gridColumn: '1 / -1' }}
                         >

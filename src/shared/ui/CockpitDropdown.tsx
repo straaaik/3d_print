@@ -413,7 +413,7 @@ export function CockpitDropdown({
 
         {showChevron && (
           <ChevronDown
-            className={`w-3.5 h-3.5 text-neutral-400 duration-150 shrink-0 ml-1.5 ${
+            className={`w-3.5 h-3.5 text-neutral-400 shrink-0 ml-1.5 ${
               isOpen ? 'rotate-180 text-white' : ''
             }`}
           />

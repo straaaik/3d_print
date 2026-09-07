@@ -172,7 +172,7 @@ function OpenNewMonthModalContent({
                     <button
                       type="button"
                       onClick={onClose}
-                      className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] duration-150 cursor-pointer border-none outline-none"
+                      className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] cursor-pointer border-none outline-none"
                     />
                   </Tooltip>
                 </div>

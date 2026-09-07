@@ -283,7 +283,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
   }, [elevatedRow]);
 
   return (
-    <div className={`w-full mx-auto select-none font-sans relative duration-300 ${
+    <div className={`w-full mx-auto select-none font-sans relative ${
       isExpanded ? 'max-w-none' : 'max-w-[1500px]'
     }`}>
 
@@ -296,13 +296,13 @@ export const ProductsV2View = React.memo(function ProductsV2View({
             opacity: elevatedRow ? 0.35 : 1,
           }}
           transition={surfaceTransition}
-          className={`hidden xl:block absolute left-0 top-24 bottom-0 z-30 duration-300 ${
+          className={`hidden xl:block absolute left-0 top-24 bottom-0 z-30 ${
             elevatedRow ? 'pointer-events-none select-none' : 'pointer-events-none'
           }`}
         >
           <div className="sticky top-28 pointer-events-auto">
             <aside
-              className={`flex flex-col gap-2 rounded-l-2xl border-l border-y border-white/20 bg-neutral-900/60 backdrop-blur-2xl shadow-[-15px_20px_50px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.2)] duration-300 ease-out select-none overflow-hidden ${
+              className={`flex flex-col gap-2 rounded-l-2xl border-l border-y border-white/20 bg-neutral-900/60 backdrop-blur-2xl shadow-[-15px_20px_50px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.2)] select-none overflow-hidden ${
                 isSideWingOpen
                   ? 'w-[195px] -ml-[195px] p-2.5'
                   : 'w-[38px] -ml-[38px] p-1.5 cursor-pointer hover:bg-neutral-900/80 hover:border-white/35'
@@ -440,7 +440,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
             opacity: elevatedRow ? 0.35 : 1,
           }}
           transition={surfaceTransition}
-          className={`flex flex-wrap items-center justify-between border-b border-white/10 px-4 py-2.5 bg-neutral-900/60 gap-3 duration-300 ${
+          className={`flex flex-wrap items-center justify-between border-b border-white/10 px-4 py-2.5 bg-neutral-900/60 gap-3 ${
             elevatedRow ? 'pointer-events-none select-none' : ''
           }`}
         >
@@ -454,7 +454,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
                 <button
                   type="button"
                   onClick={() => curtainNavigate('/')}
-                  className="w-3 h-3 rounded-full bg-red-500/80 border border-red-400/40 hover:bg-red-500 duration-150 cursor-pointer outline-none shadow-sm shadow-red-500/30"
+                  className="w-3 h-3 rounded-full bg-red-500/80 border border-red-400/40 hover:bg-red-500 cursor-pointer outline-none shadow-sm shadow-red-500/30"
                 />
               </Tooltip>
 
@@ -464,7 +464,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
                   type="button"
                   onClick={() => onToggleExpand?.(false)}
                   disabled={!isExpanded}
-                  className={`w-3 h-3 rounded-full duration-150 outline-none ${
+                  className={`w-3 h-3 rounded-full outline-none ${
                     isExpanded
                       ? 'bg-yellow-500/80 border border-yellow-400/40 hover:bg-yellow-400 cursor-pointer shadow-sm shadow-yellow-500/30'
                       : 'bg-[#36363c] border border-white/10 opacity-40 cursor-not-allowed '
@@ -478,7 +478,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
                   type="button"
                   onClick={() => onToggleExpand?.(true)}
                   disabled={isExpanded}
-                  className={`w-3 h-3 rounded-full duration-150 outline-none ${
+                  className={`w-3 h-3 rounded-full outline-none ${
                     !isExpanded
                       ? 'bg-emerald-500/80 border border-emerald-400/40 hover:bg-emerald-400 cursor-pointer shadow-sm shadow-emerald-500/30'
                       : 'bg-[#36363c] border border-white/10 opacity-40 cursor-not-allowed '
@@ -546,7 +546,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
               opacity: elevatedRow ? 0.35 : 1,
             }}
             transition={surfaceTransition}
-            className={`space-y-3 sm:space-y-3.5 duration-300 ${
+            className={`space-y-3 sm:space-y-3.5 ${
               elevatedRow ? 'pointer-events-none select-none' : ''
             }`}
           >
@@ -658,7 +658,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
             onClick={() => {
               if (elevatedRow) setElevatedRow(null);
             }}
-            className={`relative z-20 duration-300 ${
+            className={`relative z-20 ${
               elevatedRow ? 'pointer-events-none select-none cursor-pointer' : ''
             }`}
           >
@@ -755,7 +755,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
             opacity: elevatedRow ? 0.35 : 1,
           }}
           transition={surfaceTransition}
-          className={`border-t border-white/10 px-5 py-2.5 bg-neutral-950 flex flex-wrap items-center justify-between text-[11px] font-mono text-neutral-500 gap-2 select-none duration-300 ${
+          className={`border-t border-white/10 px-5 py-2.5 bg-neutral-950 flex flex-wrap items-center justify-between text-[11px] font-mono text-neutral-500 gap-2 select-none ${
             elevatedRow ? 'pointer-events-none select-none' : ''
           }`}
         >

@@ -121,7 +121,7 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
 
             {/* Стрелочка */}
             <ChevronDown
-              className={`w-3.5 h-3.5 text-neutral-400 duration-200 ${
+              className={`w-3.5 h-3.5 text-neutral-400 ${
                 isProfileOpen ? 'rotate-180 text-white' : 'group-hover:text-white'
               }`}
             />
@@ -212,13 +212,13 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
         >
           {NAV_ITEMS.map((item) => {
             const isActive = activeId === item.id;
-            const linkClass = "relative px-3.5 py-1.5 text-xs font-mono tracking-wider flex items-center duration-150 focus:outline-none cursor-pointer group";
+            const linkClass = "relative px-3.5 py-1.5 text-xs font-mono tracking-wider flex items-center focus:outline-none cursor-pointer group";
 
             const content = (
               <>
                 {/* Открывающая скобка (меняет только цвет и жирность) */}
                 <span
-                  className={`mr-0.5 font-mono duration-150 ${
+                  className={`mr-0.5 font-mono ${
                     isActive ? 'text-cyan-400 font-bold' : 'text-neutral-600 group-hover:text-cyan-400'
                   }`}
                 >
@@ -230,7 +230,7 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
 
                 {/* Закрывающая скобка (меняет только цвет и жирность) */}
                 <span
-                  className={`ml-0.5 font-mono duration-150 ${
+                  className={`ml-0.5 font-mono ${
                     isActive ? 'text-cyan-400 font-bold' : 'text-neutral-600 group-hover:text-cyan-400'
                   }`}
                 >

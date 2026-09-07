@@ -571,7 +571,7 @@ export function ProductRowDrawer({
                   {/* Тонкий прогресс-бар в нативном стиле */}
                   <div className="w-full h-1 bg-[#222226] rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-white rounded-full duration-300"
+                      className="h-full bg-white rounded-full "
                       style={{ width: `${Math.min(100, Math.max(0, marginPercent))}%` }}
                     />
                   </div>

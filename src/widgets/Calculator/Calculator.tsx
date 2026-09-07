@@ -11,20 +11,20 @@ import { Tooltip, CustomTooltip } from '../../shared/ui/Tooltip';
 import { CockpitButton } from '../../shared/ui/CockpitButton';
 import { usePixelCurtain } from '../../shared/ui/PixelCurtain';
 import { CockpitContentTransition } from '../../shared/ui/CockpitContentTransition';
-import { 
-  getStoredCategories, 
+import {
+  getStoredCategories,
   INITIAL_PRODUCT_CATEGORIES,
   ProductCategory
 } from '../../shared/lib/categories';
 import { DEFAULT_COST_CATEGORIES } from '../../shared/lib/costCategories';
-import { 
-  ShoppingBag, 
-  Package, 
-  Copy, 
-  Check, 
+import {
+  ShoppingBag,
+  Package,
+  Copy,
+  Check,
   RotateCcw,
-  Plus, 
-  X, 
+  Plus,
+  X,
   Zap,
   HelpCircle,
   Share2
@@ -65,13 +65,13 @@ export function Calculator() {
   const router = useRouter();
   const { navigate: curtainNavigate } = usePixelCurtain();
   const { showWarning, showSuccess } = useToast();
-  const { 
+  const {
     isOnline,
-    filaments, 
-    printers, 
-    settings, 
+    filaments,
+    printers,
+    settings,
     collections,
-    addSavedCalculation, 
+    addSavedCalculation,
     calcWeight: weightG,
     setCalcWeight: setWeightG,
     calcHours: hours,
@@ -182,37 +182,37 @@ export function Calculator() {
     printer: selectedPrinter,
     settings,
   }), [
-    weightG, 
-    hours, 
-    minutes, 
-    currentLaborMinutes, 
-    currentLaborRate, 
+    weightG,
+    hours,
+    minutes,
+    currentLaborMinutes,
+    currentLaborRate,
     calcIsOwnerLabor,
     calcIsLaborPerUnit,
-    calcMarkup, 
-    calcDefect, 
+    calcMarkup,
+    calcDefect,
     calcDiscountType,
     calcDiscountValue,
     calcUrgencyType,
     calcUrgencyValue,
-    calcCustomCostItems, 
-    quantity, 
-    selectedFilament, 
-    selectedPrinter, 
+    calcCustomCostItems,
+    quantity,
+    selectedFilament,
+    selectedPrinter,
     settings
   ]);
 
   const currentMarkup = calcMarkup !== '' ? calcMarkup : result.appliedMarkupPercent.toString();
   const currentDefect = calcDefect !== '' ? calcDefect : defaultDefectValue.toString();
 
-  const pricePerGram = selectedFilament && selectedFilament.weight_g > 0 
-    ? (selectedFilament.price / selectedFilament.weight_g) 
+  const pricePerGram = selectedFilament && selectedFilament.weight_g > 0
+    ? (selectedFilament.price / selectedFilament.weight_g)
     : 0;
 
   const totalPrintHours = (parseInt(hours) || 0) + (parseInt(minutes) || 0) / 60;
   const powerKwH = selectedPrinter ? (selectedPrinter.power_w * totalPrintHours) / 1000 : 0;
-  const electricityAndDeprecPerHour = totalPrintHours > 0 
-    ? (result.electricityCost + result.depreciationCost) / totalPrintHours 
+  const electricityAndDeprecPerHour = totalPrintHours > 0
+    ? (result.electricityCost + result.depreciationCost) / totalPrintHours
     : 0;
 
   const handleCopyClientMessage = () => {
@@ -341,7 +341,7 @@ export function Calculator() {
         quantity: parseInt(quantity) || 1,
         base_cost: result.totalBaseCost,
         final_price: result.totalFinalPrice,
-        
+
         filament_id: filamentId || undefined,
         printer_id: printerId || undefined,
         labor_minutes: parseInt(currentLaborMinutes) || undefined,
@@ -355,7 +355,7 @@ export function Calculator() {
         urgency_percent: calcUrgencyType === 'percent' && parseFloat(calcUrgencyValue) > 0 ? parseFloat(calcUrgencyValue) : undefined,
         urgency_amount: calcUrgencyType === 'fixed' && parseFloat(calcUrgencyValue) > 0 ? parseFloat(calcUrgencyValue) : undefined,
         custom_cost_items: calcCustomCostItems && calcCustomCostItems.length > 0 ? calcCustomCostItems : undefined,
-        
+
         stl_url: stlUrl.trim() || undefined,
         stl_file_name: stlFileName || undefined,
         stl_file_data: stlFileData || undefined,
@@ -400,10 +400,10 @@ export function Calculator() {
 
   return (
     <div className="w-full max-w-[1500px] mx-auto select-none font-sans">
-      
+
       {/* 1. ГЛАВНОЕ ОКНО КОНСОЛИ (MERIDIAN COCKPIT CONTAINER) */}
       <div className="relative mx-auto rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl overflow-hidden">
-        
+
         {/* Верхняя панель: реальная полезная информация мастерской и телеметрия */}
         <div className="flex flex-wrap items-center justify-between border-b border-white/10 px-4 py-3 bg-neutral-900/60 gap-3">
           {/* Левая часть: Статус узла и синхронизация */}
@@ -414,7 +414,7 @@ export function Calculator() {
                 <button
                   type="button"
                   onClick={() => curtainNavigate('/')}
-                  className="w-3 h-3 rounded-full bg-red-500/80 border border-red-400/40 hover:bg-red-500 duration-150 cursor-pointer outline-none shadow-sm shadow-red-500/30"
+                  className="w-3 h-3 rounded-full bg-red-500/80 border border-red-400/40 hover:bg-red-500 cursor-pointer outline-none shadow-sm shadow-red-500/30"
                 />
               </Tooltip>
               <span className="w-3 h-3 rounded-full bg-yellow-500/80 border border-yellow-400/40 inline-block" />
@@ -425,7 +425,7 @@ export function Calculator() {
               <span className="text-white font-bold">3D-LABS</span>
               <span className="text-neutral-600">{'//'}</span>
               <span className="text-neutral-400 hidden sm:inline">КАЛЬКУЛЯТОР</span>
-              
+
               {isOnline ? (
                 <span className="flex items-center gap-1 text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -471,16 +471,16 @@ export function Calculator() {
         <CockpitContentTransition>
           <div className="p-5 sm:p-6 bg-gradient-to-b from-neutral-950 to-neutral-900/90">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
-            
+
             {/* ===================== ЛЕВАЯ КОЛОНКА ===================== */}
             <div className="space-y-3.5 w-full">
-              
+
               {/* Шапка левой колонки */}
               <div className="flex items-center justify-between border-b border-white/10 pb-2">
                 <span className="font-mono text-xs text-neutral-400 uppercase tracking-wider">
                   ПАРАМЕТРЫ ПЕЧАТИ ДЕТАЛИ
                 </span>
-                
+
                 {/* Выбор принтера в точности по скриншоту */}
                 <CockpitDropdown
                   value={printerId || (printers.length > 0 ? printers[0].id : '')}
@@ -500,7 +500,7 @@ export function Calculator() {
 
               {/* 4 Карточки параметров */}
               <div className="grid grid-cols-2 gap-3">
-                
+
                 {/* 1. Вес детали */}
                 <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 p-3.5 rounded-xl flex flex-col justify-between">
                   <div>
@@ -671,7 +671,7 @@ export function Calculator() {
                       </span>
                     </div>
                   </div>
-                  
+
                   {/* Быстрые кнопки переключения наценки */}
                   <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono">
                     <span className="text-neutral-500">Пресет:</span>
@@ -754,8 +754,8 @@ export function Calculator() {
                         type="button"
                         onClick={() => setCalcIsOwnerLabor(!calcIsOwnerLabor)}
                         className={`px-1.5 py-0.5 rounded cursor-pointer text-[10px] ${
-                          calcIsOwnerLabor 
-                            ? 'bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30' 
+                          calcIsOwnerLabor
+                            ? 'bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30'
                             : 'bg-white/5 text-neutral-400 hover:text-white border border-white/10'
                         }`}
                       >
@@ -814,8 +814,8 @@ export function Calculator() {
                           type="button"
                           onClick={() => setCalcDefect(dVal.toString())}
                           className={`px-1.5 py-0.2 rounded cursor-pointer ${
-                            parseInt(currentDefect) === dVal 
-                              ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30' 
+                            parseInt(currentDefect) === dVal
+                              ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
                               : 'text-neutral-500 hover:text-white'
                           }`}
                         >
@@ -860,7 +860,7 @@ export function Calculator() {
                 <div className="flex flex-wrap gap-2 items-center font-mono">
                   {DEFAULT_COST_CATEGORIES.filter(c => c.id !== 'print').map((cat) => {
                     const activeItem = (calcCustomCostItems || []).find(i => i.id === cat.id);
-                    
+
                     if (activeItem) {
                       // Раскрытый активный чип в голубом стиле с редактированием цены прямо внутри
                       return (
@@ -897,8 +897,8 @@ export function Calculator() {
                                 setCalcCustomCostItems(prev => prev.map(i => i.id === cat.id ? { ...i, isPerUnit: !i.isPerUnit } : i));
                               }}
                               className={`px-1.5 py-0.5 rounded text-[10px] border cursor-pointer font-bold ${
-                                activeItem.isPerUnit 
-                                  ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50' 
+                                activeItem.isPerUnit
+                                  ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50'
                                   : 'bg-neutral-900 text-cyan-400 border-cyan-500/30 hover:text-white'
                               }`}
                             >
@@ -977,8 +977,8 @@ export function Calculator() {
                             setCalcCustomCostItems(prev => prev.map(i => i.id === customItem.id ? { ...i, isPerUnit: !i.isPerUnit } : i));
                           }}
                           className={`px-1.5 py-0.5 rounded text-[10px] border cursor-pointer font-bold ${
-                            customItem.isPerUnit 
-                              ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50' 
+                            customItem.isPerUnit
+                              ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50'
                               : 'bg-neutral-900 text-cyan-400 border-cyan-500/30 hover:text-white'
                           }`}
                         >
@@ -1096,7 +1096,7 @@ export function Calculator() {
                   <span className="font-bold text-neutral-900">3D LABS · PRODUCTION</span>
                   <span>№ 3DL-CALC-2026</span>
                 </div>
-                
+
                 {/* Пунктирный разделитель */}
                 <div className="border-b border-dashed border-neutral-600/30 my-2.5" />
 
@@ -1227,13 +1227,13 @@ export function Calculator() {
                       <HelpCircle className="w-3.5 h-3.5 text-neutral-600 hover:text-neutral-950 shrink-0 cursor-help" />
                     </CustomTooltip>
                   </div>
-                  
+
                   <div className="text-right shrink-0">
                     <div className="text-2xl sm:text-3xl font-bold font-mono text-neutral-950 tracking-tight whitespace-nowrap tabular-nums">
                       {formatCurrency(result.totalFinalPrice, currencySymbol)}
                     </div>
                     <div className="text-[10.5px] font-mono text-neutral-700 block font-bold whitespace-nowrap tabular-nums">
-                      {parseInt(quantity) > 1 
+                      {parseInt(quantity) > 1
                         ? `${formatCurrency(result.totalFinalPrice / Math.max(1, parseInt(quantity) || 1), currencySymbol)} / шт. (за ${quantity} шт.)`
                         : 'за 1 шт.'}
                     </div>
@@ -1296,8 +1296,8 @@ export function Calculator() {
                     onClick={handleCopyClientMessage}
                     disabled={!filamentId || filaments.length === 0}
                     className={`py-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                      copied 
-                        ? 'bg-emerald-200 text-emerald-900 border-emerald-400' 
+                      copied
+                        ? 'bg-emerald-200 text-emerald-900 border-emerald-400'
                         : 'bg-neutral-300/70 hover:bg-neutral-300 text-neutral-950 border-neutral-400/80'
                     }`}
                   >

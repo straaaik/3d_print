@@ -336,7 +336,7 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
             </div>
           </div>
 
-          <div className=" duration-150">
+          <div className=" ">
         {activeTab === 'general' ? (
           <GeneralSettingsTab
             currency={currency}

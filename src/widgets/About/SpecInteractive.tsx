@@ -146,7 +146,7 @@ export function SpecInteractive() {
             <div
               key={spec.id}
               onClick={() => setSelectedSpec(spec)}
-              className={`relative py-5 px-3 cursor-pointer duration-200 group ${
+              className={`relative py-5 px-3 cursor-pointer group ${
                 isSelected ? 'bg-white/[0.04]' : 'hover:bg-white/[0.02]'
               }`}
             >

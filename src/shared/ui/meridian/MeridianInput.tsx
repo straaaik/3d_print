@@ -57,7 +57,7 @@ export const MeridianInput = React.forwardRef<HTMLInputElement, MeridianInputPro
           <input
             id={inputId}
             ref={ref}
-            className={`w-full h-10 sm:h-11 bg-neutral-900 border border-white/15 hover:border-white/30 ${focusBorders} focus:outline-none rounded-xl px-3.5 text-white text-xs sm:text-sm font-mono font-medium duration-200 placeholder-neutral-600 shadow-inner ${
+            className={`w-full h-10 sm:h-11 bg-neutral-900 border border-white/15 hover:border-white/30 ${focusBorders} focus:outline-none rounded-xl px-3.5 text-white text-xs sm:text-sm font-mono font-medium placeholder-neutral-600 shadow-inner ${
               unit ? 'pr-9' : ''
             } ${error ? '!border-rose-500/80 !ring-rose-500/20' : ''} ${className}`}
             {...props}

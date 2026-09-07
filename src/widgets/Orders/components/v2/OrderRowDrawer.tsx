@@ -985,7 +985,7 @@ function OrderRowDrawerEditor({
                     {status}
                   </span>
                 </div>
-                <ChevronDown className={`w-3 h-3 duration-150 shrink-0 ml-1 text-neutral-400 ${
+                <ChevronDown className={`w-3 h-3 shrink-0 ml-1 text-neutral-400 ${
                   isStatusOpen ? 'rotate-180' : ''
                 }`} />
               </button>
@@ -1655,7 +1655,7 @@ function OrderRowDrawerEditor({
                     {/* Тонкий аккуратный прогресс-бар в нативном стиле */}
                     <div className="w-full h-1 bg-[#222226] rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-white rounded-full duration-300"
+                        className="h-full bg-white rounded-full "
                         style={{ width: `${Math.min(100, Math.max(paidPercent > 0 ? 3 : 0, paidPercent))}%` }}
                       />
                     </div>

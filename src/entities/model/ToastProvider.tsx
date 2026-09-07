@@ -216,7 +216,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
       {toast.duration > 0 && (
         <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/5 overflow-hidden pointer-events-none">
           <div
-            className={`h-full duration-75 ease-linear ${config.progressBarClass}`}
+            className={`h-full ${config.progressBarClass}`}
             style={{ width: `${progressPercent}%` }}
           />
         </div>

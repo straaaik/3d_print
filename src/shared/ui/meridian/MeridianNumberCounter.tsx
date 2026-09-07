@@ -53,7 +53,7 @@ export function MeridianNumberCounter({
         </label>
       )}
 
-      <div className="flex items-center h-10 sm:h-11 bg-neutral-900 border border-white/15 hover:border-white/30 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl p-1 duration-200 shadow-inner">
+      <div className="flex items-center h-10 sm:h-11 bg-neutral-900 border border-white/15 hover:border-white/30 focus-within:border-cyan-400 focus-within:ring-1 focus-within:ring-cyan-400/30 rounded-xl p-1 shadow-inner">
         {/* Кнопка минус */}
         <button
           type="button"

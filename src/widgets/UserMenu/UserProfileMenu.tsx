@@ -88,7 +88,7 @@ export function UserProfileMenu() {
         )}
 
         <ChevronDown
-          className={`w-3 h-3 text-neutral-400 group-hover:text-white duration-200 ${
+          className={`w-3 h-3 text-neutral-400 group-hover:text-white ${
             isOpen ? 'rotate-180 text-cyan-400' : ''
           }`}
         />

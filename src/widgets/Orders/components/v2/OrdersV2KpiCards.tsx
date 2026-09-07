@@ -245,7 +245,7 @@ export const OrdersV2KpiCards = React.memo(function OrdersV2KpiCards({
         <div className="mt-2">
           <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden relative">
             <div
-              className={`h-full rounded-full duration-500 ${
+              className={`h-full rounded-full ${
                 isGoalReached
                   ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.7)]'
                   : hasGoal

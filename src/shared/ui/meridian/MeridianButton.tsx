@@ -58,7 +58,7 @@ export const MeridianButton = React.forwardRef<HTMLButtonElement, MeridianButton
       <button
         ref={ref}
         disabled={disabled || loading}
-        className={`inline-flex items-center justify-center font-sans tracking-tight duration-200 cursor-pointer select-none disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed ${
+        className={`inline-flex items-center justify-center font-sans tracking-tight cursor-pointer select-none disabled:opacity-40 disabled:pointer-events-none disabled:cursor-not-allowed ${
           fullWidth ? 'w-full' : ''
         } ${sizeClasses} ${variantClasses} ${className}`}
         {...props}

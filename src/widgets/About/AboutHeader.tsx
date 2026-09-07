@@ -50,7 +50,7 @@ export function AboutHeader() {
 
       {/* Плавающая шапка в стиле капсулы Meridian */}
       <header
-        className={`fixed top-10 left-0 right-0 z-40 duration-300 pointer-events-none px-4 sm:px-6`}
+        className={`fixed top-10 left-0 right-0 z-40 pointer-events-none px-4 sm:px-6`}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           {/* Логотип 3D Labs */}
@@ -73,7 +73,7 @@ export function AboutHeader() {
               <a
                 key={item.label}
                 href={item.href}
-                className="relative px-3.5 py-1.5 text-xs font-mono tracking-wider text-neutral-400 hover:text-white duration-200 group"
+                className="relative px-3.5 py-1.5 text-xs font-mono tracking-wider text-neutral-400 hover:text-white group"
               >
                 <span className="text-neutral-600 group-hover:text-cyan-400 mr-0.5">[</span>
                 <span className="font-sans font-medium text-xs">{item.label}</span>

@@ -4,16 +4,16 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  KeyRound, 
-  LogIn, 
-  UserPlus, 
-  Mail, 
-  Lock, 
-  User as UserIcon, 
-  Eye, 
-  EyeOff, 
-  ShieldCheck, 
+import {
+  KeyRound,
+  LogIn,
+  UserPlus,
+  Mail,
+  Lock,
+  User as UserIcon,
+  Eye,
+  EyeOff,
+  ShieldCheck,
   AlertCircle,
   ArrowRight,
   Sparkles,
@@ -156,11 +156,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-dot-grid text-white flex flex-col justify-between font-sans selection:bg-white/20 selection:text-white">
-      
+
       {/* 1. Верхняя панель навигации / брендинга */}
       <header className="w-full max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between select-none">
-        <Link 
-          href="/about" 
+        <Link
+          href="/about"
           className="flex items-center gap-2.5 font-mono text-xs text-neutral-300 hover:text-white group"
         >
           <div className="w-7 h-7 rounded-lg bg-neutral-900 border border-white/15 flex items-center justify-center text-white group-hover:border-white/30 shadow-sm">
@@ -185,7 +185,7 @@ export default function LoginPage() {
       {/* 2. Основная рабочая область — Cockpit Card авторизации */}
       <main className="w-full max-w-[480px] mx-auto px-4 py-6 select-none">
         <div className="relative rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl overflow-hidden">
-          
+
           {/* Верхняя статусная панель консоли (Cockpit Topbar) */}
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 bg-neutral-900/60">
             <div className="flex items-center gap-3">
@@ -213,7 +213,7 @@ export default function LoginPage() {
 
           {/* Тело карточки (Cockpit Canvas) */}
           <div className="p-5 sm:p-6 bg-gradient-to-b from-neutral-950 to-neutral-900/90 space-y-5">
-            
+
             {/* Заголовок и штамп */}
             <div className="space-y-1">
               <div className="flex items-center justify-between">
@@ -228,8 +228,8 @@ export default function LoginPage() {
                 {activeTab === 'login' ? 'Вход в систему 3D Labs' : 'Создание профиля студии'}
               </h1>
               <p className="text-xs text-neutral-400 leading-relaxed">
-                {activeTab === 'login' 
-                  ? 'Управление воронкой заказов, складом филаментов и расчетом печати' 
+                {activeTab === 'login'
+                  ? 'Управление воронкой заказов, складом филаментов и расчетом печати'
                   : 'Введите ваши данные и уникальный инвайт-ключ администратора'}
               </p>
             </div>

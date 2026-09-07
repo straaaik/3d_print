@@ -203,7 +203,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
               duration: 0.2,
               ease: 'easeOut',
             }}
-            className={`relative flex items-center justify-center border duration-200 shrink-0 ${
+            className={`relative flex items-center justify-center border shrink-0 ${
               currentSize.box
             } ${currentSize.radius} ${
               isActive

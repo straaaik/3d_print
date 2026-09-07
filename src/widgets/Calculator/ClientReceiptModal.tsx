@@ -422,7 +422,7 @@ export function ClientReceiptModal({
                     onClick={onClose}
                     title="Закрыть окно"
                     aria-label="Закрыть чек"
-                    className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] duration-150 cursor-pointer border-none outline-none shrink-0"
+                    className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] cursor-pointer border-none outline-none shrink-0"
                   />
                 </Tooltip>
               </div>

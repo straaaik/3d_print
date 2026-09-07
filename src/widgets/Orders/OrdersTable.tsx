@@ -1,20 +1,20 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { 
-  Order, 
-  OrderStatus, 
-  SortField, 
-  SortOrder, 
-  OrderTypeFilter, 
+import {
+  Order,
+  OrderStatus,
+  SortField,
+  SortOrder,
+  OrderTypeFilter,
   PaymentFilter,
   CostItem,
 } from './types';
-import { 
-  saveOrder, 
-  deleteOrder, 
+import {
+  saveOrder,
+  deleteOrder,
   deleteOrders,
-  restoreAllOrders, 
+  restoreAllOrders,
   saveMonthlyGoal,
   saveMonthlyGoalsConfig,
   MonthlyGoalsConfig
@@ -22,27 +22,27 @@ import {
 import { useData } from '../../entities/model/DataProvider';
 import { useToast } from '../../entities/model/ToastProvider';
 import { useOrderModal } from '../../entities/model/OrderModalContext';
-import { 
-  DeleteOrderModal 
+import {
+  DeleteOrderModal
 } from './components/DeleteOrderModal';
-import { 
-  ClearMonthModal 
+import {
+  ClearMonthModal
 } from './components/ClearMonthModal';
-import { 
-  GoalSettingsModal 
+import {
+  GoalSettingsModal
 } from './components/GoalSettingsModal';
-import { 
-  OpenNewMonthModal 
+import {
+  OpenNewMonthModal
 } from './components/OpenNewMonthModal';
-import { 
-  OrdersV2View 
+import {
+  OrdersV2View
 } from './components/v2/OrdersV2View';
 
-import { 
-  roundTo2, 
-  getOrderMonthKey, 
-  formatMonthKeyLabel, 
-  getCurrentRealMonthKey, 
+import {
+  roundTo2,
+  getOrderMonthKey,
+  formatMonthKeyLabel,
+  getCurrentRealMonthKey,
   calculateOrdersSummaryKPI
 } from './helpers';
 import { usePersistentState } from '../../shared/lib/usePersistentState';
@@ -658,7 +658,7 @@ export function OrdersTable({
       />
 
       {/* МОДАЛЬНЫЕ ОКНА */}
-      
+
       {/* Модальное окно удаления записи */}
       <DeleteOrderModal
         order={orderToDelete}

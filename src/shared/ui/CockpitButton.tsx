@@ -64,7 +64,7 @@ export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonPr
         )}
         <span className="inline-flex items-center gap-1">
           <span
-            className={` duration-150 ${
+            className={` ${
               disabled
                 ? 'text-neutral-600'
                 : isActive
@@ -85,7 +85,7 @@ export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonPr
             </span>
           )}
           <span
-            className={` duration-150 ${
+            className={` ${
               disabled
                 ? 'text-neutral-600'
                 : isActive
