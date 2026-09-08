@@ -1,105 +1,136 @@
 'use client';
 
-import React, { useRef } from 'react';
-import { Pipette, Check } from 'lucide-react';
-import { Tooltip } from './Tooltip';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Box, Sparkles } from 'lucide-react';
+import { normalizeHex } from '../lib/colorUtils';
+import { ColorPickerTrigger } from './color-picker/ColorPickerTrigger';
+import { IsometricSpoolPicker } from './color-picker/IsometricSpoolPicker';
+import { CockpitMatrixPicker } from './color-picker/CockpitMatrixPicker';
 
-export const DEFAULT_COLORS = [
-  '#FFFFFF', // Белый
-  '#000000', // Черный
-  '#9CA3AF', // Серый
-  '#EF4444', // Красный
-  '#3B82F6', // Синий
-  '#10B981', // Зеленый
-  '#F59E0B', // Желтый/Оранжевый
-];
-
-interface ColorPickerProps {
+export interface ColorPickerProps {
   value: string;
   onChange: (color: string) => void;
   label?: string;
   className?: string;
+  disabled?: boolean;
+  inline?: boolean;
+  /** Вариант по умолчанию: 'spool' (3D-катушка) или 'matrix' (Матрица HUD) */
+  defaultVariant?: 'spool' | 'matrix';
+  /** Выравнивание всплывающего окна: 'left' (по умолчанию) или 'right' */
+  align?: 'left' | 'right';
 }
 
 export function ColorPicker({
-  value = '#FFFFFF',
+  value = '#0CB4E0',
   onChange,
   label,
   className = '',
+  disabled = false,
+  inline = false,
+  defaultVariant,
+  align = 'left',
 }: ColorPickerProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const isDefaultColor = DEFAULT_COLORS.some(
-    (c) => c.toUpperCase() === value.toUpperCase()
-  );
+  const [variant, setVariant] = useState<'spool' | 'matrix'>('spool');
 
-  return (
-    <div className={`flex flex-col gap-1.5 ${className}`}>
-      {label && (
-        <span className="text-[11px] font-mono text-neutral-400">
-          {label}
-        </span>
-      )}
-      <div className="flex items-center gap-2">
-        {/* Палитра быстрых цветов */}
-        <div className="flex items-center gap-1.5 p-1 bg-white/[0.03] border border-white/10 rounded-lg">
-        {/* Стандартные цвета */}
-        <div className="flex items-center gap-1.5">
-          {DEFAULT_COLORS.map((color) => {
-            const isSelected = value.toUpperCase() === color.toUpperCase();
-            return (
-              <Tooltip key={color} content={color}>
-                <button
-                  type="button"
-                  onClick={() => onChange(color)}
-                  className="w-5.5 h-5.5 rounded-full border border-black/30 cursor-pointer flex items-center justify-center relative shadow-inner"
-                  style={{ backgroundColor: color }}
-                >
-                  {isSelected && (
-                    <Check
-                      size={11}
-                      className={color === '#FFFFFF' ? 'text-black font-bold' : 'text-white font-bold'}
-                    />
-                  )}
-                </button>
-              </Tooltip>
-            );
-          })}
-        </div>
+  useEffect(() => {
+    if (defaultVariant) {
+      setVariant(defaultVariant);
+      return;
+    }
+    const saved = localStorage.getItem('3d_labs_color_picker_mode');
+    if (saved === 'matrix' || saved === 'spool') {
+      setVariant(saved);
+    }
+  }, [defaultVariant]);
 
-        {/* Разделитель */}
-        <div className="w-[1px] h-4 bg-white/10" />
+  const handleVariantChange = (newVariant: 'spool' | 'matrix') => {
+    setVariant(newVariant);
+    localStorage.setItem('3d_labs_color_picker_mode', newVariant);
+  };
 
-        {/* Кнопка "Свой цвет" */}
-        <Tooltip content={!isDefaultColor ? `Свой цвет: ${value}` : 'Выбрать свой цвет'}>
-          <div
-            className={`w-5.5 h-5.5 rounded-full border border-dashed flex items-center justify-center relative bg-neutral-950 overflow-hidden cursor-pointer ${
-              !isDefaultColor
-                ? 'border-cyan-400 text-cyan-400'
-                : 'border-white/20 text-neutral-400 hover:text-white'
+  const hex = normalizeHex(value);
+
+  const pickerContent = (
+    <div className="flex flex-col gap-2.5">
+      {/* Верхний тактильный тумблер переключения режимов */}
+      <div className="flex items-center justify-between pb-1.5 border-b border-white/10 font-mono text-[10px]">
+        <span className="text-neutral-500 uppercase tracking-wider">РЕЖИМ ПИСТЕРА:</span>
+        <div className="flex items-center gap-1 bg-neutral-900 border border-white/10 p-0.5 rounded-lg">
+          <button
+            type="button"
+            onClick={() => handleVariantChange('spool')}
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+              variant === 'spool'
+                ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 font-bold shadow-sm'
+                : 'text-neutral-400 hover:text-white'
             }`}
-            style={!isDefaultColor ? { backgroundColor: value } : {}}
           >
-            {!isDefaultColor ? (
-              <Check
-                size={11}
-                className={value.toUpperCase() === '#FFFFFF' ? 'text-black font-bold' : 'text-white font-bold'}
-              />
-            ) : (
-              <Pipette size={11} />
-            )}
+            <Box size={11} />
+            <span>[ 3D КАТУШКА ]</span>
+          </button>
 
-            {/* Скрытый нативный input color */}
-            <input
-              ref={fileInputRef}
-              type="color"
-              value={value.startsWith('#') ? value : '#FFFFFF'}
-              onChange={(e) => onChange(e.target.value.toUpperCase())}
-              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-            />
-          </div>
-        </Tooltip>
+          <button
+            type="button"
+            onClick={() => handleVariantChange('matrix')}
+            className={`flex items-center gap-1 px-2 py-0.5 rounded-md transition-all cursor-pointer ${
+              variant === 'matrix'
+                ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 font-bold shadow-sm'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            <Sparkles size={11} />
+            <span>[ МАТРИЦА HUD ]</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Активный виджет */}
+      <div>
+        {variant === 'spool' ? (
+          <IsometricSpoolPicker
+            inline
+            value={hex}
+            onChange={onChange}
+            disabled={disabled}
+          />
+        ) : (
+          <CockpitMatrixPicker
+            inline
+            value={hex}
+            onChange={onChange}
+            disabled={disabled}
+          />
+        )}
       </div>
     </div>
-  </div>
-);
+  );
+
+  if (inline) {
+    return (
+      <div className={className}>
+        {label && (
+          <span className="block mb-1.5 text-[11px] font-mono text-neutral-400 select-none">
+            {label}
+          </span>
+        )}
+        {pickerContent}
+      </div>
+    );
+  }
+
+  return (
+    <ColorPickerTrigger
+      value={hex}
+      label={label}
+      className={className}
+      disabled={disabled}
+      align={align}
+    >
+      {() => pickerContent}
+    </ColorPickerTrigger>
+  );
 }
+
+// Экспорт отдельных вариантов для прямого использования
+export { IsometricSpoolPicker, CockpitMatrixPicker };

@@ -438,6 +438,7 @@ export function ProductsList({
     category: string;
     tags: string[];
     description?: string;
+    color?: string;
     productIds: string[];
   }) => {
     pushHistory();
@@ -450,6 +451,7 @@ export function ProductsList({
         category: data.category,
         tags: data.tags,
         description: data.description,
+        color: data.color,
       });
       showSuccess(`Коллекция «${data.name}» обновлена!`, 'Успешно');
     } else {
@@ -458,6 +460,7 @@ export function ProductsList({
         category: data.category,
         tags: data.tags,
         description: data.description,
+        color: data.color,
       });
       colId = created.id;
       showSuccess(`Коллекция «${data.name}» создана!`, 'Готово');
@@ -468,13 +471,15 @@ export function ProductsList({
         const shouldBeIn = data.productIds.includes(item.id);
         const isCurrentlyIn = item.collection_id === colId;
 
-        if (shouldBeIn && !isCurrentlyIn) {
-          await updateSavedCalculation({
-            ...item,
-            collection_id: colId,
-            collection_name: data.name,
-          });
-        } else if (!shouldBeIn && isCurrentlyIn) {
+        if (shouldBeIn) {
+          if (!isCurrentlyIn || item.collection_name !== data.name) {
+            await updateSavedCalculation({
+              ...item,
+              collection_id: colId,
+              collection_name: data.name,
+            });
+          }
+        } else if (isCurrentlyIn) {
           await updateSavedCalculation({
             ...item,
             collection_id: undefined,
@@ -771,6 +776,7 @@ export function ProductsList({
           collection: col,
           childItems: childs,
           name: col.name,
+          color: col.color,
           category: col.category || 'Разное',
           tags: col.tags || [],
           itemsCount: childs.length,
@@ -806,13 +812,15 @@ export function ProductsList({
 
     // 2. Одиночные товары и сборки
     if (productFilter !== 'collections') {
-      const standalone = savedCalculations.filter((c) => {
-        const hasColId = Boolean(c.collection_id && collections.some((col) => col.id === c.collection_id));
-        const hasColName = Boolean(c.collection_name && collections.some((col) => col.name === c.collection_name));
-        return !hasColId && !hasColName;
-      });
+      const sourceProducts = productFilter === 'all'
+        ? savedCalculations.filter((c) => {
+            const hasColId = Boolean(c.collection_id && collections.some((col) => col.id === c.collection_id));
+            const hasColName = Boolean(c.collection_name && collections.some((col) => col.name === c.collection_name));
+            return !hasColId && !hasColName;
+          })
+        : savedCalculations;
 
-      const filtered = standalone.filter((calc) => {
+      const filtered = sourceProducts.filter((calc) => {
         if (productFilter === 'single' && calc.type === 'assembly') return false;
         if (productFilter === 'assembly' && calc.type !== 'assembly') return false;
         if (onlyBestsellers) {
@@ -843,10 +851,17 @@ export function ProductsList({
       });
 
       filtered.forEach((item) => {
+        const parentCol = collections.find(
+          (col) => col.id === item.collection_id || (Boolean(col.name) && Boolean(item.collection_name) && col.name === item.collection_name)
+        );
+
         rowsList.push({
           rowKind: 'product',
           id: item.id,
           item,
+          parentCollectionId: parentCol?.id,
+          parentCollectionName: parentCol?.name,
+          parentCollectionColor: parentCol?.color,
           name: item.name,
           category: item.category || 'Разное',
           final_price: item.final_price,
@@ -923,6 +938,25 @@ export function ProductsList({
     };
   }, [savedCalculations, collections, salesStatsMap]);
 
+  const isFilterActive = useMemo(() => {
+    return Boolean(
+      searchQuery.trim() ||
+      productFilter !== 'all' ||
+      stockFilter !== 'all' ||
+      onlyBestsellers ||
+      (selectedCategories && selectedCategories.length > 0 && !selectedCategories.includes('all'))
+    );
+  }, [searchQuery, productFilter, stockFilter, onlyBestsellers, selectedCategories]);
+
+  const displayedProductsCount = useMemo(() => {
+    return tableData.reduce((sum, row) => {
+      if (row.rowKind === 'collection') {
+        return sum + row.childItems.length;
+      }
+      return sum + 1;
+    }, 0);
+  }, [tableData]);
+
   return (
     <div className="space-y-4">
       {/* ГЛАВНАЯ КОНСОЛЬ ТОВАРОВ V2 */}
@@ -932,6 +966,8 @@ export function ProductsList({
         visibleRows={visibleRows}
         visibleCount={visibleCount}
         totalRowsCount={sortedRows.length}
+        displayedProductsCount={displayedProductsCount}
+        isFilterActive={isFilterActive}
         onLoadMore={() => setPagination((prev) => ({
           key: paginationKey,
           visibleCount: Math.min(

@@ -8,6 +8,11 @@ const routes = [
 
 test.describe('визуальная стабильность основных экранов', () => {
   test.beforeEach(async ({ page }) => {
+    // Existing workspace references use the graphite theme; background variants
+    // and their persistence are exercised separately in backgrounds.spec.ts.
+    await page.addInitScript(() => localStorage.setItem('3dlabs.background.v1', JSON.stringify({
+      variant: 'none', contrast: 'balanced', interactive: false,
+    })));
     await page.route('**/_next/image?**', async (route) => {
       const optimizedUrl = new URL(route.request().url());
       const sourcePath = optimizedUrl.searchParams.get('url');

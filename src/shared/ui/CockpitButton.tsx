@@ -12,6 +12,7 @@ export interface CockpitButtonProps extends Omit<ButtonHTMLAttributes<HTMLButton
   dotColor?: string;
   badge?: React.ReactNode;
   size?: 'sm' | 'md';
+  accentColor?: string;
 }
 
 export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonProps>(
@@ -30,6 +31,8 @@ export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonPr
       tooltipPosition = 'top',
       tooltipShortcut,
       tooltipSubtext,
+      accentColor,
+      style,
       ...props
     },
     ref
@@ -41,7 +44,11 @@ export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonPr
         ref={ref}
         type={props.type || 'button'}
         disabled={disabled}
-        className={`group font-mono flex items-center gap-1.5 cursor-pointer border rounded-lg ${sizeStyles} ${
+        style={{
+          ...style,
+          ...(accentColor ? ({ ['--cbtn-accent' as any]: accentColor } as React.CSSProperties) : {}),
+        }}
+        className={`group/cbtn font-mono flex items-center gap-1.5 cursor-pointer border rounded-lg ${sizeStyles} ${
           disabled
             ? 'border-white/5 bg-white/[0.02] text-neutral-600 opacity-40 cursor-not-allowed'
             : isActive
@@ -57,19 +64,23 @@ export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonPr
               disabled
                 ? 'text-neutral-600'
                 : isActive
-                ? 'text-cyan-400'
-                : 'text-neutral-400 group-hover:text-cyan-400'
+                ? (accentColor ? 'text-[var(--cbtn-accent)]' : 'text-cyan-400')
+                : (accentColor
+                  ? 'text-neutral-400 group-hover/cbtn:text-[var(--cbtn-accent)]'
+                  : 'text-neutral-400 group-hover/cbtn:text-cyan-400')
             }`}
           />
         )}
         <span className="inline-flex items-center gap-1">
           <span
-            className={` ${
+            className={`${
               disabled
                 ? 'text-neutral-600'
                 : isActive
-                ? 'text-cyan-400 font-bold'
-                : 'text-neutral-500 group-hover:text-cyan-400'
+                ? (accentColor ? 'text-[var(--cbtn-accent)] font-bold' : 'text-cyan-400 font-bold')
+                : (accentColor
+                  ? 'text-neutral-500 group-hover/cbtn:text-[var(--cbtn-accent)]'
+                  : 'text-neutral-500 group-hover/cbtn:text-cyan-400')
             }`}
           >
             [
@@ -78,19 +89,21 @@ export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonPr
           {badge !== undefined && badge !== null && (
             <span
               className={`text-[10px] leading-none ${
-                isActive ? 'text-white/90 font-bold' : 'text-neutral-400 group-hover:text-white/80'
+                isActive ? 'text-white/90 font-bold' : 'text-neutral-400 group-hover/cbtn:text-white/80'
               }`}
             >
               {badge}
             </span>
           )}
           <span
-            className={` ${
+            className={`${
               disabled
                 ? 'text-neutral-600'
                 : isActive
-                ? 'text-cyan-400 font-bold'
-                : 'text-neutral-500 group-hover:text-cyan-400'
+                ? (accentColor ? 'text-[var(--cbtn-accent)] font-bold' : 'text-cyan-400 font-bold')
+                : (accentColor
+                  ? 'text-neutral-500 group-hover/cbtn:text-[var(--cbtn-accent)]'
+                  : 'text-neutral-500 group-hover/cbtn:text-cyan-400')
             }`}
           >
             ]

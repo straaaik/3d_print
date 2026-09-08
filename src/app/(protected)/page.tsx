@@ -9,6 +9,7 @@ import { UserProfileMenu } from '../../widgets/UserMenu/UserProfileMenu';
 import { usePixelCurtain } from '../../shared/ui/PixelCurtain';
 import { HubSkeleton } from '../../shared/ui/CockpitSkeleton';
 import { MotionPulse } from '../../shared/ui/MotionPrimitives';
+import { useHubIconPreferences, getHubIconSrc } from '../../shared/lib/hubIconPreferences';
 
 interface HubSection {
   id: string;
@@ -87,6 +88,7 @@ const SECTIONS: HubSection[] = [
 export default function HomePage() {
   const { isLoading } = useData();
   const { navigate: curtainNavigate } = usePixelCurtain();
+  const { style: iconStyle } = useHubIconPreferences();
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const itemRefs = React.useRef<(HTMLDivElement | null)[]>([]);
 
@@ -199,9 +201,10 @@ export default function HomePage() {
                     {/* 3D Иконка без рамок, карточек и свечений */}
                     <div className="relative w-full h-full drop-shadow-[0_16px_32px_rgba(0,0,0,0.85)] pointer-events-none">
                       <Image
-                        src={section.image}
+                        src={getHubIconSrc(section.id, iconStyle)}
                         alt={section.label}
                         fill
+                        unoptimized
                         sizes="(max-width: 640px) 128px, (max-width: 768px) 176px, (max-width: 1024px) 208px, (max-width: 1280px) 240px, 256px"
                         priority
                         className="object-contain select-none"

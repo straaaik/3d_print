@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 import test from 'node:test';
 import React from 'react';
 import RootLayout from '../src/app/layout';
+import { AppBackground } from '../src/shared/ui/AppBackground';
 import AboutLayout from '../src/app/(about)/layout';
 import LoginLayout from '../src/app/(login)/layout';
 import ProtectedLayout from '../src/app/(protected)/layout';
@@ -101,8 +102,10 @@ test('real route layouts own only their required provider trees', () => {
   assert.equal(rootTree.type, 'html');
   const body = child(rootTree);
   assert.equal(body.type, 'body');
-  assert.match(body.props.className ?? '', /bg-dot-grid/);
-  assert.equal(body.props.children?.type, 'span');
+  assert.match(body.props.className ?? '', /isolate/);
+  const rootChildren = React.Children.toArray(body.props.children) as React.ReactElement[];
+  assert.equal(rootChildren[0].type, AppBackground);
+  assert.equal(rootChildren[1].type, 'span');
 });
 
 test('initial data orchestration starts every API operation before any deferred result resolves', async () => {

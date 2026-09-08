@@ -6,15 +6,18 @@ import {
   BarChart3,
   Coins,
   Edit3,
+  LayoutGrid,
   Palette,
   Plus,
   Search,
   Sparkles,
+  Table,
   Trash2,
   TrendingDown,
   Weight,
   ScanLine,
 } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useData } from '../../entities/model/DataProvider';
 import type { Filament } from '../../shared/types';
 import { CockpitButton } from '../../shared/ui/CockpitButton';
@@ -23,6 +26,7 @@ import { CockpitModal } from '../../shared/ui/CockpitModal';
 import { ColorPicker } from '../../shared/ui/ColorPicker';
 import { Input } from '../../shared/ui/Input';
 import { NumberCounter } from '../../shared/ui/NumberCounter';
+import { SegmentedFilter, type SegmentedFilterOption } from '../../shared/ui/SegmentedFilter';
 import { formatCurrency } from '../../shared/lib/format';
 import { usePersistentState } from '../../shared/lib/usePersistentState';
 import {
@@ -46,6 +50,13 @@ import {
   type FilamentSort,
 } from '../InventoryCockpit/model';
 
+type InventoryViewMode = 'table' | 'cards';
+
+const VIEW_MODE_OPTIONS: ReadonlyArray<SegmentedFilterOption<InventoryViewMode>> = [
+  { value: 'table', label: 'Таблица', icon: Table, ariaLabel: 'Режим таблицы' },
+  { value: 'cards', label: 'Карточки', icon: LayoutGrid, ariaLabel: 'Режим карточек' },
+];
+
 const SORT_OPTIONS = [
   { value: 'name-asc', label: 'По названию' },
   { value: 'name-desc', label: 'Название Я–А' },
@@ -67,6 +78,7 @@ export function FilamentList() {
   const [query, setQuery] = useState('');
   const [visibleLimit, setVisibleLimit] = useState(25);
   const [sort, setSort] = usePersistentState<FilamentSort>('3d_filaments_sort', 'name-asc');
+  const [viewMode, setViewMode] = usePersistentState<InventoryViewMode>('3d_filaments_view_mode', 'cards');
 
   const [name, setName] = usePersistentState('3d_filament_draft_name', '');
   const [weightG, setWeightG] = usePersistentState('3d_filament_draft_weight', '1000');
@@ -151,7 +163,7 @@ export function FilamentList() {
             <FilamentSpoolIcon className="h-7 w-7" title={`Катушка ${filament.name}`} />
           </span>
           <div className="min-w-0">
-            <span className="block truncate font-sans text-sm font-semibold text-white group-hover:text-cyan-300">{filament.name}</span>
+            <span className="block truncate font-sans text-sm font-semibold text-white group-hover:text-neutral-300">{filament.name}</span>
             <span className="mt-0.5 block font-mono text-[9px] text-neutral-600">{filament.color?.toUpperCase() || '#D4D4D4'}</span>
           </div>
         </div>
@@ -175,7 +187,7 @@ export function FilamentList() {
       header: 'За грамм',
       align: 'right',
       sort: { asc: 'unit-cost-asc', desc: 'unit-cost-desc' },
-      render: (filament) => <span className="font-bold tabular-nums text-cyan-400">{getFilamentUnitCost(filament).toFixed(2)} {currencySymbol}/г</span>,
+      render: (filament) => <span className="font-bold tabular-nums text-neutral-300">{getFilamentUnitCost(filament).toFixed(2)} {currencySymbol}/г</span>,
     },
     {
       id: 'created',
@@ -203,56 +215,168 @@ export function FilamentList() {
     },
   ];
 
-  const renderMobileFilament = (filament: Filament) => (
-    <article
-      tabIndex={0}
-      role="button"
-      onClick={() => openEdit(filament)}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          openEdit(filament);
-        }
-      }}
-      className="rounded-xl border border-white/10 bg-white/[0.03] p-3 focus:border-cyan-400/60 focus:outline-none"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-neutral-950" style={{ color: filament.color || '#D4D4D4' }}>
-            <FilamentSpoolIcon className="h-8 w-8" title={`Катушка ${filament.name}`} />
-          </span>
-          <div className="min-w-0">
-            <h3 className="truncate text-sm font-semibold text-white">{filament.name}</h3>
-            <p className="mt-1 font-mono text-[10px] text-neutral-500">{filament.weight_g.toLocaleString('ru-RU')} г · {filament.color?.toUpperCase() || '#D4D4D4'}</p>
+  const renderFilamentCard = (
+    filament: Filament,
+    _index?: number,
+    isHovered?: boolean,
+    onHover?: () => void,
+  ) => {
+    const unitCost = getFilamentUnitCost(filament);
+    const filamentColor = filament.color || '#D4D4D4';
+
+    return (
+      <motion.article
+        key={filament.id}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        tabIndex={0}
+        role="button"
+        aria-label={`Филамент ${filament.name}`}
+        onClick={() => openEdit(filament)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openEdit(filament);
+          }
+        }}
+        onMouseEnter={onHover}
+        onFocus={onHover}
+        className={`group relative flex flex-col justify-between p-4 text-left border -ml-px -mt-px bg-white/[0.02] transition-colors focus-visible:border-cyan-400/60 focus-visible:outline-none cursor-pointer select-none min-h-[170px] ${
+          isHovered ? 'z-20 border-transparent' : 'z-10 border-white/10'
+        }`}
+      >
+        {/* Перемещающийся анимированный фон цвета обводки, скрывающий границу */}
+        {isHovered && (
+          <motion.div
+            layoutId="filament-card-hover-bg"
+            className="absolute -inset-px z-0 bg-white/10 pointer-events-none"
+            transition={{
+              type: 'spring',
+              stiffness: 320,
+              damping: 30,
+              mass: 0.8,
+            }}
+          />
+        )}
+
+        {/* Область фоновых элементов (с обрезкой по краям карточки) */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          {/* Фоновая изометрическая 3D-катушка филамента справа - поднимается и немного увеличивается */}
+          <motion.div
+            animate={isHovered ? 'hover' : 'rest'}
+            variants={{
+              rest: {
+                y: 0,
+                scale: 1,
+                opacity: 0.2,
+                transition: { type: 'spring', stiffness: 300, damping: 24 },
+              },
+              hover: {
+                y: -10,
+                scale: 1.12,
+                opacity: 0.35,
+                transition: { type: 'spring', stiffness: 300, damping: 20 },
+              },
+            }}
+            className="absolute -right-4 -bottom-4 h-44 w-44 sm:h-52 sm:w-52 select-none"
+            style={{ color: filamentColor }}
+            aria-hidden="true"
+          >
+            <FilamentSpoolIcon className="h-full w-full" />
+          </motion.div>
+
+          {/* Мягкий матовый оттенок цвета пластика в фоне карточки */}
+          <motion.div
+            animate={isHovered ? 'hover' : 'rest'}
+            variants={{
+              rest: {
+                scale: 1,
+                opacity: 0.15,
+                transition: { type: 'spring', stiffness: 300, damping: 24 },
+              },
+              hover: {
+                scale: 1.15,
+                opacity: 0.28,
+                transition: { type: 'spring', stiffness: 300, damping: 20 },
+              },
+            }}
+            className="absolute -right-10 -bottom-10 h-44 w-44 sm:h-52 sm:w-52 rounded-full blur-3xl"
+            style={{ backgroundColor: filamentColor }}
+            aria-hidden="true"
+          />
+        </div>
+
+        {/* Передний план: Заголовок, цвет, ID и действия */}
+        <div className="relative z-10 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="truncate font-sans text-sm font-bold text-white group-hover:text-neutral-300 transition-colors">
+                {filament.name}
+              </h3>
+            </div>
+            <div className="mt-1 flex items-center gap-2 font-mono text-[10px] text-neutral-400">
+              <span>{filamentColor.toUpperCase()}</span>
+              <span className="text-neutral-600">·</span>
+              <span className="rounded bg-white/5 px-1.5 py-0.5 border border-white/5 text-[9px] text-neutral-400">
+                ID: {filament.id.slice(0, 8).toUpperCase()}
+              </span>
+            </div>
+          </div>
+
+          <div className="relative z-20 flex shrink-0 items-center gap-1.5" onClick={(event) => event.stopPropagation()}>
+            <InventoryRegistryAction
+              icon={Edit3}
+              label={`Редактировать ${filament.name}`}
+              onClick={() => openEdit(filament)}
+            />
+            <InventoryRegistryAction
+              icon={Trash2}
+              label={`Удалить ${filament.name}`}
+              onClick={() => setDeleteTarget(filament)}
+              danger
+            />
           </div>
         </div>
-        <span className="h-3 w-3 shrink-0 rounded-sm border border-white/20" style={{ backgroundColor: filament.color || '#D4D4D4' }} />
-      </div>
-      <div className="mt-3 flex items-end justify-between gap-3 border-t border-white/5 pt-2">
-        <div>
-          <div className="font-mono text-base font-bold text-white">{formatCurrency(filament.price, currencySymbol)}</div>
-          <span className="mt-1 inline-flex rounded border border-cyan-800/40 bg-cyan-950/50 px-1.5 py-0.5 font-mono text-[9px] text-cyan-400">{getFilamentUnitCost(filament).toFixed(2)} {currencySymbol}/г</span>
+
+        {/* Передний план: Параметры и стоимость */}
+        <div className="relative z-10 mt-4 border-t border-white/10 pt-3">
+          <div className="grid grid-cols-3 gap-2 items-end">
+            <div>
+              <span className="block font-mono text-[9px] uppercase tracking-wider text-neutral-500">Масса</span>
+              <span className="font-mono text-xs font-semibold tabular-nums text-neutral-200">
+                {filament.weight_g.toLocaleString('ru-RU')} г
+              </span>
+            </div>
+            <div>
+              <span className="block font-mono text-[9px] uppercase tracking-wider text-neutral-500">Катушка</span>
+              <span className="font-mono text-xs font-bold tabular-nums text-white">
+                {formatCurrency(filament.price, currencySymbol)}
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="block font-mono text-[9px] uppercase tracking-wider text-neutral-500">За грамм</span>
+              <span className="inline-flex rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-mono text-[11px] font-bold tabular-nums text-neutral-300">
+                {unitCost.toFixed(2)} {currencySymbol}/г
+              </span>
+            </div>
+          </div>
         </div>
-        <div className="flex gap-1.5" onClick={(event) => event.stopPropagation()}>
-          <InventoryRegistryAction icon={Edit3} label={`Редактировать ${filament.name}`} onClick={() => openEdit(filament)} />
-          <InventoryRegistryAction icon={Trash2} label={`Удалить ${filament.name}`} onClick={() => setDeleteTarget(filament)} danger />
-        </div>
-      </div>
-    </article>
-  );
+      </motion.article>
+    );
+  };
 
   return (
     <InventoryCockpitShell
       section="FILAMENT_STORAGE"
       sectionLabel="Каталог филаментов"
-      icon={<FilamentSpoolIcon className="h-full w-full" />}
       isExpanded={isExpanded}
       onExpandedChange={setIsExpanded}
       isOnline={isOnline}
       recordCount={filaments.length}
       filteredCount={filteredFilaments.length}
       actions={(
-        <CockpitButton onClick={openAdd} icon={Plus} isActive title="Добавить новую катушку">
+        <CockpitButton onClick={openAdd} icon={Plus} title="Добавить новую катушку">
           Добавить филамент
         </CockpitButton>
       )}
@@ -290,7 +414,14 @@ export function FilamentList() {
               className="pl-8"
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <SegmentedFilter
+              value={viewMode}
+              onChange={(value) => setViewMode(value as InventoryViewMode)}
+              options={VIEW_MODE_OPTIONS}
+              ariaLabel="Режим отображения филаментов"
+              layoutId="filaments-view-mode-indicator"
+            />
             <CockpitDropdown
               value={sort}
               onChange={(value) => {
@@ -312,7 +443,9 @@ export function FilamentList() {
           data={visibleFilaments}
           columns={filamentColumns}
           keyExtractor={(filament) => filament.id}
-          renderMobileCard={renderMobileFilament}
+          viewMode={viewMode}
+          renderCard={renderFilamentCard}
+          renderMobileCard={renderFilamentCard}
           emptyState={<EmptyState hasRecords={filaments.length > 0} onAdd={openAdd} onReset={() => setQuery('')} />}
           isExpanded={isExpanded}
           currentSort={sort}
@@ -343,7 +476,7 @@ export function FilamentList() {
             <span>UNIT COST: {previewUnitCost.toFixed(2)} {currencySymbol}/г</span>
             <div className="flex gap-2">
               <CockpitButton onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>Закрыть</CockpitButton>
-              <CockpitButton type="submit" form="filament-form" isActive disabled={isSubmitting}>
+              <CockpitButton type="submit" form="filament-form" disabled={isSubmitting}>
                 {isSubmitting ? 'Сохранение...' : editingFilament ? 'Сохранить' : 'Добавить'}
               </CockpitButton>
             </div>
@@ -364,7 +497,7 @@ export function FilamentList() {
               </div>
               <Input label={`Цена катушки, ${currencySymbol}`} type="number" min="0" step="any" placeholder="0.00" value={price} onChange={(event) => setPrice(event.target.value)} error={errors.price} requiredStar />
             </div>
-            <ColorPicker label="Цвет пластика" value={color} onChange={setColor} />
+            <ColorPicker label="Цвет пластика" value={color} onChange={setColor} defaultVariant="spool" />
             <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-neutral-950/60 p-3 font-mono">
               <Metric label="Вес" value={`${Number(weightG || 0).toLocaleString('ru-RU')} г`} />
               <Metric label="Расчётная ставка" value={`${previewUnitCost.toFixed(2)} ${currencySymbol}/г`} bordered accent />
@@ -498,7 +631,7 @@ function EmptyState({ hasRecords, onAdd, onReset }: { hasRecords: boolean; onAdd
       <p className="mt-2 max-w-md font-sans text-xs leading-relaxed text-neutral-400">
         {hasRecords ? 'Измените поисковый запрос, чтобы вернуть материалы в выдачу.' : 'Добавьте первую катушку — её цена и вес станут основой расчёта стоимости материала.'}
       </p>
-      <CockpitButton onClick={hasRecords ? onReset : onAdd} icon={hasRecords ? Sparkles : Plus} isActive className="mt-4">
+      <CockpitButton onClick={hasRecords ? onReset : onAdd} icon={hasRecords ? Sparkles : Plus} className="mt-4">
         {hasRecords ? 'Сбросить поиск' : 'Добавить филамент'}
       </CockpitButton>
     </div>

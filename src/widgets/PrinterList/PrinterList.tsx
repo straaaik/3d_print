@@ -9,13 +9,16 @@ import {
   Cpu,
   Edit3,
   Gauge,
+  LayoutGrid,
   Plus,
   Search,
   Settings2,
   Sparkles,
+  Table,
   Trash2,
   TrendingDown,
 } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useData } from '../../entities/model/DataProvider';
 import type { Printer } from '../../shared/types';
 import { CockpitButton } from '../../shared/ui/CockpitButton';
@@ -24,6 +27,7 @@ import { CockpitModal } from '../../shared/ui/CockpitModal';
 import { ColorPicker } from '../../shared/ui/ColorPicker';
 import { Input } from '../../shared/ui/Input';
 import { NumberCounter } from '../../shared/ui/NumberCounter';
+import { SegmentedFilter, type SegmentedFilterOption } from '../../shared/ui/SegmentedFilter';
 import { formatCurrency } from '../../shared/lib/format';
 import { usePersistentState } from '../../shared/lib/usePersistentState';
 import {
@@ -47,6 +51,13 @@ import {
   type PrinterSort,
 } from '../InventoryCockpit/model';
 
+type InventoryViewMode = 'table' | 'cards';
+
+const VIEW_MODE_OPTIONS: ReadonlyArray<SegmentedFilterOption<InventoryViewMode>> = [
+  { value: 'table', label: 'Таблица', icon: Table, ariaLabel: 'Режим таблицы' },
+  { value: 'cards', label: 'Карточки', icon: LayoutGrid, ariaLabel: 'Режим карточек' },
+];
+
 const SORT_OPTIONS = [
   { value: 'name-asc', label: 'По названию' },
   { value: 'name-desc', label: 'Название Я–А' },
@@ -69,6 +80,7 @@ export function PrinterList() {
   const [deleteTarget, setDeleteTarget] = useState<Printer | null>(null);
   const [query, setQuery] = useState('');
   const [sort, setSort] = usePersistentState<PrinterSort>('3d_printers_sort', 'name-asc');
+  const [viewMode, setViewMode] = usePersistentState<InventoryViewMode>('3d_printers_view_mode', 'cards');
 
   const [name, setName] = usePersistentState('3d_printer_draft_name', '');
   const [powerW, setPowerW] = usePersistentState('3d_printer_draft_power', '300');
@@ -174,7 +186,7 @@ export function PrinterList() {
               <PrinterMachineIcon className="h-7 w-7" title={`3D-принтер ${printer.name}`} />
             </span>
             <div className="min-w-0">
-              <span className="block truncate font-sans text-sm font-semibold text-white group-hover:text-cyan-300">{printer.name}</span>
+              <span className="block truncate font-sans text-sm font-semibold text-white group-hover:text-neutral-300">{printer.name}</span>
               {isDefault ? <span className="mt-0.5 inline-flex items-center gap-1 font-mono text-[9px] font-bold text-cyan-400"><Settings2 className="h-2.5 w-2.5" /> DEFAULT UNIT</span> : <span className="mt-0.5 block font-mono text-[9px] text-neutral-600">AVAILABLE UNIT</span>}
             </div>
           </div>
@@ -206,7 +218,7 @@ export function PrinterList() {
       header: 'Себестоимость часа',
       align: 'right',
       sort: { asc: 'hourly-cost-asc', desc: 'hourly-cost-desc' },
-      render: (printer) => <span className="font-bold tabular-nums text-cyan-400">{getPrinterHourlyCost(printer, electricityRate).toFixed(2)} {currencySymbol}/ч</span>,
+      render: (printer) => <span className="font-bold tabular-nums text-neutral-300">{getPrinterHourlyCost(printer, electricityRate).toFixed(2)} {currencySymbol}/ч</span>,
     },
     {
       id: 'depreciation',
@@ -248,12 +260,25 @@ export function PrinterList() {
     },
   ];
 
-  const renderMobilePrinter = (printer: Printer) => {
+  const renderPrinterCard = (
+    printer: Printer,
+    _index?: number,
+    isHovered?: boolean,
+    onHover?: () => void,
+  ) => {
     const isDefault = settings?.default_printer_id === printer.id;
+    const hourlyCost = getPrinterHourlyCost(printer, electricityRate);
+    const printerColor = printer.color || '#0CB4E0';
+
     return (
-      <article
+      <motion.article
+        key={printer.id}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         tabIndex={0}
         role="button"
+        aria-label={`3D-принтер ${printer.name}`}
         onClick={() => openEdit(printer)}
         onKeyDown={(event) => {
           if (event.key === 'Enter' || event.key === ' ') {
@@ -261,31 +286,139 @@ export function PrinterList() {
             openEdit(printer);
           }
         }}
-        className="rounded-xl border border-white/10 bg-white/[0.03] p-3 focus:border-cyan-400/60 focus:outline-none"
+        onMouseEnter={onHover}
+        onFocus={onHover}
+        className={`group relative flex flex-col justify-between p-4 text-left border -ml-px -mt-px bg-white/[0.02] transition-colors focus-visible:border-cyan-400/60 focus-visible:outline-none cursor-pointer select-none min-h-[170px] ${
+          isHovered ? 'z-20 border-transparent' : 'z-10 border-white/10'
+        }`}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-neutral-950" style={{ color: printer.color || '#D4D4D4' }}>
-              <PrinterMachineIcon className="h-8 w-8" title={`3D-принтер ${printer.name}`} />
-            </span>
-            <div className="min-w-0">
-              <h3 className="truncate text-sm font-semibold text-white">{printer.name}</h3>
-              <p className="mt-1 font-mono text-[10px] text-neutral-500">{printer.power_w.toLocaleString('ru-RU')} Вт · {printer.lifespan_hours.toLocaleString('ru-RU')} ч</p>
+        {/* Перемещающийся анимированный фон цвета обводки, скрывающий границу */}
+        {isHovered && (
+          <motion.div
+            layoutId="printer-card-hover-bg"
+            className="absolute -inset-px z-0 bg-white/10 pointer-events-none"
+            transition={{
+              type: 'spring',
+              stiffness: 320,
+              damping: 30,
+              mass: 0.8,
+            }}
+          />
+        )}
+
+        {/* Область фоновых элементов (с обрезкой по краям карточки) */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+          {/* Фоновая изометрическая 3D-модель принтера справа - поднимается и немного увеличивается */}
+          <motion.div
+            animate={isHovered ? 'hover' : 'rest'}
+            variants={{
+              rest: {
+                y: 0,
+                scale: 1,
+                opacity: 0.2,
+                transition: { type: 'spring', stiffness: 300, damping: 24 },
+              },
+              hover: {
+                y: -10,
+                scale: 1.12,
+                opacity: 0.35,
+                transition: { type: 'spring', stiffness: 300, damping: 20 },
+              },
+            }}
+            className="absolute -right-4 -bottom-4 h-44 w-44 sm:h-52 sm:w-52 select-none"
+            style={{ color: printerColor }}
+            aria-hidden="true"
+          >
+            <PrinterMachineIcon className="h-full w-full" />
+          </motion.div>
+
+          {/* Мягкий матовый оттенок цвета принтера в фоне карточки */}
+          <motion.div
+            animate={isHovered ? 'hover' : 'rest'}
+            variants={{
+              rest: {
+                scale: 1,
+                opacity: 0.15,
+                transition: { type: 'spring', stiffness: 300, damping: 24 },
+              },
+              hover: {
+                scale: 1.15,
+                opacity: 0.28,
+                transition: { type: 'spring', stiffness: 300, damping: 20 },
+              },
+            }}
+            className="absolute -right-10 -bottom-10 h-44 w-44 sm:h-52 sm:w-52 rounded-full blur-3xl"
+            style={{ backgroundColor: printerColor }}
+            aria-hidden="true"
+          />
+        </div>
+
+        {/* Передний план: Заголовок, статус, ID и действия */}
+        <div className="relative z-10 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h3 className="truncate font-sans text-sm font-bold text-white group-hover:text-neutral-300 transition-colors">
+                {printer.name}
+              </h3>
+            </div>
+            <div className="mt-1 flex items-center gap-2 font-mono text-[10px] text-neutral-400">
+              {isDefault ? (
+                <span className="inline-flex items-center gap-1 rounded border border-cyan-800/40 bg-cyan-950/60 px-1.5 py-0.5 font-mono text-[9px] font-bold text-cyan-400">
+                  <Settings2 className="h-2.5 w-2.5" /> DEFAULT UNIT
+                </span>
+              ) : (
+                <span className="rounded bg-white/5 px-1.5 py-0.5 border border-white/5 text-[9px] text-neutral-400">
+                  ID: {printer.id.slice(0, 8).toUpperCase()}
+                </span>
+              )}
             </div>
           </div>
-          {isDefault ? <span className="shrink-0 rounded-md border border-cyan-800/40 bg-cyan-950/60 px-2 py-1 font-mono text-[9px] font-bold text-cyan-400">DEFAULT</span> : null}
-        </div>
-        <div className="mt-3 flex items-end justify-between gap-3 border-t border-white/5 pt-2">
-          <div>
-            <div className="font-mono text-base font-bold text-white">{formatCurrency(printer.price, currencySymbol)}</div>
-            <span className="mt-1 inline-flex rounded border border-cyan-800/40 bg-cyan-950/50 px-1.5 py-0.5 font-mono text-[9px] text-cyan-400">{getPrinterHourlyCost(printer, electricityRate).toFixed(2)} {currencySymbol}/ч</span>
+
+          <div className="relative z-20 flex shrink-0 items-center gap-1.5" onClick={(event) => event.stopPropagation()}>
+            <InventoryRegistryAction
+              icon={Edit3}
+              label={`Редактировать ${printer.name}`}
+              onClick={() => openEdit(printer)}
+            />
+            <InventoryRegistryAction
+              icon={Trash2}
+              label={`Удалить ${printer.name}`}
+              onClick={() => setDeleteTarget(printer)}
+              danger
+            />
           </div>
-          <div className="flex gap-1.5" onClick={(event) => event.stopPropagation()}>
-            <InventoryRegistryAction icon={Edit3} label={`Редактировать ${printer.name}`} onClick={() => openEdit(printer)} />
-            <InventoryRegistryAction icon={Trash2} label={`Удалить ${printer.name}`} onClick={() => setDeleteTarget(printer)} danger />
+        </div>
+
+        {/* Передний план: Параметры и себестоимость */}
+        <div className="relative z-10 mt-4 border-t border-white/10 pt-3">
+          <div className="grid grid-cols-4 gap-2 items-end">
+            <div>
+              <span className="block font-mono text-[9px] uppercase tracking-wider text-neutral-500">Мощность</span>
+              <span className="font-mono text-xs font-semibold tabular-nums text-neutral-200">
+                {printer.power_w.toLocaleString('ru-RU')} Вт
+              </span>
+            </div>
+            <div>
+              <span className="block font-mono text-[9px] uppercase tracking-wider text-neutral-500">Ресурс</span>
+              <span className="font-mono text-xs font-semibold tabular-nums text-neutral-200">
+                {printer.lifespan_hours.toLocaleString('ru-RU')} ч
+              </span>
+            </div>
+            <div>
+              <span className="block font-mono text-[9px] uppercase tracking-wider text-neutral-500">Стоимость</span>
+              <span className="font-mono text-xs font-bold tabular-nums text-white">
+                {formatCurrency(printer.price, currencySymbol)}
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="block font-mono text-[9px] uppercase tracking-wider text-neutral-500">В час</span>
+              <span className="inline-flex rounded border border-white/10 bg-white/5 px-1.5 py-0.5 font-mono text-[11px] font-bold tabular-nums text-neutral-300">
+                {hourlyCost.toFixed(2)} {currencySymbol}/ч
+              </span>
+            </div>
           </div>
         </div>
-      </article>
+      </motion.article>
     );
   };
 
@@ -293,14 +426,13 @@ export function PrinterList() {
     <InventoryCockpitShell
       section="PRINTER_FLEET"
       sectionLabel="Парк 3D-принтеров"
-      icon={<PrinterMachineIcon className="h-full w-full" />}
       isExpanded={isExpanded}
       onExpandedChange={setIsExpanded}
       isOnline={isOnline}
       recordCount={printers.length}
       filteredCount={visiblePrinters.length}
       actions={(
-        <CockpitButton onClick={openAdd} icon={Plus} isActive title="Добавить новый принтер">
+        <CockpitButton onClick={openAdd} icon={Plus} title="Добавить новый принтер">
           Добавить принтер
         </CockpitButton>
       )}
@@ -325,7 +457,14 @@ export function PrinterList() {
             <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-3.5 w-3.5 -translate-y-1/2 text-neutral-500" />
             <Input aria-label="Поиск принтера" placeholder="Поиск по названию..." value={query} onChange={(event) => setQuery(event.target.value)} className="pl-8" />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <SegmentedFilter
+              value={viewMode}
+              onChange={(value) => setViewMode(value as InventoryViewMode)}
+              options={VIEW_MODE_OPTIONS}
+              ariaLabel="Режим отображения принтеров"
+              layoutId="printers-view-mode-indicator"
+            />
             <CockpitDropdown
               value={sort}
               onChange={(value) => setSort(value as PrinterSort)}
@@ -344,7 +483,9 @@ export function PrinterList() {
           data={visiblePrinters}
           columns={printerColumns}
           keyExtractor={(printer) => printer.id}
-          renderMobileCard={renderMobilePrinter}
+          viewMode={viewMode}
+          renderCard={renderPrinterCard}
+          renderMobileCard={renderPrinterCard}
           emptyState={<EmptyState hasRecords={printers.length > 0} onAdd={openAdd} onReset={() => setQuery('')} />}
           isExpanded={isExpanded}
           currentSort={sort}
@@ -370,7 +511,7 @@ export function PrinterList() {
             <span>HOURLY COST: {previewHourlyCost.toFixed(2)} {currencySymbol}/ч</span>
             <div className="flex gap-2">
               <CockpitButton onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>Закрыть</CockpitButton>
-              <CockpitButton type="submit" form="printer-form" isActive disabled={isSubmitting}>
+              <CockpitButton type="submit" form="printer-form" disabled={isSubmitting}>
                 {isSubmitting ? 'Сохранение...' : editingPrinter ? 'Сохранить' : 'Добавить'}
               </CockpitButton>
             </div>
@@ -395,7 +536,7 @@ export function PrinterList() {
               <NumberCounter label="Расчётный ресурс, ч" value={Number.parseInt(lifespanHours, 10) || 0} onChange={(value) => setLifespanHours(String(value))} min={1} max={1000000} step={100} />
               {errors.lifespanHours && <p className="mt-1 text-[11px] text-rose-400">{errors.lifespanHours}</p>}
             </div>
-            <ColorPicker label="Цвет оборудования" value={color} onChange={setColor} />
+            <ColorPicker label="Цвет оборудования" value={color} onChange={setColor} defaultVariant="matrix" />
             <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-neutral-950/60 p-3 font-mono">
               <MachineMetric label="Энергия" value={`${(Number(powerW || 0) / 1000 * electricityRate).toFixed(2)} ${currencySymbol}/ч`} />
               <MachineMetric label="Полная ставка" value={`${previewHourlyCost.toFixed(2)} ${currencySymbol}/ч`} bordered accent />
@@ -539,7 +680,7 @@ function EmptyState({ hasRecords, onAdd, onReset }: { hasRecords: boolean; onAdd
       <p className="mt-2 max-w-md font-sans text-xs leading-relaxed text-neutral-400">
         {hasRecords ? 'Измените поисковый запрос, чтобы вернуть оборудование в выдачу.' : 'Добавьте первый принтер — консоль рассчитает его амортизацию и стоимость электроэнергии на час печати.'}
       </p>
-      <CockpitButton onClick={hasRecords ? onReset : onAdd} icon={hasRecords ? Sparkles : Plus} isActive className="mt-4">
+      <CockpitButton onClick={hasRecords ? onReset : onAdd} icon={hasRecords ? Sparkles : Plus} className="mt-4">
         {hasRecords ? 'Сбросить поиск' : 'Добавить принтер'}
       </CockpitButton>
     </div>

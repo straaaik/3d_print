@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { AppBackground } from "../shared/ui/AppBackground";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -24,7 +25,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru" className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="antialiased min-h-screen text-white bg-[#0a0a0a] bg-dot-grid">
+      <body className="isolate antialiased min-h-screen text-white bg-[#0a0a0a]">
+        <AppBackground />
         {children}
       </body>
     </html>

@@ -6,6 +6,8 @@ import { Input } from '../../../shared/ui/Input';
 import { Select } from '../../../shared/ui/Select';
 import { QuickStepper } from './QuickStepper';
 import { Printer } from '../../../shared/types';
+import { BackgroundSettings } from './BackgroundSettings';
+import { HubIconSettings } from './HubIconSettings';
 
 interface GeneralSettingsTabProps {
   currency: string;
@@ -69,6 +71,8 @@ export function GeneralSettingsTab({
 
   return (
     <div className="flex flex-col gap-4 font-mono text-xs">
+      <BackgroundSettings />
+      <HubIconSettings />
       {/* 1. Валюта мастерской */}
       <Card
         title="Валюта расчетов и отображения"

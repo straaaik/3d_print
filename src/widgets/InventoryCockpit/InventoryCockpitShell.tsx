@@ -10,7 +10,7 @@ import { CockpitContentTransition } from '../../shared/ui/CockpitContentTransiti
 interface InventoryCockpitShellProps {
   section: string;
   sectionLabel: string;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   isExpanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
   isOnline: boolean;
@@ -144,7 +144,7 @@ export function InventoryCockpitShell({
             />
 
             <div className="flex min-w-0 items-center gap-2 border-l border-white/10 pl-3 font-mono">
-              <span className="h-5 w-5 shrink-0 text-cyan-400">{icon}</span>
+              {icon ? <span className="h-5 w-5 shrink-0 text-cyan-400">{icon}</span> : null}
               <span className="hidden text-xs font-bold tracking-wider text-white sm:inline">3D-LABS</span>
               <span className="hidden text-neutral-600 sm:inline">{'//'}</span>
               <span className="truncate text-[11px] font-semibold tracking-wider text-neutral-300 sm:text-xs">{section}</span>

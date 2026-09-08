@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertOctagon, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { motion, AnimatePresence, type TargetAndTransition, type Transition } from 'motion/react';
 import { Tooltip } from './Tooltip';
@@ -130,31 +131,36 @@ export function Modal({
     };
   }, [isOpen, onClose]);
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const styleConfig = variantStyles[variant];
   const animConfig = modalVariants[variant];
   const sizeClass = maxWidthClasses[maxWidth];
 
-  return (
+  const modalContent = (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 overflow-y-auto select-none">
-          {/* Фон */}
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5 overflow-y-auto select-none">
+          {/* Фон на весь экран */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/80 backdrop-blur-md"
+            className="fixed inset-0 bg-black/80 backdrop-blur-xl"
           />
 
-          {/* Контейнер модального окна в стиле Meridian Cockpit */}
+          {/* Контейнер модального окна в стиле Meridian Cockpit без внешней обводки */}
           <motion.div
             initial={animConfig.initial}
             animate={animConfig.animate}
             exit={animConfig.exit}
             transition={animConfig.transition}
-            className={`relative w-full ${sizeClass} my-auto rounded-2xl border ${styleConfig.borderColor} bg-neutral-950/95 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl z-10 max-h-[90vh] flex flex-col overflow-hidden font-mono`}
+            className={`relative w-full ${sizeClass} my-auto rounded-2xl bg-neutral-950/95 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl z-10 max-h-[90vh] flex flex-col overflow-hidden font-mono border-0`}
           >
             {/* 1. Верхняя панель (Cockpit Topbar: Red LED + Title + Live time) */}
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-2.5 bg-neutral-900/60 select-none shrink-0 gap-3">
@@ -188,7 +194,7 @@ export function Modal({
                 </div>
               </div>
 
-              {/* Правая часть: Только системное время (без крестика) */}
+              {/* Правая часть: Системное время */}
               <div className="flex items-center gap-3 shrink-0">
                 <div className="font-mono text-xs text-[#71717a] tabular-nums">
                   {currentTimeStr}
@@ -196,14 +202,14 @@ export function Modal({
               </div>
             </div>
 
-            {/* Прокручиваемый контент */}
-            <div className="text-neutral-200 overflow-y-auto p-4 sm:p-6 flex-1 min-h-0 custom-scrollbar text-xs sm:text-sm">
+            {/* 2. Контент */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 custom-scrollbar text-xs sm:text-sm text-neutral-200 font-sans">
               {children}
             </div>
 
-            {/* Фиксированный нижний футер кнопок */}
+            {/* 3. Футер */}
             {footer && (
-              <div className="border-t border-white/10 px-4 sm:px-6 py-3 shrink-0 bg-neutral-950 flex items-center justify-between font-mono text-[11px]">
+              <div className="border-t border-white/10 px-4 sm:px-6 py-3 bg-neutral-950 flex flex-wrap items-center justify-between gap-3 text-[11px] font-mono text-neutral-500 shrink-0">
                 {footer}
               </div>
             )}
@@ -212,4 +218,10 @@ export function Modal({
       )}
     </AnimatePresence>
   );
+
+  if (!mounted || typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(modalContent, document.body);
 }

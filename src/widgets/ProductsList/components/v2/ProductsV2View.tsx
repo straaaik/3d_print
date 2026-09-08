@@ -64,6 +64,8 @@ interface ProductsV2ViewProps {
   stlCount: number;
   bestsellerCount: number;
   totalProductsCount: number;
+  displayedProductsCount?: number;
+  isFilterActive?: boolean;
   currencySymbol?: string;
 
   // Фильтры и поиск
@@ -182,6 +184,8 @@ export const ProductsV2View = React.memo(function ProductsV2View({
   stlCount,
   bestsellerCount,
   totalProductsCount,
+  displayedProductsCount,
+  isFilterActive = false,
   currencySymbol = '₽',
   searchQuery,
   setSearchQuery,
@@ -257,7 +261,13 @@ export const ProductsV2View = React.memo(function ProductsV2View({
     : { duration: 0.4, ease: SURFACE_EASE };
 
   React.useEffect(() => {
-    if (elevatedRow && !rows.some((r) => r.id === elevatedRow.id)) {
+    if (!elevatedRow) return;
+    const exists = rows.some(
+      (r) =>
+        r.id === elevatedRow.id ||
+        (r.rowKind === 'collection' && r.childItems?.some((c) => c.id === elevatedRow.id))
+    );
+    if (!exists) {
       setElevatedRow(null);
     }
   }, [elevatedRow, rows]);
@@ -374,7 +384,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
                     <CockpitButton
                       onClick={onOpenCreateCollection}
                       icon={FolderPlus}
-                      className="w-full justify-center py-2 text-xs whitespace-nowrap text-purple-300 border-purple-500/30 hover:border-purple-500/50 bg-purple-950/30 hover:bg-purple-950/60"
+                      className="w-full justify-center py-2 text-xs whitespace-nowrap"
                       title="Создать коллекцию товаров"
                     >
                       + Коллекция
@@ -506,14 +516,16 @@ export const ProductsV2View = React.memo(function ProductsV2View({
             <div className="flex items-center gap-1.5 bg-white/[0.03] border border-white/10 px-2.5 py-1 rounded-lg">
               <Package className="w-3.5 h-3.5 text-neutral-400" />
               <span className="text-neutral-400">Позиций:</span>
-              <span className="text-white font-bold">{totalRowsCount}</span>
-              {totalRowsCount !== totalProductsCount && (
+              <span className="text-white font-bold">
+                {isFilterActive ? (displayedProductsCount ?? totalRowsCount) : totalProductsCount}
+              </span>
+              {isFilterActive && (displayedProductsCount ?? totalRowsCount) !== totalProductsCount && (
                 <span className="text-neutral-500 font-normal">/{totalProductsCount}</span>
               )}
               <Tooltip
                 content={
-                  totalRowsCount !== totalProductsCount
-                    ? `Отображается ${totalRowsCount} из ${totalProductsCount} позиций с учётом активных фильтров`
+                  isFilterActive && (displayedProductsCount ?? totalRowsCount) !== totalProductsCount
+                    ? `Отображается ${displayedProductsCount ?? totalRowsCount} из ${totalProductsCount} позиций с учётом активных фильтров`
                     : `Всего позиций в каталоге: ${totalProductsCount}`
                 }
               >
@@ -607,7 +619,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
                   <CockpitButton
                     onClick={onOpenCreateCollection}
                     icon={FolderPlus}
-                    className="whitespace-nowrap py-1.5 text-purple-300 border-purple-500/30 hover:border-purple-500/50 bg-purple-950/30"
+                    className="whitespace-nowrap py-1.5"
                     title="Создать новую коллекцию"
                   >
                     [ + Коллекция ]

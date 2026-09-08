@@ -1,11 +1,24 @@
 import React, { useMemo, useState } from 'react';
 import { ProductCollection, SavedCalculation } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
-import { Select, SelectOption } from '../../../../shared/ui/Select';
+import { CockpitDropdown } from '../../../../shared/ui/CockpitDropdown';
+import { SelectOption } from '../../../../shared/ui/Select';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
 import { Checkbox } from '../../../../shared/ui/Checkbox';
-import { Folder, Tag, Search, X, FileText } from 'lucide-react';
+import { Folder, Tag, Search, X, FileText, Palette } from 'lucide-react';
 import { formatCurrency } from '../../../../shared/lib/format';
+import { ColorPicker } from '../../../../shared/ui/ColorPicker';
+
+const COLLECTION_PRESET_COLORS = [
+  { label: 'Cyan', value: '#06b6d4' },
+  { label: 'Blue', value: '#3b82f6' },
+  { label: 'Emerald', value: '#10b981' },
+  { label: 'Amber', value: '#f59e0b' },
+  { label: 'Orange', value: '#f97316' },
+  { label: 'Rose', value: '#f43f5e' },
+  { label: 'Violet', value: '#8b5cf6' },
+  { label: 'Slate', value: '#64748b' },
+];
 
 interface CollectionModalProps {
   isOpen: boolean;
@@ -19,6 +32,7 @@ interface CollectionModalProps {
     category: string;
     tags: string[];
     description?: string;
+    color?: string;
     productIds: string[];
   }) => Promise<void>;
 }
@@ -36,6 +50,7 @@ export function CollectionModal({
   const [category, setCategory] = useState('Разное');
   const [tagsInput, setTagsInput] = useState('');
   const [description, setDescription] = useState('');
+  const [color, setColor] = useState('#3b82f6');
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
   const [productSearch, setProductSearch] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -57,6 +72,7 @@ export function CollectionModal({
         setCategory(editingCollection.category || 'Разное');
         setTagsInput(editingCollection.tags?.join(', ') || '');
         setDescription(editingCollection.description || '');
+        setColor(editingCollection.color || '#3b82f6');
         setSelectedProductIds(
           savedCalculations
             .filter((calculation) => calculation.collection_id === editingCollection.id)
@@ -67,6 +83,7 @@ export function CollectionModal({
         setCategory('Разное');
         setTagsInput('');
         setDescription('');
+        setColor('#3b82f6');
         setSelectedProductIds([]);
       }
       setProductSearch('');
@@ -108,6 +125,7 @@ export function CollectionModal({
         category,
         tags: parsedTags,
         description: description.trim() || undefined,
+        color,
         productIds: selectedProductIds,
       });
       onClose();
@@ -198,10 +216,13 @@ export function CollectionModal({
               <Folder size={13} className="text-cyan-400" />
               Категория коллекции
             </label>
-            <Select
-              options={categoryOptions.filter((o) => o.value !== '__new__')}
+            <CockpitDropdown
+              options={categoryOptions
+                .filter((o) => o.value !== '__new__')
+                .map((o) => ({ value: o.value, label: o.label }))}
               value={category}
               onChange={(val: string) => setCategory(val)}
+              usePortal={true}
             />
           </div>
 
@@ -233,6 +254,39 @@ export function CollectionModal({
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
             className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none font-mono"
           />
+        </div>
+
+        {/* Цвет коллекции */}
+        <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
+          <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <Palette size={13} className="text-cyan-400" />
+            Цвет коллекции (для подсветки строк в таблице)
+          </label>
+          <div className="flex items-center gap-2 flex-wrap">
+            {COLLECTION_PRESET_COLORS.map((c) => {
+              const isSelected = color.toLowerCase() === c.value.toLowerCase();
+              return (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() => setColor(c.value)}
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all cursor-pointer border ${
+                    isSelected ? 'ring-2 ring-white scale-110 border-white' : 'border-white/20 hover:border-white/50'
+                  }`}
+                  style={{ backgroundColor: c.value }}
+                  title={c.label}
+                />
+              );
+            })}
+            <div className="ml-auto">
+              <ColorPicker
+                value={color}
+                onChange={setColor}
+                defaultVariant="matrix"
+                align="right"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Секция включения товаров */}

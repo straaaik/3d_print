@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Tooltip } from './Tooltip';
 
@@ -107,28 +108,33 @@ export function CockpitModal({
     };
   }, [isOpen, onClose]);
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const sizeClass = maxWidthClasses[maxWidth] || maxWidthClasses.lg;
 
   const getVariantAccent = () => {
     switch (variant) {
       case 'error':
-        return 'border-rose-500/40 shadow-[0_25px_90px_-15px_rgba(0,0,0,0.95)]';
+        return 'shadow-[0_25px_90px_-15px_rgba(244,63,94,0.3)]';
       case 'warning':
-        return 'border-amber-500/40 shadow-[0_25px_90px_-15px_rgba(0,0,0,0.95)]';
+        return 'shadow-[0_25px_90px_-15px_rgba(245,158,11,0.3)]';
       case 'success':
-        return 'border-emerald-500/40 shadow-[0_25px_90px_-15px_rgba(0,0,0,0.95)]';
+        return 'shadow-[0_25px_90px_-15px_rgba(16,185,129,0.3)]';
       case 'cyan':
-        return 'border-cyan-500/40 shadow-[0_25px_90px_-15px_rgba(0,0,0,0.95)]';
+        return 'shadow-[0_25px_90px_-15px_rgba(6,182,212,0.3)]';
       default:
-        return 'border-white/15 shadow-[0_25px_90px_-15px_rgba(0,0,0,0.95)]';
+        return 'shadow-[0_25px_90px_-15px_rgba(0,0,0,0.95)]';
     }
   };
 
-  return (
+  const modalContent = (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 lg:p-6 overflow-y-auto select-none">
-          {/* Стеклянный темный бэкдроп с глубоким размытием */}
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5 lg:p-6 overflow-y-auto select-none">
+          {/* Стеклянный темный бэкдроп на весь экран с глубоким размытием */}
           <motion.div
             aria-hidden="true"
             initial={{ opacity: 0 }}
@@ -139,7 +145,7 @@ export function CockpitModal({
             className="fixed inset-0 bg-black/80 backdrop-blur-xl"
           />
 
-          {/* Главное окно в стиле Cockpit Console с эффектом кинематографичного подъема */}
+          {/* Главное окно в стиле Cockpit Console с эффектом кинематографичного подъема без внешней обводки */}
           <motion.div
             ref={dialogRef}
             role="dialog"
@@ -152,7 +158,7 @@ export function CockpitModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 16 }}
             transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-            className={`relative w-full ${sizeClass} my-auto rounded-2xl border ${getVariantAccent()} bg-neutral-950/95 shadow-2xl backdrop-blur-2xl overflow-hidden z-10 flex flex-col max-h-[92vh] font-sans`}
+            className={`relative w-full ${sizeClass} my-auto rounded-2xl ${getVariantAccent()} bg-neutral-950/95 shadow-2xl backdrop-blur-2xl overflow-hidden z-10 flex flex-col max-h-[92vh] font-sans border-0`}
           >
             {/* 1. Верхняя панель (Cockpit Topbar: Red LED + Title + Live time) */}
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-2.5 bg-neutral-900/60 shrink-0 gap-3">
@@ -194,7 +200,6 @@ export function CockpitModal({
               </div>
             </div>
 
-
             {/* 3. Прокручиваемый рабочий контент */}
             <div className="p-4 sm:p-6 overflow-y-auto flex-1 custom-scrollbar text-xs sm:text-sm text-neutral-200">
               {children}
@@ -211,4 +216,10 @@ export function CockpitModal({
       )}
     </AnimatePresence>
   );
+
+  if (!mounted || typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(modalContent, document.body);
 }

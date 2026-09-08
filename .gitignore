@@ -26,6 +26,7 @@
 .DS_Store
 *.pem
 .playwright-mcp/
+.superpowers/
 
 # debug
 npm-debug.log*

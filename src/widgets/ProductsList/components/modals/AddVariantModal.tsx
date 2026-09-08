@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ProductCollection, SavedCalculation, Filament, Printer } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
-import { Select } from '../../../../shared/ui/Select';
+import { CockpitDropdown } from '../../../../shared/ui/CockpitDropdown';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
 import {  Layers, Copy, Sparkles } from 'lucide-react';
 
@@ -111,7 +111,7 @@ function AddVariantModalForm({
               <Copy size={13} className="text-cyan-400" />
               Взять за основу существующий вариант
             </label>
-            <Select
+            <CockpitDropdown
               options={childsInCol.map((c) => ({
                 value: c.id,
                 label: `${c.name} (${c.filament_name || 'Пластик'}, ${c.weight_g}г)`,
@@ -126,6 +126,7 @@ function AddVariantModalForm({
                   setWeight(src.weight_g?.toString() || '50');
                 }
               }}
+              usePortal={true}
             />
           </div>
         )}
@@ -153,7 +154,7 @@ function AddVariantModalForm({
               <Layers size={13} className="text-cyan-400" />
               Материал / Филамент
             </label>
-            <Select
+            <CockpitDropdown
               options={filaments.map((f) => ({
                 value: f.id,
                 label: `${f.name} (${f.color || ''})`,
@@ -161,6 +162,7 @@ function AddVariantModalForm({
               }))}
               value={filamentId}
               onChange={(val: string) => setFilamentId(val)}
+              usePortal={true}
             />
           </div>
 

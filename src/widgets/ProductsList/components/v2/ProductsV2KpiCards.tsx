@@ -365,7 +365,7 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
               </div>
               <div className="flex items-center justify-between text-neutral-300">
                 <span className="text-neutral-400">Коллекций:</span>
-                <span className="font-semibold text-purple-300 tabular-nums">{collectionCount} шт.</span>
+                <span className="font-semibold text-neutral-200 tabular-nums">{collectionCount} шт.</span>
               </div>
               <div className="flex items-center justify-between text-neutral-300">
                 <span className="text-neutral-400">STL моделей:</span>
@@ -401,7 +401,7 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
         {isExpanded ? (
           <div className="mt-3 pt-2 border-t border-white/5 space-y-1 text-[10px] font-mono">
             <div className="flex items-center justify-between text-neutral-300">
-              <span className="text-purple-300">Коллекций: {collectionCount}</span>
+              <span className="text-neutral-300">Коллекций: {collectionCount}</span>
               <span className="text-cyan-400">STL: {stlCount}</span>
             </div>
             <div className="flex items-center justify-between text-neutral-400 pt-0.5 border-t border-white/5">
@@ -414,7 +414,7 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
         ) : (
           <div className="mt-3 pt-1 border-t border-white/5 flex items-center justify-between text-[10px] sm:text-[11px] font-mono text-neutral-400">
             <div className="flex items-center gap-1.5 truncate">
-              <span className="text-purple-300 font-medium">{collectionCount} колл.</span>
+              <span className="text-neutral-300 font-medium">{collectionCount} колл.</span>
               <span className="text-neutral-600">•</span>
               <span className="text-cyan-400 font-medium">{stlCount} STL</span>
             </div>

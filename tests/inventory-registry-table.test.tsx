@@ -57,3 +57,50 @@ test('inventory registry sortable headers toggle between ascending and descendin
   assert.equal(nextInventorySort('cost-desc', presets), 'cost-asc');
   assert.equal(nextInventorySort('name-asc', presets), 'cost-asc');
 });
+
+test('inventory registry renders card grid when viewMode is cards', () => {
+  const rows: ExampleRow[] = [{ id: 'row-1', name: 'PETG Carbon', cost: 2.1 }];
+  const columns: InventoryRegistryColumn<ExampleRow, string>[] = [
+    { id: 'name', header: 'Материал', render: (row) => row.name },
+  ];
+
+  const html = renderToStaticMarkup(
+    <InventoryRegistryTable
+      ariaLabel="Реестр филаментов"
+      data={rows}
+      columns={columns}
+      keyExtractor={(row) => row.id}
+      viewMode="cards"
+      renderCard={(row) => <article className="filament-card">{row.name}</article>}
+      emptyState={<p>Пусто</p>}
+    />,
+  );
+
+  assert.match(html, /filament-card/);
+  assert.match(html, /PETG Carbon/);
+  assert.match(html, /grid-cols-1 sm:grid-cols-2 xl:grid-cols-3/);
+  assert.doesNotMatch(html, /<table/);
+});
+
+test('inventory registry renders data table when viewMode is table', () => {
+  const rows: ExampleRow[] = [{ id: 'row-1', name: 'ABS Red', cost: 1.1 }];
+  const columns: InventoryRegistryColumn<ExampleRow, string>[] = [
+    { id: 'name', header: 'Материал', render: (row) => row.name },
+  ];
+
+  const html = renderToStaticMarkup(
+    <InventoryRegistryTable
+      ariaLabel="Реестр филаментов"
+      data={rows}
+      columns={columns}
+      keyExtractor={(row) => row.id}
+      viewMode="table"
+      renderCard={(row) => <article>{row.name}</article>}
+      emptyState={<p>Пусто</p>}
+    />,
+  );
+
+  assert.match(html, /<table/);
+  assert.match(html, /ABS Red/);
+  assert.doesNotMatch(html, /grid-cols-1 sm:grid-cols-2 xl:grid-cols-3/);
+});

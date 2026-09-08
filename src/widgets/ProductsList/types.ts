@@ -10,6 +10,7 @@ export type CatalogTableRow =
       item: SavedCalculation;
       parentCollectionId?: string;
       parentCollectionName?: string;
+      parentCollectionColor?: string;
       name: string;
       category?: string;
       final_price: number;
@@ -26,6 +27,7 @@ export type CatalogTableRow =
       collection: ProductCollection;
       childItems: SavedCalculation[];
       name: string;
+      color?: string;
       category?: string;
       tags?: string[];
       itemsCount: number;

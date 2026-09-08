@@ -14,7 +14,10 @@ import {
   Check,
   Layers,
   Printer,
-  Flame
+  Flame,
+  Wrench,
+  Folder,
+  Box
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
@@ -29,6 +32,7 @@ function CategoryIcon({ category }: { category: string }) {
 
 interface ProductRowDrawerProps {
   row: CatalogTableRow;
+  collectionColor?: string;
   currencySymbol?: string;
   onInlineUpdateProduct?: (productId: string, updates: Partial<SavedCalculation>) => void;
   onInlineUpdateCollection?: (collectionId: string, updates: Partial<ProductCollection>) => void;
@@ -47,6 +51,7 @@ interface ProductRowDrawerProps {
 
 export function ProductRowDrawer({
   row,
+  collectionColor,
   currencySymbol = '₽',
   onInlineUpdateProduct,
   onInlineUpdateCollection,
@@ -63,6 +68,7 @@ export function ProductRowDrawer({
   const item = isProduct ? row.item : null;
   const isCol = row.rowKind === 'collection';
   const isAsm = isProduct && item?.type === 'assembly';
+  const effectiveColor = collectionColor || (row.rowKind === 'product' ? row.parentCollectionColor : row.color);
 
   // Локальные состояния инпутов для плавного реактивного ввода
   const [name, setName] = useState<string>(row.name || '');
@@ -183,14 +189,28 @@ export function ProductRowDrawer({
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      className="p-2.5 sm:p-3 font-mono text-xs select-none space-y-2 bg-neutral-950/98 text-white border-t border-white/10"
+      className="p-2.5 sm:p-3 font-mono text-xs select-none space-y-2 text-white border-t"
+      style={{
+        backgroundColor: effectiveColor ? `${effectiveColor}0a` : 'rgba(10, 10, 10, 0.98)',
+        borderTopColor: effectiveColor ? `${effectiveColor}70` : 'rgba(255, 255, 255, 0.1)',
+        borderTopWidth: effectiveColor ? '2px' : '1px',
+      }}
     >
       {/* ========================================================================= */}
       {/* РАЗДЕЛ 01 · НАИМЕНОВАНИЕ И ПАРАМЕТРЫ ИЗДЕЛИЯ                              */}
       {/* ========================================================================= */}
-      <div className="p-2.5 sm:p-3 rounded-xl border border-white/10 bg-white/[0.02] space-y-2">
-        <div className="flex items-center justify-between pb-1 border-b border-white/10 font-mono text-[#71717a]">
-          <span className="text-[9.5px] uppercase tracking-wider font-semibold">
+      <div
+        className="p-2.5 sm:p-3 rounded-xl border border-white/10 bg-white/[0.02] space-y-2"
+        style={effectiveColor ? { borderColor: `${effectiveColor}25`, backgroundColor: `${effectiveColor}06` } : undefined}
+      >
+        <div
+          className="flex items-center justify-between pb-1 border-b border-white/10 font-mono text-[#71717a]"
+          style={effectiveColor ? { borderBottomColor: `${effectiveColor}20` } : undefined}
+        >
+          <span
+            className="text-[9.5px] uppercase tracking-wider font-semibold"
+            style={effectiveColor ? { color: effectiveColor } : undefined}
+          >
             {isCol ? 'РАЗДЕЛ 01 · НАИМЕНОВАНИЕ И СОСТАВ КОЛЛЕКЦИИ' : 'РАЗДЕЛ 01 · НАИМЕНОВАНИЕ И ПАРАМЕТРЫ ИЗДЕЛИЯ'}
           </span>
           <div className="flex items-center gap-2">
@@ -218,19 +238,44 @@ export function ProductRowDrawer({
         <div className="flex items-center gap-2.5 min-h-[36px] pt-0.5 flex-wrap sm:flex-nowrap">
           {/* Слева от названия: Артикул + Тип */}
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="h-8 flex items-center justify-center font-mono text-xs font-bold px-2.5 rounded-md tracking-wider shrink-0 text-cyan-400 bg-cyan-950/40 border border-cyan-800/40">
+            <span
+              className="h-8 flex items-center justify-center font-mono text-xs font-bold px-2.5 rounded-md tracking-wider shrink-0 text-cyan-400 bg-cyan-950/40 border border-cyan-800/40"
+              style={effectiveColor ? {
+                color: effectiveColor,
+                backgroundColor: `${effectiveColor}20`,
+                borderColor: `${effectiveColor}50`,
+              } : undefined}
+            >
               {article}
             </span>
 
             <span className={`h-8 flex items-center justify-center text-[10px] font-bold uppercase tracking-wider px-2.5 rounded-md border shrink-0 ${
               isCol
-                ? 'bg-purple-950/40 text-purple-300 border-purple-800/40'
+                ? 'bg-white/10 text-neutral-200 border-white/20'
                 : isAsm
                 ? 'bg-cyan-950/40 text-cyan-300 border-cyan-800/40'
                 : 'bg-white/5 text-neutral-300 border-white/10'
             }`}>
               {isCol ? 'КОЛЛЕКЦИЯ' : isAsm ? 'СБОРКА' : 'ШТУЧНЫЙ'}
             </span>
+
+            {row.rowKind === 'product' && row.parentCollectionName && (
+              <span
+                className="h-8 flex items-center gap-1.5 font-mono text-[10px] px-2.5 rounded-md border shrink-0 text-neutral-300 bg-white/5 border-white/10"
+                style={effectiveColor ? {
+                  color: effectiveColor,
+                  backgroundColor: `${effectiveColor}18`,
+                  borderColor: `${effectiveColor}40`,
+                } : undefined}
+                title={`Входит в коллекцию «${row.parentCollectionName}»`}
+              >
+                <Folder
+                  className="w-3 h-3 text-neutral-400 shrink-0"
+                  style={effectiveColor ? { color: effectiveColor } : undefined}
+                />
+                <span className="truncate max-w-[120px]">{row.parentCollectionName}</span>
+              </span>
+            )}
 
             {salesStat?.isBestseller && (
               <Tooltip content={`Хит продаж: продано ${salesStat.soldQty} шт. (${salesStat.salesSharePercent}% от всех продаж)`}>
@@ -321,10 +366,19 @@ export function ProductRowDrawer({
         {/* ----------------------------------------------------------------------- */}
         {/* РАЗДЕЛ 02 · ПРОИЗВОДСТВО И ТЕХНИЧЕСКИЕ ПАРАМЕТРЫ (5 из 12 колонок)      */}
         {/* ----------------------------------------------------------------------- */}
-        <div className="p-2.5 sm:p-3 rounded-xl border border-white/10 bg-white/[0.02] flex flex-col justify-between space-y-2 lg:col-span-5">
+        <div
+          className="p-2.5 sm:p-3 rounded-xl border border-white/10 bg-white/[0.02] flex flex-col justify-between space-y-2 lg:col-span-5"
+          style={effectiveColor ? { borderColor: `${effectiveColor}25`, backgroundColor: `${effectiveColor}06` } : undefined}
+        >
           <div className="space-y-2">
-            <div className="flex items-center justify-between pb-1 border-b border-white/10 font-mono text-[#71717a]">
-              <span className="text-[9.5px] uppercase tracking-wider font-semibold">
+            <div
+              className="flex items-center justify-between pb-1 border-b border-white/10 font-mono text-[#71717a]"
+              style={effectiveColor ? { borderBottomColor: `${effectiveColor}20` } : undefined}
+            >
+              <span
+                className="text-[9.5px] uppercase tracking-wider font-semibold"
+                style={effectiveColor ? { color: effectiveColor } : undefined}
+              >
                 РАЗДЕЛ 02 · ПРОИЗВОДСТВО И ТЕХНИЧЕСКИЕ ПАРАМЕТРЫ
               </span>
               <span className="text-[8.5px] font-mono px-1.5 py-0.5 rounded bg-white/5 text-neutral-400">
@@ -443,10 +497,19 @@ export function ProductRowDrawer({
         {/* ----------------------------------------------------------------------- */}
         {/* РАЗДЕЛ 03 · ЭКОНОМИКА, СЕБЕСТОИМОСТЬ И ЦЕНА (7 из 12 колонок)            */}
         {/* ----------------------------------------------------------------------- */}
-        <div className="p-2.5 sm:p-3 rounded-xl border border-white/10 bg-white/[0.02] flex flex-col justify-between space-y-2 lg:col-span-7">
+        <div
+          className="p-2.5 sm:p-3 rounded-xl border border-white/10 bg-white/[0.02] flex flex-col justify-between space-y-2 lg:col-span-7"
+          style={effectiveColor ? { borderColor: `${effectiveColor}25`, backgroundColor: `${effectiveColor}06` } : undefined}
+        >
           <div className="space-y-2">
-            <div className="flex items-center justify-between pb-1 border-b border-white/10 font-mono text-[#71717a]">
-              <span className="text-[9.5px] uppercase tracking-wider font-semibold">
+            <div
+              className="flex items-center justify-between pb-1 border-b border-white/10 font-mono text-[#71717a]"
+              style={effectiveColor ? { borderBottomColor: `${effectiveColor}20` } : undefined}
+            >
+              <span
+                className="text-[9.5px] uppercase tracking-wider font-semibold"
+                style={effectiveColor ? { color: effectiveColor } : undefined}
+              >
                 РАЗДЕЛ 03 · ЭКОНОМИКА, СЕБЕСТОИМОСТЬ И ЦЕНА
               </span>
               <div className="flex items-center gap-2">
@@ -598,13 +661,16 @@ export function ProductRowDrawer({
       {/* ========================================================================= */}
       {/* РАЗДЕЛ 04 · УПРАВЛЕНИЕ, БЫСТРЫЕ ДЕЙСТВИЯ И ТЕЛЕМЕТРИЯ                    */}
       {/* ========================================================================= */}
-      <div className="p-2.5 sm:p-3 rounded-xl border border-white/10 bg-white/[0.02] flex items-center justify-between gap-2 flex-wrap font-mono">
+      <div
+        className="p-2.5 sm:p-3 rounded-xl border border-white/10 bg-white/[0.02] flex items-center justify-between gap-2 flex-wrap font-mono"
+        style={effectiveColor ? { borderColor: `${effectiveColor}25`, backgroundColor: `${effectiveColor}06` } : undefined}
+      >
         <div className="flex items-center gap-2 flex-wrap">
           {isProduct && onCreateOrder && (
             <CockpitButton
               size="sm"
-              isActive
               icon={ShoppingCart}
+              accentColor={effectiveColor}
               onClick={() => onCreateOrder(item!)}
             >
               Создать заказ
@@ -615,6 +681,7 @@ export function ProductRowDrawer({
             <CockpitButton
               size="sm"
               icon={Calculator}
+              accentColor={effectiveColor}
               onClick={() => onLoadIntoCalculator(item!)}
             >
               В калькулятор
@@ -625,6 +692,7 @@ export function ProductRowDrawer({
             <CockpitButton
               size="sm"
               icon={FileCode}
+              accentColor={effectiveColor}
               onClick={() => onOpenStlModal(item!)}
             >
               3D Модель
@@ -634,10 +702,11 @@ export function ProductRowDrawer({
           {isProduct && onOpenQuickEditModal && (
             <CockpitButton
               size="sm"
-              icon={Edit2}
+              icon={isAsm ? Wrench : Edit2}
+              accentColor={effectiveColor}
               onClick={() => onOpenQuickEditModal(item!)}
             >
-              Полный редактор
+              {isAsm ? 'Спецификация сборки' : 'Полный редактор'}
             </CockpitButton>
           )}
 
@@ -645,6 +714,7 @@ export function ProductRowDrawer({
             <CockpitButton
               size="sm"
               icon={Plus}
+              accentColor={effectiveColor}
               onClick={() => onOpenAddVariantModal(row.collection)}
             >
               Добавить вариант
@@ -655,6 +725,7 @@ export function ProductRowDrawer({
             <CockpitButton
               size="sm"
               icon={Edit2}
+              accentColor={effectiveColor}
               onClick={() => onOpenEditCollection(row.collection)}
             >
               Настройки коллекции
