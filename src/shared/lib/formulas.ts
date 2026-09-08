@@ -16,6 +16,7 @@ import type {
   CustomCostItem,
   AssemblyPrintedPart,
   AssemblyHardwareItem,
+  AssemblyElectronicsItem,
   Order
 } from '../types';
 import { timeToHours } from './format';
@@ -427,6 +428,9 @@ export interface AssemblyTotalsResult {
   hwBaseCost: number;
   hwFinalPrice: number;
   totalHwPieces: number;
+  electronicsBaseCost: number;
+  electronicsFinalPrice: number;
+  totalElectronicsPieces: number;
   laborCost: number;
   effectiveLaborBaseCost: number;
   grandBaseCost: number;
@@ -437,14 +441,15 @@ export interface AssemblyTotalsResult {
 }
 
 /**
- * Расчет сводных параметров и стоимости сборного изделия (3D детали + крепеж + сборка)
+ * Расчет сводных параметров и стоимости сборного изделия (3D детали + крепеж + электроника + сборка)
  */
 export function calculateAssemblyTotals(
   parts: AssemblyPrintedPart[],
   hardware: AssemblyHardwareItem[],
   assemblyLaborMinutes: number | string,
   laborRate: number = 600,
-  isOwnerLabor: boolean = false
+  isOwnerLabor: boolean = false,
+  electronics: AssemblyElectronicsItem[] = []
 ): AssemblyTotalsResult {
   let totalWeight = 0;
   let totalMinutesTotal = 0;
@@ -470,6 +475,17 @@ export function calculateAssemblyTotals(
     hwFinalPrice += (h.price_per_unit || 0) * qty;
   });
 
+  let electronicsBaseCost = 0;
+  let electronicsFinalPrice = 0;
+  let totalElectronicsPieces = 0;
+
+  electronics.forEach((el) => {
+    const qty = el.quantity || 1;
+    totalElectronicsPieces += qty;
+    electronicsBaseCost += (el.cost_per_unit || 0) * qty;
+    electronicsFinalPrice += (el.price_per_unit || 0) * qty;
+  });
+
   const laborMins = typeof assemblyLaborMinutes === 'string'
     ? parseInt(assemblyLaborMinutes, 10) || 0
     : assemblyLaborMinutes || 0;
@@ -482,8 +498,8 @@ export function calculateAssemblyTotals(
   // а целиком переходит в чистую прибыль
   const effectiveLaborBaseCost = isOwnerLabor ? 0 : laborCost;
 
-  const grandBaseCost = round2(partsBaseCost + hwBaseCost + effectiveLaborBaseCost);
-  const grandFinalPrice = round2(partsFinalPrice + hwFinalPrice + laborCost);
+  const grandBaseCost = round2(partsBaseCost + hwBaseCost + electronicsBaseCost + effectiveLaborBaseCost);
+  const grandFinalPrice = round2(partsFinalPrice + hwFinalPrice + electronicsFinalPrice + laborCost);
   const profit = round2(grandFinalPrice - grandBaseCost);
   const marginPercent = calcMarginPercent(profit, grandFinalPrice);
   const markupPercent = calcMarkupPercent(profit, grandBaseCost);
@@ -497,6 +513,9 @@ export function calculateAssemblyTotals(
     hwBaseCost: round2(hwBaseCost),
     hwFinalPrice: round2(hwFinalPrice),
     totalHwPieces,
+    electronicsBaseCost: round2(electronicsBaseCost),
+    electronicsFinalPrice: round2(electronicsFinalPrice),
+    totalElectronicsPieces,
     laborCost,
     effectiveLaborBaseCost,
     grandBaseCost,

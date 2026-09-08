@@ -1,4 +1,4 @@
-import { SavedCalculation, Order, AssemblyPrintedPart, AssemblyHardwareItem, CostItem } from '../../shared/types';
+import { SavedCalculation, Order, AssemblyPrintedPart, AssemblyHardwareItem, AssemblyElectronicsItem, CostItem } from '../../shared/types';
 import { WarehouseMetrics, SalesStatInfo } from './types';
 import { getCategoryConfig } from '../../shared/lib/costCategories';
 
@@ -16,9 +16,10 @@ export function calcAssemblyTotals(
   hardware: AssemblyHardwareItem[],
   assemblyLaborMinutes: number | string,
   laborRate: number = 600,
-  isOwnerLabor: boolean = false
+  isOwnerLabor: boolean = false,
+  electronics: AssemblyElectronicsItem[] = []
 ): AssemblyTotalsResult {
-  return calculateAssemblyTotals(parts, hardware, assemblyLaborMinutes, laborRate, isOwnerLabor);
+  return calculateAssemblyTotals(parts, hardware, assemblyLaborMinutes, laborRate, isOwnerLabor, electronics);
 }
 
 export function getWarehouseMetrics(savedCalculations: SavedCalculation[]): WarehouseMetrics {
@@ -108,10 +109,13 @@ export function prepareDraftOrderFromProduct(item: SavedCalculation) {
   if (item.type === 'assembly') {
     const parts = item.assembly_parts || [];
     const hardware = item.assembly_hardware || [];
+    const electronics = item.assembly_electronics || [];
 
     const partsCost = parts.reduce((acc, p) => acc + (p.final_price || 0) * (p.quantity || 1), 0);
     const hwCost = hardware.reduce((acc, h) => acc + (h.cost_per_unit || 0) * (h.quantity || 1), 0);
     const hwPrice = hardware.reduce((acc, h) => acc + (h.price_per_unit || 0) * (h.quantity || 1), 0);
+    const elCost = electronics.reduce((acc, el) => acc + (el.cost_per_unit || 0) * (el.quantity || 1), 0);
+    const elPrice = electronics.reduce((acc, el) => acc + (el.price_per_unit || 0) * (el.quantity || 1), 0);
     const laborCost = item.assembly_labor_cost || 0;
 
     const unitPrintHours = parts.reduce((acc, p) => {
@@ -120,12 +124,12 @@ export function prepareDraftOrderFromProduct(item: SavedCalculation) {
     }, 0);
     totalPrintHours = unitPrintHours * orderQty;
 
-    const unitCost = partsCost + hwCost + laborCost;
-    const unitAmount = partsCost + hwPrice + laborCost;
+    const unitCost = partsCost + hwCost + elCost + laborCost;
+    const unitAmount = partsCost + hwPrice + elPrice + laborCost;
 
     cost = Math.round(unitCost * orderQty * 100) / 100;
     amount = Math.round(unitAmount * orderQty * 100) / 100;
-    notes = `Составная сборка: ${item.name} (${parts.length} дет, ${hardware.length} мет, ${orderQty} шт)`;
+    notes = `Составная сборка: ${item.name} (${parts.length} дет, ${hardware.length} мет, ${electronics.length > 0 ? `${electronics.length} эл, ` : ''}${orderQty} шт)`;
 
     if (partsCost > 0) {
       cost_items.push({
@@ -139,6 +143,13 @@ export function prepareDraftOrderFromProduct(item: SavedCalculation) {
         category: 'Фурнитура и метизы',
         amount: Math.round(hwCost * orderQty * 100) / 100,
         note: `${hardware.length} поз. метизов`,
+      });
+    }
+    if (elCost > 0) {
+      cost_items.push({
+        category: 'Электроника и компоненты',
+        amount: Math.round(elCost * orderQty * 100) / 100,
+        note: `${electronics.length} поз. электроники`,
       });
     }
     if (laborCost > 0) {
@@ -220,4 +231,62 @@ export function prepareDraftOrderFromProduct(item: SavedCalculation) {
     isFromStock,
     currentStock,
   };
+}
+
+/**
+ * Преобразует HEX-цвет в HSL
+ */
+function hexToHsl(hex: string): [number, number, number] {
+  let c = hex.replace('#', '');
+  if (c.length === 3) c = c.split('').map((x) => x + x).join('');
+  const r = parseInt(c.slice(0, 2), 16) / 255;
+  const g = parseInt(c.slice(2, 4), 16) / 255;
+  const b = parseInt(c.slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h *= 60;
+  }
+  return [Math.round(h), Math.round(s * 100), Math.round(l * 100)];
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+  const sNorm = s / 100;
+  const lNorm = l / 100;
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = sNorm * Math.min(lNorm, 1 - lNorm);
+  const f = (n: number) => lNorm - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  const toHex = (x: number) => Math.round(x * 255).toString(16).padStart(2, '0');
+  return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+}
+
+/**
+ * Вычисляет гармоничный, более светлый и свежий оттенок для дочерних позиций коллекции,
+ * чтобы они визуально отличались от заглавной строки-коллекции.
+ */
+export function getChildCollectionColor(parentHex?: string): string {
+  if (!parentHex || !parentHex.startsWith('#')) return '#38bdf8';
+  try {
+    const [h, s, l] = hexToHsl(parentHex);
+    let newH = h;
+    if (h >= 200 && h <= 245) newH = Math.max(190, h - 18); // синий -> небесно-голубой / cyan-blue
+    else if (h >= 130 && h <= 170) newH = Math.min(180, h + 18); // зеленый -> мятный / teal
+    else if (h >= 250 && h <= 300) newH = Math.min(310, h + 18); // фиолетовый -> лавандовый
+    else if (h >= 0 && h <= 35) newH = Math.min(45, h + 15); // красный/оранжевый -> теплый янтарный
+    const newL = Math.min(84, Math.max(68, l + 16));
+    const newS = Math.min(92, Math.max(65, s));
+    return hslToHex(newH, newS, newL);
+  } catch {
+    return '#38bdf8';
+  }
 }

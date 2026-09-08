@@ -47,6 +47,14 @@ export interface AssemblyHardwareItem {
   price_per_unit: number;
 }
 
+export interface AssemblyElectronicsItem {
+  id: string;
+  name: string;
+  quantity: number;
+  cost_per_unit: number;
+  price_per_unit: number;
+}
+
 export interface CustomCostItem {
   id: string;
   name: string;
@@ -63,6 +71,7 @@ export interface ProductCollection {
   category?: string;
   tags?: string[];
   description?: string;
+  color?: string;
 }
 
 export interface SavedCalculation {
@@ -88,6 +97,7 @@ export interface SavedCalculation {
   // Состав сборки (для type === 'assembly')
   assembly_parts?: AssemblyPrintedPart[];
   assembly_hardware?: AssemblyHardwareItem[];
+  assembly_electronics?: AssemblyElectronicsItem[];
   assembly_labor_minutes?: number;
   assembly_labor_cost?: number;
 
