@@ -1,5 +1,12 @@
 import React, { useId, useMemo, useRef, useState } from 'react';
-import { AssemblyPrintedPart, AssemblyHardwareItem, SavedCalculation, Filament, Printer } from '../../../../shared/types';
+import {
+  AssemblyPrintedPart,
+  AssemblyHardwareItem,
+  AssemblyElectronicsItem,
+  SavedCalculation,
+  Filament,
+  Printer,
+} from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
 import { Checkbox } from '../../../../shared/ui/Checkbox';
@@ -12,8 +19,10 @@ import {
   Wrench,
   Clock,
   Search,
-  X
+  X,
+  Cpu,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { calcAssemblyTotals, round2 } from '../../helpers';
 import { formatCurrency } from '../../../../shared/lib/format';
 
@@ -47,6 +56,8 @@ export function AssemblyModal({
   const [isOwnerLabor, setIsOwnerLabor] = useState(false);
   const [parts, setParts] = useState<AssemblyPrintedPart[]>([]);
   const [hardware, setHardware] = useState<AssemblyHardwareItem[]>([]);
+  const [electronics, setElectronics] = useState<AssemblyElectronicsItem[]>([]);
+  const [activeTab, setActiveTab] = useState<'parts' | 'hardware' | 'electronics'>('parts');
   const [productSearch, setProductSearch] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [previousSource, setPreviousSource] = useState({ isOpen, editingAssembly, stagedParts });
@@ -66,13 +77,16 @@ export function AssemblyModal({
         setIsOwnerLabor(Boolean(editingAssembly.is_owner_labor));
         setParts(editingAssembly.assembly_parts ? [...editingAssembly.assembly_parts] : []);
         setHardware(editingAssembly.assembly_hardware ? [...editingAssembly.assembly_hardware] : []);
+        setElectronics(editingAssembly.assembly_electronics ? [...editingAssembly.assembly_electronics] : []);
       } else {
         setName('');
         setLaborMinutes('15');
         setIsOwnerLabor(false);
         setParts(stagedParts.length > 0 ? [...stagedParts] : []);
         setHardware([]);
+        setElectronics([]);
       }
+      setActiveTab('parts');
       setProductSearch('');
     }
   }
@@ -92,7 +106,7 @@ export function AssemblyModal({
     );
   }, [singleProducts, productSearch]);
 
-  const totals = calcAssemblyTotals(parts, hardware, laborMinutes, laborRate, isOwnerLabor);
+  const totals = calcAssemblyTotals(parts, hardware, laborMinutes, laborRate, isOwnerLabor, electronics);
   const profit = totals.profit;
   const marginPercent = totals.marginPercent;
   const totalHwPieces = totals.totalHwPieces;
@@ -183,6 +197,28 @@ export function AssemblyModal({
     );
   };
 
+  const handleAddElectronics = () => {
+    nextLocalIdRef.current += 1;
+    const newEl: AssemblyElectronicsItem = {
+      id: `${localIdPrefix}-electronics-${nextLocalIdRef.current}`,
+      name: 'Электронный компонент',
+      quantity: 1,
+      cost_per_unit: 100,
+      price_per_unit: 200,
+    };
+    setElectronics((prev) => [...prev, newEl]);
+  };
+
+  const handleUpdateElectronicsQty = (index: number, delta: number) => {
+    setElectronics((prev) =>
+      prev.map((el, i) => {
+        if (i !== index) return el;
+        const newQty = Math.max(1, (el.quantity || 1) + delta);
+        return { ...el, quantity: newQty };
+      })
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
@@ -205,6 +241,7 @@ export function AssemblyModal({
         final_price: totals.grandFinalPrice,
         assembly_parts: parts,
         assembly_hardware: hardware,
+        assembly_electronics: electronics,
         assembly_labor_minutes: parseInt(laborMinutes, 10) || 0,
         assembly_labor_cost: totals.laborCost,
         is_owner_labor: isOwnerLabor,
@@ -232,16 +269,30 @@ export function AssemblyModal({
           <div className="flex items-center gap-3 font-mono text-xs flex-wrap">
             <div className="flex items-center gap-1">
               <span className="text-neutral-500 uppercase">Себестоимость:</span>
-              <strong className="text-neutral-200">{formatCurrency(totals.grandBaseCost, currencySymbol)}</strong>
+              <strong className="text-neutral-200 tabular-nums">{formatCurrency(totals.grandBaseCost, currencySymbol)}</strong>
             </div>
             <div className="flex items-center gap-1">
               <span className="text-neutral-500 uppercase">Продажа:</span>
-              <strong className="text-white font-bold">{formatCurrency(totals.grandFinalPrice, currencySymbol)}</strong>
+              <strong className="text-white font-bold tabular-nums">{formatCurrency(totals.grandFinalPrice, currencySymbol)}</strong>
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-emerald-400 font-bold">
-                +{formatCurrency(profit, currencySymbol)} ({marginPercent}%)
+              <span className={`${profit < 0 ? 'text-rose-400' : 'text-emerald-400'} font-bold tabular-nums`}>
+                {profit > 0 ? '+' : ''}{formatCurrency(profit, currencySymbol)} ({marginPercent}%)
               </span>
+            </div>
+            {/* Сводка по компонентам */}
+            <div className="hidden md:flex items-center gap-2 text-[11px] text-neutral-400 border-l border-white/10 pl-3">
+              <span>{parts.length} дет.</span>
+              <span>•</span>
+              <span>{totalHwPieces} мет.</span>
+              {totals.totalElectronicsPieces > 0 && (
+                <>
+                  <span>•</span>
+                  <span className="text-cyan-400 font-medium">
+                    {totals.totalElectronicsPieces} эл. ({formatCurrency(totals.electronicsFinalPrice, currencySymbol)})
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
@@ -279,295 +330,515 @@ export function AssemblyModal({
           />
         </div>
 
-        {/* 1. СЕКЦИЯ: 3D-Печатные детали */}
-        <div className="bg-neutral-900 border border-white/10 rounded-xl overflow-hidden">
-          <div className="p-3 bg-neutral-950 border-b border-white/10 flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Box size={14} className="text-cyan-400" />
-              <span className="font-bold text-neutral-300 uppercase tracking-wider text-xs font-mono">
-                3D-Печатные детали ({parts.length})
-              </span>
-              <span className="px-2 py-0.5 rounded bg-white/10 text-neutral-300 text-[10px] font-mono">
-                {totals.totalWeight} г • {totals.totalHours}ч {totals.totalMins}м
-              </span>
-            </div>
-
-            <CockpitButton
-              type="button"
-              onClick={handleAddCustomPart}
-              icon={Plus}
-            >
-              Деталь вручную
-            </CockpitButton>
-          </div>
-
-          <div className="p-3 space-y-2">
-            {/* Поисковая строка */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Фильтр деталей из каталога..."
-                value={productSearch}
-                onChange={(e) => setProductSearch(e.target.value)}
-                className="w-full bg-neutral-950 border border-white/10 focus:border-cyan-400 rounded-lg pl-8 pr-7 py-1.5 text-xs text-white placeholder-neutral-600 focus:outline-none font-mono"
+        {/* Вкладки разделов состава */}
+        <div className="flex items-center gap-1.5 p-1 bg-neutral-950 border border-white/10 rounded-xl overflow-x-auto select-none">
+          <button
+            type="button"
+            onClick={() => setActiveTab('parts')}
+            className={`relative flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono text-xs cursor-pointer select-none transition-colors ${
+              activeTab === 'parts'
+                ? 'text-white font-bold'
+                : 'text-neutral-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            {activeTab === 'parts' && (
+              <motion.div
+                layoutId="assembly-modal-active-tab"
+                className="absolute inset-0 rounded-lg bg-white/10 border border-white/15"
+                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
               />
-              {productSearch && (
-                <button
-                  type="button"
-                  onClick={() => setProductSearch('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white p-0.5 cursor-pointer"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-
-            {/* Список деталей каталога */}
-            <div className="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
-              {filteredSingleProducts.length === 0 ? (
-                <p className="text-center text-xs text-neutral-500 py-3 bg-neutral-950 rounded-lg">
-                  [ Детали не найдены ]
-                </p>
-              ) : (
-                filteredSingleProducts.map((prod) => {
-                  const partMatch = parts.find((p) => p.product_id === prod.id);
-                  const isChecked = Boolean(partMatch);
-                  const qty = partMatch?.quantity || 1;
-
-                  return (
-                    <div
-                      key={prod.id}
-                      onClick={() => handleToggleCatalogProduct(prod)}
-                      className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer select-none ${
-                        isChecked
-                          ? 'bg-white/10 border-white/20 text-white font-medium'
-                          : 'bg-neutral-950 border-white/5 text-neutral-400 hover:text-white hover:bg-white/5'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        <div onClick={(e) => e.stopPropagation()}>
-                          <Checkbox
-                            checked={isChecked}
-                            onChange={() => handleToggleCatalogProduct(prod)}
-                            variant="primary"
-                            size="sm"
-                          />
-                        </div>
-
-                        {prod.filament_color && (
-                          <div
-                            className="w-3 h-3 rounded-full border border-white/20 shrink-0"
-                            style={{ backgroundColor: prod.filament_color }}
-                          />
-                        )}
-
-                        <div className="min-w-0 flex-1">
-                          <span className={`truncate block font-mono text-xs ${isChecked ? 'text-white font-bold' : 'text-neutral-300'}`}>
-                            {prod.name}
-                          </span>
-                          <div className="text-[10px] text-neutral-500 font-mono flex items-center gap-1.5">
-                            <span>{prod.filament_name || 'PLA'}</span>
-                            <span>•</span>
-                            <span>{prod.weight_g}г</span>
-                            <span>•</span>
-                            <span>{prod.hours}ч {prod.minutes}м</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0 ml-2">
-                        {isChecked && (
-                          <div
-                            className="flex items-center bg-neutral-900 border border-white/10 rounded p-0.5"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <button
-                              type="button"
-                              onClick={(e) => handleUpdateCatalogPartQty(prod.id, -1, e)}
-                              className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-white rounded hover:bg-white/10 cursor-pointer font-mono font-bold text-xs"
-                            >
-                              -
-                            </button>
-                            <span className="w-5 text-center font-mono font-bold text-white text-xs">
-                              {qty}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={(e) => handleUpdateCatalogPartQty(prod.id, 1, e)}
-                              className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-white rounded hover:bg-white/10 cursor-pointer font-mono font-bold text-xs"
-                            >
-                              +
-                            </button>
-                          </div>
-                        )}
-
-                        <span className={`font-mono text-xs font-bold shrink-0 min-w-[65px] text-right ${isChecked ? 'text-cyan-400' : 'text-neutral-500'}`}>
-                          {formatCurrency((prod.final_price || 0) * (isChecked ? qty : 1), currencySymbol)}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            {/* Ручные кастомные детали */}
-            {customManualParts.length > 0 && (
-              <div className="pt-2 border-t border-white/10 space-y-1">
-                <span className="text-[10px] font-mono text-neutral-500 uppercase tracking-wider block">
-                  Нестандартные детали ({customManualParts.length}):
-                </span>
-                {customManualParts.map((part, index) => {
-                  const actualIndex = parts.findIndex((p) => p.id === part.id);
-                  return (
-                    <div
-                      key={part.id || index}
-                      className="flex items-center justify-between bg-neutral-950 p-2 rounded-lg border border-white/10 text-xs gap-2"
-                    >
-                      <input
-                        type="text"
-                        value={part.name}
-                        onChange={(e) =>
-                          setParts((prev) =>
-                            prev.map((p, i) => (i === actualIndex ? { ...p, name: e.target.value } : p))
-                          )
-                        }
-                        className="bg-transparent border-b border-neutral-700 focus:border-cyan-400 text-white font-mono outline-none text-xs flex-1 min-w-[120px]"
-                      />
-
-                      <div className="flex items-center gap-2 font-mono text-neutral-300 text-[10px]">
-                        <span>{part.weight_g}г</span>
-                        <span>•</span>
-                        <span className="text-cyan-400 font-bold">{formatCurrency(part.final_price, currencySymbol)}</span>
-                      </div>
-
-                      <Tooltip content="Удалить деталь">
-                        <button
-                          type="button"
-                          onClick={() => setParts((prev) => prev.filter((_, i) => i !== actualIndex))}
-                          className="p-1 text-rose-400 hover:text-rose-300 cursor-pointer"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </Tooltip>
-                    </div>
-                  );
-                })}
-              </div>
             )}
-          </div>
+            <Box size={14} className={`relative z-10 ${activeTab === 'parts' ? 'text-cyan-400' : 'text-neutral-500'}`} />
+            <span className="relative z-10">Печатные детали ({parts.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('hardware')}
+            className={`relative flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono text-xs cursor-pointer select-none transition-colors ${
+              activeTab === 'hardware'
+                ? 'text-white font-bold'
+                : 'text-neutral-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            {activeTab === 'hardware' && (
+              <motion.div
+                layoutId="assembly-modal-active-tab"
+                className="absolute inset-0 rounded-lg bg-white/10 border border-white/15"
+                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+              />
+            )}
+            <Wrench size={14} className={`relative z-10 ${activeTab === 'hardware' ? 'text-amber-400' : 'text-neutral-500'}`} />
+            <span className="relative z-10">Крепёж ({hardware.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('electronics')}
+            className={`relative flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono text-xs cursor-pointer select-none transition-colors ${
+              activeTab === 'electronics'
+                ? 'text-white font-bold'
+                : 'text-neutral-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            {activeTab === 'electronics' && (
+              <motion.div
+                layoutId="assembly-modal-active-tab"
+                className="absolute inset-0 rounded-lg bg-white/10 border border-white/15"
+                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+              />
+            )}
+            <Cpu size={14} className={`relative z-10 ${activeTab === 'electronics' ? 'text-cyan-400' : 'text-neutral-500'}`} />
+            <span className="relative z-10">Электроника ({electronics.length})</span>
+          </button>
         </div>
 
-        {/* 2. СЕКЦИЯ: Покупная фурнитура */}
-        <div className="bg-neutral-900 border border-white/10 rounded-xl overflow-hidden">
-          <div className="p-3 bg-neutral-950 border-b border-white/10 flex items-center justify-between gap-2 flex-wrap">
-            <div className="flex items-center gap-2">
-              <Layers size={14} className="text-purple-400" />
-              <span className="font-bold text-neutral-300 uppercase tracking-wider text-xs font-mono">
-                Фурнитура и метизы ({hardware.length})
-              </span>
-              <span className="px-2 py-0.5 rounded bg-white/10 text-neutral-300 text-[10px] font-mono">
-                {totalHwPieces} шт
-              </span>
-            </div>
-
-            <CockpitButton
-              type="button"
-              onClick={handleAddHardware}
-              icon={Plus}
+        <AnimatePresence mode="wait">
+          {/* 1. СЕКЦИЯ: 3D-Печатные детали */}
+          {activeTab === 'parts' && (
+            <motion.div
+              key="parts"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="bg-neutral-900 border border-white/10 rounded-xl overflow-hidden"
             >
-              Метиз/Крепеж
-            </CockpitButton>
-          </div>
+              <div className="p-3 bg-neutral-950 border-b border-white/10 flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Box size={14} className="text-cyan-400" />
+                  <span className="font-bold text-neutral-300 uppercase tracking-wider text-xs font-mono">
+                    3D-Печатные детали ({parts.length})
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-white/10 text-neutral-300 text-[10px] font-mono">
+                    {totals.totalWeight} г • {totals.totalHours}ч {totals.totalMins}м
+                  </span>
+                </div>
 
-          <div className="p-3">
-            <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1 custom-scrollbar">
-              {hardware.length === 0 ? (
-                <p className="text-xs text-neutral-500 italic p-3 bg-neutral-950 rounded-lg text-center font-mono">
-                  [ Фурнитура и покупные крепежи не добавлены ]
-                </p>
-              ) : (
-                hardware.map((hw, index) => {
-                  const hwTotal = (hw.price_per_unit || 0) * (hw.quantity || 1);
-                  return (
-                    <div
-                      key={hw.id || index}
-                      className="flex items-center justify-between bg-neutral-950 p-2 rounded-lg border border-white/10 text-xs gap-2"
+                <CockpitButton
+                  type="button"
+                  onClick={handleAddCustomPart}
+                  icon={Plus}
+                >
+                  Деталь вручную
+                </CockpitButton>
+              </div>
+
+              <div className="p-3 space-y-2">
+                {/* Поисковая строка */}
+                <div className="relative">
+                  <Search className="w-3.5 h-3.5 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Фильтр деталей из каталога..."
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    className="w-full bg-neutral-950 border border-white/10 focus:border-cyan-400 rounded-lg pl-8 pr-7 py-1.5 text-xs text-white placeholder-neutral-600 focus:outline-none font-mono"
+                  />
+                  {productSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setProductSearch('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white p-0.5 cursor-pointer"
                     >
-                      <div className="flex-1 min-w-[120px]">
-                        <input
-                          type="text"
-                          value={hw.name}
-                          placeholder="Название (напр. Винты M3x12)"
-                          onChange={(e) =>
-                            setHardware((prev) =>
-                              prev.map((item, i) => (i === index ? { ...item, name: e.target.value } : item))
-                            )
-                          }
-                          className="bg-neutral-900 border border-white/10 focus:border-cyan-400 rounded px-2 py-1 text-white font-mono text-xs w-full focus:outline-none"
-                        />
-                      </div>
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <div className="flex items-center bg-neutral-900 border border-white/10 rounded p-0.5">
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateHwQty(index, -1)}
-                            className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-white rounded hover:bg-white/10 cursor-pointer font-mono font-bold text-xs"
-                          >
-                            -
-                          </button>
-                          <span className="w-5 text-center font-mono font-bold text-white text-xs">
-                            {hw.quantity || 1}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleUpdateHwQty(index, 1)}
-                            className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-white rounded hover:bg-white/10 cursor-pointer font-mono font-bold text-xs"
-                          >
-                            +
-                          </button>
+                {/* Список деталей каталога */}
+                <div className="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                  {filteredSingleProducts.length === 0 ? (
+                    <p className="text-center text-xs text-neutral-500 py-3 bg-neutral-950 rounded-lg">
+                      [ Детали не найдены ]
+                    </p>
+                  ) : (
+                    filteredSingleProducts.map((prod) => {
+                      const partMatch = parts.find((p) => p.product_id === prod.id);
+                      const isChecked = Boolean(partMatch);
+                      const qty = partMatch?.quantity || 1;
+
+                      return (
+                        <div
+                          key={prod.id}
+                          onClick={() => handleToggleCatalogProduct(prod)}
+                          className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer select-none ${
+                            isChecked
+                              ? 'bg-white/10 border-white/20 text-white font-medium'
+                              : 'bg-neutral-950 border-white/5 text-neutral-400 hover:text-white hover:bg-white/5'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <Checkbox
+                                checked={isChecked}
+                                onChange={() => handleToggleCatalogProduct(prod)}
+                                variant="primary"
+                                size="sm"
+                              />
+                            </div>
+
+                            {prod.filament_color && (
+                              <div
+                                className="w-3 h-3 rounded-full border border-white/20 shrink-0"
+                                style={{ backgroundColor: prod.filament_color }}
+                              />
+                            )}
+
+                            <div className="min-w-0 flex-1">
+                              <span className={`truncate block font-mono text-xs ${isChecked ? 'text-white font-bold' : 'text-neutral-300'}`}>
+                                {prod.name}
+                              </span>
+                              <div className="text-[10px] text-neutral-500 font-mono flex items-center gap-1.5">
+                                <span>{prod.filament_name || 'PLA'}</span>
+                                <span>•</span>
+                                <span>{prod.weight_g}г</span>
+                                <span>•</span>
+                                <span>{prod.hours}ч {prod.minutes}м</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0 ml-2">
+                            {isChecked && (
+                              <div
+                                className="flex items-center bg-neutral-900 border border-white/10 rounded p-0.5"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleUpdateCatalogPartQty(prod.id, -1, e)}
+                                  className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-white rounded hover:bg-white/10 cursor-pointer font-mono font-bold text-xs"
+                                >
+                                  -
+                                </button>
+                                <span className="w-5 text-center font-mono font-bold text-white text-xs">
+                                  {qty}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleUpdateCatalogPartQty(prod.id, 1, e)}
+                                  className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-white rounded hover:bg-white/10 cursor-pointer font-mono font-bold text-xs"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            )}
+
+                            <span className={`font-mono text-xs font-bold shrink-0 min-w-[65px] text-right ${isChecked ? 'text-cyan-400' : 'text-neutral-500'}`}>
+                              {formatCurrency((prod.final_price || 0) * (isChecked ? qty : 1), currencySymbol)}
+                            </span>
+                          </div>
                         </div>
+                      );
+                    })
+                  )}
+                </div>
 
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-neutral-500 uppercase">Цена:</span>
+                {/* Ручные кастомные детали */}
+                {customManualParts.length > 0 && (
+                  <div className="pt-2 border-t border-white/10 space-y-1">
+                    <span className="text-[10px] font-mono text-neutral-500 uppercase tracking-wider block">
+                      Нестандартные детали ({customManualParts.length}):
+                    </span>
+                    {customManualParts.map((part, index) => {
+                      const actualIndex = parts.findIndex((p) => p.id === part.id);
+                      return (
+                        <div
+                          key={part.id || index}
+                          className="flex items-center justify-between bg-neutral-950 p-2 rounded-lg border border-white/10 text-xs gap-2"
+                        >
                           <input
-                            type="number"
-                            min="0"
-                            value={hw.price_per_unit}
+                            type="text"
+                            value={part.name}
                             onChange={(e) =>
-                              setHardware((prev) =>
-                                prev.map((item, i) =>
-                                  i === index ? { ...item, price_per_unit: parseFloat(e.target.value) || 0 } : item
-                                )
+                              setParts((prev) =>
+                                prev.map((p, i) => (i === actualIndex ? { ...p, name: e.target.value } : p))
                               )
                             }
-                            className="w-12 bg-neutral-900 border border-white/10 focus:border-cyan-400 rounded px-1 py-0.5 text-center text-white font-mono text-xs focus:outline-none"
+                            className="bg-transparent border-b border-neutral-700 focus:border-cyan-400 text-white font-mono outline-none text-xs flex-1 min-w-[120px]"
                           />
+
+                          <div className="flex items-center gap-2 font-mono text-neutral-300 text-[10px]">
+                            <span>{part.weight_g}г</span>
+                            <span>•</span>
+                            <span className="text-cyan-400 font-bold">{formatCurrency(part.final_price, currencySymbol)}</span>
+                          </div>
+
+                          <Tooltip content="Удалить деталь">
+                            <button
+                              type="button"
+                              onClick={() => setParts((prev) => prev.filter((_, i) => i !== actualIndex))}
+                              className="p-1 text-rose-400 hover:text-rose-300 cursor-pointer"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </Tooltip>
                         </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
 
-                        <span className="font-mono font-bold text-white min-w-[50px] text-right">
-                          {formatCurrency(hwTotal, currencySymbol)}
-                        </span>
+          {/* 2. СЕКЦИЯ: Покупная фурнитура */}
+          {activeTab === 'hardware' && (
+            <motion.div
+              key="hardware"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="bg-neutral-900 border border-white/10 rounded-xl overflow-hidden"
+            >
+              <div className="p-3 bg-neutral-950 border-b border-white/10 flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Wrench size={14} className="text-amber-400" />
+                  <span className="font-bold text-neutral-300 uppercase tracking-wider text-xs font-mono">
+                    Крепёж и фурнитура ({hardware.length})
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-white/10 text-neutral-300 text-[10px] font-mono">
+                    {totalHwPieces} шт
+                  </span>
+                </div>
 
-                        <Tooltip content="Удалить фурнитуру">
-                          <button
-                            type="button"
-                            onClick={() => setHardware((prev) => prev.filter((_, i) => i !== index))}
-                            className="p-1 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/40 cursor-pointer"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </Tooltip>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
+                <CockpitButton
+                  type="button"
+                  onClick={handleAddHardware}
+                  icon={Plus}
+                >
+                  Метиз/Крепеж
+                </CockpitButton>
+              </div>
+
+              <div className="p-3">
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                  {hardware.length === 0 ? (
+                    <p className="text-xs text-neutral-500 italic p-3 bg-neutral-950 rounded-lg text-center font-mono">
+                      [ Фурнитура и покупные крепежи не добавлены ]
+                    </p>
+                  ) : (
+                    hardware.map((hw, index) => {
+                      const hwTotal = (hw.price_per_unit || 0) * (hw.quantity || 1);
+                      return (
+                        <div
+                          key={hw.id || index}
+                          className="flex items-center justify-between bg-neutral-950 p-2 rounded-lg border border-white/10 text-xs gap-2"
+                        >
+                          <div className="flex-1 min-w-[120px]">
+                            <input
+                              type="text"
+                              value={hw.name}
+                              placeholder="Название (напр. Винты M3x12)"
+                              onChange={(e) =>
+                                setHardware((prev) =>
+                                  prev.map((item, i) => (i === index ? { ...item, name: e.target.value } : item))
+                                )
+                              }
+                              className="bg-neutral-900 border border-white/10 focus:border-cyan-400 rounded px-2 py-1 text-white font-mono text-xs w-full focus:outline-none"
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center bg-neutral-900 border border-white/10 rounded p-0.5">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateHwQty(index, -1)}
+                                className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-white rounded hover:bg-white/10 cursor-pointer font-mono font-bold text-xs"
+                              >
+                                -
+                              </button>
+                              <span className="w-5 text-center font-mono font-bold text-white text-xs">
+                                {hw.quantity || 1}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateHwQty(index, 1)}
+                                className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-white rounded hover:bg-white/10 cursor-pointer font-mono font-bold text-xs"
+                              >
+                                +
+                              </button>
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-neutral-500 uppercase">Цена:</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={hw.price_per_unit}
+                                onChange={(e) =>
+                                  setHardware((prev) =>
+                                    prev.map((item, i) =>
+                                      i === index ? { ...item, price_per_unit: parseFloat(e.target.value) || 0 } : item
+                                    )
+                                  )
+                                }
+                                className="w-12 bg-neutral-900 border border-white/10 focus:border-cyan-400 rounded px-1 py-0.5 text-center text-white font-mono text-xs focus:outline-none"
+                              />
+                            </div>
+
+                            <span className="font-mono font-bold text-white min-w-[50px] text-right">
+                              {formatCurrency(hwTotal, currencySymbol)}
+                            </span>
+
+                            <Tooltip content="Удалить фурнитуру">
+                              <button
+                                type="button"
+                                onClick={() => setHardware((prev) => prev.filter((_, i) => i !== index))}
+                                className="p-1 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/40 cursor-pointer"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </Tooltip>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* 3. СЕКЦИЯ: Электроника */}
+          {activeTab === 'electronics' && (
+            <motion.div
+              key="electronics"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              className="bg-neutral-900 border border-white/10 rounded-xl overflow-hidden"
+            >
+              <div className="p-3 bg-neutral-950 border-b border-white/10 flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Cpu size={14} className="text-cyan-400" />
+                  <span className="font-bold text-neutral-300 uppercase tracking-wider text-xs font-mono">
+                    Электроника ({electronics.length})
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-white/10 text-neutral-300 text-[10px] font-mono">
+                    {totals.totalElectronicsPieces} шт
+                  </span>
+                </div>
+
+                <CockpitButton
+                  type="button"
+                  size="sm"
+                  onClick={handleAddElectronics}
+                  icon={Plus}
+                >
+                  Добавить компонент
+                </CockpitButton>
+              </div>
+
+              <div className="p-3">
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                  {electronics.length === 0 ? (
+                    <p className="text-xs text-neutral-500 italic p-3 bg-neutral-950 rounded-lg text-center font-mono">
+                      [ Электронные модули и компоненты не добавлены ]
+                    </p>
+                  ) : (
+                    electronics.map((el, index) => {
+                      const elTotal = (el.price_per_unit || 0) * (el.quantity || 1);
+                      return (
+                        <div
+                          key={el.id || index}
+                          className="flex items-center justify-between bg-neutral-950 p-2 rounded-lg border border-white/10 text-xs gap-2"
+                        >
+                          <div className="flex-1 min-w-[120px]">
+                            <input
+                              type="text"
+                              value={el.name}
+                              placeholder="Название (напр. Сервопривод SG90, ESP32)"
+                              onChange={(e) =>
+                                setElectronics((prev) =>
+                                  prev.map((item, i) => (i === index ? { ...item, name: e.target.value } : item))
+                                )
+                              }
+                              className="bg-neutral-900 border border-white/10 focus:border-cyan-400 rounded px-2 py-1 text-white font-mono text-xs w-full focus:outline-none"
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="flex items-center bg-neutral-900 border border-white/10 rounded p-0.5">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateElectronicsQty(index, -1)}
+                                className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-white rounded hover:bg-white/10 cursor-pointer font-mono font-bold text-xs"
+                              >
+                                -
+                              </button>
+                              <span className="w-5 text-center font-mono font-bold text-white text-xs">
+                                {el.quantity || 1}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateElectronicsQty(index, 1)}
+                                className="w-4 h-4 flex items-center justify-center text-neutral-400 hover:text-white rounded hover:bg-white/10 cursor-pointer font-mono font-bold text-xs"
+                              >
+                                +
+                              </button>
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-neutral-500 uppercase">Себест:</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={el.cost_per_unit}
+                                onChange={(e) =>
+                                  setElectronics((prev) =>
+                                    prev.map((item, i) =>
+                                      i === index ? { ...item, cost_per_unit: parseFloat(e.target.value) || 0 } : item
+                                    )
+                                  )
+                                }
+                                className="w-14 bg-neutral-900 border border-white/10 focus:border-cyan-400 rounded px-1 py-0.5 text-center text-white font-mono text-xs focus:outline-none"
+                              />
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-neutral-500 uppercase">Цена:</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={el.price_per_unit}
+                                onChange={(e) =>
+                                  setElectronics((prev) =>
+                                    prev.map((item, i) =>
+                                      i === index ? { ...item, price_per_unit: parseFloat(e.target.value) || 0 } : item
+                                    )
+                                  )
+                                }
+                                className="w-14 bg-neutral-900 border border-white/10 focus:border-cyan-400 rounded px-1 py-0.5 text-center text-white font-mono text-xs focus:outline-none"
+                              />
+                            </div>
+
+                            <span className="font-mono font-bold text-white min-w-[50px] text-right">
+                              {formatCurrency(elTotal, currencySymbol)}
+                            </span>
+
+                            <Tooltip content="Удалить компонент">
+                              <button
+                                type="button"
+                                onClick={() => setElectronics((prev) => prev.filter((_, i) => i !== index))}
+                                className="p-1 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/40 cursor-pointer"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </Tooltip>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* 3. СЕКЦИЯ: Ручная сборка */}
         <div className="bg-neutral-900 border border-white/10 rounded-xl p-3 space-y-2">
