@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -60,11 +61,21 @@ export function UserProfileMenu() {
   return (
     <div className="relative select-none font-mono" ref={menuRef}>
       {/* Кнопка-триггер профиля */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
+      <div
         className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-neutral-900 border border-white/10 hover:border-white/20 hover:bg-neutral-800 shadow-md cursor-pointer backdrop-blur-xl group"
       >
+        <Link
+          href="/profile"
+          aria-label="Открыть профиль"
+          aria-current={pathname === '/profile' ? 'page' : undefined}
+          onClick={(event) => {
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            event.preventDefault();
+            setIsOpen(false);
+            curtainNavigate('/profile');
+          }}
+          className="flex items-center gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/60"
+        >
         <div
           className="w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs text-neutral-950 shadow-sm shrink-0 "
           style={{ backgroundColor: currentUser.avatar_color || '#06B6D4' }}
@@ -87,12 +98,18 @@ export function UserProfileMenu() {
           </span>
         )}
 
-        <ChevronDown
-          className={`w-3 h-3 text-neutral-400 group-hover:text-white ${
-            isOpen ? 'rotate-180 text-cyan-400' : ''
-          }`}
-        />
-      </button>
+        </Link>
+        <button
+          type="button"
+          aria-label="Меню пользователя"
+          aria-expanded={isOpen}
+          onClick={() => setIsOpen(!isOpen)}
+          onKeyDown={(event) => { if (event.key === 'Escape') setIsOpen(false); }}
+          className="flex min-h-8 min-w-8 items-center justify-center rounded-lg hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white/60 cursor-pointer"
+        >
+          <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.15 }}><ChevronDown className="w-3 h-3 text-neutral-400" /></motion.span>
+        </button>
+      </div>
 
       {/* Выпадающее меню */}
       <AnimatePresence>

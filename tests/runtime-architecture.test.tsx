@@ -73,7 +73,7 @@ test('production workspace factory supplies every loader and matching skeleton t
   }
 });
 
-test('real route layouts own only their required provider trees', () => {
+test('real route layouts own only their required provider trees', async () => {
   const protectedTree = ProtectedLayout({ children: <span>protected</span> });
   assert.equal(protectedTree.type, 'div');
   assert.equal(child(protectedTree).type, AppMotionProvider);
@@ -98,7 +98,7 @@ test('real route layouts own only their required provider trees', () => {
   assert.equal(child(aboutTree).type, AuthProvider);
   assert.equal(child(child(aboutTree)).type, 'span');
 
-  const rootTree = RootLayout({ children: <span>root</span> });
+  const rootTree = await RootLayout({ children: <span>root</span> });
   assert.equal(rootTree.type, 'html');
   const body = child(rootTree);
   assert.equal(body.type, 'body');

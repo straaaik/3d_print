@@ -1,33 +1,11 @@
 import type { NextConfig } from "next";
 
-const supabaseOrigin = (() => {
-  try {
-    return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co').origin;
-  } catch {
-    return 'https://placeholder.supabase.co';
-  }
-})();
-
-const contentSecurityPolicy = [
-  "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
-  "font-src 'self' data:",
-  `connect-src 'self' ${supabaseOrigin} wss://${new URL(supabaseOrigin).host}`,
-  "worker-src 'self' blob:",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  "upgrade-insecure-requests",
-].join('; ');
-
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
     const securityHeaders = [
-      { key: 'Content-Security-Policy', value: contentSecurityPolicy },
+      // CSP is set dynamically per-request by the middleware (src/proxy.ts)
+      // with a fresh nonce — do NOT duplicate it here as a static header.
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
       { key: 'X-Content-Type-Options', value: 'nosniff' },
       { key: 'X-Frame-Options', value: 'DENY' },

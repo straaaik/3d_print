@@ -65,7 +65,7 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  const activeId = activeTab || (NAV_ITEMS.find((item) => pathname?.startsWith(item.href))?.id ?? 'orders');
+  const activeId = activeTab || NAV_ITEMS.find((item) => pathname?.startsWith(item.href))?.id;
 
   // Закрытие меню профиля при клике вне
   useEffect(() => {
@@ -96,11 +96,20 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
 
         {/* ЛЕВАЯ ЧАСТЬ: ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ НА МЕСТЕ ЛОГОТИПА */}
         <div className="relative" ref={profileRef}>
-          <button
-            type="button"
-            onClick={() => setIsProfileOpen(!isProfileOpen)}
+          <div
             className="flex items-center gap-2.5 bg-neutral-950/85 hover:bg-neutral-900/90 border border-white/15 backdrop-blur-xl px-3 py-1.5 rounded-xl text-white shadow-2xl cursor-pointer group"
           >
+            <Link
+              href="/profile"
+              aria-label="Открыть профиль"
+              aria-current={pathname === '/profile' ? 'page' : undefined}
+              onClick={(event) => {
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                setIsProfileOpen(false);
+                void handleClick(event, '/profile');
+              }}
+              className="flex min-w-0 items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/60"
+            >
             {/* Аватарка (розовый сквиркл со скриншота) */}
             <div
               className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs sm:text-sm shrink-0 shadow-sm"
@@ -119,13 +128,18 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
               </span>
             </div>
 
-            {/* Стрелочка */}
-            <ChevronDown
-              className={`w-3.5 h-3.5 text-neutral-400 ${
-                isProfileOpen ? 'rotate-180 text-white' : 'group-hover:text-white'
-              }`}
-            />
-          </button>
+            </Link>
+            <button
+              type="button"
+              aria-label="Меню пользователя"
+              aria-expanded={isProfileOpen}
+              onClick={() => setIsProfileOpen(!isProfileOpen)}
+              onKeyDown={(event) => { if (event.key === 'Escape') setIsProfileOpen(false); }}
+              className="flex min-h-8 min-w-8 items-center justify-center rounded-lg hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white/60 cursor-pointer"
+            >
+              <motion.span animate={{ rotate: isProfileOpen ? 180 : 0 }} transition={{ duration: 0.15 }}><ChevronDown className="w-3.5 h-3.5 text-neutral-400" /></motion.span>
+            </button>
+          </div>
 
           {/* Выпадающее меню настроек пользователя */}
           <AnimatePresence>

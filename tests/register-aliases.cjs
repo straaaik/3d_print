@@ -5,6 +5,11 @@ require.extensions['.css'] = () => undefined;
 
 const load = Module._load;
 Module._load = function loadTestFontModule(request, parent, isMain) {
+  if (request === 'next/server') {
+    // Structural unit tests have no Next request context. The production
+    // browser suite verifies the real connection() / CSP integration.
+    return { ...load.call(this, request, parent, isMain), connection: async () => {} };
+  }
   if (request === 'next/font/google') {
     return {
       Inter: () => ({ variable: '--test-inter' }),
