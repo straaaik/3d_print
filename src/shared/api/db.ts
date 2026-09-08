@@ -109,6 +109,24 @@ function isOfflineFailure(error: unknown): boolean {
   return error.name === 'TypeError' || /fetch|network|failed to fetch|load failed/i.test(error.message);
 }
 
+function isMissingColumnError(error: unknown, columnName?: string): boolean {
+  if (!error) return false;
+  const err = error as { code?: string; message?: string; details?: string; hint?: string; causeData?: any };
+  const target = err.causeData || err;
+  const code = target?.code;
+  const message = String(target?.message || (error instanceof Error ? error.message : ''));
+  const details = String(target?.details || '');
+  const text = `${message} ${details}`;
+
+  const isColCode = code === 'PGRST204' || code === '42703';
+  const isColText = /column.*does not exist/i.test(text) || /schema cache/i.test(text);
+
+  if (columnName) {
+    return (isColCode || isColText) && text.toLowerCase().includes(columnName.toLowerCase());
+  }
+  return isColCode || isColText;
+}
+
 function throwDatabaseError(operation: string, error: unknown): never {
   throw new DatabaseOperationError(operation, error);
 }
@@ -549,11 +567,22 @@ export async function getSavedCalculations(): Promise<SavedCalculation[]> {
         .order('created_at', { ascending: false });
 
       if (error) throwDatabaseError('загрузка расчётов', error);
-      const calculations = (data || []) as SavedCalculation[];
+      const rawCloudCalculations = (data || []) as SavedCalculation[];
+      const localCached = readLocalJson<SavedCalculation[]>(STORAGE_KEYS.SAVED_CALCULATIONS, []);
+      const localMap = new Map(localCached.map(c => [c.id, c]));
+      const calculations = rawCloudCalculations.map(cloudItem => {
+        const localItem = localMap.get(cloudItem.id);
+        if (localItem?.assembly_electronics?.length && (!cloudItem.assembly_electronics || cloudItem.assembly_electronics.length === 0)) {
+          return { ...cloudItem, assembly_electronics: localItem.assembly_electronics };
+        }
+        return cloudItem;
+      });
       writeLocalJson(STORAGE_KEYS.SAVED_CALCULATIONS, calculations.map(withoutStlPayload));
       return calculations;
     } catch (error) {
-      if (!isOfflineFailure(error)) throw error;
+      if (!isOfflineFailure(error)) {
+        console.warn('Не удалось загрузить расчёты из Supabase, используется локальный кэш:', error);
+      }
     }
   }
 
@@ -573,19 +602,40 @@ export async function addSavedCalculation(
 
   if (client) {
     try {
-      const { data, error } = await (client as any)
+      let data: any = null;
+      let error: any = null;
+
+      const res = await (client as any)
         .from('saved_calculations')
         .insert(newCalc)
         .select()
         .single();
+      data = res.data;
+      error = res.error;
+
+      if (error && isMissingColumnError(error, 'assembly_electronics')) {
+        console.warn('Колонка assembly_electronics отсутствует в Supabase, сохраняем без неё в облако с fallback в локальный кэш.');
+        const { assembly_electronics, ...calcWithoutElectronics } = newCalc;
+        const retryRes = await (client as any)
+          .from('saved_calculations')
+          .insert(calcWithoutElectronics)
+          .select()
+          .single();
+        if (!retryRes.error && retryRes.data) {
+          data = { ...retryRes.data, assembly_electronics: newCalc.assembly_electronics };
+          error = null;
+        }
+      }
 
       if (error || !data) throwDatabaseError('сохранение расчёта', error);
-      const saved = data as SavedCalculation;
+      const saved = { ...((data || newCalc) as SavedCalculation), ...(newCalc.assembly_electronics ? { assembly_electronics: newCalc.assembly_electronics } : {}) };
       upsertLocalItem(STORAGE_KEYS.SAVED_CALCULATIONS, withoutStlPayload(saved));
       removeSyncOperation('saved_calculations', saved.id);
       return saved;
     } catch (error) {
-      if (!isOfflineFailure(error)) throw error;
+      if (!isOfflineFailure(error)) {
+        console.warn('Ошибка сохранения расчёта в Supabase, переключение на локальное хранилище:', error);
+      }
     }
   }
 
@@ -602,19 +652,40 @@ export async function updateSavedCalculation(
 
   if (client) {
     try {
-      const { data, error } = await (client as any)
+      let data: any = null;
+      let error: any = null;
+
+      const res = await (client as any)
         .from('saved_calculations')
         .upsert(calc)
         .select()
         .single();
+      data = res.data;
+      error = res.error;
+
+      if (error && isMissingColumnError(error, 'assembly_electronics')) {
+        console.warn('Колонка assembly_electronics отсутствует в Supabase, обновляем без неё в облаке с fallback в локальный кэш.');
+        const { assembly_electronics, ...calcWithoutElectronics } = calc;
+        const retryRes = await (client as any)
+          .from('saved_calculations')
+          .upsert(calcWithoutElectronics)
+          .select()
+          .single();
+        if (!retryRes.error && retryRes.data) {
+          data = { ...retryRes.data, assembly_electronics: calc.assembly_electronics };
+          error = null;
+        }
+      }
 
       if (error || !data) throwDatabaseError('обновление расчёта', error);
-      const saved = data as SavedCalculation;
+      const saved = { ...((data || calc) as SavedCalculation), ...(calc.assembly_electronics ? { assembly_electronics: calc.assembly_electronics } : {}) };
       upsertLocalItem(STORAGE_KEYS.SAVED_CALCULATIONS, withoutStlPayload(saved));
       removeSyncOperation('saved_calculations', saved.id);
       return saved;
     } catch (error) {
-      if (!isOfflineFailure(error)) throw error;
+      if (!isOfflineFailure(error)) {
+        console.warn('Ошибка обновления расчёта в Supabase, переключение на локальное хранилище:', error);
+      }
     }
   }
 
@@ -669,7 +740,9 @@ export async function restoreAllSavedCalculations(calculations: SavedCalculation
       removeAllSyncOperations('saved_calculations');
       return;
     } catch (error) {
-      if (!isOfflineFailure(error)) throw error;
+      if (!isOfflineFailure(error)) {
+        console.warn('Не удалось восстановить расчёты в Supabase, переключение на локальное сохранение:', error);
+      }
     }
   }
 
@@ -1377,6 +1450,7 @@ function toCollectionRow(item: ProductCollection, userId?: string): Record<strin
     ...(item.category !== undefined ? { category: item.category } : {}),
     ...(item.tags !== undefined ? { tags: item.tags } : {}),
     ...(item.description !== undefined ? { description: item.description } : {}),
+    ...(item.color !== undefined ? { color: item.color } : {}),
   };
 }
 
@@ -1386,7 +1460,7 @@ function toSavedCalculationRow(item: SavedCalculation, userId?: string): Record<
     'weight_g', 'hours', 'minutes', 'quantity', 'base_cost', 'final_price', 'filament_id',
     'printer_id', 'labor_minutes', 'labor_rate_per_hour', 'is_owner_labor', 'is_labor_per_unit',
     'markup_percent', 'defect_percent', 'collection_id', 'collection_name', 'assembly_parts',
-    'assembly_hardware', 'assembly_labor_minutes', 'assembly_labor_cost', 'custom_cost_items',
+    'assembly_hardware', 'assembly_electronics', 'assembly_labor_minutes', 'assembly_labor_cost', 'custom_cost_items',
     'discount_percent', 'discount_amount', 'urgency_percent', 'urgency_amount', 'category', 'tags',
     'stock_quantity', 'stl_url', 'stl_file_name', 'stl_file_data',
   ] as const;
@@ -1504,10 +1578,20 @@ export async function syncLocalStorageToSupabase(): Promise<SyncDataResult | nul
         const options = operation.entity === 'monthly_goals'
           ? { onConflict: 'user_id,month_key' }
           : undefined;
-        ({ error } = await query.upsert(
+        let res = await query.upsert(
           { ...operation.payload, user_id: authData.user.id },
           options
-        ));
+        );
+        error = res.error;
+        if (error && operation.entity === 'saved_calculations' && isMissingColumnError(error, 'assembly_electronics')) {
+          console.warn('Колонка assembly_electronics отсутствует в Supabase при синхронизации очереди, синхронизируем без неё.');
+          const { assembly_electronics, ...payloadWithoutElectronics } = operation.payload;
+          const retryRes = await query.upsert(
+            { ...payloadWithoutElectronics, user_id: authData.user.id },
+            options
+          );
+          error = retryRes.error;
+        }
       }
 
       if (error) throwDatabaseError(`синхронизация ${operation.entity}/${operation.action}`, error);

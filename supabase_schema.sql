@@ -83,7 +83,8 @@ create table if not exists public.collections (
   name text not null,
   category text,
   tags jsonb default '[]'::jsonb,
-  description text
+  description text,
+  color text
 );
 
 -- 7. Таблица сохраненных расчетов (изделий)
@@ -114,6 +115,7 @@ create table if not exists public.saved_calculations (
   collection_name text,
   assembly_parts jsonb,
   assembly_hardware jsonb,
+  assembly_electronics jsonb default '[]'::jsonb,
   assembly_labor_minutes integer,
   assembly_labor_cost numeric,
   custom_cost_items jsonb,
@@ -198,7 +200,9 @@ alter table public.printers add column if not exists user_id uuid default auth.u
 alter table public.filaments add column if not exists user_id uuid default auth.uid() references auth.users(id) on delete cascade;
 alter table public.settings add column if not exists user_id uuid default auth.uid() references auth.users(id) on delete cascade;
 alter table public.collections add column if not exists user_id uuid default auth.uid() references auth.users(id) on delete cascade;
+alter table public.collections add column if not exists color text;
 alter table public.saved_calculations add column if not exists user_id uuid default auth.uid() references auth.users(id) on delete cascade;
+alter table public.saved_calculations add column if not exists assembly_electronics jsonb default '[]'::jsonb;
 alter table public.orders add column if not exists user_id uuid default auth.uid() references auth.users(id) on delete cascade;
 alter table public.orders add column if not exists client_name text;
 alter table public.monthly_goals add column if not exists user_id uuid default auth.uid() references auth.users(id) on delete cascade;
