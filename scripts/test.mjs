@@ -21,6 +21,9 @@ const unitTestFiles = [
   'tests/database-maintenance.test.ts',
   'tests/ui-resilience.test.tsx',
   'tests/table-sort.test.ts',
+  'tests/color-utils.test.ts',
+  'tests/hub-icon-preferences.test.ts',
+  'tests/assembly-totals.test.ts',
 ];
 
 rmSync(outputDirectory, { recursive: true, force: true });
@@ -72,6 +75,9 @@ try {
     resolve(outputDirectory, 'tests', 'ui-resilience.test.js'),
     resolve(outputDirectory, 'tests', 'table-sort.test.js'),
     resolve(outputDirectory, 'tests', 'runtime-architecture.test.js'),
+    resolve(outputDirectory, 'tests', 'color-utils.test.js'),
+    resolve(outputDirectory, 'tests', 'hub-icon-preferences.test.js'),
+    resolve(outputDirectory, 'tests', 'assembly-totals.test.js'),
   ], { stdio: 'inherit' });
   process.exitCode = run.status ?? 1;
 } finally {
