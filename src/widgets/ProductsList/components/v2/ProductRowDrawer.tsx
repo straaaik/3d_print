@@ -17,7 +17,8 @@ import {
   Flame,
   Wrench,
   Folder,
-  Box
+  Box,
+  X,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
@@ -62,12 +63,14 @@ export function ProductRowDrawer({
   onCreateOrder,
   onOpenEditCollection,
   onOpenAddVariantModal,
+  onClose,
   salesStat,
 }: ProductRowDrawerProps) {
   const isProduct = row.rowKind === 'product';
   const item = isProduct ? row.item : null;
   const isCol = row.rowKind === 'collection';
   const isAsm = isProduct && item?.type === 'assembly';
+  const isPart = isProduct && (Boolean(row.isPart) || row.id.toLowerCase().startsWith('prt-'));
   const effectiveColor = collectionColor || (row.rowKind === 'product' ? row.parentCollectionColor : row.color);
 
   // Локальные состояния инпутов для плавного реактивного ввода
@@ -188,6 +191,7 @@ export function ProductRowDrawer({
 
   return (
     <div
+      data-row-drawer="true"
       onClick={(e) => e.stopPropagation()}
       className="p-2.5 sm:p-3 font-mono text-xs select-none space-y-2 text-white border-t"
       style={{
@@ -211,7 +215,11 @@ export function ProductRowDrawer({
             className="text-[9.5px] uppercase tracking-wider font-semibold"
             style={effectiveColor ? { color: effectiveColor } : undefined}
           >
-            {isCol ? 'РАЗДЕЛ 01 · НАИМЕНОВАНИЕ И СОСТАВ КОЛЛЕКЦИИ' : 'РАЗДЕЛ 01 · НАИМЕНОВАНИЕ И ПАРАМЕТРЫ ИЗДЕЛИЯ'}
+            {isCol
+              ? 'РАЗДЕЛ 01 · НАИМЕНОВАНИЕ И СОСТАВ КОЛЛЕКЦИИ'
+              : isPart
+              ? 'РАЗДЕЛ 01 · НАИМЕНОВАНИЕ И ПАРАМЕТРЫ ДЕТАЛИ'
+              : 'РАЗДЕЛ 01 · НАИМЕНОВАНИЕ И ПАРАМЕТРЫ ИЗДЕЛИЯ'}
           </span>
           <div className="flex items-center gap-2">
             <AnimatePresence>
@@ -231,6 +239,16 @@ export function ProductRowDrawer({
             <span className="text-[9px] font-mono text-neutral-500">
               позиция {article}
             </span>
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1 rounded hover:bg-white/10 text-neutral-400 hover:text-white transition-colors cursor-pointer flex items-center justify-center text-[11px]"
+                title="Свернуть"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -252,11 +270,11 @@ export function ProductRowDrawer({
             <span className={`h-8 flex items-center justify-center text-[10px] font-bold uppercase tracking-wider px-2.5 rounded-md border shrink-0 ${
               isCol
                 ? 'bg-white/10 text-neutral-200 border-white/20'
-                : isAsm
+                : isAsm || isPart
                 ? 'bg-cyan-950/40 text-cyan-300 border-cyan-800/40'
                 : 'bg-white/5 text-neutral-300 border-white/10'
             }`}>
-              {isCol ? 'КОЛЛЕКЦИЯ' : isAsm ? 'СБОРКА' : 'ШТУЧНЫЙ'}
+              {isCol ? 'КОЛЛЕКЦИЯ' : isAsm ? 'СБОРКА' : isPart ? 'ДЕТАЛЬ' : 'ШТУЧНЫЙ'}
             </span>
 
             {row.rowKind === 'product' && row.parentCollectionName && (
@@ -267,13 +285,20 @@ export function ProductRowDrawer({
                   backgroundColor: `${effectiveColor}18`,
                   borderColor: `${effectiveColor}40`,
                 } : undefined}
-                title={`Входит в коллекцию «${row.parentCollectionName}»`}
+                title={isPart ? `Входит в состав сборки «${row.parentCollectionName}»` : `Входит в коллекцию «${row.parentCollectionName}»`}
               >
-                <Folder
-                  className="w-3 h-3 text-neutral-400 shrink-0"
-                  style={effectiveColor ? { color: effectiveColor } : undefined}
-                />
-                <span className="truncate max-w-[120px]">{row.parentCollectionName}</span>
+                {isPart ? (
+                  <Layers
+                    className="w-3 h-3 text-cyan-400 shrink-0"
+                    style={effectiveColor ? { color: effectiveColor } : undefined}
+                  />
+                ) : (
+                  <Folder
+                    className="w-3 h-3 text-neutral-400 shrink-0"
+                    style={effectiveColor ? { color: effectiveColor } : undefined}
+                  />
+                )}
+                <span className="truncate max-w-[140px]">{row.parentCollectionName}</span>
               </span>
             )}
 
@@ -352,7 +377,7 @@ export function ProductRowDrawer({
               </div>
 
               <span className="text-xs font-mono select-none text-[#71717a]">
-                шт на складе
+                {isPart ? 'шт в сборке' : 'шт на складе'}
               </span>
             </div>
           )}
@@ -481,6 +506,15 @@ export function ProductRowDrawer({
                     <div className="text-[10px] text-cyan-400 uppercase tracking-wider font-semibold flex items-center gap-1">
                       <Layers className="w-3 h-3" />
                       <span>Деталей в сборке: {item?.assembly_parts?.length || 0}</span>
+                    </div>
+                  </div>
+                )}
+
+                {isPart && (
+                  <div className="space-y-1 pt-2 border-t border-white/[0.08]">
+                    <div className="text-[10px] text-cyan-400 uppercase tracking-wider font-semibold flex items-center gap-1">
+                      <Layers className="w-3 h-3" />
+                      <span>В сборке: {stock} шт.</span>
                     </div>
                   </div>
                 )}
@@ -702,11 +736,11 @@ export function ProductRowDrawer({
           {isProduct && onOpenQuickEditModal && (
             <CockpitButton
               size="sm"
-              icon={isAsm ? Wrench : Edit2}
+              icon={isAsm || isPart ? Wrench : Edit2}
               accentColor={effectiveColor}
               onClick={() => onOpenQuickEditModal(item!)}
             >
-              {isAsm ? 'Спецификация сборки' : 'Полный редактор'}
+              {isAsm || isPart ? 'Спецификация сборки' : 'Полный редактор'}
             </CockpitButton>
           )}
 
@@ -732,6 +766,18 @@ export function ProductRowDrawer({
             </CockpitButton>
           )}
         </div>
+
+        {onClose && (
+          <div className="flex items-center gap-2 shrink-0">
+            <CockpitButton
+              size="sm"
+              icon={X}
+              onClick={onClose}
+            >
+              Свернуть
+            </CockpitButton>
+          </div>
+        )}
       </div>
     </div>
   );

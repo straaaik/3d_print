@@ -20,7 +20,9 @@ import {
   AssemblyPrintedPart,
   AssemblyHardwareItem,
   AssemblyElectronicsItem,
+  Filament,
 } from '../../../../shared/types';
+import { SalesStatInfo } from '../../types';
 import { formatCurrency } from '../../../../shared/lib/format';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
 import { AssemblyPartDrawer } from './AssemblyPartDrawer';
@@ -37,6 +39,10 @@ interface AssemblyExpandedRowProps {
   onCreateOrder?: (item: SavedCalculation) => void;
   onLoadIntoCalculator?: (item: SavedCalculation) => void;
   onOpenStlModal?: (item: SavedCalculation) => void;
+  onInlineUpdateProduct?: (productId: string, updates: Partial<SavedCalculation>) => void;
+  categoriesList?: { id: string; label: string }[];
+  filaments?: Filament[];
+  salesStat?: SalesStatInfo;
   expandedPartIndex?: number | null;
   onTogglePartIndex?: (index: number | null) => void;
 }
@@ -50,6 +56,10 @@ export function AssemblyExpandedRow({
   onCreateOrder,
   onLoadIntoCalculator,
   onOpenStlModal,
+  onInlineUpdateProduct,
+  categoriesList,
+  filaments,
+  salesStat,
   expandedPartIndex: controlledExpandedPartIndex,
   onTogglePartIndex,
 }: AssemblyExpandedRowProps) {
@@ -317,6 +327,10 @@ export function AssemblyExpandedRow({
                                   onCreateOrder={onCreateOrder}
                                   onLoadIntoCalculator={onLoadIntoCalculator}
                                   onOpenStlModal={onOpenStlModal}
+                                  onInlineUpdateProduct={onInlineUpdateProduct}
+                                  categoriesList={categoriesList}
+                                  filaments={filaments}
+                                  salesStat={salesStat}
                                 />
                               </motion.div>
                             )}
@@ -633,7 +647,7 @@ export function AssemblyExpandedRow({
                       transition={{ duration: 0.15 }}
                       className={`group relative border-b border-white/5 grid w-full items-center transition-colors cursor-pointer ${
                         isMatched ? 'bg-cyan-500/[0.09]' : ''
-                      } ${isPartExpanded ? 'bg-cyan-950/25 ring-1 ring-inset ring-cyan-500/30' : ''}`}
+                      } ${isPartExpanded ? '!bg-neutral-900/95 ring-1 ring-inset ring-cyan-500/40 shadow-[0_4px_20px_rgba(0,0,0,0.5)]' : ''}`}
                       style={{
                         gridTemplateColumns: gridCols,
                         borderLeftWidth: '3px',
@@ -831,6 +845,19 @@ export function AssemblyExpandedRow({
                               <span>Сборка</span>
                             </button>
                           )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e?.stopPropagation?.();
+                              handleTogglePartIndex(idx);
+                            }}
+                            className={`p-1 rounded hover:bg-white/10 text-neutral-400 hover:text-white cursor-pointer shrink-0 transition-colors ${
+                              isPartExpanded ? 'bg-white/15 text-cyan-300 font-bold' : ''
+                            }`}
+                            title={isPartExpanded ? 'Свернуть меню детали' : 'Параметры и меню детали'}
+                          >
+                            •••
+                          </button>
                         </div>
                       </div>
                     </motion.div>
@@ -857,6 +884,10 @@ export function AssemblyExpandedRow({
                             onCreateOrder={onCreateOrder}
                             onLoadIntoCalculator={onLoadIntoCalculator}
                             onOpenStlModal={onOpenStlModal}
+                            onInlineUpdateProduct={onInlineUpdateProduct}
+                            categoriesList={categoriesList}
+                            filaments={filaments}
+                            salesStat={salesStat}
                           />
                         </motion.div>
                       )}

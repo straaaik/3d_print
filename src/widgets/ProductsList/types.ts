@@ -11,6 +11,7 @@ export type CatalogTableRow =
       parentCollectionId?: string;
       parentCollectionName?: string;
       parentCollectionColor?: string;
+      isPart?: boolean;
       name: string;
       category?: string;
       final_price: number;
@@ -80,7 +81,12 @@ export type SortOrder = 'asc' | 'desc';
 
 export function formatProductArticle(row: CatalogTableRow): string {
   const isCol = row.rowKind === 'collection';
-  const isAsm = row.rowKind === 'product' && row.item.type === 'assembly';
+  const isAsm = row.rowKind === 'product' && row.item?.type === 'assembly';
+  if (row.id.toLowerCase().startsWith('prt-')) {
+    const raw = row.id.slice(4);
+    const shortId = raw.length > 6 ? raw.slice(0, 6).toUpperCase() : raw.toUpperCase();
+    return `#PRT-${shortId}`;
+  }
   const prefix = isCol ? '#COL-' : isAsm ? '#ASM-' : '#PRD-';
   const shortId = row.id.length > 8 ? row.id.slice(0, 6).toUpperCase() : row.id.toUpperCase();
   return `${prefix}${shortId}`;

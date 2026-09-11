@@ -56,11 +56,19 @@ import { ProductRowDrawer } from './ProductRowDrawer';
 import { AssemblyExpandedRow } from './AssemblyExpandedRow';
 import { MotionPulse, MotionRevealDiv } from '../../../../shared/ui/MotionPrimitives';
 import { getChildCollectionColor } from '../../helpers';
+import {
+  autoScrollElevatedRowIntoView,
+  ROW_ELEVATION_EASE,
+  DRAWER_EXPAND_DURATION,
+  ROW_ELEVATION_DURATION,
+  SURFACE_FADE_DURATION,
+  DRAWER_OPACITY_DURATION,
+} from '../../../../shared/lib/tableScrollHelper';
 
 // Точные моноширинные сетки колонок (CSS Grid) — абсолютная синхронизация thead и tbody
 export const PRODUCTS_EXPANDED_COLUMNS = '112px 96px 144px minmax(220px,1.5fr) 136px 128px 144px 144px 144px 144px 112px 96px 160px';
 export const PRODUCTS_COMPACT_COLUMNS = '112px 136px minmax(200px,1.5fr) 128px 120px 136px 156px 144px 160px';
-const SURFACE_EASE = [0.16, 1, 0.3, 1] as const;
+const SURFACE_EASE = ROW_ELEVATION_EASE;
 
 export function formatPriceRange(min: number, max: number, symbol: string): string {
   if (min === max) {
@@ -424,12 +432,26 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
   const shouldReduceMotion = useReducedMotion();
   const surfaceTransition = shouldReduceMotion
     ? { duration: 0 }
-    : { duration: 0.45, ease: SURFACE_EASE };
+    : { duration: SURFACE_FADE_DURATION, ease: SURFACE_EASE };
+  const elevatedRowRef = useRef<HTMLElement | null>(null);
   // Локальное состояние для строки в фокусе (парение), если не передано внешнее
   const [internalElevatedRow, setInternalElevatedRow] = useState<CatalogTableRow | null>(null);
   const elevatedRow = externalElevatedRow !== undefined ? externalElevatedRow : internalElevatedRow;
   const setElevatedRow = externalSetElevatedRow || setInternalElevatedRow;
   const lastElevatedCloseTimeRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!elevatedRow) {
+      elevatedRowRef.current = null;
+      return;
+    }
+    const rafId = requestAnimationFrame(() => {
+      if (elevatedRowRef.current) {
+        autoScrollElevatedRowIntoView(elevatedRowRef.current, Math.round(DRAWER_EXPAND_DURATION * 1000));
+      }
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [elevatedRow]);
 
   // Состояние скопированного ID для тултипа
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -634,6 +656,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
 
           return (
             <motion.article
+              ref={isElevated ? (el) => { elevatedRowRef.current = el; } : undefined}
               layout
               key={row.id}
               animate={{
@@ -642,9 +665,9 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 opacity: isBlurred ? 0.35 : 1,
               }}
               transition={{
-                y: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
-                opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
-                layout: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
+                y: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
+                opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
+                layout: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
               }}
               style={{
                 willChange: isElevated || isBlurred ? 'transform, opacity' : 'auto',
@@ -895,6 +918,10 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           onCreateOrder={onCreateOrder}
                           onLoadIntoCalculator={onLoadIntoCalculator}
                           onOpenStlModal={onOpenStlModal}
+                          onInlineUpdateProduct={onInlineUpdateProduct}
+                          categoriesList={categoriesList}
+                          filaments={filaments}
+                          salesStat={salesStatsMap.get(row.id)}
                         />
                       ) : null}
                     </div>
@@ -1144,6 +1171,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                     return (
                       <React.Fragment key={prodRow.id}>
                         <motion.tr
+                          ref={isElevated ? (el) => { elevatedRowRef.current = el; } : undefined}
                           animate={{
                             y: isElevated ? -14 : 0,
                             scale: 1,
@@ -1171,12 +1199,12 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                             backgroundColor: childColor ? `${childColor}16` : 'rgba(255, 255, 255, 0.04)',
                           } : undefined}
                           transition={{
-                            y: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
-                            opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
-                            backgroundColor: { duration: 0.25, ease: [0.22, 1, 0.36, 1] },
-                            borderBottomColor: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
-                            borderRadius: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
-                            boxShadow: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
+                            y: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
+                            opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
+                            backgroundColor: { duration: 0.35, ease: ROW_ELEVATION_EASE },
+                            borderBottomColor: { duration: 0.58, ease: ROW_ELEVATION_EASE },
+                            borderRadius: { duration: 0.58, ease: ROW_ELEVATION_EASE },
+                            boxShadow: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
                           }}
                           onContextMenu={(e) => !isBlurred && handleContextMenu(e, prodRow)}
                           onClick={(e) => {
@@ -1601,8 +1629,8 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   animate={{ height: 'auto', opacity: 1 }}
                                   exit={{ height: 0, opacity: 0 }}
                                   transition={{
-                                    height: { duration: 0.48, ease: [0.22, 1, 0.36, 1] },
-                                    opacity: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+                                    height: { duration: DRAWER_EXPAND_DURATION, ease: ROW_ELEVATION_EASE },
+                                    opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
                                   }}
                                   className="w-full overflow-hidden"
                                   style={{ willChange: 'height, opacity' }}
@@ -1662,6 +1690,10 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   onCreateOrder={onCreateOrder}
                                   onLoadIntoCalculator={onLoadIntoCalculator}
                                   onOpenStlModal={onOpenStlModal}
+                                  onInlineUpdateProduct={onInlineUpdateProduct}
+                                  categoriesList={categoriesList}
+                                  filaments={filaments}
+                                  salesStat={salesStat}
                                 />
                               </td>
                             </motion.tr>
@@ -2292,6 +2324,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                     return (
                       <React.Fragment key={prodRow.id}>
                         <motion.tr
+                          ref={isElevated ? (el) => { elevatedRowRef.current = el; } : undefined}
                           animate={{
                             y: isElevated ? -14 : 0,
                             scale: 1,
@@ -2319,12 +2352,12 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                             backgroundColor: childColor ? `${childColor}16` : 'rgba(255, 255, 255, 0.04)',
                           } : undefined}
                           transition={{
-                            y: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
-                            opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
-                            backgroundColor: { duration: 0.25, ease: [0.22, 1, 0.36, 1] },
-                            borderBottomColor: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
-                            borderRadius: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
-                            boxShadow: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
+                            y: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
+                            opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
+                            backgroundColor: { duration: 0.35, ease: ROW_ELEVATION_EASE },
+                            borderBottomColor: { duration: 0.58, ease: ROW_ELEVATION_EASE },
+                            borderRadius: { duration: 0.58, ease: ROW_ELEVATION_EASE },
+                            boxShadow: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
                           }}
                           onContextMenu={(e) => !isBlurred && handleContextMenu(e, prodRow)}
                           onClick={(e) => {
@@ -2704,8 +2737,8 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   animate={{ height: 'auto', opacity: 1 }}
                                   exit={{ height: 0, opacity: 0 }}
                                   transition={{
-                                    height: { duration: 0.48, ease: [0.22, 1, 0.36, 1] },
-                                    opacity: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+                                    height: { duration: DRAWER_EXPAND_DURATION, ease: ROW_ELEVATION_EASE },
+                                    opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
                                   }}
                                   className="w-full overflow-hidden"
                                   style={{ willChange: 'height, opacity' }}
@@ -2765,6 +2798,10 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   onCreateOrder={onCreateOrder}
                                   onLoadIntoCalculator={onLoadIntoCalculator}
                                   onOpenStlModal={onOpenStlModal}
+                                  onInlineUpdateProduct={onInlineUpdateProduct}
+                                  categoriesList={categoriesList}
+                                  filaments={filaments}
+                                  salesStat={salesStat}
                                 />
                               </td>
                             </motion.tr>

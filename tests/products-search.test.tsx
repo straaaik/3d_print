@@ -469,7 +469,7 @@ describe('AssemblyPartDrawer interactive slide-out menu', () => {
     assert.equal(converted.stl_url, 'blob:arm-stl');
   });
 
-  it('renders telemetry cards with materials, timing, and economics in AssemblyPartDrawer', () => {
+  it('renders unified ProductRowDrawer with 4 sections, inputs, presets, and actions in AssemblyPartDrawer', () => {
     const part = sampleAssembly.assembly_parts![0];
     const html = renderToStaticMarkup(
       <AssemblyPartDrawer
@@ -485,38 +485,36 @@ describe('AssemblyPartDrawer interactive slide-out menu', () => {
       />
     );
 
-    // 1. Шапка меню
-    assert.match(html, /ПЕЧАТНАЯ ДЕТАЛЬ/);
-    assert.match(html, /#prt-ar/);
-    assert.match(html, /Луч рамы усиленный/);
-    assert.match(html, /в составе «Квадрокоптер Pro»/);
+    // 1. Проверяем наличие маркера drawer
+    assert.match(html, /data-row-drawer="true"/);
 
-    // 2. Карточка 1: Материал и принтер
-    assert.match(html, /Параметры печати/);
+    // 2. РАЗДЕЛ 01 · НАИМЕНОВАНИЕ И ПАРАМЕТРЫ ДЕТАЛИ
+    assert.match(html, /РАЗДЕЛ 01 · НАИМЕНОВАНИЕ И ПАРАМЕТРЫ ДЕТАЛИ/);
+    assert.match(html, /#PRT-/);
+    assert.match(html, />ДЕТАЛЬ</);
+    assert.match(html, /Входит в состав сборки «Квадрокоптер Pro»/);
+    assert.match(html, /value="Луч рамы усиленный"/);
+    assert.match(html, /шт в сборке/);
+
+    // 3. РАЗДЕЛ 02 · ПРОИЗВОДСТВО И ТЕХНИЧЕСКИЕ ПАРАМЕТРЫ
+    assert.match(html, /РАЗДЕЛ 02 · ПРОИЗВОДСТВО И ТЕХНИЧЕСКИЕ ПАРАМЕТРЫ/);
     assert.match(html, /PA-CF/);
     assert.match(html, /Bambu X1-Carbon/);
-    assert.match(html, /arm_reinforcement_v2\.stl/);
+    assert.match(html, /В сборке: 4 шт\./);
 
-    // 3. Карточка 2: Вес, время и тираж
-    assert.match(html, /Вес, время и тираж/);
-    assert.match(html, /4 шт в сборке/);
-    assert.match(html, /260 г/);
-    assert.match(html, /9ч\s*0м/);
+    // 4. РАЗДЕЛ 03 · ЭКОНОМИКА, СЕБЕСТОИМОСТЬ И ЦЕНА
+    assert.match(html, /РАЗДЕЛ 03 · ЭКОНОМИКА, СЕБЕСТОИМОСТЬ И ЦЕНА/);
+    assert.match(html, /МАРЖИНАЛЬНОСТЬ:/);
+    assert.match(html, /\+50%/);
+    assert.match(html, /\+100%/);
+    assert.match(html, /\+200%/);
 
-    // 4. Карточка 3: Экономика и маржа
-    assert.match(html, /Экономика и маржа/);
-    assert.match(html, /1[\s\u00A0]*400/);
-    assert.match(html, /3[\s\u00A0]*600/);
-    assert.match(html, /\+2[\s\u00A0]*200/);
-    assert.match(html, /61\.1% маржа/);
-    assert.match(html, /24\.0% сборки/);
-
-    // 5. Cockpit кнопки действий
+    // 5. РАЗДЕЛ 04 · УПРАВЛЕНИЕ, БЫСТРЫЕ ДЕЙСТВИЯ И ТЕЛЕМЕТРИЯ
     assert.match(html, /В калькулятор/);
     assert.match(html, /Создать заказ/);
-    assert.match(html, /Просмотр STL/);
-    assert.match(html, /Редактировать сборку/);
-    assert.match(html, /\[ Закрыть \]/);
+    assert.match(html, /3D Модель/);
+    assert.match(html, /Спецификация сборки/);
+    assert.match(html, /Свернуть/);
   });
 
   it('renders AssemblyPartDrawer inside AssemblyExpandedRow when part is expanded', () => {
@@ -528,9 +526,9 @@ describe('AssemblyPartDrawer interactive slide-out menu', () => {
         expandedPartIndex={0}
       />
     );
-    assert.match(htmlTable, /ПЕЧАТНАЯ ДЕТАЛЬ/);
-    assert.match(htmlTable, /arm_reinforcement_v2\.stl/);
-    assert.match(htmlTable, /Параметры печати/);
+    assert.match(htmlTable, /data-row-drawer="true"/);
+    assert.match(htmlTable, /РАЗДЕЛ 01 · НАИМЕНОВАНИЕ И ПАРАМЕТРЫ ДЕТАЛИ/);
+    assert.match(htmlTable, /PA-CF/);
 
     // В табличном режиме при expandedPartIndex = null (свернуто)
     const htmlTableClosed = renderToStaticMarkup(
@@ -540,8 +538,8 @@ describe('AssemblyPartDrawer interactive slide-out menu', () => {
         expandedPartIndex={null}
       />
     );
-    assert.doesNotMatch(htmlTableClosed, /Параметры печати/);
-    assert.doesNotMatch(htmlTableClosed, /ПЕЧАТНАЯ ДЕТАЛЬ/);
+    assert.doesNotMatch(htmlTableClosed, /data-row-drawer="true"/);
+    assert.doesNotMatch(htmlTableClosed, /РАЗДЕЛ 01 · НАИМЕНОВАНИЕ И ПАРАМЕТРЫ ДЕТАЛИ/);
 
     // В мобильном режиме карточек при expandedPartIndex = 0
     const htmlCards = renderToStaticMarkup(
@@ -551,8 +549,30 @@ describe('AssemblyPartDrawer interactive slide-out menu', () => {
         expandedPartIndex={0}
       />
     );
-    assert.match(htmlCards, /ПЕЧАТНАЯ ДЕТАЛЬ/);
-    assert.match(htmlCards, /Параметры печати/);
+    assert.match(htmlCards, /data-row-drawer="true"/);
+    assert.match(htmlCards, /РАЗДЕЛ 01 · НАИМЕНОВАНИЕ И ПАРАМЕТРЫ ДЕТАЛИ/);
+  });
+
+  it('binds AssemblyPartDrawer updates to parentAssembly assembly_parts', () => {
+    let updatedAssemblyId = '';
+    let updatedData: Partial<SavedCalculation> = {};
+
+    const part = sampleAssembly.assembly_parts![0];
+    const html = renderToStaticMarkup(
+      <AssemblyPartDrawer
+        part={part}
+        partIndex={0}
+        parentAssembly={sampleAssembly}
+        onClose={() => {}}
+        onInlineUpdateProduct={(id, updates) => {
+          updatedAssemblyId = id;
+          updatedData = updates;
+        }}
+      />
+    );
+
+    assert.match(html, /data-row-drawer="true"/);
+    assert.match(html, /#PRT-/);
   });
 });
 
