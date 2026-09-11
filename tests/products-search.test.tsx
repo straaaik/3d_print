@@ -6,6 +6,7 @@ import { matchesSearchProduct, matchesSearchCollection, getSearchAutoExpandedIds
 import { SavedCalculation, ProductCollection } from '../src/shared/types';
 import { CatalogTableRow } from '../src/widgets/ProductsList/types';
 import { AssemblyExpandedRow } from '../src/widgets/ProductsList/components/v2/AssemblyExpandedRow';
+import { AssemblyPartDrawer, convertPartToSavedCalculation } from '../src/widgets/ProductsList/components/v2/AssemblyPartDrawer';
 
 describe('matchesSearchProduct', () => {
   const singleProduct: SavedCalculation = {
@@ -411,6 +412,147 @@ describe('AssemblyExpandedRow search query highlighting', () => {
     assert.match(html, /Найдено:\s*1/);
     assert.match(html, /НАЙДЕНО/);
     assert.match(html, /Драйвер шагового двигателя A4988/);
+  });
+});
+
+describe('AssemblyPartDrawer interactive slide-out menu', () => {
+  const sampleAssembly: SavedCalculation = {
+    id: 'asm-test-drawer',
+    name: 'Квадрокоптер Pro',
+    type: 'assembly',
+    category: 'Дроны',
+    final_price: 15000,
+    base_cost: 6000,
+    quantity: 1,
+    filament_name: 'PETG Carbon',
+    printer_name: 'Bambu Lab X1C',
+    weight_g: 450,
+    hours: 8,
+    minutes: 30,
+    assembly_parts: [
+      {
+        id: 'prt-arm-01',
+        name: 'Луч рамы усиленный',
+        filament_name: 'PA-CF',
+        filament_color: '#06b6d4',
+        printer_name: 'Bambu X1-Carbon',
+        weight_g: 65,
+        hours: 2,
+        minutes: 15,
+        quantity: 4,
+        base_cost: 350,
+        final_price: 900,
+        stl_file_name: 'arm_reinforcement_v2.stl',
+        stl_url: 'blob:arm-stl',
+      },
+    ],
+  };
+
+  it('convertPartToSavedCalculation creates a valid single SavedCalculation for calculator, order, and STL', () => {
+    const part = sampleAssembly.assembly_parts![0];
+    const converted = convertPartToSavedCalculation(part, sampleAssembly, 0);
+
+    assert.equal(converted.id, 'prt-arm-01');
+    assert.equal(converted.type, 'single');
+    assert.equal(converted.name, 'Луч рамы усиленный');
+    assert.equal(converted.category, 'Дроны');
+    assert.equal(converted.weight_g, 65);
+    assert.equal(converted.hours, 2);
+    assert.equal(converted.minutes, 15);
+    assert.equal(converted.quantity, 4);
+    assert.equal(converted.base_cost, 350);
+    assert.equal(converted.final_price, 900);
+    assert.equal(converted.filament_name, 'PA-CF');
+    assert.equal(converted.filament_color, '#06b6d4');
+    assert.equal(converted.printer_name, 'Bambu X1-Carbon');
+    assert.equal(converted.stl_file_name, 'arm_reinforcement_v2.stl');
+    assert.equal(converted.stl_url, 'blob:arm-stl');
+  });
+
+  it('renders telemetry cards with materials, timing, and economics in AssemblyPartDrawer', () => {
+    const part = sampleAssembly.assembly_parts![0];
+    const html = renderToStaticMarkup(
+      <AssemblyPartDrawer
+        part={part}
+        partIndex={0}
+        parentAssembly={sampleAssembly}
+        currencySymbol="₽"
+        onClose={() => {}}
+        onLoadIntoCalculator={() => {}}
+        onCreateOrder={() => {}}
+        onOpenQuickEditModal={() => {}}
+        onOpenStlModal={() => {}}
+      />
+    );
+
+    // 1. Шапка меню
+    assert.match(html, /ПЕЧАТНАЯ ДЕТАЛЬ/);
+    assert.match(html, /#prt-ar/);
+    assert.match(html, /Луч рамы усиленный/);
+    assert.match(html, /в составе «Квадрокоптер Pro»/);
+
+    // 2. Карточка 1: Материал и принтер
+    assert.match(html, /Параметры печати/);
+    assert.match(html, /PA-CF/);
+    assert.match(html, /Bambu X1-Carbon/);
+    assert.match(html, /arm_reinforcement_v2\.stl/);
+
+    // 3. Карточка 2: Вес, время и тираж
+    assert.match(html, /Вес, время и тираж/);
+    assert.match(html, /4 шт в сборке/);
+    assert.match(html, /260 г/);
+    assert.match(html, /9ч\s*0м/);
+
+    // 4. Карточка 3: Экономика и маржа
+    assert.match(html, /Экономика и маржа/);
+    assert.match(html, /1[\s\u00A0]*400/);
+    assert.match(html, /3[\s\u00A0]*600/);
+    assert.match(html, /\+2[\s\u00A0]*200/);
+    assert.match(html, /61\.1% маржа/);
+    assert.match(html, /24\.0% сборки/);
+
+    // 5. Cockpit кнопки действий
+    assert.match(html, /В калькулятор/);
+    assert.match(html, /Создать заказ/);
+    assert.match(html, /Просмотр STL/);
+    assert.match(html, /Редактировать сборку/);
+    assert.match(html, /\[ Закрыть \]/);
+  });
+
+  it('renders AssemblyPartDrawer inside AssemblyExpandedRow when part is expanded', () => {
+    // В табличном режиме при expandedPartIndex = 0
+    const htmlTable = renderToStaticMarkup(
+      <AssemblyExpandedRow
+        assembly={sampleAssembly}
+        mode="expanded"
+        expandedPartIndex={0}
+      />
+    );
+    assert.match(htmlTable, /ПЕЧАТНАЯ ДЕТАЛЬ/);
+    assert.match(htmlTable, /arm_reinforcement_v2\.stl/);
+    assert.match(htmlTable, /Параметры печати/);
+
+    // В табличном режиме при expandedPartIndex = null (свернуто)
+    const htmlTableClosed = renderToStaticMarkup(
+      <AssemblyExpandedRow
+        assembly={sampleAssembly}
+        mode="expanded"
+        expandedPartIndex={null}
+      />
+    );
+    assert.doesNotMatch(htmlTableClosed, /Параметры печати/);
+    assert.doesNotMatch(htmlTableClosed, /ПЕЧАТНАЯ ДЕТАЛЬ/);
+
+    // В мобильном режиме карточек при expandedPartIndex = 0
+    const htmlCards = renderToStaticMarkup(
+      <AssemblyExpandedRow
+        assembly={sampleAssembly}
+        mode="cards"
+        expandedPartIndex={0}
+      />
+    );
+    assert.match(htmlCards, /ПЕЧАТНАЯ ДЕТАЛЬ/);
+    assert.match(htmlCards, /Параметры печати/);
   });
 });
 

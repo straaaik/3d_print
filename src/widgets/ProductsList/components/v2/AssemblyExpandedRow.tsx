@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Layers,
   Box,
@@ -12,8 +12,9 @@ import {
   Calculator,
   Edit2,
   Printer,
+  ChevronDown,
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   SavedCalculation,
   AssemblyPrintedPart,
@@ -22,6 +23,7 @@ import {
 } from '../../../../shared/types';
 import { formatCurrency } from '../../../../shared/lib/format';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
+import { AssemblyPartDrawer } from './AssemblyPartDrawer';
 
 export const PRODUCTS_EXPANDED_COLUMNS = '112px 96px 144px minmax(220px,1.5fr) 136px 128px 144px 144px 144px 144px 112px 96px 160px';
 export const PRODUCTS_COMPACT_COLUMNS = '112px 136px minmax(200px,1.5fr) 128px 120px 136px 156px 144px 160px';
@@ -34,6 +36,9 @@ interface AssemblyExpandedRowProps {
   onOpenQuickEditModal?: (item: SavedCalculation) => void;
   onCreateOrder?: (item: SavedCalculation) => void;
   onLoadIntoCalculator?: (item: SavedCalculation) => void;
+  onOpenStlModal?: (item: SavedCalculation) => void;
+  expandedPartIndex?: number | null;
+  onTogglePartIndex?: (index: number | null) => void;
 }
 
 export function AssemblyExpandedRow({
@@ -44,7 +49,37 @@ export function AssemblyExpandedRow({
   onOpenQuickEditModal,
   onCreateOrder,
   onLoadIntoCalculator,
+  onOpenStlModal,
+  expandedPartIndex: controlledExpandedPartIndex,
+  onTogglePartIndex,
 }: AssemblyExpandedRowProps) {
+  const hasDispatcher = Boolean(
+    (React as unknown as { __CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE?: { H?: unknown } })
+      ?.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE?.H ||
+    (React as unknown as { __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?: { ReactCurrentDispatcher?: { current?: unknown } } })
+      ?.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED?.ReactCurrentDispatcher?.current
+  );
+
+  let internalExpandedIndex: number | null = null;
+  let setInternalExpandedIndex: React.Dispatch<React.SetStateAction<number | null>> = () => {};
+
+  if (hasDispatcher) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    [internalExpandedIndex, setInternalExpandedIndex] = useState<number | null>(null);
+  }
+
+  const activeExpandedPartIndex = controlledExpandedPartIndex !== undefined
+    ? controlledExpandedPartIndex
+    : internalExpandedIndex;
+
+  const handleTogglePartIndex = (idx: number) => {
+    const nextVal = activeExpandedPartIndex === idx ? null : idx;
+    if (onTogglePartIndex) {
+      onTogglePartIndex(nextVal);
+    }
+    setInternalExpandedIndex(nextVal);
+  };
+
   const parts: AssemblyPrintedPart[] = assembly.assembly_parts || [];
   const hardware: AssemblyHardwareItem[] = assembly.assembly_hardware || [];
   const electronics: AssemblyElectronicsItem[] = assembly.assembly_electronics || [];
@@ -168,80 +203,124 @@ export function AssemblyExpandedRow({
                           ? `+${formatCurrency(pProfit, currencySymbol)}`
                           : formatCurrency(0, currencySymbol);
 
+                      const isPartExpanded = activeExpandedPartIndex === idx;
+
                       return (
-                        <div
-                          key={part.id || `part-${idx}`}
-                          className={`border rounded-lg p-2.5 space-y-1.5 transition-colors ${
-                            isMatched
-                              ? 'border-cyan-400/50 bg-cyan-950/40 ring-1 ring-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
-                              : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.04]'
-                          }`}
-                          style={{ borderLeftWidth: '3px', borderLeftColor: '#06b6d4' }}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-center gap-1.5 min-w-0" aria-label="Компонент">
-                              <span className="text-cyan-400 font-bold text-xs select-none">└─</span>
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-cyan-300 bg-cyan-950/60 border border-cyan-800/40">
-                                {part.id ? `#${part.id.slice(0, 6)}` : `#PRT-${idx + 1}`}
+                        <div key={part.id || `part-${idx}`} className="w-full block space-y-1">
+                          <div
+                            onClick={() => handleTogglePartIndex(idx)}
+                            className={`border rounded-lg p-2.5 space-y-1.5 transition-colors cursor-pointer ${
+                              isMatched
+                                ? 'border-cyan-400/50 bg-cyan-950/40 ring-1 ring-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
+                                : isPartExpanded
+                                  ? 'border-cyan-500/50 bg-cyan-950/30 shadow-[0_0_10px_rgba(6,182,212,0.1)]'
+                                  : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.04]'
+                            }`}
+                            style={{
+                              borderLeftWidth: '3px',
+                              borderLeftStyle: 'solid',
+                              borderLeftColor: isPartExpanded ? '#22d3ee' : '#06b6d4',
+                            }}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-1.5 min-w-0" aria-label="Компонент">
+                                <span className="text-cyan-400 font-bold text-xs select-none">└─</span>
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-cyan-300 bg-cyan-950/60 border border-cyan-800/40">
+                                  {part.id ? `#${part.id.slice(0, 6)}` : `#PRT-${idx + 1}`}
+                                </span>
+                                <span className="font-sans font-medium text-xs text-white truncate" title={part.name}>
+                                  {part.name || 'Деталь'}
+                                </span>
+                                {isMatched && (
+                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shrink-0">
+                                    НАЙДЕНО
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-cyan-800/40 bg-cyan-950/40 text-cyan-300 tabular-nums" aria-label="Кол-во">
+                                  {qty} шт
+                                </span>
+                                <ChevronDown
+                                  className={`w-3.5 h-3.5 text-cyan-400 transition-transform duration-200 ${
+                                    isPartExpanded ? 'rotate-180' : ''
+                                  }`}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-[11px] text-neutral-400 flex-wrap">
+                              <span className="inline-flex items-center gap-1" aria-label="Материал">
+                                <span
+                                  aria-label="Цвет материала"
+                                  className="w-2 h-2 rounded-full border border-white/20 shrink-0"
+                                  style={{ backgroundColor: part.filament_color || '#06b6d4' }}
+                                />
+                                <span>{part.filament_name || 'PLA'}</span>
                               </span>
-                              <span className="font-sans font-medium text-xs text-white truncate" title={part.name}>
-                                {part.name || 'Деталь'}
-                              </span>
-                              {isMatched && (
-                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shrink-0">
-                                  НАЙДЕНО
+                              {pWeight > 0 && (
+                                <>
+                                  <span className="text-neutral-600">•</span>
+                                  <span className="tabular-nums" aria-label="Общий вес">{pWeight} г</span>
+                                </>
+                              )}
+                              {(part.hours || part.minutes) && (
+                                <>
+                                  <span className="text-neutral-600">•</span>
+                                  <span className="tabular-nums">
+                                    {part.hours ? `${part.hours}ч ` : ''}{part.minutes ? `${part.minutes}м` : ''}
+                                  </span>
+                                </>
+                              )}
+                              {(part.stl_url || part.stl_file_data || part.stl_file_name) && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 inline-flex items-center gap-0.5">
+                                  <FileCode className="w-2.5 h-2.5" />
+                                  <span>STL</span>
                                 </span>
                               )}
                             </div>
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-cyan-800/40 bg-cyan-950/40 text-cyan-300 tabular-nums shrink-0" aria-label="Кол-во">
-                              {qty} шт
-                            </span>
-                          </div>
 
-                          <div className="flex items-center gap-2 text-[11px] text-neutral-400 flex-wrap">
-                            <span className="inline-flex items-center gap-1" aria-label="Материал">
-                              <span
-                                aria-label="Цвет материала"
-                                className="w-2 h-2 rounded-full border border-white/20 shrink-0"
-                                style={{ backgroundColor: part.filament_color || '#06b6d4' }}
-                              />
-                              <span>{part.filament_name || 'PLA'}</span>
-                            </span>
-                            {pWeight > 0 && (
-                              <>
-                                <span className="text-neutral-600">•</span>
-                                <span className="tabular-nums" aria-label="Общий вес">{pWeight} г</span>
-                              </>
-                            )}
-                            {(part.hours || part.minutes) && (
-                              <>
-                                <span className="text-neutral-600">•</span>
-                                <span className="tabular-nums">
-                                  {part.hours ? `${part.hours}ч ` : ''}{part.minutes ? `${part.minutes}м` : ''}
+                            <div className="flex items-center justify-between text-[11px] pt-1 border-t border-white/5">
+                              <span className="text-neutral-500 tabular-nums">
+                                себест. {formatCurrency(pCost, currencySymbol)}
+                              </span>
+                              <div className="flex items-center gap-2" aria-label="Сумма">
+                                <span className="text-white font-bold tabular-nums">
+                                  {formatCurrency(pPrice, currencySymbol)}
                                 </span>
-                              </>
-                            )}
-                            {(part.stl_url || part.stl_file_data || part.stl_file_name) && (
-                              <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 inline-flex items-center gap-0.5">
-                                <FileCode className="w-2.5 h-2.5" />
-                                <span>STL</span>
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-white/5">
-                            <span className="text-neutral-500 tabular-nums">
-                              себест. {formatCurrency(pCost, currencySymbol)}
-                            </span>
-                            <div className="flex items-center gap-2" aria-label="Сумма">
-                              <span className="text-white font-bold tabular-nums">
-                                {formatCurrency(pPrice, currencySymbol)}
-                              </span>
-                              <span className={`tabular-nums text-[10px] ${pProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                ({pProfitDisplay})
-                              </span>
+                                <span className={`tabular-nums text-[10px] ${pProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                  ({pProfitDisplay})
+                                </span>
+                              </div>
                             </div>
                           </div>
+
+                          <AnimatePresence initial={false}>
+                            {isPartExpanded && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{
+                                  height: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+                                  opacity: { duration: 0.25, ease: [0.22, 1, 0.36, 1] },
+                                }}
+                                className="w-full overflow-hidden block rounded-lg border border-cyan-500/20"
+                              >
+                                <AssemblyPartDrawer
+                                  part={part}
+                                  partIndex={idx}
+                                  parentAssembly={assembly}
+                                  currencySymbol={currencySymbol}
+                                  onClose={() => handleTogglePartIndex(idx)}
+                                  onOpenQuickEditModal={onOpenQuickEditModal}
+                                  onCreateOrder={onCreateOrder}
+                                  onLoadIntoCalculator={onLoadIntoCalculator}
+                                  onOpenStlModal={onOpenStlModal}
+                                />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       );
                     })}
@@ -530,6 +609,7 @@ export function AssemblyExpandedRow({
               {/* Строки печатных деталей */}
               {parts.map((part, idx) => {
                 const isMatched = isPartMatch(part);
+                const isPartExpanded = activeExpandedPartIndex === idx;
                 const qty = part.quantity || 1;
                 const unitCost = part.base_cost || 0;
                 const totalPartCost = unitCost * qty;
@@ -546,205 +626,242 @@ export function AssemblyExpandedRow({
                 const article = part.id ? `#${part.id.slice(0, 6)}` : `#PRT-${idx + 1}`;
 
                 return (
-                  <motion.div
-                    key={part.id || `part-${idx}`}
-                    whileHover={{ backgroundColor: isMatched ? 'rgba(6, 182, 212, 0.16)' : 'rgba(6, 182, 212, 0.05)' }}
-                    transition={{ duration: 0.15 }}
-                    className={`group relative border-b border-white/5 grid w-full items-center transition-colors ${
-                      isMatched ? 'bg-cyan-500/[0.09]' : ''
-                    }`}
-                    style={{
-                      gridTemplateColumns: gridCols,
-                      borderLeftWidth: '3px',
-                      borderLeftStyle: 'solid',
-                      borderLeftColor: '#06b6d4',
-                    }}
-                  >
-                    {/* 1. АРТИКУЛ (или АРТИКУЛ / ТИП в компактном) */}
-                    <div className="py-2 px-3 whitespace-nowrap min-w-0 font-mono">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-cyan-400 font-bold select-none text-xs">└─</span>
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-cyan-300 bg-cyan-950/60 border border-cyan-800/40 truncate font-semibold">
-                          {article}
-                        </span>
+                  <div key={part.id || `part-${idx}`} className="w-full block">
+                    <motion.div
+                      onClick={() => handleTogglePartIndex(idx)}
+                      whileHover={{ backgroundColor: isMatched ? 'rgba(6, 182, 212, 0.16)' : 'rgba(6, 182, 212, 0.05)' }}
+                      transition={{ duration: 0.15 }}
+                      className={`group relative border-b border-white/5 grid w-full items-center transition-colors cursor-pointer ${
+                        isMatched ? 'bg-cyan-500/[0.09]' : ''
+                      } ${isPartExpanded ? 'bg-cyan-950/25 ring-1 ring-inset ring-cyan-500/30' : ''}`}
+                      style={{
+                        gridTemplateColumns: gridCols,
+                        borderLeftWidth: '3px',
+                        borderLeftStyle: 'solid',
+                        borderLeftColor: isPartExpanded ? '#22d3ee' : '#06b6d4',
+                      }}
+                    >
+                      {/* 1. АРТИКУЛ (или АРТИКУЛ / ТИП в компактном) */}
+                      <div className="py-2 px-3 whitespace-nowrap min-w-0 font-mono">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-cyan-400 font-bold select-none text-xs">└─</span>
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-cyan-300 bg-cyan-950/60 border border-cyan-800/40 truncate font-semibold">
+                            {article}
+                          </span>
+                          <ChevronDown
+                            className={`w-3 h-3 text-cyan-400 shrink-0 transition-transform duration-200 ${
+                              isPartExpanded ? 'rotate-180' : ''
+                            }`}
+                          />
+                        </div>
+                        {isCompact && (
+                          <div className="mt-0.5 pl-4">
+                            <span className="text-[9px] font-mono px-1 py-0.2 rounded w-fit border inline-flex items-center gap-0.5 bg-cyan-500/10 text-cyan-300 border-cyan-500/20">
+                              <Layers className="w-2 h-2" />
+                              <span>Деталь</span>
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      {isCompact && (
-                        <div className="mt-0.5 pl-4">
-                          <span className="text-[9px] font-mono px-1 py-0.2 rounded w-fit border inline-flex items-center gap-0.5 bg-cyan-500/10 text-cyan-300 border-cyan-500/20">
-                            <Layers className="w-2 h-2" />
+
+                      {/* 2. ТИП (только в expanded) */}
+                      {!isCompact && (
+                        <div className="py-2 px-3 whitespace-nowrap text-center min-w-0 font-mono">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold border inline-flex items-center gap-1 bg-cyan-500/10 text-cyan-300 border-cyan-500/20">
+                            <Layers className="w-2.5 h-2.5" />
                             <span>Деталь</span>
                           </span>
                         </div>
                       )}
-                    </div>
 
-                    {/* 2. ТИП (только в expanded) */}
-                    {!isCompact && (
-                      <div className="py-2 px-3 whitespace-nowrap text-center min-w-0 font-mono">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold border inline-flex items-center gap-1 bg-cyan-500/10 text-cyan-300 border-cyan-500/20">
-                          <Layers className="w-2.5 h-2.5" />
-                          <span>Деталь</span>
+                      {/* КАТЕГОРИЯ */}
+                      <div className="py-2 px-3 whitespace-nowrap min-w-0">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-mono bg-white/[0.03] text-neutral-300 border border-white/10 truncate max-w-[125px]">
+                          <Box className="w-3 h-3 text-cyan-400 shrink-0" />
+                          <span className="truncate">{assembly.category || 'Детали сборки'}</span>
                         </span>
                       </div>
-                    )}
 
-                    {/* КАТЕГОРИЯ */}
-                    <div className="py-2 px-3 whitespace-nowrap min-w-0">
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-mono bg-white/[0.03] text-neutral-300 border border-white/10 truncate max-w-[125px]">
-                        <Box className="w-3 h-3 text-cyan-400 shrink-0" />
-                        <span className="truncate">{assembly.category || 'Детали сборки'}</span>
-                      </span>
-                    </div>
-
-                    {/* НАИМЕНОВАНИЕ / ДЕТАЛИ */}
-                    <div className="py-2 px-3 min-w-0 font-sans" aria-label="Компонент">
-                      <div className="flex flex-col gap-0.5 min-w-0">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <span className="font-medium text-xs text-white truncate" title={part.name}>
-                            {part.name || 'Деталь без названия'}
-                          </span>
-                          {isMatched && (
-                            <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shrink-0">
-                              НАЙДЕНО
+                      {/* НАИМЕНОВАНИЕ / ДЕТАЛИ */}
+                      <div className="py-2 px-3 min-w-0 font-sans" aria-label="Компонент">
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-medium text-xs text-white truncate" title={part.name}>
+                              {part.name || 'Деталь без названия'}
                             </span>
-                          )}
-                        </div>
-                        {part.printer_name && (
-                          <span className="text-[10px] font-mono text-neutral-500 truncate flex items-center gap-1">
-                            <Printer className="w-2.5 h-2.5" />
-                            {part.printer_name}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* ПЛАСТИК / МАТЕРИАЛ */}
-                    <div className="py-2 px-3 whitespace-nowrap min-w-0" aria-label="Материал">
-                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-mono bg-white/[0.03] text-neutral-300 border border-white/10 max-w-[125px]">
-                        <span
-                          aria-label="Цвет материала"
-                          className="w-2 h-2 rounded-full border border-white/20 shrink-0"
-                          style={{ backgroundColor: part.filament_color || '#06b6d4' }}
-                        />
-                        <span className="truncate max-w-[85px]">{part.filament_name || 'PLA'}</span>
-                      </span>
-                    </div>
-
-                    {/* ВЕС / ВРЕМЯ */}
-                    <div className="py-2 px-3 whitespace-nowrap text-center font-mono text-xs min-w-0" aria-label="Общий вес">
-                      <div className="flex flex-col items-center gap-0.5 leading-tight">
-                        <span className="text-neutral-200 tabular-nums">
-                          {partWeight > 0 ? `${partWeight} г` : '—'}
-                        </span>
-                        {(part.hours || part.minutes) ? (
-                          <span className="text-[10px] text-neutral-500 tabular-nums flex items-center gap-0.5">
-                            <Clock className="w-2.5 h-2.5 inline text-neutral-500" />
-                            {part.hours ? `${part.hours}ч ` : ''}{part.minutes ? `${part.minutes}м` : ''}
-                          </span>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    {/* КОЛИЧЕСТВО / ОСТАТОК СКЛАДА */}
-                    <div className="py-2 px-3 whitespace-nowrap text-center min-w-0 font-mono" aria-label="Кол-во">
-                      <span className="px-2 py-0.5 rounded text-xs font-mono font-bold border border-cyan-800/40 bg-cyan-950/40 text-cyan-300 tabular-nums inline-block">
-                        {qty} шт
-                      </span>
-                    </div>
-
-                    {/* СЕБЕСТОИМОСТЬ / СЕБЕСТ. И ЦЕНА В КОМПАКТНОМ */}
-                    {isCompact ? (
-                      <div className="py-2 px-3 whitespace-nowrap text-right font-mono text-xs min-w-0" aria-label="Сумма">
-                        <div className="flex flex-col items-end gap-0.5 leading-tight">
-                          <span className="font-bold text-white tabular-nums">
-                            {formatCurrency(totalPartPrice, currencySymbol)}
-                          </span>
-                          <span className="text-[10px] text-neutral-500 tabular-nums">
-                            себест. {formatCurrency(totalPartCost, currencySymbol)}
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="py-2 px-3 whitespace-nowrap text-right font-mono text-xs min-w-0">
-                          <div className="flex flex-col items-end gap-0.5 leading-tight">
-                            <span className="text-neutral-300 tabular-nums">
-                              {formatCurrency(totalPartCost, currencySymbol)}
-                            </span>
-                            {qty > 1 && unitCost > 0 && (
-                              <span className="text-[10px] text-neutral-500 tabular-nums">
-                                ({formatCurrency(unitCost, currencySymbol)}/шт)
+                            {isMatched && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shrink-0">
+                                НАЙДЕНО
                               </span>
                             )}
                           </div>
+                          {part.printer_name && (
+                            <span className="text-[10px] font-mono text-neutral-500 truncate flex items-center gap-1">
+                              <Printer className="w-2.5 h-2.5" />
+                              {part.printer_name}
+                            </span>
+                          )}
                         </div>
+                      </div>
 
-                        {/* ЦЕНА ПРОДАЖИ */}
+                      {/* ПЛАСТИК / МАТЕРИАЛ */}
+                      <div className="py-2 px-3 whitespace-nowrap min-w-0" aria-label="Материал">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-mono bg-white/[0.03] text-neutral-300 border border-white/10 max-w-[125px]">
+                          <span
+                            aria-label="Цвет материала"
+                            className="w-2 h-2 rounded-full border border-white/20 shrink-0"
+                            style={{ backgroundColor: part.filament_color || '#06b6d4' }}
+                          />
+                          <span className="truncate max-w-[85px]">{part.filament_name || 'PLA'}</span>
+                        </span>
+                      </div>
+
+                      {/* ВЕС / ВРЕМЯ */}
+                      <div className="py-2 px-3 whitespace-nowrap text-center font-mono text-xs min-w-0" aria-label="Общий вес">
+                        <div className="flex flex-col items-center gap-0.5 leading-tight">
+                          <span className="text-neutral-200 tabular-nums">
+                            {partWeight > 0 ? `${partWeight} г` : '—'}
+                          </span>
+                          {(part.hours || part.minutes) ? (
+                            <span className="text-[10px] text-neutral-500 tabular-nums flex items-center gap-0.5">
+                              <Clock className="w-2.5 h-2.5 inline text-neutral-500" />
+                              {part.hours ? `${part.hours}ч ` : ''}{part.minutes ? `${part.minutes}м` : ''}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      {/* КОЛИЧЕСТВО / ОСТАТОК СКЛАДА */}
+                      <div className="py-2 px-3 whitespace-nowrap text-center min-w-0 font-mono" aria-label="Кол-во">
+                        <span className="px-2 py-0.5 rounded text-xs font-mono font-bold border border-cyan-800/40 bg-cyan-950/40 text-cyan-300 tabular-nums inline-block">
+                          {qty} шт
+                        </span>
+                      </div>
+
+                      {/* СЕБЕСТОИМОСТЬ / СЕБЕСТ. И ЦЕНА В КОМПАКТНОМ */}
+                      {isCompact ? (
                         <div className="py-2 px-3 whitespace-nowrap text-right font-mono text-xs min-w-0" aria-label="Сумма">
                           <div className="flex flex-col items-end gap-0.5 leading-tight">
                             <span className="font-bold text-white tabular-nums">
                               {formatCurrency(totalPartPrice, currencySymbol)}
                             </span>
-                            {qty > 1 && unitPrice > 0 && (
-                              <span className="text-[10px] text-neutral-500 tabular-nums">
-                                ({formatCurrency(unitPrice, currencySymbol)}/шт)
-                              </span>
-                            )}
+                            <span className="text-[10px] text-neutral-500 tabular-nums">
+                              себест. {formatCurrency(totalPartCost, currencySymbol)}
+                            </span>
                           </div>
                         </div>
-                      </>
-                    )}
+                      ) : (
+                        <>
+                          <div className="py-2 px-3 whitespace-nowrap text-right font-mono text-xs min-w-0">
+                            <div className="flex flex-col items-end gap-0.5 leading-tight">
+                              <span className="text-neutral-300 tabular-nums">
+                                {formatCurrency(totalPartCost, currencySymbol)}
+                              </span>
+                              {qty > 1 && unitCost > 0 && (
+                                <span className="text-[10px] text-neutral-500 tabular-nums">
+                                  ({formatCurrency(unitCost, currencySymbol)}/шт)
+                                </span>
+                              )}
+                            </div>
+                          </div>
 
-                    {/* ПРИБЫЛЬ / МАРЖА */}
-                    <div className="py-2 px-3 whitespace-nowrap text-right font-mono text-xs min-w-0">
-                      <div className="flex flex-col items-end gap-0.5 leading-tight">
-                        <span className={`font-bold tabular-nums ${partProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                          {partProfitDisplay}
-                        </span>
-                        <span className="text-[10px] text-neutral-500 tabular-nums">
-                          {partMargin.toFixed(1)}%
-                        </span>
-                      </div>
-                    </div>
+                          {/* ЦЕНА ПРОДАЖИ */}
+                          <div className="py-2 px-3 whitespace-nowrap text-right font-mono text-xs min-w-0" aria-label="Сумма">
+                            <div className="flex flex-col items-end gap-0.5 leading-tight">
+                              <span className="font-bold text-white tabular-nums">
+                                {formatCurrency(totalPartPrice, currencySymbol)}
+                              </span>
+                              {qty > 1 && unitPrice > 0 && (
+                                <span className="text-[10px] text-neutral-500 tabular-nums">
+                                  ({formatCurrency(unitPrice, currencySymbol)}/шт)
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
 
-                    {/* ПРОДАЖИ (только expanded) */}
-                    {!isCompact && (
-                      <div className="py-2 px-3 whitespace-nowrap text-right font-mono text-xs min-w-0 text-neutral-600">
-                        —
-                      </div>
-                    )}
-
-                    {/* 3D STL (только expanded) */}
-                    {!isCompact && (
-                      <div className="py-2 px-3 whitespace-nowrap text-center min-w-0 font-mono">
-                        {(part.stl_url || part.stl_file_data || part.stl_file_name) ? (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 inline-flex items-center gap-1">
-                            <FileCode className="w-3 h-3" />
-                            <span>STL</span>
+                      {/* ПРИБЫЛЬ / МАРЖА */}
+                      <div className="py-2 px-3 whitespace-nowrap text-right font-mono text-xs min-w-0">
+                        <div className="flex flex-col items-end gap-0.5 leading-tight">
+                          <span className={`font-bold tabular-nums ${partProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {partProfitDisplay}
                           </span>
-                        ) : (
-                          <span className="text-neutral-600 font-mono text-[11px]">—</span>
-                        )}
+                          <span className="text-[10px] text-neutral-500 tabular-nums">
+                            {partMargin.toFixed(1)}%
+                          </span>
+                        </div>
                       </div>
-                    )}
 
-                    {/* ДЕЙСТВИЯ */}
-                    <div className="py-2 px-3 whitespace-nowrap text-right font-mono min-w-0">
-                      <div className="flex items-center justify-end gap-1.5 shrink-0">
-                        {onOpenQuickEditModal && (
-                          <button
-                            type="button"
-                            onClick={() => onOpenQuickEditModal(assembly)}
-                            className="px-2 py-1 rounded-md font-mono text-[11px] bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white border border-white/10 flex items-center gap-1 cursor-pointer transition-colors"
-                            title="Редактировать спецификацию сборки"
-                          >
-                            <Edit2 className="w-2.5 h-2.5" />
-                            <span>Сборка</span>
-                          </button>
-                        )}
+                      {/* ПРОДАЖИ (только expanded) */}
+                      {!isCompact && (
+                        <div className="py-2 px-3 whitespace-nowrap text-right font-mono text-xs min-w-0 text-neutral-600">
+                          —
+                        </div>
+                      )}
+
+                      {/* 3D STL (только expanded) */}
+                      {!isCompact && (
+                        <div className="py-2 px-3 whitespace-nowrap text-center min-w-0 font-mono">
+                          {(part.stl_url || part.stl_file_data || part.stl_file_name) ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 inline-flex items-center gap-1">
+                              <FileCode className="w-3 h-3" />
+                              <span>STL</span>
+                            </span>
+                          ) : (
+                            <span className="text-neutral-600 font-mono text-[11px]">—</span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* ДЕЙСТВИЯ */}
+                      <div className="py-2 px-3 whitespace-nowrap text-right font-mono min-w-0">
+                        <div className="flex items-center justify-end gap-1.5 shrink-0">
+                          {onOpenQuickEditModal && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e?.stopPropagation?.();
+                                onOpenQuickEditModal(assembly);
+                              }}
+                              className="px-2 py-1 rounded-md font-mono text-[11px] bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white border border-white/10 flex items-center gap-1 cursor-pointer transition-colors"
+                              title="Редактировать спецификацию сборки"
+                            >
+                              <Edit2 className="w-2.5 h-2.5" />
+                              <span>Сборка</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </motion.div>
+                    </motion.div>
+
+                    <AnimatePresence initial={false}>
+                      {isPartExpanded && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{
+                            height: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+                            opacity: { duration: 0.25, ease: [0.22, 1, 0.36, 1] },
+                          }}
+                          className="w-full overflow-hidden block border-b border-cyan-500/20"
+                        >
+                          <AssemblyPartDrawer
+                            part={part}
+                            partIndex={idx}
+                            parentAssembly={assembly}
+                            currencySymbol={currencySymbol}
+                            onClose={() => handleTogglePartIndex(idx)}
+                            onOpenQuickEditModal={onOpenQuickEditModal}
+                            onCreateOrder={onCreateOrder}
+                            onLoadIntoCalculator={onLoadIntoCalculator}
+                            onOpenStlModal={onOpenStlModal}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 );
               })}
             </div>

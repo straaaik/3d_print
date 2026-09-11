@@ -894,6 +894,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           onOpenQuickEditModal={onOpenQuickEditModal}
                           onCreateOrder={onCreateOrder}
                           onLoadIntoCalculator={onLoadIntoCalculator}
+                          onOpenStlModal={onOpenStlModal}
                         />
                       ) : null}
                     </div>
@@ -1660,6 +1661,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   onOpenQuickEditModal={onOpenQuickEditModal}
                                   onCreateOrder={onCreateOrder}
                                   onLoadIntoCalculator={onLoadIntoCalculator}
+                                  onOpenStlModal={onOpenStlModal}
                                 />
                               </td>
                             </motion.tr>
@@ -2762,6 +2764,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   onOpenQuickEditModal={onOpenQuickEditModal}
                                   onCreateOrder={onCreateOrder}
                                   onLoadIntoCalculator={onLoadIntoCalculator}
+                                  onOpenStlModal={onOpenStlModal}
                                 />
                               </td>
                             </motion.tr>
