@@ -31,7 +31,10 @@ import {
 import {
   getWarehouseMetrics,
   getSalesStats,
-  prepareDraftOrderFromProduct
+  prepareDraftOrderFromProduct,
+  matchesSearchProduct,
+  matchesSearchCollection,
+  getSearchAutoExpandedIds,
 } from './helpers';
 import { ProductsV2View } from './components/v2/ProductsV2View';
 
@@ -176,10 +179,6 @@ export function ProductsList({
 
   // 7. Раскрытие коллекций и сборок
   const [expandedItemIds, setExpandedItemIds] = usePersistentState<Record<string, boolean>>('3d_products_expanded_ids', {});
-
-  const handleToggleExpandRow = (id: string) => {
-    setExpandedItemIds((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
 
   // 8. Стек истории для Undo (Ctrl+Z / Alt+Z)
   const [historyStack, setHistoryStack] = useState<
@@ -725,17 +724,9 @@ export function ProductsList({
 
         // Поиск
         if (query) {
-          const matchCol =
-            col.name.toLowerCase().includes(query) ||
-            (col.tags || []).some((t) => t.toLowerCase().includes(query));
-          const matchedChilds = childs.filter(
-            (c) =>
-              c.name.toLowerCase().includes(query) ||
-              (c.filament_name || '').toLowerCase().includes(query) ||
-              (c.tags || []).some((t) => t.toLowerCase().includes(query))
-          );
-          if (!matchCol && matchedChilds.length === 0) return;
-          if (!matchCol && matchedChilds.length > 0) childs = matchedChilds;
+          const searchResult = matchesSearchCollection(col, childs, query);
+          if (!searchResult.matches) return;
+          childs = searchResult.matchedChilds;
         }
 
         if ((onlyBestsellers || stockFilter !== 'all') && childs.length === 0) {
@@ -841,10 +832,7 @@ export function ProductsList({
 
         // Поиск
         if (query) {
-          const matchName = calc.name.toLowerCase().includes(query);
-          const matchFil = (calc.filament_name || '').toLowerCase().includes(query);
-          const matchTag = (calc.tags || []).some((t) => t.toLowerCase().includes(query));
-          if (!matchName && !matchFil && !matchTag) return false;
+          if (!matchesSearchProduct(calc, query)) return false;
         }
 
         return true;
@@ -924,6 +912,16 @@ export function ProductsList({
     return sortedRows.slice(0, visibleCount);
   }, [sortedRows, visibleCount]);
 
+  // Автоматическое раскрытие строк с совпадениями при активном поиске
+  const effectiveExpandedIds = useMemo(() => {
+    return getSearchAutoExpandedIds(sortedRows, searchQuery, expandedItemIds);
+  }, [sortedRows, searchQuery, expandedItemIds]);
+
+  const handleToggleExpandRow = (id: string) => {
+    const isCurrentlyExpanded = Boolean(effectiveExpandedIds[id]);
+    setExpandedItemIds((prev) => ({ ...prev, [id]: !isCurrentlyExpanded }));
+  };
+
   // Счетчики для табов
   const counts = useMemo(() => {
     return {
@@ -1002,7 +1000,7 @@ export function ProductsList({
         sortField={sortField}
         sortOrder={sortOrder}
         onSort={handleSort}
-        expandedItemIds={expandedItemIds}
+        expandedItemIds={effectiveExpandedIds}
         onToggleExpandRow={handleToggleExpandRow}
         editingNameId={editingNameId}
         editingNameValue={editingNameValue}

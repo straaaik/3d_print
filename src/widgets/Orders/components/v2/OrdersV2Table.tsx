@@ -363,7 +363,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
   const shouldReduceMotion = useReducedMotion();
   const surfaceTransition = shouldReduceMotion
     ? { duration: 0 }
-    : { duration: 0.4, ease: SURFACE_EASE };
+    : { duration: 0.45, ease: SURFACE_EASE };
   const sentinelRef = useRef<HTMLTableRowElement | null>(null);
   const [activeStatusDropdown, setActiveStatusDropdown] = useState<{
     order: Order;
@@ -685,17 +685,18 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
               animate={{
                 y: isElevated ? -12 : 0,
                 scale: 1,
-                filter: isBlurred ? 'blur(4px) opacity(0.35)' : 'blur(0px) opacity(1)',
+                opacity: isBlurred ? 0.35 : 1,
               }}
               transition={{
-                y: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                filter: { duration: 0.4, ease: [0.16, 1, 0.3, 1] },
-                layout: { duration: 0.38, ease: [0.16, 1, 0.3, 1] },
+                y: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
+                opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
+                layout: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
               }}
+              style={{ willChange: isElevated || isBlurred ? 'transform, opacity' : 'auto' }}
               onClick={() => setElevatedOrder(isElevated ? null : order)}
               className={`relative rounded-xl border p-3 cursor-pointer ${
                 isElevated
-                  ? '!z-50 !border-white/40 !bg-neutral-900/98 !shadow-[0_25px_60px_-10px_rgba(0,0,0,0.95)] ring-1 ring-white/20'
+                  ? '!z-50 !border-white/40 !bg-neutral-900/98 !shadow-[0_24px_50px_-10px_rgba(0,0,0,0.95)] ring-1 ring-white/20'
                   : 'border-white/10 bg-white/[0.03] hover:border-white/20'
               }`}
             >
@@ -826,7 +827,6 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
             <motion.thead
               initial={false}
               animate={{
-                filter: elevatedOrder ? 'blur(4px)' : 'blur(0px)',
                 opacity: elevatedOrder ? 0.35 : 1,
               }}
               transition={surfaceTransition}
@@ -1040,22 +1040,24 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                     <motion.tr
                       key={order.id}
                       animate={{
-                        y: isElevated ? -10 : 0,
+                        y: isElevated ? -14 : 0,
                         scale: 1,
-                        filter: isBlurred ? 'blur(5px) opacity(0.35)' : 'blur(0px) opacity(1)',
+                        opacity: isBlurred ? 0.35 : 1,
                         backgroundColor: isElevated ? 'rgba(15, 15, 15, 0.98)' : 'rgba(0, 0, 0, 0)',
                         borderColor: isElevated ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 255, 255, 0.05)',
-                        borderRadius: isElevated ? 14 : 0,
-                        boxShadow: isElevated ? '0 25px 60px -10px rgba(0, 0, 0, 0.95)' : '0 0 0 0 rgba(0, 0, 0, 0)',
+                        borderRadius: isElevated ? 12 : 0,
+                        boxShadow: isElevated
+                          ? '0 24px 50px -10px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.22)'
+                          : 'none',
                       }}
                       whileHover={!isElevated && !isBlurred ? { backgroundColor: 'rgba(255, 255, 255, 0.04)' } : undefined}
                       transition={{
-                        y: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
-                        filter: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                        backgroundColor: { duration: 0.2, ease: [0.16, 1, 0.3, 1] },
-                        borderColor: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                        borderRadius: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                        boxShadow: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
+                        y: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
+                        opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
+                        backgroundColor: { duration: 0.25, ease: [0.22, 1, 0.36, 1] },
+                        borderColor: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
+                        borderRadius: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
+                        boxShadow: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
                       }}
                       onContextMenu={(e) => !isBlurred && handleContextMenu(e, order)}
                       onClick={(e) => {
@@ -1064,7 +1066,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                           lastElevatedCloseTimeRef.current = Date.now();
                           setElevatedOrder(null);
                         } else if (!elevatedOrder) {
-                          if (Date.now() - lastElevatedCloseTimeRef.current < 450) return;
+                          if (Date.now() - lastElevatedCloseTimeRef.current < 350) return;
                           setElevatedOrder(order);
                         }
                       }}
@@ -1077,7 +1079,10 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                           ? '!bg-neutral-800/90 text-white border-white/5 cursor-pointer'
                           : 'border-white/5 cursor-pointer'
                       }`}
-                      style={{ gridTemplateColumns: EXPANDED_GRID_COLUMNS }}
+                      style={{
+                        gridTemplateColumns: EXPANDED_GRID_COLUMNS,
+                        willChange: isElevated || isBlurred ? 'transform, opacity' : 'auto',
+                      }}
                     >
                       {/* 1. № ЗАКАЗА */}
                       <td className="py-2.5 px-3 whitespace-nowrap font-bold text-neutral-300">
@@ -1829,10 +1834,11 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
                             transition={{
-                              height: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
-                              opacity: { duration: 0.4, delay: 0.12, ease: [0.16, 1, 0.3, 1] },
+                              height: { duration: 0.48, ease: [0.22, 1, 0.36, 1] },
+                              opacity: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
                             }}
                             className="w-full overflow-hidden"
+                            style={{ willChange: 'height, opacity' }}
                           >
                             <OrderRowDrawer
                               order={order}
@@ -1880,7 +1886,6 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
             <motion.thead
               initial={false}
               animate={{
-                filter: elevatedOrder ? 'blur(4px)' : 'blur(0px)',
                 opacity: elevatedOrder ? 0.35 : 1,
               }}
               transition={surfaceTransition}
@@ -2037,22 +2042,24 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                     <motion.tr
                       key={order.id}
                       animate={{
-                        y: isElevated ? -10 : 0,
+                        y: isElevated ? -14 : 0,
                         scale: 1,
-                        filter: isBlurred ? 'blur(5px) opacity(0.35)' : 'blur(0px) opacity(1)',
+                        opacity: isBlurred ? 0.35 : 1,
                         backgroundColor: isElevated ? 'rgba(15, 15, 15, 0.98)' : 'rgba(0, 0, 0, 0)',
                         borderColor: isElevated ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 255, 255, 0.05)',
-                        borderRadius: isElevated ? 14 : 0,
-                        boxShadow: isElevated ? '0 25px 60px -10px rgba(0, 0, 0, 0.95)' : '0 0 0 0 rgba(0, 0, 0, 0)',
+                        borderRadius: isElevated ? 12 : 0,
+                        boxShadow: isElevated
+                          ? '0 24px 50px -10px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.22)'
+                          : 'none',
                       }}
                       whileHover={!isElevated && !isBlurred ? { backgroundColor: 'rgba(255, 255, 255, 0.04)' } : undefined}
                       transition={{
-                        y: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
-                        filter: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                        backgroundColor: { duration: 0.2, ease: [0.16, 1, 0.3, 1] },
-                        borderColor: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                        borderRadius: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                        boxShadow: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
+                        y: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
+                        opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
+                        backgroundColor: { duration: 0.25, ease: [0.22, 1, 0.36, 1] },
+                        borderColor: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
+                        borderRadius: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
+                        boxShadow: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
                       }}
                       onContextMenu={(e) => !isBlurred && handleContextMenu(e, order)}
                       onClick={(e) => {
@@ -2061,7 +2068,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                           lastElevatedCloseTimeRef.current = Date.now();
                           setElevatedOrder(null);
                         } else if (!elevatedOrder) {
-                          if (Date.now() - lastElevatedCloseTimeRef.current < 450) return;
+                          if (Date.now() - lastElevatedCloseTimeRef.current < 350) return;
                           setElevatedOrder(order);
                         }
                       }}
@@ -2074,7 +2081,10 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                           ? '!bg-neutral-800/90 text-white border-white/5 cursor-pointer'
                           : 'border-white/5 cursor-pointer'
                       }`}
-                      style={{ gridTemplateColumns: COMPACT_GRID_COLUMNS }}
+                      style={{
+                        gridTemplateColumns: COMPACT_GRID_COLUMNS,
+                        willChange: isElevated || isBlurred ? 'transform, opacity' : 'auto',
+                      }}
                     >
                       {/* 1. № ЗАКАЗА И ДАТА */}
                       <td className="py-2 px-3 whitespace-nowrap font-bold text-neutral-300">
@@ -2657,10 +2667,11 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
                             transition={{
-                              height: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
-                              opacity: { duration: 0.4, delay: 0.12, ease: [0.16, 1, 0.3, 1] },
+                              height: { duration: 0.48, ease: [0.22, 1, 0.36, 1] },
+                              opacity: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
                             }}
                             className="w-full overflow-hidden"
+                            style={{ willChange: 'height, opacity' }}
                           >
                             <OrderRowDrawer
                               order={order}

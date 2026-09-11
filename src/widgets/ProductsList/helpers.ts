@@ -1,5 +1,5 @@
-import { SavedCalculation, Order, AssemblyPrintedPart, AssemblyHardwareItem, AssemblyElectronicsItem, CostItem } from '../../shared/types';
-import { WarehouseMetrics, SalesStatInfo } from './types';
+import { SavedCalculation, Order, AssemblyPrintedPart, AssemblyHardwareItem, AssemblyElectronicsItem, CostItem, ProductCollection } from '../../shared/types';
+import { WarehouseMetrics, SalesStatInfo, CatalogTableRow } from './types';
 import { getCategoryConfig } from '../../shared/lib/costCategories';
 
 import {
@@ -290,3 +290,151 @@ export function getChildCollectionColor(parentHex?: string): string {
     return '#38bdf8';
   }
 }
+
+/**
+ * Проверяет соответствие товара (штучного или сборки) поисковому запросу.
+ * Для сборок производит глубокий поиск по печатным деталям, крепежу и электронике.
+ */
+export function matchesSearchProduct(calc: SavedCalculation, rawQuery: string): boolean {
+  const query = rawQuery.toLowerCase().trim();
+  if (!query) return true;
+
+  // 1. Прямые реквизиты товара
+  if (calc.name && calc.name.toLowerCase().includes(query)) return true;
+  if (calc.id && calc.id.toLowerCase().includes(query)) return true;
+  if (calc.category && calc.category.toLowerCase().includes(query)) return true;
+  if (calc.filament_name && calc.filament_name.toLowerCase().includes(query)) return true;
+  if (calc.printer_name && calc.printer_name.toLowerCase().includes(query)) return true;
+  if (calc.tags && calc.tags.some((t) => t.toLowerCase().includes(query))) return true;
+
+  // 2. Глубокий поиск по внутреннему составу сборок
+  if (calc.type === 'assembly') {
+    // Печатные детали
+    if (
+      calc.assembly_parts &&
+      calc.assembly_parts.some(
+        (p) =>
+          (p.name && p.name.toLowerCase().includes(query)) ||
+          (p.filament_name && p.filament_name.toLowerCase().includes(query)) ||
+          (p.printer_name && p.printer_name.toLowerCase().includes(query)) ||
+          (p.id && p.id.toLowerCase().includes(query))
+      )
+    ) {
+      return true;
+    }
+
+    // Крепёж и фурнитура
+    if (
+      calc.assembly_hardware &&
+      calc.assembly_hardware.some(
+        (h) =>
+          (h.name && h.name.toLowerCase().includes(query)) ||
+          (h.id && h.id.toLowerCase().includes(query))
+      )
+    ) {
+      return true;
+    }
+
+    // Электроника и модули
+    if (
+      calc.assembly_electronics &&
+      calc.assembly_electronics.some(
+        (e) =>
+          (e.name && e.name.toLowerCase().includes(query)) ||
+          (e.id && e.id.toLowerCase().includes(query))
+      )
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Проверяет соответствие коллекции и её дочерних товаров поисковому запросу.
+ * Если совпадает сама коллекция — возвращаются все дочерние позиции.
+ * Если совпадает дочерний товар/компонент — коллекция считается совпавшей, а matchedChilds сужается до совпавших.
+ */
+export function matchesSearchCollection(
+  col: ProductCollection,
+  childs: SavedCalculation[],
+  rawQuery: string
+): { matches: boolean; matchedChilds: SavedCalculation[] } {
+  const query = rawQuery.toLowerCase().trim();
+  if (!query) return { matches: true, matchedChilds: childs };
+
+  const matchSelf =
+    (col.name && col.name.toLowerCase().includes(query)) ||
+    (col.id && col.id.toLowerCase().includes(query)) ||
+    (col.category && col.category.toLowerCase().includes(query)) ||
+    (col.description && col.description.toLowerCase().includes(query)) ||
+    (col.tags && col.tags.some((t) => t.toLowerCase().includes(query)));
+
+  const matchedChilds = childs.filter((c) => matchesSearchProduct(c, query));
+
+  if (matchSelf) {
+    return { matches: true, matchedChilds: childs };
+  }
+
+  if (matchedChilds.length > 0) {
+    return { matches: true, matchedChilds };
+  }
+
+  return { matches: false, matchedChilds: [] };
+}
+
+/**
+ * Вычисляет словарь ID строк для автоматического раскрытия при активном поиске.
+ * Если коллекция или сборка совпала по вложенным элементам/компонентам,
+ * она автоматически разворачивается для наглядного отображения найденного.
+ */
+export function getSearchAutoExpandedIds(
+  rows: CatalogTableRow[],
+  rawQuery: string,
+  currentExpandedIds: Record<string, boolean> = {}
+): Record<string, boolean> {
+  const query = rawQuery.toLowerCase().trim();
+  if (!query) return currentExpandedIds;
+
+  const result: Record<string, boolean> = { ...currentExpandedIds };
+
+  rows.forEach((row) => {
+    // Если пользователь явно свернул строку во время поиска, уважаем его выбор
+    if (currentExpandedIds[row.id] === false) {
+      return;
+    }
+
+    if (row.rowKind === 'collection') {
+      if (row.childItems && row.childItems.length > 0) {
+        result[row.id] = true;
+      }
+    } else if (row.rowKind === 'product' && row.item.type === 'assembly') {
+      const hasSubMatch =
+        (row.item.assembly_parts || []).some(
+          (p) =>
+            (p.name && p.name.toLowerCase().includes(query)) ||
+            (p.filament_name && p.filament_name.toLowerCase().includes(query)) ||
+            (p.printer_name && p.printer_name.toLowerCase().includes(query)) ||
+            (p.id && p.id.toLowerCase().includes(query))
+        ) ||
+        (row.item.assembly_hardware || []).some(
+          (h) =>
+            (h.name && h.name.toLowerCase().includes(query)) ||
+            (h.id && h.id.toLowerCase().includes(query))
+        ) ||
+        (row.item.assembly_electronics || []).some(
+          (e) =>
+            (e.name && e.name.toLowerCase().includes(query)) ||
+            (e.id && e.id.toLowerCase().includes(query))
+        );
+
+      if (hasSubMatch) {
+        result[row.id] = true;
+      }
+    }
+  });
+
+  return result;
+}
+

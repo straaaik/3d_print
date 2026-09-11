@@ -30,6 +30,7 @@ interface AssemblyExpandedRowProps {
   assembly: SavedCalculation;
   currencySymbol?: string;
   mode?: 'expanded' | 'compact' | 'cards';
+  searchQuery?: string;
   onOpenQuickEditModal?: (item: SavedCalculation) => void;
   onCreateOrder?: (item: SavedCalculation) => void;
   onLoadIntoCalculator?: (item: SavedCalculation) => void;
@@ -39,6 +40,7 @@ export function AssemblyExpandedRow({
   assembly,
   currencySymbol = '₽',
   mode = 'expanded',
+  searchQuery = '',
   onOpenQuickEditModal,
   onCreateOrder,
   onLoadIntoCalculator,
@@ -46,6 +48,38 @@ export function AssemblyExpandedRow({
   const parts: AssemblyPrintedPart[] = assembly.assembly_parts || [];
   const hardware: AssemblyHardwareItem[] = assembly.assembly_hardware || [];
   const electronics: AssemblyElectronicsItem[] = assembly.assembly_electronics || [];
+
+  const query = (searchQuery || '').trim().toLowerCase();
+
+  const isPartMatch = (p: AssemblyPrintedPart) => {
+    if (!query) return false;
+    return Boolean(
+      (p.name && p.name.toLowerCase().includes(query)) ||
+      (p.filament_name && p.filament_name.toLowerCase().includes(query)) ||
+      (p.printer_name && p.printer_name.toLowerCase().includes(query)) ||
+      (p.id && p.id.toLowerCase().includes(query))
+    );
+  };
+
+  const isHwMatch = (h: AssemblyHardwareItem) => {
+    if (!query) return false;
+    return Boolean(
+      (h.name && h.name.toLowerCase().includes(query)) ||
+      (h.id && h.id.toLowerCase().includes(query))
+    );
+  };
+
+  const isElMatch = (e: AssemblyElectronicsItem) => {
+    if (!query) return false;
+    return Boolean(
+      (e.name && e.name.toLowerCase().includes(query)) ||
+      (e.id && e.id.toLowerCase().includes(query))
+    );
+  };
+
+  const matchedPartsCount = parts.filter(isPartMatch).length;
+  const matchedHwCount = hardware.filter(isHwMatch).length;
+  const matchedElCount = electronics.filter(isElMatch).length;
 
   const laborMins = assembly.assembly_labor_minutes || 0;
   const laborCost = assembly.assembly_labor_cost || 0;
@@ -104,12 +138,17 @@ export function AssemblyExpandedRow({
               {parts.length > 0 && (
                 <div className="space-y-2">
                   <div className="bg-cyan-950/30 border border-cyan-500/20 rounded-lg py-1.5 px-2.5 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5 text-cyan-300 font-bold">
+                    <div className="flex items-center gap-1.5 text-cyan-300 font-bold flex-wrap">
                       <span>┌─ [ПЕЧАТНЫЕ ДЕТАЛИ]</span>
                       <span className="text-neutral-500">·</span>
                       <span className="text-neutral-300 font-normal">{parts.length} дет.</span>
                       <span className="text-neutral-500">·</span>
                       <span className="text-neutral-400 font-normal tabular-nums">{totalWeight} г</span>
+                      {matchedPartsCount > 0 && (
+                        <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                          Найдено: {matchedPartsCount}
+                        </span>
+                      )}
                     </div>
                     <span className="text-[11px] text-cyan-400 font-mono font-bold tabular-nums">
                       {formatCurrency(partsPrice, currencySymbol)}
@@ -117,6 +156,7 @@ export function AssemblyExpandedRow({
                   </div>
                   <div className="space-y-1.5 pl-2">
                     {parts.map((part, idx) => {
+                      const isMatched = isPartMatch(part);
                       const qty = part.quantity || 1;
                       const pWeight = (part.weight_g || 0) * qty;
                       const pCost = (part.base_cost || 0) * qty;
@@ -131,7 +171,11 @@ export function AssemblyExpandedRow({
                       return (
                         <div
                           key={part.id || `part-${idx}`}
-                          className="border border-white/10 bg-white/[0.02] rounded-lg p-2.5 space-y-1.5 hover:bg-white/[0.04] transition-colors"
+                          className={`border rounded-lg p-2.5 space-y-1.5 transition-colors ${
+                            isMatched
+                              ? 'border-cyan-400/50 bg-cyan-950/40 ring-1 ring-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
+                              : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.04]'
+                          }`}
                           style={{ borderLeftWidth: '3px', borderLeftColor: '#06b6d4' }}
                         >
                           <div className="flex items-start justify-between gap-2">
@@ -143,6 +187,11 @@ export function AssemblyExpandedRow({
                               <span className="font-sans font-medium text-xs text-white truncate" title={part.name}>
                                 {part.name || 'Деталь'}
                               </span>
+                              {isMatched && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shrink-0">
+                                  НАЙДЕНО
+                                </span>
+                              )}
                             </div>
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-cyan-800/40 bg-cyan-950/40 text-cyan-300 tabular-nums shrink-0" aria-label="Кол-во">
                               {qty} шт
@@ -204,12 +253,17 @@ export function AssemblyExpandedRow({
               {hardware.length > 0 && (
                 <div className="space-y-2">
                   <div className="bg-amber-950/20 border border-amber-500/20 rounded-lg py-1.5 px-2.5 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5 text-amber-300 font-bold">
+                    <div className="flex items-center gap-1.5 text-amber-300 font-bold flex-wrap">
                       <span>┌─ [КРЕПЁЖ И ФУРНИТУРА]</span>
                       <span className="text-neutral-500">·</span>
                       <span className="text-neutral-300 font-normal">{hardware.length} поз.</span>
                       <span className="text-neutral-500">·</span>
                       <span className="text-neutral-400 font-normal tabular-nums">{totalHwPieces} шт</span>
+                      {matchedHwCount > 0 && (
+                        <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                          Найдено: {matchedHwCount}
+                        </span>
+                      )}
                     </div>
                     <span className="text-[11px] text-amber-400 font-mono font-bold tabular-nums">
                       {formatCurrency(hwPrice, currencySymbol)}
@@ -217,6 +271,7 @@ export function AssemblyExpandedRow({
                   </div>
                   <div className="space-y-1.5 pl-2">
                     {hardware.map((item, idx) => {
+                      const isMatched = isHwMatch(item);
                       const qty = item.quantity || 1;
                       const hCost = (item.cost_per_unit || 0) * qty;
                       const hPrice = (item.price_per_unit || item.cost_per_unit || 0) * qty;
@@ -230,7 +285,11 @@ export function AssemblyExpandedRow({
                       return (
                         <div
                           key={item.id || `hw-${idx}`}
-                          className="border border-white/10 bg-white/[0.02] rounded-lg p-2.5 space-y-1.5 hover:bg-white/[0.04] transition-colors"
+                          className={`border rounded-lg p-2.5 space-y-1.5 transition-colors ${
+                            isMatched
+                              ? 'border-amber-400/50 bg-amber-950/40 ring-1 ring-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.15)]'
+                              : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.04]'
+                          }`}
                           style={{ borderLeftWidth: '3px', borderLeftColor: '#f59e0b' }}
                         >
                           <div className="flex items-start justify-between gap-2">
@@ -242,6 +301,11 @@ export function AssemblyExpandedRow({
                               <span className="font-sans font-medium text-xs text-white truncate" title={item.name}>
                                 {item.name || 'Крепёж'}
                               </span>
+                              {isMatched && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
+                                  НАЙДЕНО
+                                </span>
+                              )}
                             </div>
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-amber-800/40 bg-amber-950/40 text-amber-300 tabular-nums shrink-0" aria-label="Кол-во">
                               {qty} шт
@@ -278,12 +342,17 @@ export function AssemblyExpandedRow({
               {electronics.length > 0 && (
                 <div className="space-y-2">
                   <div className="bg-violet-950/20 border border-violet-500/20 rounded-lg py-1.5 px-2.5 flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5 text-violet-300 font-bold">
+                    <div className="flex items-center gap-1.5 text-violet-300 font-bold flex-wrap">
                       <span>┌─ [ЭЛЕКТРОНИКА И МОДУЛИ]</span>
                       <span className="text-neutral-500">·</span>
                       <span className="text-neutral-300 font-normal">{electronics.length} поз.</span>
                       <span className="text-neutral-500">·</span>
                       <span className="text-neutral-400 font-normal tabular-nums">{totalElPieces} шт</span>
+                      {matchedElCount > 0 && (
+                        <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-violet-500/20 text-violet-300 border border-violet-500/40">
+                          Найдено: {matchedElCount}
+                        </span>
+                      )}
                     </div>
                     <span className="text-[11px] text-violet-400 font-mono font-bold tabular-nums">
                       {formatCurrency(elPrice, currencySymbol)}
@@ -291,6 +360,7 @@ export function AssemblyExpandedRow({
                   </div>
                   <div className="space-y-1.5 pl-2">
                     {electronics.map((item, idx) => {
+                      const isMatched = isElMatch(item);
                       const qty = item.quantity || 1;
                       const eCost = (item.cost_per_unit || 0) * qty;
                       const ePrice = (item.price_per_unit || item.cost_per_unit || 0) * qty;
@@ -304,7 +374,11 @@ export function AssemblyExpandedRow({
                       return (
                         <div
                           key={item.id || `el-${idx}`}
-                          className="border border-white/10 bg-white/[0.02] rounded-lg p-2.5 space-y-1.5 hover:bg-white/[0.04] transition-colors"
+                          className={`border rounded-lg p-2.5 space-y-1.5 transition-colors ${
+                            isMatched
+                              ? 'border-violet-400/50 bg-violet-950/40 ring-1 ring-violet-500/30 shadow-[0_0_12px_rgba(139,92,246,0.15)]'
+                              : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.04]'
+                          }`}
                           style={{ borderLeftWidth: '3px', borderLeftColor: '#8b5cf6' }}
                         >
                           <div className="flex items-start justify-between gap-2">
@@ -316,6 +390,11 @@ export function AssemblyExpandedRow({
                               <span className="font-sans font-medium text-xs text-white truncate" title={item.name}>
                                 {item.name || 'Модуль'}
                               </span>
+                              {isMatched && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-violet-500/20 text-violet-300 border border-violet-500/40 shrink-0">
+                                  НАЙДЕНО
+                                </span>
+                              )}
                             </div>
                             <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-violet-800/40 bg-violet-950/40 text-violet-300 tabular-nums shrink-0" aria-label="Кол-во">
                               {qty} шт
@@ -428,13 +507,18 @@ export function AssemblyExpandedRow({
                   borderLeftColor: '#06b6d4',
                 }}
               >
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0 flex-wrap">
                   <span className="text-cyan-400 font-bold">┌─</span>
                   <span className="text-cyan-300 font-bold tracking-wider">[ПЕЧАТНЫЕ ДЕТАЛИ]</span>
                   <span className="text-neutral-500">·</span>
                   <span className="text-neutral-300 tabular-nums">{parts.length} дет.</span>
                   <span className="text-neutral-500">·</span>
                   <span className="text-neutral-400 tabular-nums">{totalWeight} г</span>
+                  {matchedPartsCount > 0 && (
+                    <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                      Найдено: {matchedPartsCount}
+                    </span>
+                  )}
                 </div>
                 <div className="text-[11px] text-neutral-400 tabular-nums shrink-0">
                   себест. <span className="text-neutral-300">{formatCurrency(partsCost, currencySymbol)}</span>
@@ -445,6 +529,7 @@ export function AssemblyExpandedRow({
 
               {/* Строки печатных деталей */}
               {parts.map((part, idx) => {
+                const isMatched = isPartMatch(part);
                 const qty = part.quantity || 1;
                 const unitCost = part.base_cost || 0;
                 const totalPartCost = unitCost * qty;
@@ -463,9 +548,11 @@ export function AssemblyExpandedRow({
                 return (
                   <motion.div
                     key={part.id || `part-${idx}`}
-                    whileHover={{ backgroundColor: 'rgba(6, 182, 212, 0.05)' }}
+                    whileHover={{ backgroundColor: isMatched ? 'rgba(6, 182, 212, 0.16)' : 'rgba(6, 182, 212, 0.05)' }}
                     transition={{ duration: 0.15 }}
-                    className="group relative border-b border-white/5 grid w-full items-center transition-colors"
+                    className={`group relative border-b border-white/5 grid w-full items-center transition-colors ${
+                      isMatched ? 'bg-cyan-500/[0.09]' : ''
+                    }`}
                     style={{
                       gridTemplateColumns: gridCols,
                       borderLeftWidth: '3px',
@@ -512,9 +599,16 @@ export function AssemblyExpandedRow({
                     {/* НАИМЕНОВАНИЕ / ДЕТАЛИ */}
                     <div className="py-2 px-3 min-w-0 font-sans" aria-label="Компонент">
                       <div className="flex flex-col gap-0.5 min-w-0">
-                        <span className="font-medium text-xs text-white truncate" title={part.name}>
-                          {part.name || 'Деталь без названия'}
-                        </span>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="font-medium text-xs text-white truncate" title={part.name}>
+                            {part.name || 'Деталь без названия'}
+                          </span>
+                          {isMatched && (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shrink-0">
+                              НАЙДЕНО
+                            </span>
+                          )}
+                        </div>
                         {part.printer_name && (
                           <span className="text-[10px] font-mono text-neutral-500 truncate flex items-center gap-1">
                             <Printer className="w-2.5 h-2.5" />
@@ -668,13 +762,18 @@ export function AssemblyExpandedRow({
                   borderLeftColor: '#f59e0b',
                 }}
               >
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0 flex-wrap">
                   <span className="text-amber-400 font-bold">┌─</span>
                   <span className="text-amber-300 font-bold tracking-wider">[КРЕПЁЖ И ФУРНИТУРА]</span>
                   <span className="text-neutral-500">·</span>
                   <span className="text-neutral-300 tabular-nums">{hardware.length} поз.</span>
                   <span className="text-neutral-500">·</span>
                   <span className="text-neutral-400 tabular-nums">{totalHwPieces} шт</span>
+                  {matchedHwCount > 0 && (
+                    <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      Найдено: {matchedHwCount}
+                    </span>
+                  )}
                 </div>
                 <div className="text-[11px] text-neutral-400 tabular-nums shrink-0">
                   себест. <span className="text-neutral-300">{formatCurrency(hwCost, currencySymbol)}</span>
@@ -685,6 +784,7 @@ export function AssemblyExpandedRow({
 
               {/* Строки крепежа */}
               {hardware.map((item, idx) => {
+                const isMatched = isHwMatch(item);
                 const qty = item.quantity || 1;
                 const unitCost = item.cost_per_unit || 0;
                 const totalHwCost = unitCost * qty;
@@ -702,9 +802,11 @@ export function AssemblyExpandedRow({
                 return (
                   <motion.div
                     key={item.id || `hw-${idx}`}
-                    whileHover={{ backgroundColor: 'rgba(245, 158, 11, 0.05)' }}
+                    whileHover={{ backgroundColor: isMatched ? 'rgba(245, 158, 11, 0.16)' : 'rgba(245, 158, 11, 0.05)' }}
                     transition={{ duration: 0.15 }}
-                    className="group relative border-b border-white/5 grid w-full items-center transition-colors"
+                    className={`group relative border-b border-white/5 grid w-full items-center transition-colors ${
+                      isMatched ? 'bg-amber-500/[0.09]' : ''
+                    }`}
                     style={{
                       gridTemplateColumns: gridCols,
                       borderLeftWidth: '3px',
@@ -750,9 +852,16 @@ export function AssemblyExpandedRow({
 
                     {/* НАИМЕНОВАНИЕ / ДЕТАЛИ */}
                     <div className="py-2 px-3 min-w-0 font-sans" aria-label="Компонент">
-                      <span className="font-medium text-xs text-white truncate block" title={item.name}>
-                        {item.name || 'Крепёж'}
-                      </span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-medium text-xs text-white truncate block" title={item.name}>
+                          {item.name || 'Крепёж'}
+                        </span>
+                        {isMatched && (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
+                            НАЙДЕНО
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* ПЛАСТИК / МАТЕРИАЛ */}
@@ -877,13 +986,18 @@ export function AssemblyExpandedRow({
                   borderLeftColor: '#8b5cf6',
                 }}
               >
-                <div className="flex items-center gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0 flex-wrap">
                   <span className="text-violet-400 font-bold">┌─</span>
                   <span className="text-violet-300 font-bold tracking-wider">[ЭЛЕКТРОНИКА И МОДУЛИ]</span>
                   <span className="text-neutral-500">·</span>
                   <span className="text-neutral-300 tabular-nums">{electronics.length} поз.</span>
                   <span className="text-neutral-500">·</span>
                   <span className="text-neutral-400 tabular-nums">{totalElPieces} шт</span>
+                  {matchedElCount > 0 && (
+                    <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-violet-500/20 text-violet-300 border border-violet-500/40">
+                      Найдено: {matchedElCount}
+                    </span>
+                  )}
                 </div>
                 <div className="text-[11px] text-neutral-400 tabular-nums shrink-0">
                   себест. <span className="text-neutral-300">{formatCurrency(elCost, currencySymbol)}</span>
@@ -894,6 +1008,7 @@ export function AssemblyExpandedRow({
 
               {/* Строки электроники */}
               {electronics.map((item, idx) => {
+                const isMatched = isElMatch(item);
                 const qty = item.quantity || 1;
                 const unitCost = item.cost_per_unit || 0;
                 const totalElCost = unitCost * qty;
@@ -911,9 +1026,11 @@ export function AssemblyExpandedRow({
                 return (
                   <motion.div
                     key={item.id || `el-${idx}`}
-                    whileHover={{ backgroundColor: 'rgba(139, 92, 246, 0.05)' }}
+                    whileHover={{ backgroundColor: isMatched ? 'rgba(139, 92, 246, 0.16)' : 'rgba(139, 92, 246, 0.05)' }}
                     transition={{ duration: 0.15 }}
-                    className="group relative border-b border-white/5 grid w-full items-center transition-colors"
+                    className={`group relative border-b border-white/5 grid w-full items-center transition-colors ${
+                      isMatched ? 'bg-violet-500/[0.09]' : ''
+                    }`}
                     style={{
                       gridTemplateColumns: gridCols,
                       borderLeftWidth: '3px',
@@ -959,9 +1076,16 @@ export function AssemblyExpandedRow({
 
                     {/* НАИМЕНОВАНИЕ / ДЕТАЛИ */}
                     <div className="py-2 px-3 min-w-0 font-sans" aria-label="Компонент">
-                      <span className="font-medium text-xs text-white truncate block" title={item.name}>
-                        {item.name || 'Модуль'}
-                      </span>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="font-medium text-xs text-white truncate block" title={item.name}>
+                          {item.name || 'Модуль'}
+                        </span>
+                        {isMatched && (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-violet-500/20 text-violet-300 border border-violet-500/40 shrink-0">
+                            НАЙДЕНО
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* ПЛАСТИК / МАТЕРИАЛ */}

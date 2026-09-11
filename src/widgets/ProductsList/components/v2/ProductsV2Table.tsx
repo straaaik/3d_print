@@ -424,7 +424,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
   const shouldReduceMotion = useReducedMotion();
   const surfaceTransition = shouldReduceMotion
     ? { duration: 0 }
-    : { duration: 0.4, ease: SURFACE_EASE };
+    : { duration: 0.45, ease: SURFACE_EASE };
   // Локальное состояние для строки в фокусе (парение), если не передано внешнее
   const [internalElevatedRow, setInternalElevatedRow] = useState<CatalogTableRow | null>(null);
   const elevatedRow = externalElevatedRow !== undefined ? externalElevatedRow : internalElevatedRow;
@@ -637,14 +637,26 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
               layout
               key={row.id}
               animate={{
-                y: isElevated ? -10 : 0,
+                y: isElevated ? -12 : 0,
                 scale: 1,
-                filter: isBlurred ? 'blur(4px) opacity(0.35)' : 'blur(0px) opacity(1)',
+                opacity: isBlurred ? 0.35 : 1,
               }}
               transition={{
-                y: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                filter: { duration: 0.4, ease: [0.16, 1, 0.3, 1] },
-                layout: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+                y: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
+                opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
+                layout: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
+              }}
+              style={{
+                willChange: isElevated || isBlurred ? 'transform, opacity' : 'auto',
+                ...(isCol ? {
+                  borderLeftWidth: '3px',
+                  borderLeftStyle: 'solid',
+                  borderLeftColor: row.color || '#06b6d4',
+                  backgroundColor: expandedItemIds[row.id] ? `${row.color || '#06b6d4'}14` : `${row.color || '#06b6d4'}08`,
+                  borderTopColor: `${row.color || '#06b6d4'}30`,
+                  borderRightColor: `${row.color || '#06b6d4'}30`,
+                  borderBottomColor: `${row.color || '#06b6d4'}30`,
+                } : {}),
               }}
               tabIndex={0}
               role="button"
@@ -667,18 +679,9 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
               }}
               className={`rounded-xl border p-3 focus:outline-none cursor-pointer ${
                 isElevated
-                  ? '!z-50 !border-white/40 !bg-neutral-900/98 !shadow-[0_25px_60px_-10px_rgba(0,0,0,0.95)] ring-1 ring-white/20'
+                  ? '!z-50 !border-white/40 !bg-neutral-900/98 !shadow-[0_24px_50px_-10px_rgba(0,0,0,0.95)] ring-1 ring-white/20'
                   : 'border-white/10 bg-white/[0.03] hover:border-white/20'
               }`}
-              style={isCol ? {
-                borderLeftWidth: '3px',
-                borderLeftStyle: 'solid',
-                borderLeftColor: row.color || '#06b6d4',
-                backgroundColor: expandedItemIds[row.id] ? `${row.color || '#06b6d4'}14` : `${row.color || '#06b6d4'}08`,
-                borderTopColor: `${row.color || '#06b6d4'}30`,
-                borderRightColor: `${row.color || '#06b6d4'}30`,
-                borderBottomColor: `${row.color || '#06b6d4'}30`,
-              } : undefined}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -887,6 +890,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           assembly={row.item}
                           currencySymbol={currencySymbol}
                           mode="cards"
+                          searchQuery={searchQuery}
                           onOpenQuickEditModal={onOpenQuickEditModal}
                           onCreateOrder={onCreateOrder}
                           onLoadIntoCalculator={onLoadIntoCalculator}
@@ -934,7 +938,6 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
             <motion.thead
               initial={false}
               animate={{
-                filter: elevatedRow ? 'blur(4px)' : 'blur(0px)',
                 opacity: elevatedRow ? 0.35 : 1,
               }}
               transition={surfaceTransition}
@@ -1141,9 +1144,9 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                       <React.Fragment key={prodRow.id}>
                         <motion.tr
                           animate={{
-                            y: isElevated ? -10 : 0,
+                            y: isElevated ? -14 : 0,
                             scale: 1,
-                            filter: isBlurred ? 'blur(5px) opacity(0.35)' : 'blur(0px) opacity(1)',
+                            opacity: isBlurred ? 0.35 : 1,
                             backgroundColor: isElevated
                               ? (childColor ? `${childColor}20` : 'rgba(15, 15, 15, 0.98)')
                               : childColor
@@ -1156,23 +1159,23 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                               : childColor
                               ? `${childColor}20`
                               : 'rgba(255, 255, 255, 0.05)',
-                            borderRadius: isElevated ? 14 : 0,
+                            borderRadius: isElevated ? 12 : 0,
                             boxShadow: isElevated
                               ? (childColor
-                                  ? `0 0 0 1px ${childColor}50, 0 25px 60px -10px rgba(0, 0, 0, 0.95), 0 0 25px -5px ${childColor}50`
-                                  : '0 0 0 1px rgba(255, 255, 255, 0.2), 0 25px 60px -10px rgba(0, 0, 0, 0.95)')
+                                  ? `0 0 0 1px ${childColor}50, 0 24px 50px -10px rgba(0, 0, 0, 0.95), 0 0 24px -5px ${childColor}40`
+                                  : '0 0 0 1px rgba(255, 255, 255, 0.22), 0 24px 50px -10px rgba(0, 0, 0, 0.95)')
                               : 'none',
                           }}
                           whileHover={!isElevated && !isBlurred ? {
                             backgroundColor: childColor ? `${childColor}16` : 'rgba(255, 255, 255, 0.04)',
                           } : undefined}
                           transition={{
-                            y: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
-                            filter: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                            backgroundColor: { duration: 0.2, ease: [0.16, 1, 0.3, 1] },
-                            borderBottomColor: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                            borderRadius: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                            boxShadow: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
+                            y: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
+                            opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
+                            backgroundColor: { duration: 0.25, ease: [0.22, 1, 0.36, 1] },
+                            borderBottomColor: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
+                            borderRadius: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
+                            boxShadow: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
                           }}
                           onContextMenu={(e) => !isBlurred && handleContextMenu(e, prodRow)}
                           onClick={(e) => {
@@ -1202,6 +1205,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           }`}
                           style={{
                             gridTemplateColumns: PRODUCTS_EXPANDED_COLUMNS,
+                            willChange: isElevated || isBlurred ? 'transform, opacity' : 'auto',
                             ...(childColor ? {
                               borderLeftWidth: '2.5px',
                               borderLeftStyle: 'solid',
@@ -1596,10 +1600,11 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   animate={{ height: 'auto', opacity: 1 }}
                                   exit={{ height: 0, opacity: 0 }}
                                   transition={{
-                                    height: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
-                                    opacity: { duration: 0.4, delay: 0.12, ease: [0.16, 1, 0.3, 1] },
+                                    height: { duration: 0.48, ease: [0.22, 1, 0.36, 1] },
+                                    opacity: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
                                   }}
                                   className="w-full overflow-hidden"
+                                  style={{ willChange: 'height, opacity' }}
                                 >
                                   <ProductRowDrawer
                                     row={prodRow}
@@ -1651,6 +1656,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   assembly={prodRow.item}
                                   currencySymbol={currencySymbol}
                                   mode="expanded"
+                                  searchQuery={searchQuery}
                                   onOpenQuickEditModal={onOpenQuickEditModal}
                                   onCreateOrder={onCreateOrder}
                                   onLoadIntoCalculator={onLoadIntoCalculator}
@@ -1680,7 +1686,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           animate={{
                             y: 0,
                             scale: 1,
-                            filter: isBlurred ? 'blur(5px) opacity(0.35)' : 'blur(0px) opacity(1)',
+                            opacity: isBlurred ? 0.35 : 1,
                             backgroundColor: isExpandedRow ? `${colColor}24` : `${colColor}08`,
                             borderBottomColor: isExpandedRow ? `${colColor}50` : `${colColor}20`,
                             borderRadius: 0,
@@ -1688,9 +1694,9 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           }}
                           whileHover={!isBlurred ? { backgroundColor: `${colColor}2e` } : undefined}
                           transition={{
-                            filter: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                            backgroundColor: { duration: 0.2, ease: [0.16, 1, 0.3, 1] },
-                            borderBottomColor: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
+                            opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
+                            backgroundColor: { duration: 0.25, ease: [0.22, 1, 0.36, 1] },
+                            borderBottomColor: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
                           }}
                           onContextMenu={(e) => !isBlurred && handleContextMenu(e, colRow)}
                           onClick={(e) => {
@@ -1708,6 +1714,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           }`}
                           style={{
                             gridTemplateColumns: PRODUCTS_EXPANDED_COLUMNS,
+                            willChange: isBlurred ? 'opacity' : 'auto',
                             borderLeftWidth: isExpandedRow ? '4px' : '3px',
                             borderLeftStyle: 'solid',
                             borderLeftColor: isExpandedRow ? colColor : `${colColor}90`,
@@ -2111,7 +2118,6 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
             <motion.thead
               initial={false}
               animate={{
-                filter: elevatedRow ? 'blur(4px)' : 'blur(0px)',
                 opacity: elevatedRow ? 0.35 : 1,
               }}
               transition={surfaceTransition}
@@ -2285,9 +2291,9 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                       <React.Fragment key={prodRow.id}>
                         <motion.tr
                           animate={{
-                            y: isElevated ? -10 : 0,
+                            y: isElevated ? -14 : 0,
                             scale: 1,
-                            filter: isBlurred ? 'blur(5px) opacity(0.35)' : 'blur(0px) opacity(1)',
+                            opacity: isBlurred ? 0.35 : 1,
                             backgroundColor: isElevated
                               ? (childColor ? `${childColor}20` : 'rgba(15, 15, 15, 0.98)')
                               : childColor
@@ -2300,23 +2306,23 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                               : childColor
                               ? `${childColor}20`
                               : 'rgba(255, 255, 255, 0.05)',
-                            borderRadius: isElevated ? 14 : 0,
+                            borderRadius: isElevated ? 12 : 0,
                             boxShadow: isElevated
                               ? (childColor
-                                  ? `0 0 0 1px ${childColor}50, 0 25px 60px -10px rgba(0, 0, 0, 0.95), 0 0 25px -5px ${childColor}50`
-                                  : '0 0 0 1px rgba(255, 255, 255, 0.2), 0 25px 60px -10px rgba(0, 0, 0, 0.95)')
+                                  ? `0 0 0 1px ${childColor}50, 0 24px 50px -10px rgba(0, 0, 0, 0.95), 0 0 24px -5px ${childColor}40`
+                                  : '0 0 0 1px rgba(255, 255, 255, 0.22), 0 24px 50px -10px rgba(0, 0, 0, 0.95)')
                               : 'none',
                           }}
                           whileHover={!isElevated && !isBlurred ? {
                             backgroundColor: childColor ? `${childColor}16` : 'rgba(255, 255, 255, 0.04)',
                           } : undefined}
                           transition={{
-                            y: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
-                            filter: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                            backgroundColor: { duration: 0.2, ease: [0.16, 1, 0.3, 1] },
-                            borderBottomColor: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                            borderRadius: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                            boxShadow: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
+                            y: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
+                            opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
+                            backgroundColor: { duration: 0.25, ease: [0.22, 1, 0.36, 1] },
+                            borderBottomColor: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
+                            borderRadius: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
+                            boxShadow: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
                           }}
                           onContextMenu={(e) => !isBlurred && handleContextMenu(e, prodRow)}
                           onClick={(e) => {
@@ -2346,6 +2352,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           }`}
                           style={{
                             gridTemplateColumns: PRODUCTS_COMPACT_COLUMNS,
+                            willChange: isElevated || isBlurred ? 'transform, opacity' : 'auto',
                             ...(childColor ? {
                               borderLeftWidth: '2.5px',
                               borderLeftStyle: 'solid',
@@ -2695,10 +2702,11 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   animate={{ height: 'auto', opacity: 1 }}
                                   exit={{ height: 0, opacity: 0 }}
                                   transition={{
-                                    height: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
-                                    opacity: { duration: 0.4, delay: 0.12, ease: [0.16, 1, 0.3, 1] },
+                                    height: { duration: 0.48, ease: [0.22, 1, 0.36, 1] },
+                                    opacity: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
                                   }}
                                   className="w-full overflow-hidden"
+                                  style={{ willChange: 'height, opacity' }}
                                 >
                                   <ProductRowDrawer
                                     row={prodRow}
@@ -2750,6 +2758,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   assembly={prodRow.item}
                                   currencySymbol={currencySymbol}
                                   mode="compact"
+                                  searchQuery={searchQuery}
                                   onOpenQuickEditModal={onOpenQuickEditModal}
                                   onCreateOrder={onCreateOrder}
                                   onLoadIntoCalculator={onLoadIntoCalculator}
@@ -2779,7 +2788,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           animate={{
                             y: 0,
                             scale: 1,
-                            filter: isBlurred ? 'blur(5px) opacity(0.35)' : 'blur(0px) opacity(1)',
+                            opacity: isBlurred ? 0.35 : 1,
                             backgroundColor: isExpandedRow ? `${colColor}24` : `${colColor}08`,
                             borderBottomColor: isExpandedRow ? `${colColor}50` : `${colColor}20`,
                             borderRadius: 0,
@@ -2787,9 +2796,9 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           }}
                           whileHover={!isBlurred ? { backgroundColor: `${colColor}2e` } : undefined}
                           transition={{
-                            filter: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
-                            backgroundColor: { duration: 0.2, ease: [0.16, 1, 0.3, 1] },
-                            borderBottomColor: { duration: 0.45, ease: [0.16, 1, 0.3, 1] },
+                            opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
+                            backgroundColor: { duration: 0.25, ease: [0.22, 1, 0.36, 1] },
+                            borderBottomColor: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
                           }}
                           onContextMenu={(e) => !isBlurred && handleContextMenu(e, colRow)}
                           onClick={(e) => {
@@ -2807,6 +2816,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           }`}
                           style={{
                             gridTemplateColumns: PRODUCTS_COMPACT_COLUMNS,
+                            willChange: isBlurred ? 'opacity' : 'auto',
                             borderLeftWidth: isExpandedRow ? '4px' : '3px',
                             borderLeftStyle: 'solid',
                             borderLeftColor: isExpandedRow ? colColor : `${colColor}90`,
