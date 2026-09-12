@@ -12,7 +12,6 @@ import {
   Calculator,
   Edit2,
   Printer,
-  ChevronDown,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
@@ -352,11 +351,6 @@ export function AssemblyExpandedRow({
                               <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-cyan-800/40 bg-cyan-950/40 text-cyan-300 tabular-nums" aria-label="Кол-во">
                                 {qty} шт
                               </span>
-                              <ChevronDown
-                                className={`w-3.5 h-3.5 text-cyan-400 transition-transform duration-200 ${
-                                  isPartElevated ? 'rotate-180' : ''
-                                }`}
-                              />
                             </div>
                           </div>
 
@@ -827,11 +821,6 @@ export function AssemblyExpandedRow({
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-cyan-300 bg-cyan-950/60 border border-cyan-800/40 truncate font-semibold">
                             {article}
                           </span>
-                          <ChevronDown
-                            className={`w-3 h-3 text-neutral-400 group-hover:text-white shrink-0 transition-transform duration-200 ${
-                              isPartElevated ? 'rotate-180' : ''
-                            }`}
-                          />
                         </div>
                         {isCompact && (
                           <div className="mt-0.5 pl-4">
