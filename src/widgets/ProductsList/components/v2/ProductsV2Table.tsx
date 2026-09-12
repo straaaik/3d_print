@@ -1171,15 +1171,13 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                               ? 'rgba(15, 15, 15, 0.98)'
                               : 'rgba(0, 0, 0, 0)',
                             borderBottomColor: isElevated
-                              ? (collectionColor || 'rgba(255, 255, 255, 0.35)')
+                              ? 'rgba(255, 255, 255, 0.35)'
                               : isLastChild && collectionColor
                               ? `${collectionColor}60`
                               : 'rgba(255, 255, 255, 0.05)',
                             borderRadius: isElevated ? 12 : 0,
                             boxShadow: isElevated
-                              ? (collectionColor && isChild
-                                  ? `0 0 0 1px ${collectionColor}50, 0 24px 50px -10px rgba(0, 0, 0, 0.95), 0 0 24px -5px ${collectionColor}40`
-                                  : '0 0 0 1px rgba(255, 255, 255, 0.22), 0 24px 50px -10px rgba(0, 0, 0, 0.95)')
+                              ? '0 0 0 1px rgba(255, 255, 255, 0.22), 0 24px 50px -10px rgba(0, 0, 0, 0.95)'
                               : 'none',
                           }}
                           whileHover={!isElevated && !isBlurred ? {
@@ -1627,7 +1625,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 >
                                   <ProductRowDrawer
                                     row={prodRow}
-                                    collectionColor={collectionColor || prodRow.parentCollectionColor}
+                                    collectionColor={undefined}
                                     currencySymbol={currencySymbol}
                                     onInlineUpdateProduct={onInlineUpdateProduct}
                                     onInlineUpdateCollection={onInlineUpdateCollection}
@@ -2332,15 +2330,13 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                               ? 'rgba(15, 15, 15, 0.98)'
                               : 'rgba(0, 0, 0, 0)',
                             borderBottomColor: isElevated
-                              ? (collectionColor || 'rgba(255, 255, 255, 0.35)')
+                              ? 'rgba(255, 255, 255, 0.35)'
                               : isLastChild && collectionColor
                               ? `${collectionColor}60`
                               : 'rgba(255, 255, 255, 0.05)',
                             borderRadius: isElevated ? 12 : 0,
                             boxShadow: isElevated
-                              ? (collectionColor && isChild
-                                  ? `0 0 0 1px ${collectionColor}50, 0 24px 50px -10px rgba(0, 0, 0, 0.95), 0 0 24px -5px ${collectionColor}40`
-                                  : '0 0 0 1px rgba(255, 255, 255, 0.22), 0 24px 50px -10px rgba(0, 0, 0, 0.95)')
+                              ? '0 0 0 1px rgba(255, 255, 255, 0.22), 0 24px 50px -10px rgba(0, 0, 0, 0.95)'
                               : 'none',
                           }}
                           whileHover={!isElevated && !isBlurred ? {
@@ -2743,7 +2739,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 >
                                   <ProductRowDrawer
                                     row={prodRow}
-                                    collectionColor={collectionColor || prodRow.parentCollectionColor}
+                                    collectionColor={undefined}
                                     currencySymbol={currencySymbol}
                                     onInlineUpdateProduct={onInlineUpdateProduct}
                                     onInlineUpdateCollection={onInlineUpdateCollection}

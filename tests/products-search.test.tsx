@@ -577,6 +577,7 @@ describe('AssemblyPartDrawer interactive slide-out menu', () => {
 
   it('applies row elevation and drawer rendering when an assembly part is elevated', () => {
     const part = sampleAssembly.assembly_parts![0];
+    assert.ok(part.id);
     const elevatedRow: CatalogTableRow = {
       rowKind: 'product',
       id: part.id,
@@ -605,6 +606,17 @@ describe('AssemblyPartDrawer interactive slide-out menu', () => {
     assert.match(htmlElevated, /!z-50/);
     // Elevated part displays its drawer
     assert.match(htmlElevated, /data-row-drawer="true"/);
+
+    // When elevatedRow is cleared (e.g. click outside), it drops down and drawer closes
+    const htmlClosed = renderToStaticMarkup(
+      <AssemblyExpandedRow
+        assembly={sampleAssembly}
+        mode="expanded"
+        elevatedRow={null}
+        setElevatedRow={() => {}}
+      />
+    );
+    assert.doesNotMatch(htmlClosed, /!z-50/);
+    assert.doesNotMatch(htmlClosed, /data-row-drawer="true"/);
   });
 });
-

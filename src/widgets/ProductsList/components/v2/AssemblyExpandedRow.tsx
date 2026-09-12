@@ -86,6 +86,12 @@ export function AssemblyExpandedRow({
   if (hasDispatcher) {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     [internalExpandedIndex, setInternalExpandedIndex] = useState<number | null>(null);
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    React.useEffect(() => {
+      if (!elevatedRow) {
+        setInternalExpandedIndex(null);
+      }
+    }, [elevatedRow]);
   }
 
   const activeExpandedPartIndex = controlledExpandedPartIndex !== undefined
@@ -103,7 +109,11 @@ export function AssemblyExpandedRow({
   };
 
   const handleTogglePart = (partIdx: number, rowToElevate: CatalogTableRow) => {
-    const isCurrentlyElevated = elevatedRow ? elevatedRow.id === rowToElevate.id : activeExpandedPartIndex === partIdx;
+    const isCurrentlyElevated = setElevatedRow !== undefined
+      ? Boolean(elevatedRow && elevatedRow.id === rowToElevate.id)
+      : elevatedRow
+      ? elevatedRow.id === rowToElevate.id
+      : activeExpandedPartIndex === partIdx;
     if (isCurrentlyElevated) {
       if (setElevatedRow) setElevatedRow(null);
       handleTogglePartIndex(null);
@@ -140,7 +150,11 @@ export function AssemblyExpandedRow({
 
   const isAnyPartElevated = parts.some((part, idx) => {
     const pRow = getPartRow(part, idx);
-    return elevatedRow ? elevatedRow.id === pRow.id : activeExpandedPartIndex === idx;
+    return setElevatedRow !== undefined
+      ? Boolean(elevatedRow && elevatedRow.id === pRow.id)
+      : elevatedRow
+      ? elevatedRow.id === pRow.id
+      : activeExpandedPartIndex === idx;
   });
 
   const query = (searchQuery || '').trim().toLowerCase();
@@ -255,7 +269,11 @@ export function AssemblyExpandedRow({
                   <div className="space-y-1.5 pl-2">
                     {parts.map((part, idx) => {
                       const partRow = getPartRow(part, idx);
-                      const isPartElevated = elevatedRow ? elevatedRow.id === partRow.id : activeExpandedPartIndex === idx;
+                      const isPartElevated = setElevatedRow !== undefined
+                        ? Boolean(elevatedRow && elevatedRow.id === partRow.id)
+                        : elevatedRow
+                        ? elevatedRow.id === partRow.id
+                        : activeExpandedPartIndex === idx;
                       const isPartBlurred = Boolean(elevatedRow) && !isPartElevated;
                       const isMatched = isPartMatch(part);
                       const qty = part.quantity || 1;
@@ -277,18 +295,18 @@ export function AssemblyExpandedRow({
                             scale: isPartElevated ? 1.02 : 1,
                             opacity: isPartBlurred ? 0.35 : 1,
                             backgroundColor: isPartElevated
-                              ? 'rgba(8, 20, 36, 0.98)'
+                              ? 'rgba(15, 15, 15, 0.98)'
                               : isMatched
                               ? 'rgba(6, 182, 212, 0.15)'
                               : 'rgba(255, 255, 255, 0.02)',
                             borderColor: isPartElevated
-                              ? 'rgba(6, 182, 212, 0.8)'
+                              ? 'rgba(255, 255, 255, 0.4)'
                               : isMatched
                               ? 'rgba(6, 182, 212, 0.4)'
                               : 'rgba(255, 255, 255, 0.1)',
                             borderRadius: isPartElevated ? 12 : 8,
                             boxShadow: isPartElevated
-                              ? '0 0 0 1px rgba(6, 182, 212, 0.5), 0 20px 40px -10px rgba(0, 0, 0, 0.95), 0 0 20px -5px rgba(6, 182, 212, 0.35)'
+                              ? '0 20px 40px -10px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.2)'
                               : 'none',
                           }}
                           transition={{
@@ -308,7 +326,7 @@ export function AssemblyExpandedRow({
                           style={{
                             borderLeftWidth: '3px',
                             borderLeftStyle: 'solid',
-                            borderLeftColor: isPartElevated ? '#22d3ee' : '#06b6d4',
+                            borderLeftColor: '#06b6d4',
                           }}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -397,7 +415,7 @@ export function AssemblyExpandedRow({
                                   height: { duration: DRAWER_EXPAND_DURATION, ease: ROW_ELEVATION_EASE },
                                   opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
                                 }}
-                                className="w-full overflow-hidden block rounded-lg border-t border-cyan-500/20 pt-2"
+                                className="w-full overflow-hidden block rounded-lg border-t border-white/10 pt-2"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <AssemblyPartDrawer
@@ -727,7 +745,11 @@ export function AssemblyExpandedRow({
               {/* Строки печатных деталей */}
               {parts.map((part, idx) => {
                 const partRow = getPartRow(part, idx);
-                const isPartElevated = elevatedRow ? elevatedRow.id === partRow.id : activeExpandedPartIndex === idx;
+                const isPartElevated = setElevatedRow !== undefined
+                  ? Boolean(elevatedRow && elevatedRow.id === partRow.id)
+                  : elevatedRow
+                  ? elevatedRow.id === partRow.id
+                  : activeExpandedPartIndex === idx;
                 const isPartBlurred = Boolean(elevatedRow) && !isPartElevated;
                 const isMatched = isPartMatch(part);
                 const qty = part.quantity || 1;
@@ -753,20 +775,20 @@ export function AssemblyExpandedRow({
                       scale: 1,
                       opacity: isPartBlurred ? 0.35 : 1,
                       backgroundColor: isPartElevated
-                        ? 'rgba(10, 20, 30, 0.98)'
+                        ? 'rgba(15, 15, 15, 0.98)'
                         : isMatched
                         ? 'rgba(6, 182, 212, 0.09)'
                         : 'rgba(0, 0, 0, 0)',
                       borderBottomColor: isPartElevated
-                        ? 'rgba(6, 182, 212, 0.8)'
+                        ? 'rgba(255, 255, 255, 0.35)'
                         : 'rgba(255, 255, 255, 0.05)',
                       borderRadius: isPartElevated ? 12 : 0,
                       boxShadow: isPartElevated
-                        ? '0 0 0 1px rgba(6, 182, 212, 0.5), 0 24px 50px -10px rgba(0, 0, 0, 0.95), 0 0 24px -5px rgba(6, 182, 212, 0.4)'
+                        ? '0 24px 50px -10px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.22)'
                         : 'none',
                     }}
                     whileHover={!isPartElevated && !isPartBlurred ? {
-                      backgroundColor: isMatched ? 'rgba(6, 182, 212, 0.16)' : 'rgba(6, 182, 212, 0.05)',
+                      backgroundColor: isMatched ? 'rgba(6, 182, 212, 0.16)' : 'rgba(255, 255, 255, 0.04)',
                     } : undefined}
                     transition={{
                       y: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
@@ -778,7 +800,7 @@ export function AssemblyExpandedRow({
                     }}
                     className={`group relative border-b w-full block transition-colors ${
                       isPartElevated
-                        ? '!z-50 cursor-default'
+                        ? '!z-50 cursor-default ring-1 ring-white/20'
                         : isPartBlurred
                         ? 'pointer-events-none select-none border-white/5'
                         : 'border-white/5 cursor-pointer'
@@ -787,7 +809,7 @@ export function AssemblyExpandedRow({
                       willChange: isPartElevated || isPartBlurred ? 'transform, opacity' : 'auto',
                       borderLeftWidth: '3px',
                       borderLeftStyle: 'solid',
-                      borderLeftColor: isPartElevated ? '#22d3ee' : '#06b6d4',
+                      borderLeftColor: '#06b6d4',
                     }}
                   >
                     <div
@@ -806,7 +828,7 @@ export function AssemblyExpandedRow({
                             {article}
                           </span>
                           <ChevronDown
-                            className={`w-3 h-3 text-cyan-400 shrink-0 transition-transform duration-200 ${
+                            className={`w-3 h-3 text-neutral-400 group-hover:text-white shrink-0 transition-transform duration-200 ${
                               isPartElevated ? 'rotate-180' : ''
                             }`}
                           />
@@ -995,7 +1017,7 @@ export function AssemblyExpandedRow({
                               handleTogglePart(idx, partRow);
                             }}
                             className={`p-1 rounded hover:bg-white/10 text-neutral-400 hover:text-white cursor-pointer shrink-0 transition-colors ${
-                              isPartElevated ? 'bg-white/15 text-cyan-300 font-bold' : ''
+                              isPartElevated ? 'bg-white/15 text-white font-bold' : ''
                             }`}
                             title={isPartElevated ? 'Свернуть меню детали' : 'Параметры и меню детали'}
                           >
@@ -1015,7 +1037,7 @@ export function AssemblyExpandedRow({
                             height: { duration: DRAWER_EXPAND_DURATION, ease: ROW_ELEVATION_EASE },
                             opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
                           }}
-                          className="w-full overflow-hidden block border-t border-cyan-500/20"
+                          className="w-full overflow-hidden block border-t border-white/10"
                           style={{ willChange: 'height, opacity' }}
                           onClick={(e) => e.stopPropagation()}
                         >

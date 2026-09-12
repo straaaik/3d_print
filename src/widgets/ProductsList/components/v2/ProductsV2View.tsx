@@ -1,5 +1,5 @@
 import React from 'react';
-import { useRouter } from 'next/navigation';
+import { usePageRouter as useRouter } from '../../../../shared/ui/page-transition/PageTransitionLink';
 import {
   CatalogTableRow,
   ProductFilter,
@@ -266,7 +266,13 @@ export const ProductsV2View = React.memo(function ProductsV2View({
     const exists = rows.some(
       (r) =>
         r.id === elevatedRow.id ||
-        (r.rowKind === 'collection' && r.childItems?.some((c) => c.id === elevatedRow.id)) ||
+        (r.rowKind === 'collection' &&
+          r.childItems?.some(
+            (c) =>
+              c.id === elevatedRow.id ||
+              (c.type === 'assembly' &&
+                c.assembly_parts?.some((p, idx) => (p.id || `prt-${c.id}-${idx}`) === elevatedRow.id))
+          )) ||
         (r.rowKind === 'product' &&
           r.item?.type === 'assembly' &&
           r.item?.assembly_parts?.some((p, idx) => (p.id || `prt-${r.id}-${idx}`) === elevatedRow.id))

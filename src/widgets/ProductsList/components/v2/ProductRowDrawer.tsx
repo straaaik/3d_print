@@ -71,7 +71,8 @@ export function ProductRowDrawer({
   const isCol = row.rowKind === 'collection';
   const isAsm = isProduct && item?.type === 'assembly';
   const isPart = isProduct && (Boolean(row.isPart) || row.id.toLowerCase().startsWith('prt-'));
-  const effectiveColor = collectionColor || (row.rowKind === 'product' ? row.parentCollectionColor : row.color);
+  const effectiveColor = isCol ? (collectionColor || row.color) : undefined;
+  const parentColColor = row.rowKind === 'product' ? (row.parentCollectionColor || collectionColor) : undefined;
 
   // Локальные состояния инпутов для плавного реактивного ввода
   const [name, setName] = useState<string>(row.name || '');
@@ -280,22 +281,22 @@ export function ProductRowDrawer({
             {row.rowKind === 'product' && row.parentCollectionName && (
               <span
                 className="h-8 flex items-center gap-1.5 font-mono text-[10px] px-2.5 rounded-md border shrink-0 text-neutral-300 bg-white/5 border-white/10"
-                style={effectiveColor ? {
-                  color: effectiveColor,
-                  backgroundColor: `${effectiveColor}18`,
-                  borderColor: `${effectiveColor}40`,
+                style={parentColColor ? {
+                  color: parentColColor,
+                  backgroundColor: `${parentColColor}18`,
+                  borderColor: `${parentColColor}40`,
                 } : undefined}
                 title={isPart ? `Входит в состав сборки «${row.parentCollectionName}»` : `Входит в коллекцию «${row.parentCollectionName}»`}
               >
                 {isPart ? (
                   <Layers
                     className="w-3 h-3 text-cyan-400 shrink-0"
-                    style={effectiveColor ? { color: effectiveColor } : undefined}
+                    style={parentColColor ? { color: parentColColor } : undefined}
                   />
                 ) : (
                   <Folder
                     className="w-3 h-3 text-neutral-400 shrink-0"
-                    style={effectiveColor ? { color: effectiveColor } : undefined}
+                    style={parentColColor ? { color: parentColColor } : undefined}
                   />
                 )}
                 <span className="truncate max-w-[140px]">{row.parentCollectionName}</span>

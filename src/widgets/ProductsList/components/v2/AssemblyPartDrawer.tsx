@@ -148,17 +148,9 @@ export function AssemblyPartDrawer({
   };
 
   return (
-    <div
-      className="w-full"
-      style={{
-        borderLeftWidth: '3px',
-        borderLeftStyle: 'solid',
-        borderLeftColor: '#06b6d4',
-      }}
-    >
+    <div className="w-full">
       <ProductRowDrawer
         row={partRow}
-        collectionColor="#06b6d4"
         currencySymbol={currencySymbol}
         onInlineUpdateProduct={handleInlineUpdateProduct}
         onSetStock={handleSetStock}
