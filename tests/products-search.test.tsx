@@ -574,5 +574,37 @@ describe('AssemblyPartDrawer interactive slide-out menu', () => {
     assert.match(html, /data-row-drawer="true"/);
     assert.match(html, /#PRT-/);
   });
+
+  it('applies row elevation and drawer rendering when an assembly part is elevated', () => {
+    const part = sampleAssembly.assembly_parts![0];
+    const elevatedRow: CatalogTableRow = {
+      rowKind: 'product',
+      id: part.id,
+      item: { ...sampleAssembly, id: part.id },
+      isPart: true,
+      parentCollectionName: sampleAssembly.name,
+      name: part.name,
+      category: 'Запчасти',
+      final_price: 500,
+      base_cost: 250,
+      stock_quantity: 1,
+      weight_g: 40,
+      hours: 1,
+      minutes: 15,
+    };
+
+    const htmlElevated = renderToStaticMarkup(
+      <AssemblyExpandedRow
+        assembly={sampleAssembly}
+        mode="expanded"
+        elevatedRow={elevatedRow}
+      />
+    );
+
+    // Elevated part gets !z-50
+    assert.match(htmlElevated, /!z-50/);
+    // Elevated part displays its drawer
+    assert.match(htmlElevated, /data-row-drawer="true"/);
+  });
 });
 

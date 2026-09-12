@@ -22,10 +22,16 @@ import {
   AssemblyElectronicsItem,
   Filament,
 } from '../../../../shared/types';
-import { SalesStatInfo } from '../../types';
+import { CatalogTableRow, SalesStatInfo } from '../../types';
 import { formatCurrency } from '../../../../shared/lib/format';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
-import { AssemblyPartDrawer } from './AssemblyPartDrawer';
+import { AssemblyPartDrawer, convertPartToSavedCalculation } from './AssemblyPartDrawer';
+import {
+  ROW_ELEVATION_EASE,
+  DRAWER_EXPAND_DURATION,
+  ROW_ELEVATION_DURATION,
+  DRAWER_OPACITY_DURATION,
+} from '../../../../shared/lib/tableScrollHelper';
 
 export const PRODUCTS_EXPANDED_COLUMNS = '112px 96px 144px minmax(220px,1.5fr) 136px 128px 144px 144px 144px 144px 112px 96px 160px';
 export const PRODUCTS_COMPACT_COLUMNS = '112px 136px minmax(200px,1.5fr) 128px 120px 136px 156px 144px 160px';
@@ -43,6 +49,8 @@ interface AssemblyExpandedRowProps {
   categoriesList?: { id: string; label: string }[];
   filaments?: Filament[];
   salesStat?: SalesStatInfo;
+  elevatedRow?: CatalogTableRow | null;
+  setElevatedRow?: (row: CatalogTableRow | null) => void;
   expandedPartIndex?: number | null;
   onTogglePartIndex?: (index: number | null) => void;
 }
@@ -60,6 +68,8 @@ export function AssemblyExpandedRow({
   categoriesList,
   filaments,
   salesStat,
+  elevatedRow,
+  setElevatedRow,
   expandedPartIndex: controlledExpandedPartIndex,
   onTogglePartIndex,
 }: AssemblyExpandedRowProps) {
@@ -82,7 +92,9 @@ export function AssemblyExpandedRow({
     ? controlledExpandedPartIndex
     : internalExpandedIndex;
 
-  const handleTogglePartIndex = (idx: number) => {
+  const isAnyElevated = Boolean(elevatedRow);
+
+  const handleTogglePartIndex = (idx: number | null) => {
     const nextVal = activeExpandedPartIndex === idx ? null : idx;
     if (onTogglePartIndex) {
       onTogglePartIndex(nextVal);
@@ -90,9 +102,46 @@ export function AssemblyExpandedRow({
     setInternalExpandedIndex(nextVal);
   };
 
+  const handleTogglePart = (partIdx: number, rowToElevate: CatalogTableRow) => {
+    const isCurrentlyElevated = elevatedRow ? elevatedRow.id === rowToElevate.id : activeExpandedPartIndex === partIdx;
+    if (isCurrentlyElevated) {
+      if (setElevatedRow) setElevatedRow(null);
+      handleTogglePartIndex(null);
+    } else {
+      if (setElevatedRow) setElevatedRow(rowToElevate);
+      handleTogglePartIndex(partIdx);
+    }
+  };
+
+  const getPartRow = (part: AssemblyPrintedPart, idx: number): CatalogTableRow => {
+    const partCalc = convertPartToSavedCalculation(part, assembly, idx);
+    return {
+      rowKind: 'product',
+      id: partCalc.id,
+      item: partCalc,
+      parentCollectionName: assembly.name,
+      parentCollectionColor: '#06b6d4',
+      isPart: true,
+      name: partCalc.name,
+      category: partCalc.category,
+      final_price: partCalc.final_price,
+      base_cost: partCalc.base_cost,
+      stock_quantity: partCalc.quantity,
+      weight_g: partCalc.weight_g,
+      hours: partCalc.hours,
+      minutes: partCalc.minutes,
+      created_at: partCalc.created_at,
+    };
+  };
+
   const parts: AssemblyPrintedPart[] = assembly.assembly_parts || [];
   const hardware: AssemblyHardwareItem[] = assembly.assembly_hardware || [];
   const electronics: AssemblyElectronicsItem[] = assembly.assembly_electronics || [];
+
+  const isAnyPartElevated = parts.some((part, idx) => {
+    const pRow = getPartRow(part, idx);
+    return elevatedRow ? elevatedRow.id === pRow.id : activeExpandedPartIndex === idx;
+  });
 
   const query = (searchQuery || '').trim().toLowerCase();
 
@@ -182,7 +231,11 @@ export function AssemblyExpandedRow({
               {/* Секция печатных деталей */}
               {parts.length > 0 && (
                 <div className="space-y-2">
-                  <div className="bg-cyan-950/30 border border-cyan-500/20 rounded-lg py-1.5 px-2.5 flex items-center justify-between text-xs">
+                  <motion.div
+                    animate={{ opacity: isAnyPartElevated ? 0.35 : 1 }}
+                    transition={{ opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE } }}
+                    className="bg-cyan-950/30 border border-cyan-500/20 rounded-lg py-1.5 px-2.5 flex items-center justify-between text-xs"
+                  >
                     <div className="flex items-center gap-1.5 text-cyan-300 font-bold flex-wrap">
                       <span>┌─ [ПЕЧАТНЫЕ ДЕТАЛИ]</span>
                       <span className="text-neutral-500">·</span>
@@ -198,9 +251,12 @@ export function AssemblyExpandedRow({
                     <span className="text-[11px] text-cyan-400 font-mono font-bold tabular-nums">
                       {formatCurrency(partsPrice, currencySymbol)}
                     </span>
-                  </div>
+                  </motion.div>
                   <div className="space-y-1.5 pl-2">
                     {parts.map((part, idx) => {
+                      const partRow = getPartRow(part, idx);
+                      const isPartElevated = elevatedRow ? elevatedRow.id === partRow.id : activeExpandedPartIndex === idx;
+                      const isPartBlurred = Boolean(elevatedRow) && !isPartElevated;
                       const isMatched = isPartMatch(part);
                       const qty = part.quantity || 1;
                       const pWeight = (part.weight_g || 0) * qty;
@@ -213,116 +269,146 @@ export function AssemblyExpandedRow({
                           ? `+${formatCurrency(pProfit, currencySymbol)}`
                           : formatCurrency(0, currencySymbol);
 
-                      const isPartExpanded = activeExpandedPartIndex === idx;
-
                       return (
-                        <div key={part.id || `part-${idx}`} className="w-full block space-y-1">
-                          <div
-                            onClick={() => handleTogglePartIndex(idx)}
-                            className={`border rounded-lg p-2.5 space-y-1.5 transition-colors cursor-pointer ${
-                              isMatched
-                                ? 'border-cyan-400/50 bg-cyan-950/40 ring-1 ring-cyan-500/30 shadow-[0_0_12px_rgba(6,182,212,0.15)]'
-                                : isPartExpanded
-                                  ? 'border-cyan-500/50 bg-cyan-950/30 shadow-[0_0_10px_rgba(6,182,212,0.1)]'
-                                  : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.04]'
-                            }`}
-                            style={{
-                              borderLeftWidth: '3px',
-                              borderLeftStyle: 'solid',
-                              borderLeftColor: isPartExpanded ? '#22d3ee' : '#06b6d4',
-                            }}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex items-center gap-1.5 min-w-0" aria-label="Компонент">
-                                <span className="text-cyan-400 font-bold text-xs select-none">└─</span>
-                                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-cyan-300 bg-cyan-950/60 border border-cyan-800/40">
-                                  {part.id ? `#${part.id.slice(0, 6)}` : `#PRT-${idx + 1}`}
-                                </span>
-                                <span className="font-sans font-medium text-xs text-white truncate" title={part.name}>
-                                  {part.name || 'Деталь'}
-                                </span>
-                                {isMatched && (
-                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shrink-0">
-                                    НАЙДЕНО
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-cyan-800/40 bg-cyan-950/40 text-cyan-300 tabular-nums" aria-label="Кол-во">
-                                  {qty} шт
-                                </span>
-                                <ChevronDown
-                                  className={`w-3.5 h-3.5 text-cyan-400 transition-transform duration-200 ${
-                                    isPartExpanded ? 'rotate-180' : ''
-                                  }`}
-                                />
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2 text-[11px] text-neutral-400 flex-wrap">
-                              <span className="inline-flex items-center gap-1" aria-label="Материал">
-                                <span
-                                  aria-label="Цвет материала"
-                                  className="w-2 h-2 rounded-full border border-white/20 shrink-0"
-                                  style={{ backgroundColor: part.filament_color || '#06b6d4' }}
-                                />
-                                <span>{part.filament_name || 'PLA'}</span>
+                        <motion.div
+                          key={part.id || `part-${idx}`}
+                          animate={{
+                            y: isPartElevated ? -8 : 0,
+                            scale: isPartElevated ? 1.02 : 1,
+                            opacity: isPartBlurred ? 0.35 : 1,
+                            backgroundColor: isPartElevated
+                              ? 'rgba(8, 20, 36, 0.98)'
+                              : isMatched
+                              ? 'rgba(6, 182, 212, 0.15)'
+                              : 'rgba(255, 255, 255, 0.02)',
+                            borderColor: isPartElevated
+                              ? 'rgba(6, 182, 212, 0.8)'
+                              : isMatched
+                              ? 'rgba(6, 182, 212, 0.4)'
+                              : 'rgba(255, 255, 255, 0.1)',
+                            borderRadius: isPartElevated ? 12 : 8,
+                            boxShadow: isPartElevated
+                              ? '0 0 0 1px rgba(6, 182, 212, 0.5), 0 20px 40px -10px rgba(0, 0, 0, 0.95), 0 0 20px -5px rgba(6, 182, 212, 0.35)'
+                              : 'none',
+                          }}
+                          transition={{
+                            y: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
+                            scale: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
+                            opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
+                            borderRadius: { duration: 0.58, ease: ROW_ELEVATION_EASE },
+                            boxShadow: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
+                          }}
+                          className={`w-full block space-y-1 rounded-lg border p-2.5 transition-colors cursor-pointer ${
+                            isPartElevated
+                              ? '!z-50 relative'
+                              : isPartBlurred
+                              ? 'pointer-events-none select-none'
+                              : 'hover:bg-white/[0.04]'
+                          }`}
+                          style={{
+                            borderLeftWidth: '3px',
+                            borderLeftStyle: 'solid',
+                            borderLeftColor: isPartElevated ? '#22d3ee' : '#06b6d4',
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTogglePart(idx, partRow);
+                          }}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0" aria-label="Компонент">
+                              <span className="text-cyan-400 font-bold text-xs select-none">└─</span>
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono text-cyan-300 bg-cyan-950/60 border border-cyan-800/40">
+                                {part.id ? `#${part.id.slice(0, 6)}` : `#PRT-${idx + 1}`}
                               </span>
-                              {pWeight > 0 && (
-                                <>
-                                  <span className="text-neutral-600">•</span>
-                                  <span className="tabular-nums" aria-label="Общий вес">{pWeight} г</span>
-                                </>
-                              )}
-                              {(part.hours || part.minutes) && (
-                                <>
-                                  <span className="text-neutral-600">•</span>
-                                  <span className="tabular-nums">
-                                    {part.hours ? `${part.hours}ч ` : ''}{part.minutes ? `${part.minutes}м` : ''}
-                                  </span>
-                                </>
-                              )}
-                              {(part.stl_url || part.stl_file_data || part.stl_file_name) && (
-                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 inline-flex items-center gap-0.5">
-                                  <FileCode className="w-2.5 h-2.5" />
-                                  <span>STL</span>
+                              <span className="font-sans font-medium text-xs text-white truncate" title={part.name}>
+                                {part.name || 'Деталь'}
+                              </span>
+                              {isMatched && (
+                                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shrink-0">
+                                  НАЙДЕНО
                                 </span>
                               )}
                             </div>
-
-                            <div className="flex items-center justify-between text-[11px] pt-1 border-t border-white/5">
-                              <span className="text-neutral-500 tabular-nums">
-                                себест. {formatCurrency(pCost, currencySymbol)}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold border border-cyan-800/40 bg-cyan-950/40 text-cyan-300 tabular-nums" aria-label="Кол-во">
+                                {qty} шт
                               </span>
-                              <div className="flex items-center gap-2" aria-label="Сумма">
-                                <span className="text-white font-bold tabular-nums">
-                                  {formatCurrency(pPrice, currencySymbol)}
+                              <ChevronDown
+                                className={`w-3.5 h-3.5 text-cyan-400 transition-transform duration-200 ${
+                                  isPartElevated ? 'rotate-180' : ''
+                                }`}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 text-[11px] text-neutral-400 flex-wrap">
+                            <span className="inline-flex items-center gap-1" aria-label="Материал">
+                              <span
+                                aria-label="Цвет материала"
+                                className="w-2 h-2 rounded-full border border-white/20 shrink-0"
+                                style={{ backgroundColor: part.filament_color || '#06b6d4' }}
+                              />
+                              <span>{part.filament_name || 'PLA'}</span>
+                            </span>
+                            {pWeight > 0 && (
+                              <>
+                                <span className="text-neutral-600">•</span>
+                                <span className="tabular-nums" aria-label="Общий вес">{pWeight} г</span>
+                              </>
+                            )}
+                            {(part.hours || part.minutes) && (
+                              <>
+                                <span className="text-neutral-600">•</span>
+                                <span className="tabular-nums">
+                                  {part.hours ? `${part.hours}ч ` : ''}{part.minutes ? `${part.minutes}м` : ''}
                                 </span>
-                                <span className={`tabular-nums text-[10px] ${pProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                  ({pProfitDisplay})
-                                </span>
-                              </div>
+                              </>
+                            )}
+                            {(part.stl_url || part.stl_file_data || part.stl_file_name) && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 inline-flex items-center gap-0.5">
+                                <FileCode className="w-2.5 h-2.5" />
+                                <span>STL</span>
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between text-[11px] pt-1 border-t border-white/5">
+                            <span className="text-neutral-500 tabular-nums">
+                              себест. {formatCurrency(pCost, currencySymbol)}
+                            </span>
+                            <div className="flex items-center gap-2" aria-label="Сумма">
+                              <span className="text-white font-bold tabular-nums">
+                                {formatCurrency(pPrice, currencySymbol)}
+                              </span>
+                              <span className={`tabular-nums text-[10px] ${pProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                ({pProfitDisplay})
+                              </span>
                             </div>
                           </div>
 
                           <AnimatePresence initial={false}>
-                            {isPartExpanded && (
+                            {isPartElevated && (
                               <motion.div
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: 'auto', opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
                                 transition={{
-                                  height: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
-                                  opacity: { duration: 0.25, ease: [0.22, 1, 0.36, 1] },
+                                  height: { duration: DRAWER_EXPAND_DURATION, ease: ROW_ELEVATION_EASE },
+                                  opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
                                 }}
-                                className="w-full overflow-hidden block rounded-lg border border-cyan-500/20"
+                                className="w-full overflow-hidden block rounded-lg border-t border-cyan-500/20 pt-2"
+                                onClick={(e) => e.stopPropagation()}
                               >
                                 <AssemblyPartDrawer
                                   part={part}
                                   partIndex={idx}
                                   parentAssembly={assembly}
                                   currencySymbol={currencySymbol}
-                                  onClose={() => handleTogglePartIndex(idx)}
+                                  onClose={() => {
+                                    if (setElevatedRow) setElevatedRow(null);
+                                    handleTogglePartIndex(null);
+                                  }}
                                   onOpenQuickEditModal={onOpenQuickEditModal}
                                   onCreateOrder={onCreateOrder}
                                   onLoadIntoCalculator={onLoadIntoCalculator}
@@ -335,7 +421,7 @@ export function AssemblyExpandedRow({
                               </motion.div>
                             )}
                           </AnimatePresence>
-                        </div>
+                        </motion.div>
                       );
                     })}
                   </div>
@@ -344,7 +430,11 @@ export function AssemblyExpandedRow({
 
               {/* Секция крепежа и фурнитуры */}
               {hardware.length > 0 && (
-                <div className="space-y-2">
+                <motion.div
+                  animate={{ opacity: isAnyElevated ? 0.35 : 1 }}
+                  transition={{ opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE } }}
+                  className={`space-y-2 ${isAnyElevated ? 'pointer-events-none select-none' : ''}`}
+                >
                   <div className="bg-amber-950/20 border border-amber-500/20 rounded-lg py-1.5 px-2.5 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5 text-amber-300 font-bold flex-wrap">
                       <span>┌─ [КРЕПЁЖ И ФУРНИТУРА]</span>
@@ -428,12 +518,16 @@ export function AssemblyExpandedRow({
                       );
                     })}
                   </div>
-                </div>
+                </motion.div>
               )}
 
               {/* Секция электроники */}
               {electronics.length > 0 && (
-                <div className="space-y-2">
+                <motion.div
+                  animate={{ opacity: isAnyElevated ? 0.35 : 1 }}
+                  transition={{ opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE } }}
+                  className={`space-y-2 ${isAnyElevated ? 'pointer-events-none select-none' : ''}`}
+                >
                   <div className="bg-violet-950/20 border border-violet-500/20 rounded-lg py-1.5 px-2.5 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-1.5 text-violet-300 font-bold flex-wrap">
                       <span>┌─ [ЭЛЕКТРОНИКА И МОДУЛИ]</span>
@@ -517,14 +611,20 @@ export function AssemblyExpandedRow({
                       );
                     })}
                   </div>
-                </div>
+                </motion.div>
               )}
             </>
           )}
         </div>
 
         {/* Сводка и панель действий */}
-        <div className="border-t border-white/10 bg-neutral-900/60 px-3 py-3 space-y-3">
+        <motion.div
+          animate={{ opacity: isAnyElevated ? 0.35 : 1 }}
+          transition={{ opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE } }}
+          className={`border-t border-white/10 bg-neutral-900/60 px-3 py-3 space-y-3 ${
+            isAnyElevated ? 'pointer-events-none select-none' : ''
+          }`}
+        >
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div>
               <span className="block text-[10px] uppercase tracking-wide text-neutral-500">Труд</span>
@@ -563,7 +663,7 @@ export function AssemblyExpandedRow({
               </CockpitButton>
             )}
           </div>
-        </div>
+        </motion.div>
       </motion.div>
     );
   }
@@ -592,8 +692,12 @@ export function AssemblyExpandedRow({
           {parts.length > 0 && (
             <div className="w-full block">
               {/* Заголовок-разделитель секции печатных деталей */}
-              <div
-                className="w-full bg-cyan-950/25 border-y border-cyan-500/20 py-2 px-3 flex items-center justify-between text-xs font-mono select-none"
+              <motion.div
+                animate={{ opacity: isAnyPartElevated ? 0.35 : 1 }}
+                transition={{ opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE } }}
+                className={`w-full bg-cyan-950/25 border-y border-cyan-500/20 py-2 px-3 flex items-center justify-between text-xs font-mono select-none ${
+                  isAnyPartElevated ? 'pointer-events-none' : ''
+                }`}
                 style={{
                   borderLeftWidth: '3px',
                   borderLeftStyle: 'solid',
@@ -618,12 +722,14 @@ export function AssemblyExpandedRow({
                   {' · '}
                   цена <span className="text-cyan-300 font-bold">{formatCurrency(partsPrice, currencySymbol)}</span>
                 </div>
-              </div>
+              </motion.div>
 
               {/* Строки печатных деталей */}
               {parts.map((part, idx) => {
+                const partRow = getPartRow(part, idx);
+                const isPartElevated = elevatedRow ? elevatedRow.id === partRow.id : activeExpandedPartIndex === idx;
+                const isPartBlurred = Boolean(elevatedRow) && !isPartElevated;
                 const isMatched = isPartMatch(part);
-                const isPartExpanded = activeExpandedPartIndex === idx;
                 const qty = part.quantity || 1;
                 const unitCost = part.base_cost || 0;
                 const totalPartCost = unitCost * qty;
@@ -640,20 +746,57 @@ export function AssemblyExpandedRow({
                 const article = part.id ? `#${part.id.slice(0, 6)}` : `#PRT-${idx + 1}`;
 
                 return (
-                  <div key={part.id || `part-${idx}`} className="w-full block">
-                    <motion.div
-                      onClick={() => handleTogglePartIndex(idx)}
-                      whileHover={{ backgroundColor: isMatched ? 'rgba(6, 182, 212, 0.16)' : 'rgba(6, 182, 212, 0.05)' }}
-                      transition={{ duration: 0.15 }}
-                      className={`group relative border-b border-white/5 grid w-full items-center transition-colors cursor-pointer ${
-                        isMatched ? 'bg-cyan-500/[0.09]' : ''
-                      } ${isPartExpanded ? '!bg-neutral-900/95 ring-1 ring-inset ring-cyan-500/40 shadow-[0_4px_20px_rgba(0,0,0,0.5)]' : ''}`}
-                      style={{
-                        gridTemplateColumns: gridCols,
-                        borderLeftWidth: '3px',
-                        borderLeftStyle: 'solid',
-                        borderLeftColor: isPartExpanded ? '#22d3ee' : '#06b6d4',
+                  <motion.div
+                    key={part.id || `part-${idx}`}
+                    animate={{
+                      y: isPartElevated ? -14 : 0,
+                      scale: 1,
+                      opacity: isPartBlurred ? 0.35 : 1,
+                      backgroundColor: isPartElevated
+                        ? 'rgba(10, 20, 30, 0.98)'
+                        : isMatched
+                        ? 'rgba(6, 182, 212, 0.09)'
+                        : 'rgba(0, 0, 0, 0)',
+                      borderBottomColor: isPartElevated
+                        ? 'rgba(6, 182, 212, 0.8)'
+                        : 'rgba(255, 255, 255, 0.05)',
+                      borderRadius: isPartElevated ? 12 : 0,
+                      boxShadow: isPartElevated
+                        ? '0 0 0 1px rgba(6, 182, 212, 0.5), 0 24px 50px -10px rgba(0, 0, 0, 0.95), 0 0 24px -5px rgba(6, 182, 212, 0.4)'
+                        : 'none',
+                    }}
+                    whileHover={!isPartElevated && !isPartBlurred ? {
+                      backgroundColor: isMatched ? 'rgba(6, 182, 212, 0.16)' : 'rgba(6, 182, 212, 0.05)',
+                    } : undefined}
+                    transition={{
+                      y: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
+                      opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
+                      backgroundColor: { duration: 0.35, ease: ROW_ELEVATION_EASE },
+                      borderBottomColor: { duration: 0.58, ease: ROW_ELEVATION_EASE },
+                      borderRadius: { duration: 0.58, ease: ROW_ELEVATION_EASE },
+                      boxShadow: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
+                    }}
+                    className={`group relative border-b w-full block transition-colors ${
+                      isPartElevated
+                        ? '!z-50 cursor-default'
+                        : isPartBlurred
+                        ? 'pointer-events-none select-none border-white/5'
+                        : 'border-white/5 cursor-pointer'
+                    }`}
+                    style={{
+                      willChange: isPartElevated || isPartBlurred ? 'transform, opacity' : 'auto',
+                      borderLeftWidth: '3px',
+                      borderLeftStyle: 'solid',
+                      borderLeftColor: isPartElevated ? '#22d3ee' : '#06b6d4',
+                    }}
+                  >
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTogglePart(idx, partRow);
                       }}
+                      className="grid w-full items-center"
+                      style={{ gridTemplateColumns: gridCols }}
                     >
                       {/* 1. АРТИКУЛ (или АРТИКУЛ / ТИП в компактном) */}
                       <div className="py-2 px-3 whitespace-nowrap min-w-0 font-mono">
@@ -664,7 +807,7 @@ export function AssemblyExpandedRow({
                           </span>
                           <ChevronDown
                             className={`w-3 h-3 text-cyan-400 shrink-0 transition-transform duration-200 ${
-                              isPartExpanded ? 'rotate-180' : ''
+                              isPartElevated ? 'rotate-180' : ''
                             }`}
                           />
                         </div>
@@ -849,37 +992,42 @@ export function AssemblyExpandedRow({
                             type="button"
                             onClick={(e) => {
                               e?.stopPropagation?.();
-                              handleTogglePartIndex(idx);
+                              handleTogglePart(idx, partRow);
                             }}
                             className={`p-1 rounded hover:bg-white/10 text-neutral-400 hover:text-white cursor-pointer shrink-0 transition-colors ${
-                              isPartExpanded ? 'bg-white/15 text-cyan-300 font-bold' : ''
+                              isPartElevated ? 'bg-white/15 text-cyan-300 font-bold' : ''
                             }`}
-                            title={isPartExpanded ? 'Свернуть меню детали' : 'Параметры и меню детали'}
+                            title={isPartElevated ? 'Свернуть меню детали' : 'Параметры и меню детали'}
                           >
                             •••
                           </button>
                         </div>
                       </div>
-                    </motion.div>
+                    </div>
 
                     <AnimatePresence initial={false}>
-                      {isPartExpanded && (
+                      {isPartElevated && (
                         <motion.div
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
                           transition={{
-                            height: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
-                            opacity: { duration: 0.25, ease: [0.22, 1, 0.36, 1] },
+                            height: { duration: DRAWER_EXPAND_DURATION, ease: ROW_ELEVATION_EASE },
+                            opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
                           }}
-                          className="w-full overflow-hidden block border-b border-cyan-500/20"
+                          className="w-full overflow-hidden block border-t border-cyan-500/20"
+                          style={{ willChange: 'height, opacity' }}
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <AssemblyPartDrawer
                             part={part}
                             partIndex={idx}
                             parentAssembly={assembly}
                             currencySymbol={currencySymbol}
-                            onClose={() => handleTogglePartIndex(idx)}
+                            onClose={() => {
+                              if (setElevatedRow) setElevatedRow(null);
+                              handleTogglePartIndex(null);
+                            }}
                             onOpenQuickEditModal={onOpenQuickEditModal}
                             onCreateOrder={onCreateOrder}
                             onLoadIntoCalculator={onLoadIntoCalculator}
@@ -892,7 +1040,7 @@ export function AssemblyExpandedRow({
                         </motion.div>
                       )}
                     </AnimatePresence>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
@@ -900,7 +1048,11 @@ export function AssemblyExpandedRow({
 
           {/* СЕКЦИЯ 2: КРЕПЁЖ И ФУРНИТУРА */}
           {hardware.length > 0 && (
-            <div className="w-full block">
+            <motion.div
+              animate={{ opacity: isAnyElevated ? 0.35 : 1 }}
+              transition={{ opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE } }}
+              className={`w-full block ${isAnyElevated ? 'pointer-events-none select-none' : ''}`}
+            >
               {/* Заголовок-разделитель секции крепежа */}
               <div
                 className="w-full bg-amber-950/20 border-y border-amber-500/20 py-2 px-3 flex items-center justify-between text-xs font-mono select-none"
@@ -1119,12 +1271,16 @@ export function AssemblyExpandedRow({
                   </motion.div>
                 );
               })}
-            </div>
+            </motion.div>
           )}
 
           {/* СЕКЦИЯ 3: ЭЛЕКТРОНИКА И МОДУЛИ */}
           {electronics.length > 0 && (
-            <div className="w-full block">
+            <motion.div
+              animate={{ opacity: isAnyElevated ? 0.35 : 1 }}
+              transition={{ opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE } }}
+              className={`w-full block ${isAnyElevated ? 'pointer-events-none select-none' : ''}`}
+            >
               {/* Заголовок-разделитель секции электроники */}
               <div
                 className="w-full bg-violet-950/20 border-y border-violet-500/20 py-2 px-3 flex items-center justify-between text-xs font-mono select-none"
@@ -1343,14 +1499,18 @@ export function AssemblyExpandedRow({
                   </motion.div>
                 );
               })}
-            </div>
+            </motion.div>
           )}
         </div>
       )}
 
       {/* НИЖНЯЯ ПАНЕЛЬ СВОДКИ И ДЕЙСТВИЙ */}
-      <div
-        className="w-full border-t border-white/10 bg-neutral-900/60 px-4 py-3 flex flex-wrap items-center justify-between gap-3 select-none"
+      <motion.div
+        animate={{ opacity: isAnyElevated ? 0.35 : 1 }}
+        transition={{ opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE } }}
+        className={`w-full border-t border-white/10 bg-neutral-900/60 px-4 py-3 flex flex-wrap items-center justify-between gap-3 select-none ${
+          isAnyElevated ? 'pointer-events-none select-none' : ''
+        }`}
         style={{
           borderLeftWidth: '3px',
           borderLeftStyle: 'solid',
@@ -1401,7 +1561,7 @@ export function AssemblyExpandedRow({
             </CockpitButton>
           )}
         </div>
-      </div>
+      </motion.div>
     </motion.div>
   );
 }

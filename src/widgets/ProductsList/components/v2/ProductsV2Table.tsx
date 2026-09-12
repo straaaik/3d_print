@@ -55,9 +55,8 @@ import { CockpitStatusPill } from '../../../../shared/ui/CockpitTable/CockpitSta
 import { ProductRowDrawer } from './ProductRowDrawer';
 import { AssemblyExpandedRow } from './AssemblyExpandedRow';
 import { MotionPulse, MotionRevealDiv } from '../../../../shared/ui/MotionPrimitives';
-import { getChildCollectionColor } from '../../helpers';
+
 import {
-  autoScrollElevatedRowIntoView,
   ROW_ELEVATION_EASE,
   DRAWER_EXPAND_DURATION,
   ROW_ELEVATION_DURATION,
@@ -433,25 +432,11 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
   const surfaceTransition = shouldReduceMotion
     ? { duration: 0 }
     : { duration: SURFACE_FADE_DURATION, ease: SURFACE_EASE };
-  const elevatedRowRef = useRef<HTMLElement | null>(null);
   // Локальное состояние для строки в фокусе (парение), если не передано внешнее
   const [internalElevatedRow, setInternalElevatedRow] = useState<CatalogTableRow | null>(null);
   const elevatedRow = externalElevatedRow !== undefined ? externalElevatedRow : internalElevatedRow;
   const setElevatedRow = externalSetElevatedRow || setInternalElevatedRow;
   const lastElevatedCloseTimeRef = useRef<number>(0);
-
-  useEffect(() => {
-    if (!elevatedRow) {
-      elevatedRowRef.current = null;
-      return;
-    }
-    const rafId = requestAnimationFrame(() => {
-      if (elevatedRowRef.current) {
-        autoScrollElevatedRowIntoView(elevatedRowRef.current, Math.round(DRAWER_EXPAND_DURATION * 1000));
-      }
-    });
-    return () => cancelAnimationFrame(rafId);
-  }, [elevatedRow]);
 
   // Состояние скопированного ID для тултипа
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -648,7 +633,13 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
           const isCol = row.rowKind === 'collection';
           const isAsm = row.rowKind === 'product' && row.item.type === 'assembly';
           const isElevated = elevatedRow?.id === row.id;
-          const isBlurred = Boolean(elevatedRow) && !isElevated;
+          const isChildElevatedInside = Boolean(
+            elevatedRow &&
+            elevatedRow.rowKind === 'product' &&
+            ((row.rowKind === 'collection' && elevatedRow.parentCollectionId === row.id) ||
+             (row.rowKind === 'product' && elevatedRow.isPart && (elevatedRow.parentCollectionName === row.name || elevatedRow.id.startsWith(`prt-${row.id}`))))
+          );
+          const isBlurred = Boolean(elevatedRow) && !isElevated && !isChildElevatedInside;
           const article = formatProductArticle(row);
           const salesStat = salesStatsMap.get(row.id);
           const stock = row.stock_quantity || 0;
@@ -656,7 +647,6 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
 
           return (
             <motion.article
-              ref={isElevated ? (el) => { elevatedRowRef.current = el; } : undefined}
               layout
               key={row.id}
               animate={{
@@ -880,13 +870,13 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 onClick={() => setElevatedRow(childRow)}
                                 className="p-2.5 rounded-lg border flex items-center justify-between gap-2 cursor-pointer transition-colors"
                                 style={{
+                                  borderWidth: '1.5px',
+                                  borderStyle: 'solid',
                                   borderLeftWidth: '3px',
-                                  borderLeftStyle: 'solid',
                                   borderLeftColor: colColor,
-                                  borderTopColor: `${colColor}30`,
-                                  borderRightColor: `${colColor}30`,
-                                  borderBottomColor: `${colColor}30`,
-                                  backgroundColor: `${colColor}0c`,
+                                  borderTopColor: `${colColor}40`,
+                                  borderRightColor: `${colColor}40`,
+                                  borderBottomColor: `${colColor}40`,
                                 }}
                               >
                                 <div className="min-w-0 flex-1">
@@ -922,6 +912,8 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           categoriesList={categoriesList}
                           filaments={filaments}
                           salesStat={salesStatsMap.get(row.id)}
+                          elevatedRow={elevatedRow}
+                          setElevatedRow={setElevatedRow}
                         />
                       ) : null}
                     </div>
@@ -1166,37 +1158,32 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                     const CatIcon = getCategoryLucideIcon(prodRow.category || 'Разное');
                     const hasStl = Boolean(prodRow.item?.stl_url || prodRow.item?.stl_file_data);
                     const isContextMenuActive = contextMenu?.row.id === prodRow.id;
-                    const childColor = isChild && collectionColor ? getChildCollectionColor(collectionColor) : undefined;
+
 
                     return (
                       <React.Fragment key={prodRow.id}>
                         <motion.tr
-                          ref={isElevated ? (el) => { elevatedRowRef.current = el; } : undefined}
                           animate={{
                             y: isElevated ? -14 : 0,
                             scale: 1,
                             opacity: isBlurred ? 0.35 : 1,
                             backgroundColor: isElevated
-                              ? (childColor ? `${childColor}20` : 'rgba(15, 15, 15, 0.98)')
-                              : childColor
-                              ? `${childColor}08`
+                              ? 'rgba(15, 15, 15, 0.98)'
                               : 'rgba(0, 0, 0, 0)',
                             borderBottomColor: isElevated
-                              ? (childColor || 'rgba(255, 255, 255, 0.35)')
+                              ? (collectionColor || 'rgba(255, 255, 255, 0.35)')
                               : isLastChild && collectionColor
-                              ? `${collectionColor}40`
-                              : childColor
-                              ? `${childColor}20`
+                              ? `${collectionColor}60`
                               : 'rgba(255, 255, 255, 0.05)',
                             borderRadius: isElevated ? 12 : 0,
                             boxShadow: isElevated
-                              ? (childColor
-                                  ? `0 0 0 1px ${childColor}50, 0 24px 50px -10px rgba(0, 0, 0, 0.95), 0 0 24px -5px ${childColor}40`
+                              ? (collectionColor && isChild
+                                  ? `0 0 0 1px ${collectionColor}50, 0 24px 50px -10px rgba(0, 0, 0, 0.95), 0 0 24px -5px ${collectionColor}40`
                                   : '0 0 0 1px rgba(255, 255, 255, 0.22), 0 24px 50px -10px rgba(0, 0, 0, 0.95)')
                               : 'none',
                           }}
                           whileHover={!isElevated && !isBlurred ? {
-                            backgroundColor: childColor ? `${childColor}16` : 'rgba(255, 255, 255, 0.04)',
+                            backgroundColor: 'rgba(255, 255, 255, 0.04)',
                           } : undefined}
                           transition={{
                             y: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
@@ -1235,15 +1222,18 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           style={{
                             gridTemplateColumns: PRODUCTS_EXPANDED_COLUMNS,
                             willChange: isElevated || isBlurred ? 'transform, opacity' : 'auto',
-                            ...(childColor ? {
+                            ...(isChild && collectionColor ? {
                               borderLeftWidth: '2.5px',
                               borderLeftStyle: 'solid',
-                              borderLeftColor: `${childColor}70`,
+                              borderLeftColor: `${collectionColor}70`,
+                              borderRightWidth: '2.5px',
+                              borderRightStyle: 'solid',
+                              borderRightColor: `${collectionColor}30`,
                             } : {}),
                             ...(isLastChild && collectionColor ? {
                               borderBottomWidth: '2px',
                               borderBottomStyle: 'solid',
-                              borderBottomColor: `${collectionColor}40`,
+                              borderBottomColor: `${collectionColor}60`,
                             } : {}),
                           }}
                         >
@@ -1278,16 +1268,16 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                     type="button"
                                     onClick={(e) => handleCopyId(e, prodRow.id)}
                                     className={`px-2 py-0.5 rounded text-[11px] font-mono w-fit font-bold border flex items-center gap-1 cursor-pointer ${
-                                      childColor
+                                      isChild && collectionColor
                                         ? 'hover:brightness-125'
                                         : isAsm
                                         ? 'bg-cyan-950/50 text-cyan-300 border-cyan-800/40 hover:bg-cyan-900/60'
                                         : 'bg-white/5 text-neutral-300 border-white/10 hover:bg-white/10 hover:text-white'
                                     }`}
-                                    style={childColor ? {
-                                      backgroundColor: `${childColor}18`,
-                                      borderColor: `${childColor}40`,
-                                      color: childColor,
+                                    style={isChild && collectionColor ? {
+                                      backgroundColor: `${collectionColor}18`,
+                                      borderColor: `${collectionColor}40`,
+                                      color: collectionColor,
                                     } : undefined}
                                   >
                                     <span>{article}</span>
@@ -1637,7 +1627,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 >
                                   <ProductRowDrawer
                                     row={prodRow}
-                                    collectionColor={childColor || collectionColor || prodRow.parentCollectionColor}
+                                    collectionColor={collectionColor || prodRow.parentCollectionColor}
                                     currencySymbol={currencySymbol}
                                     onInlineUpdateProduct={onInlineUpdateProduct}
                                     onInlineUpdateCollection={onInlineUpdateCollection}
@@ -1679,6 +1669,9 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 height: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
                                 opacity: { duration: 0.4, delay: 0.12, ease: [0.16, 1, 0.3, 1] },
                               }}
+                              style={{
+                                overflow: elevatedRow?.rowKind === 'product' && elevatedRow.isPart && (elevatedRow.parentCollectionName === prodRow.name || elevatedRow.id.startsWith(`prt-${prodRow.id}`)) ? 'visible' : undefined,
+                              }}
                             >
                               <td colSpan={13} className="block w-full p-0 border-0">
                                 <AssemblyExpandedRow
@@ -1694,6 +1687,8 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   categoriesList={categoriesList}
                                   filaments={filaments}
                                   salesStat={salesStat}
+                                  elevatedRow={elevatedRow}
+                                  setElevatedRow={setElevatedRow}
                                 />
                               </td>
                             </motion.tr>
@@ -1861,7 +1856,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 </motion.div>
                               </button>
 
-                              <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                              <div className="min-w-0 flex-1 flex items-center gap-2">
                                 {editingCell?.rowId === colRow.id && editingCell?.field === 'name' ? (
                                   <input
                                     ref={inputRef as React.RefObject<HTMLInputElement>}
@@ -1880,7 +1875,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                       e.stopPropagation();
                                       startEditing(colRow, 'name', colRow.name);
                                     }}
-                                    className="truncate text-sm font-bold text-white tracking-tight cursor-text"
+                                    className="min-w-0 truncate text-xs font-medium text-neutral-200 hover:text-white cursor-text"
                                     title={`${colRow.name} (Клик для редактирования названия)`}
                                   >
                                     {colRow.name}
@@ -1888,7 +1883,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 )}
 
                                 <span
-                                  className="text-[10px] font-mono font-bold flex items-center gap-1 opacity-80"
+                                  className="shrink-0 whitespace-nowrap text-[10px] font-mono tabular-nums font-bold flex items-center gap-1 opacity-80"
                                   style={{ color: colColor }}
                                 >
                                   <Folder size={10} />
@@ -2068,7 +2063,12 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                           borderLeftWidth: '3px',
                                           borderLeftStyle: 'solid',
                                           borderLeftColor: colColor,
-                                          backgroundColor: `${colColor}08`,
+                                          borderRightWidth: '2.5px',
+                                          borderRightStyle: 'solid',
+                                          borderRightColor: `${colColor}30`,
+                                          borderBottomWidth: '2px',
+                                          borderBottomStyle: 'solid',
+                                          borderBottomColor: `${colColor}60`,
                                         }}
                                       >
                                         <span>В коллекции пока нет позиций</span>
@@ -2319,37 +2319,32 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                     const marginPercent = finalPrice > 0 ? (profit / finalPrice) * 100 : 0;
                     const CatIcon = getCategoryLucideIcon(prodRow.category || 'Разное');
                     const isContextMenuActive = contextMenu?.row.id === prodRow.id;
-                    const childColor = isChild && collectionColor ? getChildCollectionColor(collectionColor) : undefined;
+
 
                     return (
                       <React.Fragment key={prodRow.id}>
                         <motion.tr
-                          ref={isElevated ? (el) => { elevatedRowRef.current = el; } : undefined}
                           animate={{
                             y: isElevated ? -14 : 0,
                             scale: 1,
                             opacity: isBlurred ? 0.35 : 1,
                             backgroundColor: isElevated
-                              ? (childColor ? `${childColor}20` : 'rgba(15, 15, 15, 0.98)')
-                              : childColor
-                              ? `${childColor}08`
+                              ? 'rgba(15, 15, 15, 0.98)'
                               : 'rgba(0, 0, 0, 0)',
                             borderBottomColor: isElevated
-                              ? (childColor || 'rgba(255, 255, 255, 0.35)')
+                              ? (collectionColor || 'rgba(255, 255, 255, 0.35)')
                               : isLastChild && collectionColor
-                              ? `${collectionColor}40`
-                              : childColor
-                              ? `${childColor}20`
+                              ? `${collectionColor}60`
                               : 'rgba(255, 255, 255, 0.05)',
                             borderRadius: isElevated ? 12 : 0,
                             boxShadow: isElevated
-                              ? (childColor
-                                  ? `0 0 0 1px ${childColor}50, 0 24px 50px -10px rgba(0, 0, 0, 0.95), 0 0 24px -5px ${childColor}40`
+                              ? (collectionColor && isChild
+                                  ? `0 0 0 1px ${collectionColor}50, 0 24px 50px -10px rgba(0, 0, 0, 0.95), 0 0 24px -5px ${collectionColor}40`
                                   : '0 0 0 1px rgba(255, 255, 255, 0.22), 0 24px 50px -10px rgba(0, 0, 0, 0.95)')
                               : 'none',
                           }}
                           whileHover={!isElevated && !isBlurred ? {
-                            backgroundColor: childColor ? `${childColor}16` : 'rgba(255, 255, 255, 0.04)',
+                            backgroundColor: 'rgba(255, 255, 255, 0.04)',
                           } : undefined}
                           transition={{
                             y: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
@@ -2388,15 +2383,18 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           style={{
                             gridTemplateColumns: PRODUCTS_COMPACT_COLUMNS,
                             willChange: isElevated || isBlurred ? 'transform, opacity' : 'auto',
-                            ...(childColor ? {
+                            ...(isChild && collectionColor ? {
                               borderLeftWidth: '2.5px',
                               borderLeftStyle: 'solid',
-                              borderLeftColor: `${childColor}70`,
+                              borderLeftColor: `${collectionColor}70`,
+                              borderRightWidth: '2.5px',
+                              borderRightStyle: 'solid',
+                              borderRightColor: `${collectionColor}30`,
                             } : {}),
                             ...(isLastChild && collectionColor ? {
                               borderBottomWidth: '2px',
                               borderBottomStyle: 'solid',
-                              borderBottomColor: `${collectionColor}40`,
+                              borderBottomColor: `${collectionColor}60`,
                             } : {}),
                           }}
                         >
@@ -2431,16 +2429,16 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                     type="button"
                                     onClick={(e) => handleCopyId(e, prodRow.id)}
                                     className={`px-2 py-0.5 rounded text-[11px] font-mono w-fit font-bold border flex items-center gap-1 cursor-pointer ${
-                                      childColor
+                                      isChild && collectionColor
                                         ? 'hover:brightness-125'
                                         : isAsm
                                         ? 'bg-cyan-950/50 text-cyan-300 border-cyan-800/40 hover:bg-cyan-900/60'
                                         : 'bg-white/5 text-neutral-300 border-white/10 hover:bg-white/10 hover:text-white'
                                     }`}
-                                    style={childColor ? {
-                                      backgroundColor: `${childColor}18`,
-                                      borderColor: `${childColor}40`,
-                                      color: childColor,
+                                    style={isChild && collectionColor ? {
+                                      backgroundColor: `${collectionColor}18`,
+                                      borderColor: `${collectionColor}40`,
+                                      color: collectionColor,
                                     } : undefined}
                                   >
                                     <span>{article}</span>
@@ -2745,7 +2743,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 >
                                   <ProductRowDrawer
                                     row={prodRow}
-                                    collectionColor={childColor || collectionColor || prodRow.parentCollectionColor}
+                                    collectionColor={collectionColor || prodRow.parentCollectionColor}
                                     currencySymbol={currencySymbol}
                                     onInlineUpdateProduct={onInlineUpdateProduct}
                                     onInlineUpdateCollection={onInlineUpdateCollection}
@@ -2787,6 +2785,9 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 height: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
                                 opacity: { duration: 0.4, delay: 0.12, ease: [0.16, 1, 0.3, 1] },
                               }}
+                              style={{
+                                overflow: elevatedRow?.rowKind === 'product' && elevatedRow.isPart && (elevatedRow.parentCollectionName === prodRow.name || elevatedRow.id.startsWith(`prt-${prodRow.id}`)) ? 'visible' : undefined,
+                              }}
                             >
                               <td colSpan={9} className="block w-full p-0 border-0">
                                 <AssemblyExpandedRow
@@ -2802,6 +2803,8 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   categoriesList={categoriesList}
                                   filaments={filaments}
                                   salesStat={salesStat}
+                                  elevatedRow={elevatedRow}
+                                  setElevatedRow={setElevatedRow}
                                 />
                               </td>
                             </motion.tr>
@@ -2967,7 +2970,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 </motion.div>
                               </button>
 
-                              <div className="min-w-0 flex-1 flex flex-col gap-0.5">
+                              <div className="min-w-0 flex-1 flex items-center gap-2">
                                 {editingCell?.rowId === colRow.id && editingCell?.field === 'name' ? (
                                   <input
                                     ref={inputRef as React.RefObject<HTMLInputElement>}
@@ -2986,7 +2989,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                       e.stopPropagation();
                                       startEditing(colRow, 'name', colRow.name);
                                     }}
-                                    className="truncate text-sm font-bold text-white tracking-tight cursor-text"
+                                    className="min-w-0 truncate text-xs font-semibold text-white hover:text-neutral-300 cursor-text"
                                     title={`${colRow.name} (Клик для редактирования названия)`}
                                   >
                                     {colRow.name}
@@ -2994,7 +2997,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 )}
 
                                 <span
-                                  className="text-[10px] font-mono font-bold flex items-center gap-1 opacity-80"
+                                  className="shrink-0 whitespace-nowrap text-[10px] font-mono tabular-nums font-bold flex items-center gap-1 opacity-80"
                                   style={{ color: colColor }}
                                 >
                                   <Folder size={10} />
@@ -3161,7 +3164,12 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                           borderLeftWidth: '3px',
                                           borderLeftStyle: 'solid',
                                           borderLeftColor: colColor,
-                                          backgroundColor: `${colColor}08`,
+                                          borderRightWidth: '2.5px',
+                                          borderRightStyle: 'solid',
+                                          borderRightColor: `${colColor}30`,
+                                          borderBottomWidth: '2px',
+                                          borderBottomStyle: 'solid',
+                                          borderBottomColor: `${colColor}60`,
                                         }}
                                       >
                                         <span>В коллекции пока нет позиций</span>
