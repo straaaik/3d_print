@@ -687,10 +687,25 @@ export function AssemblyExpandedRow({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-      className="w-full bg-neutral-950/95 font-mono text-xs border-y border-cyan-500/20 block"
+      className="w-full bg-neutral-950/95 font-mono text-xs block"
+      style={{
+        borderRightWidth: '1.5px',
+        borderRightStyle: 'solid',
+        borderRightColor: 'rgba(6, 182, 212, 0.3)',
+        borderBottomWidth: '1.5px',
+        borderBottomStyle: 'solid',
+        borderBottomColor: 'rgba(6, 182, 212, 0.45)',
+      }}
     >
       {isEmpty ? (
-        <div className="py-8 px-4 text-center space-y-2 text-neutral-500">
+        <div
+          className="py-8 px-4 text-center space-y-2 text-neutral-500"
+          style={{
+            borderLeftWidth: '3px',
+            borderLeftStyle: 'solid',
+            borderLeftColor: '#06b6d4',
+          }}
+        >
           <p className="text-xs text-neutral-400">В спецификации сборки пока нет компонентов</p>
           {onOpenQuickEditModal && (
             <CockpitButton size="sm" icon={Edit2} onClick={() => onOpenQuickEditModal(assembly)}>
@@ -707,7 +722,7 @@ export function AssemblyExpandedRow({
               <motion.div
                 animate={{ opacity: isAnyPartElevated ? 0.35 : 1 }}
                 transition={{ opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE } }}
-                className={`w-full bg-cyan-950/25 border-y border-cyan-500/20 py-2 px-3 flex items-center justify-between text-xs font-mono select-none ${
+                className={`w-full bg-cyan-950/25 border-b border-cyan-500/20 py-2 px-3 flex items-center justify-between text-xs font-mono select-none ${
                   isAnyPartElevated ? 'pointer-events-none' : ''
                 }`}
                 style={{

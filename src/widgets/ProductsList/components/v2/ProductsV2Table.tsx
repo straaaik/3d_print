@@ -1169,19 +1169,25 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                             opacity: isBlurred ? 0.35 : 1,
                             backgroundColor: isElevated
                               ? 'rgba(15, 15, 15, 0.98)'
+                              : isAsm && isExpandedRow
+                              ? 'rgba(6, 182, 212, 0.06)'
                               : 'rgba(0, 0, 0, 0)',
                             borderBottomColor: isElevated
                               ? 'rgba(255, 255, 255, 0.35)'
+                              : isAsm && isExpandedRow
+                              ? 'rgba(6, 182, 212, 0.35)'
                               : isLastChild && collectionColor
                               ? `${collectionColor}60`
                               : 'rgba(255, 255, 255, 0.05)',
                             borderRadius: isElevated ? 12 : 0,
                             boxShadow: isElevated
                               ? '0 0 0 1px rgba(255, 255, 255, 0.22), 0 24px 50px -10px rgba(0, 0, 0, 0.95)'
+                              : isAsm && isExpandedRow
+                              ? 'inset 4px 0 14px -3px rgba(6, 182, 212, 0.25)'
                               : 'none',
                           }}
                           whileHover={!isElevated && !isBlurred ? {
-                            backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                            backgroundColor: isAsm && isExpandedRow ? 'rgba(6, 182, 212, 0.1)' : 'rgba(255, 255, 255, 0.04)',
                           } : undefined}
                           transition={{
                             y: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
@@ -1220,7 +1226,17 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           style={{
                             gridTemplateColumns: PRODUCTS_EXPANDED_COLUMNS,
                             willChange: isElevated || isBlurred ? 'transform, opacity' : 'auto',
-                            ...(isChild && collectionColor ? {
+                            ...(isAsm && isExpandedRow ? {
+                              borderLeftWidth: '3px',
+                              borderLeftStyle: 'solid',
+                              borderLeftColor: '#06b6d4',
+                              borderRightWidth: '1.5px',
+                              borderRightStyle: 'solid',
+                              borderRightColor: 'rgba(6, 182, 212, 0.3)',
+                              borderTopWidth: '1.5px',
+                              borderTopStyle: 'solid',
+                              borderTopColor: 'rgba(6, 182, 212, 0.45)',
+                            } : isChild && collectionColor ? {
                               borderLeftWidth: '2.5px',
                               borderLeftStyle: 'solid',
                               borderLeftColor: `${collectionColor}70`,
@@ -2328,19 +2344,25 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                             opacity: isBlurred ? 0.35 : 1,
                             backgroundColor: isElevated
                               ? 'rgba(15, 15, 15, 0.98)'
+                              : isAsm && isExpandedRow
+                              ? 'rgba(6, 182, 212, 0.06)'
                               : 'rgba(0, 0, 0, 0)',
                             borderBottomColor: isElevated
                               ? 'rgba(255, 255, 255, 0.35)'
+                              : isAsm && isExpandedRow
+                              ? 'rgba(6, 182, 212, 0.35)'
                               : isLastChild && collectionColor
                               ? `${collectionColor}60`
                               : 'rgba(255, 255, 255, 0.05)',
                             borderRadius: isElevated ? 12 : 0,
                             boxShadow: isElevated
                               ? '0 0 0 1px rgba(255, 255, 255, 0.22), 0 24px 50px -10px rgba(0, 0, 0, 0.95)'
+                              : isAsm && isExpandedRow
+                              ? 'inset 4px 0 14px -3px rgba(6, 182, 212, 0.25)'
                               : 'none',
                           }}
                           whileHover={!isElevated && !isBlurred ? {
-                            backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                            backgroundColor: isAsm && isExpandedRow ? 'rgba(6, 182, 212, 0.1)' : 'rgba(255, 255, 255, 0.04)',
                           } : undefined}
                           transition={{
                             y: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
@@ -2379,7 +2401,17 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           style={{
                             gridTemplateColumns: PRODUCTS_COMPACT_COLUMNS,
                             willChange: isElevated || isBlurred ? 'transform, opacity' : 'auto',
-                            ...(isChild && collectionColor ? {
+                            ...(isAsm && isExpandedRow ? {
+                              borderLeftWidth: '3px',
+                              borderLeftStyle: 'solid',
+                              borderLeftColor: '#06b6d4',
+                              borderRightWidth: '1.5px',
+                              borderRightStyle: 'solid',
+                              borderRightColor: 'rgba(6, 182, 212, 0.3)',
+                              borderTopWidth: '1.5px',
+                              borderTopStyle: 'solid',
+                              borderTopColor: 'rgba(6, 182, 212, 0.45)',
+                            } : isChild && collectionColor ? {
                               borderLeftWidth: '2.5px',
                               borderLeftStyle: 'solid',
                               borderLeftColor: `${collectionColor}70`,
