@@ -4,7 +4,7 @@ test('профиль открывается из хаба и рабочих ра
   for (const route of ['/', '/orders']) {
     await page.goto(route);
     await page.getByRole('link', { name: 'Открыть профиль' }).click();
-    await expect(page).toHaveURL('/profile');
+    await expect(page).toHaveURL('/settings?section=profile');
     const badge = page.getByRole('article', { name: 'Бейдж профиля' });
     await expect(badge.getByText('Kumo', { exact: true })).toBeVisible();
     await expect(badge.getByText('dev@3dlabs.pro', { exact: true })).toBeVisible();
@@ -31,6 +31,8 @@ test('страница профиля сохраняет меню и откры�
 test('бейдж плавно наклоняется и возвращается после ухода курсора', async ({ page, isMobile }) => {
   test.skip(isMobile, 'Наклон включён только для мыши');
   await page.goto('/profile');
+  await expect(page.locator('[data-transition-phase]')).toHaveAttribute('data-transition-phase', 'idle');
+  await expect(page.getByRole('article', { name: 'Бейдж профиля' })).toBeVisible();
   const scene = page.getByTestId('badge-scene');
   const rig = page.getByTestId('badge-rig');
   await scene.scrollIntoViewIfNeeded();

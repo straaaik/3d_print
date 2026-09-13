@@ -258,7 +258,7 @@ export function ProductRowDrawer({
           {/* Слева от названия: Артикул + Тип */}
           <div className="flex items-center gap-1.5 shrink-0">
             <span
-              className="h-8 flex items-center justify-center font-mono text-xs font-bold px-2.5 rounded-md tracking-wider shrink-0 text-cyan-400 bg-cyan-950/40 border border-cyan-800/40"
+              className="h-8 flex items-center justify-center font-mono text-xs font-bold px-2.5 rounded-md tracking-wider shrink-0 text-neutral-200 bg-white/5 border border-white/10"
               style={effectiveColor ? {
                 color: effectiveColor,
                 backgroundColor: `${effectiveColor}20`,

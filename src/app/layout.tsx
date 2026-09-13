@@ -3,6 +3,8 @@ import { connection } from "next/server";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AppBackground } from "../shared/ui/AppBackground";
+import { AppMotionProvider } from "../shared/ui/AppMotionProvider";
+import { PageTransitionProvider } from "../shared/ui/page-transition/PageTransitionProvider";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -30,9 +32,9 @@ export default async function RootLayout({
 
   return (
     <html lang="ru" className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="isolate antialiased min-h-screen text-white bg-[#0a0a0a]">
+      <body className="isolate antialiased min-h-screen text-white bg-[#0a0a0a]" suppressHydrationWarning>
         <AppBackground />
-        {children}
+        <AppMotionProvider><PageTransitionProvider>{children}</PageTransitionProvider></AppMotionProvider>
       </body>
     </html>
   );

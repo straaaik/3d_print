@@ -26,7 +26,6 @@ export function DeleteOrderModal({
     <CockpitModal
       isOpen={!!order}
       onClose={onClose}
-      variant="error"
       maxWidth="sm"
       title="Удаление записи"
       subtitle={order ? `#${order.order_number || ''} ${order.title}` : 'Подтверждение действия'}

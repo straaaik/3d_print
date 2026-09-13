@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
+import { usePageRouter as useRouter } from '../../../shared/ui/page-transition/PageTransitionLink';
 import { motion } from 'motion/react';
 import { AlertTriangle, ArrowRight, CircleCheck, Info, ShieldAlert } from 'lucide-react';
 import type { StatsInsight } from '../types';

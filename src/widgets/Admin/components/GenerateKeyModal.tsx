@@ -104,9 +104,7 @@ export function GenerateKeyModal({ isOpen, onClose }: GenerateKeyModalProps) {
       onClose={handleClose}
       title="Генератор ключей доступа"
       subtitle="Одноразовые ключи"
-      variant="cyan"
       maxWidth="lg"
-      badge={<span className="rounded border border-cyan-800/40 bg-cyan-950/60 px-2 py-0.5 text-[9px] font-bold text-cyan-400">SECURE</span>}
     >
       {!generatedKeys ? (
         <div className="space-y-4 pt-1 font-mono text-xs">

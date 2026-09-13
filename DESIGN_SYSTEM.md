@@ -82,6 +82,23 @@
 
 ## 4. Материалы, цвет и акценты
 
+### Управление цветом темы (Centralized Theme Accent)
+Главный светлый цвет текста, карточки чека и производных светлых оттенков задаётся в одной переменной в `src/app/globals.css`:
+```css
+:root {
+  --cockpit-accent-color: #D2CCBB; /* Меняет цвет текста и чека во всем приложении */
+}
+```
+
+### Управление скруглением интерфейса (Centralized Border Radius)
+Базовое скругление для всех элементов интерфейса (кокпит-консоль, карточки, кнопки, инпуты, модальные окна, выпадающие списки) задаётся в единой переменной в `src/app/globals.css`:
+```css
+:root {
+  --cockpit-radius: 4px; /* Мгновенно меняет скругления во всём приложении */
+}
+```
+Все классы скруглений (`rounded-xs`, `rounded-sm`, `rounded-md`, `rounded-lg`, `rounded-xl`, `rounded-2xl`, `rounded-3xl`, `rounded-4xl`, `rounded`) привязаны к `--cockpit-radius` через `@theme`. Исключение составляют только круглые элементы (`rounded-full`: цветные терминальные индикаторы 🔴🟡🟢, аватары, круглые тумблеры), остающиеся полноценными кругами.
+
 | Роль | Классы Tailwind |
 |---|---|
 | Фон страницы | `bg-dot-grid` на `#0a0a0a` |
@@ -89,9 +106,10 @@
 | Карточки и плитки | `bg-white/[0.03] border border-white/10 rounded-xl hover:border-white/20 hover:bg-white/[0.05]` |
 | Поле ввода | `bg-neutral-950/80 border border-white/15 focus:border-white/30 rounded-lg` |
 | Overlay / Backdrop | `bg-black/80 backdrop-blur-xl` |
-| Основной текст | `text-white` |
-| Вторичный текст | `text-neutral-300` |
-| Поясняющий текст | `text-neutral-400` |
+| Тепловой чек / Смета | `bg-[var(--cockpit-accent-color)] text-neutral-950` (матовая инженерная бумага) |
+| Основной текст | `text-white` (тёплый песочный `var(--cockpit-accent-color)`) |
+| Вторичный текст | `text-neutral-200` / `text-neutral-300` (производные оттенки от акцента) |
+| Поясняющий текст | `text-neutral-400` (мягкий приглушённый акцент) |
 | Телеметрия и метки | `text-neutral-500 font-mono` |
 
 ### Сдержанные функциональные акценты (БЕЗ свечения):

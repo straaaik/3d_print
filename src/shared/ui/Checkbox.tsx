@@ -107,7 +107,7 @@ const sizeStyles: Record<
     strokeWidth: 3.2,
     text: 'text-xs',
     gap: 'gap-2',
-    radius: 'rounded-[3.5px]',
+    radius: 'rounded',
   },
   md: {
     box: 'w-5 h-5 min-w-[20px] min-h-[20px]',
@@ -115,7 +115,7 @@ const sizeStyles: Record<
     strokeWidth: 3,
     text: 'text-sm',
     gap: 'gap-2.5',
-    radius: 'rounded-[4px]',
+    radius: 'rounded',
   },
   lg: {
     box: 'w-6 h-6 min-w-[24px] min-h-[24px]',
@@ -123,7 +123,7 @@ const sizeStyles: Record<
     strokeWidth: 2.8,
     text: 'text-base',
     gap: 'gap-3',
-    radius: 'rounded-[5px]',
+    radius: 'rounded',
   },
 };
 

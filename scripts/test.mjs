@@ -5,6 +5,10 @@ import { spawnSync } from 'node:child_process';
 const outputDirectory = resolve('.test-dist');
 const tscScript = resolve('node_modules', 'typescript', 'bin', 'tsc');
 const unitTestFiles = [
+  'tests/page-loading-assets.test.ts',
+  'tests/page-loading-overlay.test.tsx',
+  'tests/page-loading-data.test.ts',
+  'tests/page-transition-model.test.ts',
   'tests/formulas.test.ts',
   'tests/number-counter.test.tsx',
   'tests/stats-calculator.test.ts',
@@ -59,6 +63,10 @@ try {
     '--require',
     resolve('tests', 'register-aliases.cjs'),
     '--test',
+    resolve(outputDirectory, 'tests', 'page-loading-assets.test.js'),
+    resolve(outputDirectory, 'tests', 'page-loading-overlay.test.js'),
+    resolve(outputDirectory, 'tests', 'page-loading-data.test.js'),
+    resolve(outputDirectory, 'tests', 'page-transition-model.test.js'),
     resolve(outputDirectory, 'tests', 'formulas.test.js'),
     resolve(outputDirectory, 'tests', 'number-counter.test.js'),
     resolve(outputDirectory, 'tests', 'stats-calculator.test.js'),

@@ -35,7 +35,7 @@ export function TelemetrySection() {
           <div className="hidden md:flex items-center gap-6">
             <span>ЗАДЕРЖКА РАСЧЕТА: <strong>12ms</strong></span>
             <span>СОХРАННОСТЬ ДАННЫХ: <strong>100%</strong></span>
-            <span>СТАТУС БАЗЫ: <strong>SUPABASE CONNECTED</strong></span>
+            <span>СТАТУС БАЗЫ: <strong>CONNECTED</strong></span>
           </div>
           <div>UTC 14:08:15</div>
         </div>

@@ -4,8 +4,12 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useData } from '../../entities/model/DataProvider';
 import { useToast } from '../../entities/model/ToastProvider';
 import { CockpitButton } from '../../shared/ui/CockpitButton';
-import type { SettingsTabId } from './components/SettingsTabs';
-import { SETTINGS_SECTIONS, SettingsWorkspaceNav } from './components/SettingsWorkspaceNav';
+import { useSearchParams } from 'next/navigation';
+import { motion } from 'motion/react';
+import { SETTINGS_SECTIONS, SettingsWorkspaceNav, type SettingsSectionId } from './components/SettingsWorkspaceNav';
+import { ProfileSettingsTab } from './components/ProfileSettingsTab';
+import { BackgroundSettings } from './components/BackgroundSettings';
+import { HubIconSettings } from './components/HubIconSettings';
 import { GeneralSettingsTab } from './components/GeneralSettingsTab';
 import { LaborSettingsTab } from './components/LaborSettingsTab';
 import { PricingSettingsTab } from './components/PricingSettingsTab';
@@ -13,7 +17,6 @@ import { MaterialsSettingsTab } from './components/MaterialsSettingsTab';
 import { DataManagementTab } from './components/DataManagementTab';
 import { LiveCalculationPreview } from './components/LiveCalculationPreview';
 import { Save, RotateCcw, CheckCircle2 } from 'lucide-react';
-import { usePersistentState } from '../../shared/lib/usePersistentState';
 import { hasNumericSettingChanged, isSettingsDraftEquivalent, normalizeWholeMinutes, parseNonNegativeSetting } from './model';
 
 const getNormalizedMaterialMultipliers = (multipliers?: Record<string, number> | null): Record<string, number> => ({
@@ -33,7 +36,15 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
   } = useData();
   const { showToast } = useToast();
 
-  const [activeTab, setActiveTab] = usePersistentState<SettingsTabId>('3d_settings_active_tab', 'general');
+  const searchParams = useSearchParams();
+  const activeTab = SETTINGS_SECTIONS.find((section) => section.id === searchParams.get('section'))?.id ?? 'general';
+  const isWorkshopSection = !['profile', 'appearance', 'data'].includes(activeTab);
+  const setActiveTab = (tab: SettingsSectionId) => {
+    if (tab === activeTab) return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('section', tab);
+    window.history.pushState(null, '', `/settings?${params.toString()}`);
+  };
   const [isSaving, setIsSaving] = useState(false);
 
   // Состояние генератора и сброса данных
@@ -294,7 +305,7 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
 
   return (
     <div className="space-y-3 font-mono text-xs">
-      <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+      {(isWorkshopSection || isDirty) && <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-cyan-400">WORKSHOP CONFIGURATION</p>
@@ -303,8 +314,8 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
             </span>
             {isExpanded ? <span className="rounded border border-white/10 bg-neutral-950 px-2 py-0.5 font-mono text-[9px] text-neutral-500">ПОДРОБНЫЙ РЕЖИМ</span> : null}
           </div>
-          <h2 className="mt-1.5 font-sans text-base font-bold text-white">Настройки расчётов без лишнего шума</h2>
-          <p className="mt-1 font-sans text-xs text-neutral-400">Слева выберите область, измените параметры в центре и сохраните их одной кнопкой.</p>
+          <h2 className="mt-1.5 font-sans text-base font-bold text-white">Параметры мастерской</h2>
+          <p className="mt-1 font-sans text-xs text-neutral-400">Черновик общий для всех пунктов. Сохраните изменения, когда закончите настройку.</p>
         </div>
         <div className="flex shrink-0 items-center justify-end gap-2">
           {isDirty ? <CockpitButton type="button" onClick={handleResetToSaved} disabled={isSaving} icon={RotateCcw}>Сбросить</CockpitButton> : null}
@@ -319,14 +330,14 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
             {isSaving ? 'Сохранение...' : isDirty ? 'Сохранить изменения' : 'Всё сохранено'}
           </CockpitButton>
         </div>
-      </div>
+      </div>}
 
       <div className="grid items-start gap-3 lg:grid-cols-[250px_minmax(0,1fr)]">
         <SettingsWorkspaceNav activeTab={activeTab} onSelectTab={setActiveTab} changesMap={changesMap} />
 
-        <section aria-labelledby="settings-section-title" className="min-w-0 rounded-xl border border-white/10 bg-white/[0.025] p-3 sm:p-4">
+        <section aria-labelledby="settings-section-title" className="min-w-0 rounded-xl border border-white/10 bg-white/[0.025] p-2.5 sm:p-4">
           <div className="mb-4 flex items-start gap-3 border-b border-white/10 pb-4">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-cyan-500/20 bg-cyan-500/[0.06] text-cyan-400">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/15 bg-white/5 text-neutral-300">
               <CurrentSectionIcon className="h-4 w-4" />
             </span>
             <div className="min-w-0">
@@ -336,7 +347,9 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
             </div>
           </div>
 
-          <div className=" ">
+          <motion.div key={activeTab} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.18 }}>
+        {activeTab === 'profile' ? <ProfileSettingsTab /> : null}
+        {activeTab === 'appearance' ? <div className="space-y-4"><BackgroundSettings /><HubIconSettings /></div> : null}
         {activeTab === 'general' ? (
           <GeneralSettingsTab
             currency={currency}
@@ -411,11 +424,11 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
             setIsConfirmSeedModalOpen={setIsConfirmSeedModalOpen}
           />
         ) : null}
-          </div>
+          </motion.div>
         </section>
       </div>
 
-      {isExpanded ? (
+      {isExpanded && activeTab !== 'profile' && activeTab !== 'appearance' ? (
         <div className="grid items-start gap-3 xl:grid-cols-[340px_minmax(0,1fr)]">
           <SettingsSnapshot
             currency={currency}

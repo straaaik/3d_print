@@ -19,8 +19,9 @@ import { usePixelCurtain } from '@/shared/ui/PixelCurtain';
 import { CockpitContentTransition } from '@/shared/ui/CockpitContentTransition';
 import { MotionPulse } from '@/shared/ui/MotionPrimitives';
 import { motion, useReducedMotion } from 'motion/react';
+import { ROW_ELEVATION_EASE, SURFACE_FADE_DURATION } from '@/shared/lib/tableScrollHelper';
 
-const SURFACE_EASE = [0.16, 1, 0.3, 1] as const;
+const SURFACE_EASE = ROW_ELEVATION_EASE;
 
 interface OrdersV2ViewProps {
   isOnline: boolean;
@@ -169,7 +170,7 @@ export const OrdersV2View = React.memo(function OrdersV2View({
   const shouldReduceMotion = useReducedMotion();
   const surfaceTransition = shouldReduceMotion
     ? { duration: 0 }
-    : { duration: 0.4, ease: SURFACE_EASE };
+    : { duration: SURFACE_FADE_DURATION, ease: SURFACE_EASE };
 
   React.useEffect(() => {
     if (elevatedOrder && !orders.some((o) => o.id === elevatedOrder.id)) {
@@ -207,7 +208,6 @@ export const OrdersV2View = React.memo(function OrdersV2View({
         <motion.div
           initial={false}
           animate={{
-            filter: elevatedOrder ? 'blur(4px)' : 'blur(0px)',
             opacity: elevatedOrder ? 0.35 : 1,
           }}
           transition={surfaceTransition}
@@ -325,7 +325,6 @@ export const OrdersV2View = React.memo(function OrdersV2View({
         <motion.div
           initial={false}
           animate={{
-            filter: elevatedOrder ? 'blur(4px)' : 'blur(0px)',
             opacity: elevatedOrder ? 0.35 : 1,
           }}
           transition={surfaceTransition}
@@ -334,7 +333,7 @@ export const OrdersV2View = React.memo(function OrdersV2View({
           }`}
         >
 
-          {/* Левая часть: Точки терминала + Заголовок + Бейдж Supabase Cloud */}
+          {/* Левая часть: Точки терминала + Заголовок + Бейдж режима */}
           <div className="flex items-center gap-3 shrink-0">
             {/* Точки терминала с точной анимацией из модальных окон */}
             <div className="flex items-center gap-1.5 shrink-0">
@@ -412,7 +411,6 @@ export const OrdersV2View = React.memo(function OrdersV2View({
           <motion.div
             initial={false}
             animate={{
-              filter: elevatedOrder ? 'blur(4px)' : 'blur(0px)',
               opacity: elevatedOrder ? 0.35 : 1,
             }}
             transition={surfaceTransition}
@@ -505,7 +503,6 @@ export const OrdersV2View = React.memo(function OrdersV2View({
           <motion.div
             initial={false}
             animate={{
-              filter: elevatedOrder ? 'blur(4px)' : 'blur(0px)',
               opacity: elevatedOrder ? 0.35 : 1,
             }}
             transition={surfaceTransition}
@@ -579,7 +576,6 @@ export const OrdersV2View = React.memo(function OrdersV2View({
         <motion.div
           initial={false}
           animate={{
-            filter: elevatedOrder ? 'blur(4px)' : 'blur(0px)',
             opacity: elevatedOrder ? 0.35 : 1,
           }}
           transition={surfaceTransition}
@@ -588,7 +584,7 @@ export const OrdersV2View = React.memo(function OrdersV2View({
           }`}
         >
           <div className="flex items-center gap-3">
-            <span>DATABASE: {isOnline ? 'SUPABASE CLOUD' : 'LOCALSTORAGE'}</span>
+            <span>DATABASE: {isOnline ? 'CONNECTED' : 'OFFLINE'}</span>
             <span className="hidden sm:inline">•</span>
             <span className="hidden sm:inline">CACHE: {isOnline ? 'SYNCED' : 'PENDING SYNC'}</span>
             {isExpanded && (

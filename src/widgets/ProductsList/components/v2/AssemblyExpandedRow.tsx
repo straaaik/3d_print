@@ -303,7 +303,7 @@ export function AssemblyExpandedRow({
                               : isMatched
                               ? 'rgba(6, 182, 212, 0.4)'
                               : 'rgba(255, 255, 255, 0.1)',
-                            borderRadius: isPartElevated ? 12 : 8,
+                            borderRadius: 4,
                             boxShadow: isPartElevated
                               ? '0 20px 40px -10px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.2)'
                               : 'none',
@@ -791,7 +791,7 @@ export function AssemblyExpandedRow({
                       borderBottomColor: isPartElevated
                         ? 'rgba(255, 255, 255, 0.35)'
                         : 'rgba(255, 255, 255, 0.05)',
-                      borderRadius: isPartElevated ? 12 : 0,
+                      borderRadius: isPartElevated ? 4 : 0,
                       boxShadow: isPartElevated
                         ? '0 24px 50px -10px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.22)'
                         : 'none',

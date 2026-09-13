@@ -1,9 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback, useId, useRef } from 'react';
-import { getScopedStorageKey, getStorageScopeEventName } from './storageScope';
+import { useState, useEffect, useCallback, useId, useRef, useSyncExternalStore } from 'react';
+import { getScopedStorageKey, getStorageScope, getStorageScopeEventName } from './storageScope';
 
 const PERSISTENT_STATE_EVENT = '3d-persistent-state-changed';
+const subscribeScope = (callback: () => void) => {
+  window.addEventListener(getStorageScopeEventName(), callback);
+  return () => window.removeEventListener(getStorageScopeEventName(), callback);
+};
+const serverScope = () => 'anonymous';
 
 /**
  * SSR-безопасный React-хук для сохранения состояния в localStorage / sessionStorage.
@@ -13,7 +18,7 @@ export function usePersistentState<T>(
   key: string,
   defaultValue: T | (() => T),
   storageType: 'localStorage' | 'sessionStorage' = 'localStorage'
-): [T, React.Dispatch<React.SetStateAction<T>>, () => void] {
+): [T, React.Dispatch<React.SetStateAction<T>>, () => void, boolean] {
   const instanceId = useId();
   const [initialDefault] = useState<T>(() => (
     typeof defaultValue === 'function' ? (defaultValue as () => T)() : defaultValue
@@ -29,6 +34,9 @@ export function usePersistentState<T>(
   // hydration mismatch. Содержимое storage подключается после монтирования.
   const [state, setState] = useState<T>(initialDefault);
   const stateRef = useRef(state);
+  const scope = useSyncExternalStore(subscribeScope, getStorageScope, serverScope);
+  const [hydratedKey, setHydratedKey] = useState<string | null>(null);
+  const hydrated = hydratedKey === `${storageType}:${key}::user:${scope}`;
 
   // Синхронизация на клиенте после монтирования (для защиты от SSR hydration mismatch)
   useEffect(() => {
@@ -40,7 +48,11 @@ export function usePersistentState<T>(
         stateRef.current = nextValue;
         setState(nextValue);
       } catch (e) {
+        stateRef.current = getDefault();
+        setState(getDefault());
         console.warn(`[usePersistentState] Ошибка синхронизации ключа «${key}»:`, e);
+      } finally {
+        setHydratedKey(`${storageType}:${getResolvedKey()}`);
       }
     };
 
@@ -117,5 +129,5 @@ export function usePersistentState<T>(
     }
   }, [getDefault, getResolvedKey, instanceId, key, storageType]);
 
-  return [state, setPersistentState, resetPersistentState];
+  return [state, setPersistentState, resetPersistentState, hydrated];
 }

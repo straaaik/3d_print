@@ -38,10 +38,17 @@ import { OrderContactsModal, getContactHref } from './OrderContactsModal';
 import { OrderRowDrawer } from './OrderRowDrawer';
 import { OrderPaymentModal } from './OrderPaymentModal';
 import { MotionPulse } from '@/shared/ui/MotionPrimitives';
+import {
+  ROW_ELEVATION_EASE,
+  DRAWER_EXPAND_DURATION,
+  ROW_ELEVATION_DURATION,
+  SURFACE_FADE_DURATION,
+  DRAWER_OPACITY_DURATION,
+} from '@/shared/lib/tableScrollHelper';
 
 const COMPACT_GRID_COLUMNS = '112px 80px 176px minmax(200px, 1.5fr) 144px 128px 96px 144px 112px';
 const EXPANDED_GRID_COLUMNS = '128px 112px 96px 176px 176px minmax(200px, 1.5fr) 192px 128px 144px 128px 112px 128px 144px 144px';
-const SURFACE_EASE = [0.16, 1, 0.3, 1] as const;
+const SURFACE_EASE = ROW_ELEVATION_EASE;
 
 export type EditableField =
   | 'date'
@@ -363,7 +370,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
   const shouldReduceMotion = useReducedMotion();
   const surfaceTransition = shouldReduceMotion
     ? { duration: 0 }
-    : { duration: 0.45, ease: SURFACE_EASE };
+    : { duration: SURFACE_FADE_DURATION, ease: SURFACE_EASE };
   const sentinelRef = useRef<HTMLTableRowElement | null>(null);
   const [activeStatusDropdown, setActiveStatusDropdown] = useState<{
     order: Order;
@@ -688,9 +695,9 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                 opacity: isBlurred ? 0.35 : 1,
               }}
               transition={{
-                y: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
-                opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
-                layout: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
+                y: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
+                opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
+                layout: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
               }}
               style={{ willChange: isElevated || isBlurred ? 'transform, opacity' : 'auto' }}
               onClick={() => setElevatedOrder(isElevated ? null : order)}
@@ -1045,19 +1052,19 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                         opacity: isBlurred ? 0.35 : 1,
                         backgroundColor: isElevated ? 'rgba(15, 15, 15, 0.98)' : 'rgba(0, 0, 0, 0)',
                         borderColor: isElevated ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 255, 255, 0.05)',
-                        borderRadius: isElevated ? 12 : 0,
+                        borderRadius: isElevated ? 4 : 0,
                         boxShadow: isElevated
                           ? '0 24px 50px -10px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.22)'
                           : 'none',
                       }}
                       whileHover={!isElevated && !isBlurred ? { backgroundColor: 'rgba(255, 255, 255, 0.04)' } : undefined}
                       transition={{
-                        y: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
-                        opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
-                        backgroundColor: { duration: 0.25, ease: [0.22, 1, 0.36, 1] },
-                        borderColor: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
-                        borderRadius: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
-                        boxShadow: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
+                        y: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
+                        opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
+                        backgroundColor: { duration: 0.35, ease: ROW_ELEVATION_EASE },
+                        borderColor: { duration: 0.58, ease: ROW_ELEVATION_EASE },
+                        borderRadius: { duration: 0.58, ease: ROW_ELEVATION_EASE },
+                        boxShadow: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
                       }}
                       onContextMenu={(e) => !isBlurred && handleContextMenu(e, order)}
                       onClick={(e) => {
@@ -1092,7 +1099,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                           </span>
                           {linkedProduct && (
                             <Tooltip content={`Товар каталога: ${linkedProduct}`}>
-                              <span className="text-[9px] font-mono text-cyan-400 bg-cyan-950/50 border border-cyan-800/40 px-1 py-0.2 rounded w-fit truncate max-w-[110px] flex items-center gap-1">
+                              <span className="text-[9px] font-mono text-neutral-300 bg-white/5 border border-white/10 px-1 py-0.2 rounded w-fit truncate max-w-[110px] flex items-center gap-1">
                                 <Package className="w-2.5 h-2.5 shrink-0" />
                                 <span className="truncate">{linkedProduct}</span>
                               </span>
@@ -1366,7 +1373,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               </span>
                             )}
                             {matchedCalc && (
-                              <span className="text-[9px] text-cyan-400 bg-cyan-950/40 border border-cyan-800/40 px-1 py-0.2 rounded truncate max-w-[120px]" title="Параметры из калькулятора">
+                              <span className="text-[9px] text-neutral-300 bg-white/5 border border-white/10 px-1 py-0.2 rounded truncate max-w-[120px]" title="Параметры из калькулятора">
                                 {matchedCalc.filament_name || 'Калькулятор'}
                               </span>
                             )}
@@ -1834,8 +1841,8 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
                             transition={{
-                              height: { duration: 0.48, ease: [0.22, 1, 0.36, 1] },
-                              opacity: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+                              height: { duration: DRAWER_EXPAND_DURATION, ease: ROW_ELEVATION_EASE },
+                              opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
                             }}
                             className="w-full overflow-hidden"
                             style={{ willChange: 'height, opacity' }}
@@ -1868,7 +1875,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                       <button
                         type="button"
                         onClick={onShowAll}
-                        className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-cyan-400 border border-white/10 rounded-lg text-xs font-mono "
+                        className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white border border-white/10 rounded-lg text-xs font-mono "
                       >
                         Показать все ({orders.length})
                       </button>
@@ -2047,19 +2054,19 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                         opacity: isBlurred ? 0.35 : 1,
                         backgroundColor: isElevated ? 'rgba(15, 15, 15, 0.98)' : 'rgba(0, 0, 0, 0)',
                         borderColor: isElevated ? 'rgba(255, 255, 255, 0.35)' : 'rgba(255, 255, 255, 0.05)',
-                        borderRadius: isElevated ? 12 : 0,
+                        borderRadius: isElevated ? 4 : 0,
                         boxShadow: isElevated
                           ? '0 24px 50px -10px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.22)'
                           : 'none',
                       }}
                       whileHover={!isElevated && !isBlurred ? { backgroundColor: 'rgba(255, 255, 255, 0.04)' } : undefined}
                       transition={{
-                        y: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
-                        opacity: { duration: 0.38, ease: [0.22, 1, 0.36, 1] },
-                        backgroundColor: { duration: 0.25, ease: [0.22, 1, 0.36, 1] },
-                        borderColor: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
-                        borderRadius: { duration: 0.42, ease: [0.22, 1, 0.36, 1] },
-                        boxShadow: { duration: 0.46, ease: [0.22, 1, 0.36, 1] },
+                        y: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
+                        opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
+                        backgroundColor: { duration: 0.35, ease: ROW_ELEVATION_EASE },
+                        borderColor: { duration: 0.58, ease: ROW_ELEVATION_EASE },
+                        borderRadius: { duration: 0.58, ease: ROW_ELEVATION_EASE },
+                        boxShadow: { duration: ROW_ELEVATION_DURATION, ease: ROW_ELEVATION_EASE },
                       }}
                       onContextMenu={(e) => !isBlurred && handleContextMenu(e, order)}
                       onClick={(e) => {
@@ -2667,8 +2674,8 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
                             transition={{
-                              height: { duration: 0.48, ease: [0.22, 1, 0.36, 1] },
-                              opacity: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
+                              height: { duration: DRAWER_EXPAND_DURATION, ease: ROW_ELEVATION_EASE },
+                              opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
                             }}
                             className="w-full overflow-hidden"
                             style={{ willChange: 'height, opacity' }}
@@ -2701,7 +2708,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                       <button
                         type="button"
                         onClick={onShowAll}
-                        className="px-2.5 py-0.5 bg-white/5 hover:bg-white/10 text-cyan-400 border border-white/10 rounded text-xs font-mono "
+                        className="px-2.5 py-0.5 bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white border border-white/10 rounded text-xs font-mono "
                       >
                         Показать все ({orders.length})
                       </button>

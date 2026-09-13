@@ -1,7 +1,9 @@
 'use client';
 
+import { ProtectedPageReady } from '../../../shared/ui/page-transition/PageReadySurface';
+
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePageRouter as useRouter } from '../../../shared/ui/page-transition/PageTransitionLink';
 import { ShieldX } from 'lucide-react';
 import { AdminPanel } from '../../../widgets/Admin/AdminPanel';
 import { MainNavbar } from '../../../shared/ui/MainNavbar';
@@ -34,6 +36,7 @@ export default function AdminPage() {
   }
 
   return (
+    <ProtectedPageReady viewKey="/admin">
     <div className="flex min-h-screen flex-col justify-between bg-dot-grid font-sans text-white selection:bg-white/20 selection:text-white">
       <main className="mx-auto w-full max-w-none space-y-6 px-3 py-4 sm:px-6 md:py-6">
         <div className="flex justify-center"><MainNavbar /></div>
@@ -43,9 +46,10 @@ export default function AdminPage() {
       <footer className="w-full select-none border-t border-white/10 bg-neutral-950/80 py-6 font-mono text-[11px] text-neutral-500 backdrop-blur-md">
         <div className="mx-auto flex max-w-[1500px] flex-col items-center justify-between gap-2 px-4 sm:flex-row">
           <span>3D LABS · ADMIN RUNTIME v2.4</span>
-          <span>ACCESS: ADMINISTRATOR · SUPABASE AUTH</span>
+          <span>ACCESS: ADMINISTRATOR · SECURE AUTH</span>
         </div>
       </footer>
     </div>
+    </ProtectedPageReady>
   );
 }

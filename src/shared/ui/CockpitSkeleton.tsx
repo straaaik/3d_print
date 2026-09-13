@@ -593,7 +593,7 @@ export function CockpitWorkspaceSkeleton({ initialTab = 'orders' }: { initialTab
       <footer className="w-full text-center py-6 border-t border-white/10 select-none bg-neutral-950/80 backdrop-blur-md font-mono text-xs text-neutral-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>3D LABS · COCKPIT WORKSPACE v2.4</span>
-          <span>ДАННЫЕ СОХРАНЯЮТСЯ В LOCALSTORAGE И SUPABASE</span>
+          <span>АВТОМАТИЧЕСКОЕ СОХРАНЕНИЕ И СИНХРОНИЗАЦИЯ</span>
         </div>
       </footer>
     </div>

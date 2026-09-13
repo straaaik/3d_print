@@ -132,7 +132,7 @@ export function HubIconSettings() {
       {/* Статус сохранения */}
       <p role="status" className="mt-2 font-sans text-xs text-neutral-400">
         {storageFailed
-          ? 'Браузер ограничил localStorage. Выбор действует до перезагрузки страницы.'
+          ? 'Браузер ограничил локальное сохранение. Выбор действует до перезагрузки страницы.'
           : `Текущее оформление Хаба: «${HUB_ICON_STYLES.find((s) => s.id === activeStyle)?.name}».`}
       </p>
     </section>

@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { usePageTransition } from '../../shared/ui/page-transition/PageTransitionProvider';
 import { useData } from '../../entities/model/DataProvider';
 import { MainNavbar } from '../../shared/ui/MainNavbar';
 import { usePersistentState } from '../../shared/lib/usePersistentState';
@@ -23,7 +24,8 @@ import {
   shouldShowFullscreenDevelopmentGate,
 } from '../../shared/ui/CockpitContentTransition';
 import { FullscreenDevelopmentGate } from '../../shared/ui/FullscreenDevelopmentGate';
-import { createWorkspaceComponents } from './workspaceDefinitions';
+import { createWorkspaceComponents, workspaceDefinitions } from './workspaceDefinitions';
+import { WorkspaceShellReadinessContext } from './WorkspaceReadyBoundary';
 
 const {
   orders: OrdersTable,
@@ -43,7 +45,9 @@ interface CockpitWorkspaceProps {
 export function CockpitWorkspace({ initialTab }: CockpitWorkspaceProps) {
   const { isLoading } = useData();
   const pathname = usePathname();
-  const router = useRouter();
+  const { state, navigate, registerWorkspace, completeTask } = usePageTransition();
+  const transitionStateRef = useRef(state);
+  useLayoutEffect(() => { transitionStateRef.current = state; }, [state]);
   const pathnameTab = getCockpitTabFromPathname(pathname);
   const resolvedInitialTab = pathnameTab ?? initialTab;
   const [activeTab, setActiveTab] = useState<CockpitTabId>(resolvedInitialTab);
@@ -53,9 +57,10 @@ export function CockpitWorkspace({ initialTab }: CockpitWorkspaceProps) {
   const activeTabRef = useRef<CockpitTabId>(resolvedInitialTab);
   const pendingHistoryHrefRef = useRef<string | null>(null);
   const holdExpandedShellRef = useRef(false);
+  const committedTransitionRef = useRef<number | null>(null);
 
-  const [isOrdersExpanded, setIsOrdersExpanded] = usePersistentState<boolean>('3d_orders_expanded_view', false);
-  const [isProductsExpanded, setIsProductsExpanded] = usePersistentState<boolean>('3d_products_expanded_view', false);
+  const [isOrdersExpanded, setIsOrdersExpanded, , ordersHydrated] = usePersistentState<boolean>('3d_orders_expanded_view', false);
+  const [isProductsExpanded, setIsProductsExpanded, , productsHydrated] = usePersistentState<boolean>('3d_products_expanded_view', false);
 
   const isDestinationExpanded = (activeTab === 'orders' && isOrdersExpanded)
     || (activeTab === 'products' && isProductsExpanded);
@@ -83,44 +88,58 @@ export function CockpitWorkspace({ initialTab }: CockpitWorkspaceProps) {
     setActiveTab(nextTab);
   }, [isOrdersExpanded, isProductsExpanded]);
 
-  useEffect(() => {
-    selectTab(pathnameTab ?? initialTab);
-  }, [initialTab, pathnameTab, selectTab]);
-
-  useEffect(() => {
-    const handlePopState = () => {
-      pendingHistoryHrefRef.current = null;
-      const pathTab = getCockpitTabFromPathname(window.location.pathname);
-      if (pathTab) selectTab(pathTab);
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, [selectTab]);
-
-  const handleTabChange = useCallback((tabId: string) => {
-    const nextTab = tabId as CockpitTabId;
-    if (nextTab === activeTabRef.current) return;
-
-    selectTab(nextTab);
-    pendingHistoryHrefRef.current = `/${nextTab}`;
-  }, [selectTab]);
-
-  const handlePanelTransitionComplete = useCallback((completedTab: CockpitTabId) => {
-    const didCommitHistory = commitCockpitHistoryIfCurrent(
-      completedTab,
-      activeTabRef.current,
-      pendingHistoryHrefRef.current,
-      window.location.pathname,
-      (href) => window.history.pushState(null, '', href),
-    );
-
-    if (didCommitHistory) pendingHistoryHrefRef.current = null;
-    if (completedTab === activeTabRef.current && holdExpandedShellRef.current) {
+  const releaseExpandedShell = useCallback(() => {
+    if (holdExpandedShellRef.current) {
       holdExpandedShellRef.current = false;
       setHoldExpandedShell(false);
       setHeldExpandedTab(null);
     }
   }, []);
+
+  useLayoutEffect(() => registerWorkspace({
+    owns: (fromHref, toHref) => (
+      getCockpitTabFromPathname(new URL(fromHref, window.location.origin).pathname) !== null
+      && getCockpitTabFromPathname(new URL(toHref, window.location.origin).pathname) !== null
+    ),
+    commit: (href, transitionId) => {
+      const nextTab = getCockpitTabFromPathname(new URL(href, window.location.origin).pathname);
+      if (!nextTab) return;
+      committedTransitionRef.current = transitionId;
+      pendingHistoryHrefRef.current = transitionStateRef.current.kind === 'pop' ? null : href;
+      selectTab(nextTab);
+    },
+    beforeReveal: (_href, transitionId) => {
+      if (committedTransitionRef.current === transitionId) releaseExpandedShell();
+    },
+    complete: (href, transitionId) => {
+      if (committedTransitionRef.current !== transitionId) return;
+      const completedTab = getCockpitTabFromPathname(new URL(href, window.location.origin).pathname);
+      if (!completedTab) return;
+      const didCommitHistory = commitCockpitHistoryIfCurrent(
+        completedTab,
+        activeTabRef.current,
+        pendingHistoryHrefRef.current,
+        window.location.pathname,
+        (target) => window.history.pushState(null, '', target),
+      );
+      if (didCommitHistory) pendingHistoryHrefRef.current = null;
+      committedTransitionRef.current = null;
+    },
+  }), [registerWorkspace, releaseExpandedShell, selectTab]);
+
+  useEffect(() => {
+    if (state.phase !== 'idle' && state.target.split(/[?#]/, 1)[0] === `/${activeTab}`) {
+      completeTask(state.id, 'route');
+    }
+  }, [activeTab, completeTask, state.id, state.phase, state.target]);
+
+  const handleTabChange = useCallback((tabId: string) => {
+    const nextTab = getCockpitTabFromPathname(`/${tabId}`);
+    if (!nextTab || nextTab === activeTabRef.current) return;
+    // Warming the one destination module does not mount it before the cover.
+    void workspaceDefinitions[nextTab].load().catch(() => undefined);
+    void navigate(`/${nextTab}`);
+  }, [navigate]);
 
   const handleOrdersExpandedChange = useCallback((expanded: boolean) => {
     setIsOrdersExpanded(expanded);
@@ -173,10 +192,11 @@ export function CockpitWorkspace({ initialTab }: CockpitWorkspaceProps) {
             </div>
           )}
 
+          <WorkspaceShellReadinessContext.Provider value={ordersHydrated && productsHydrated}>
           <CockpitPanelTransition
             activeKey={activeTab}
             direction={transitionDirection}
-            onTransitionComplete={handlePanelTransitionComplete}
+            managed
           >
           {isLoading ? (
             <div>
@@ -208,13 +228,14 @@ export function CockpitWorkspace({ initialTab }: CockpitWorkspaceProps) {
             </div>
           )}
           </CockpitPanelTransition>
+          </WorkspaceShellReadinessContext.Provider>
         </main>
 
         {!isExpanded && (
           <footer className="w-full text-center py-6 border-t border-white/10 select-none bg-neutral-950/80 backdrop-blur-md font-mono text-xs text-neutral-500">
             <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
               <span>3D LABS · COCKPIT WORKSPACE v2.4</span>
-              <span>ДАННЫЕ СОХРАНЯЮТСЯ В LOCALSTORAGE И SUPABASE</span>
+              <span>АВТОМАТИЧЕСКОЕ СОХРАНЕНИЕ И СИНХРОНИЗАЦИЯ</span>
             </div>
           </footer>
         )}
@@ -224,7 +245,7 @@ export function CockpitWorkspace({ initialTab }: CockpitWorkspaceProps) {
         <FullscreenDevelopmentGate
           section={fullscreenGateTab}
           onReturn={closeExpandedView}
-          onHome={() => router.push('/')}
+          onHome={() => { void navigate('/'); }}
         />
       ) : null}
     </div>

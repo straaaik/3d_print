@@ -15,6 +15,9 @@ import { OrderModalProvider } from '../src/entities/model/OrderModalContext';
 import { ToastProvider } from '../src/entities/model/ToastProvider';
 import { AuthGuard } from '../src/shared/ui/AuthGuard';
 import { AppMotionProvider } from '../src/shared/ui/AppMotionProvider';
+import { PageTransitionProvider } from '../src/shared/ui/page-transition/PageTransitionProvider';
+import { ProtectedPageReadiness } from '../src/shared/ui/page-transition/ProtectedPageReadiness';
+import { PublicPageReady } from '../src/shared/ui/page-transition/PageReadySurface';
 import { CockpitTransitionProvider } from '../src/shared/ui/CockpitContentTransition';
 import { PixelCurtainProvider } from '../src/shared/ui/PixelCurtain';
 import {
@@ -76,36 +79,39 @@ test('production workspace factory supplies every loader and matching skeleton t
 test('real route layouts own only their required provider trees', async () => {
   const protectedTree = ProtectedLayout({ children: <span>protected</span> });
   assert.equal(protectedTree.type, 'div');
-  assert.equal(child(protectedTree).type, AppMotionProvider);
-  assert.equal(child(child(protectedTree)).type, ToastProvider);
-  assert.equal(child(child(child(protectedTree))).type, AuthProvider);
-  assert.equal(child(child(child(child(protectedTree)))).type, DataProvider);
-  assert.equal(child(child(child(child(child(protectedTree))))).type, OrderModalProvider);
-  assert.equal(child(child(child(child(child(child(protectedTree)))))).type, AuthGuard);
-  assert.equal(child(child(child(child(child(child(child(protectedTree))))))).type, PixelCurtainProvider);
-  assert.equal(child(child(child(child(child(child(child(child(protectedTree)))))))).type, CockpitTransitionProvider);
-  assert.equal(child(child(child(child(child(child(child(child(child(protectedTree))))))))).type, 'span');
+  const toast = child(protectedTree);
+  assert.equal(toast.type, ToastProvider);
+  const auth = child(toast);
+  assert.equal(auth.type, AuthProvider);
+  const data = child(auth);
+  assert.equal(data.type, DataProvider);
+  const dataChildren = React.Children.toArray(data.props.children) as ElementWithChildren[];
+  assert.equal(dataChildren[0].type, ProtectedPageReadiness);
+  assert.equal(dataChildren[1].type, OrderModalProvider);
+  const guard = child(dataChildren[1]);
+  assert.equal(guard.type, AuthGuard);
+  assert.equal(child(guard).type, PixelCurtainProvider);
+  assert.equal(child(child(guard)).type, CockpitTransitionProvider);
+  assert.equal(child(child(child(guard))).type, 'span');
 
   const loginTree = LoginLayout({ children: <span>login</span> });
-  assert.equal(loginTree.type, 'div');
-  assert.equal(child(loginTree).type, AppMotionProvider);
-  assert.equal(child(child(loginTree)).type, ToastProvider);
-  assert.equal(child(child(child(loginTree))).type, AuthProvider);
-  assert.equal(child(child(child(child(loginTree)))).type, 'span');
-
+  assert.equal(child(loginTree).type, ToastProvider);
+  assert.equal(child(child(loginTree)).type, AuthProvider);
+  assert.equal(child(child(child(loginTree))).type, PublicPageReady);
   const aboutTree = AboutLayout({ children: <span>about</span> });
-  assert.equal(aboutTree.type, AppMotionProvider);
-  assert.equal(child(aboutTree).type, AuthProvider);
-  assert.equal(child(child(aboutTree)).type, 'span');
+  assert.equal(aboutTree.type, AuthProvider);
+  assert.equal(child(aboutTree).type, PublicPageReady);
 
   const rootTree = await RootLayout({ children: <span>root</span> });
   assert.equal(rootTree.type, 'html');
   const body = child(rootTree);
   assert.equal(body.type, 'body');
   assert.match(body.props.className ?? '', /isolate/);
-  const rootChildren = React.Children.toArray(body.props.children) as React.ReactElement[];
+  const rootChildren = React.Children.toArray(body.props.children) as ElementWithChildren[];
   assert.equal(rootChildren[0].type, AppBackground);
-  assert.equal(rootChildren[1].type, 'span');
+  assert.equal(rootChildren[1].type, AppMotionProvider);
+  assert.equal(child(rootChildren[1]).type, PageTransitionProvider);
+  assert.equal(child(child(rootChildren[1])).type, 'span');
 });
 
 test('initial data orchestration starts every API operation before any deferred result resolves', async () => {
@@ -219,3 +225,21 @@ test('drawer cleanup removes zero payments and preserves the paid total', () => 
     { id: 'paid', amount: 25, date: '05.09.2026', note: 'Оплата' },
   ]), null);
 });
+
+test('order modal only displays user-added printers and filaments without hardcoded presets, and no preset expenses', () => {
+  const orderModalSource = source('src/widgets/Orders/components/OrderFormModal.tsx');
+
+  // Hardcoded presets for printers and filaments must not be present
+  assert.doesNotMatch(orderModalSource, /'Bambu Lab X1C',\s*'Creality Ender 3'/);
+  assert.doesNotMatch(orderModalSource, /'PLA',\s*'PETG',\s*'ABS',\s*'TPU'/);
+
+  // Synthetic preset expenses must not be present
+  assert.doesNotMatch(orderModalSource, /DEFAULT_PRESET_EXPENSES/);
+  assert.doesNotMatch(orderModalSource, /exp-pre-1/);
+
+  // Clean empty state labels when items are not added
+  assert.match(orderModalSource, /\[ Принтеры не добавлены \]/);
+  assert.match(orderModalSource, /\[ Пластик не добавлен \]/);
+  assert.match(orderModalSource, /\[ История расходов пуста \]/);
+});
+

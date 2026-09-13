@@ -7,15 +7,15 @@ import { ToastProvider } from '../../entities/model/ToastProvider';
 import { AuthGuard } from '../../shared/ui/AuthGuard';
 import { CockpitTransitionProvider } from '../../shared/ui/CockpitContentTransition';
 import { PixelCurtainProvider } from '../../shared/ui/PixelCurtain';
-import { AppMotionProvider } from '../../shared/ui/AppMotionProvider';
+import { ProtectedPageReadiness } from '../../shared/ui/page-transition/ProtectedPageReadiness';
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative z-10">
-      <AppMotionProvider>
         <ToastProvider>
           <AuthProvider>
             <DataProvider>
+              <ProtectedPageReadiness />
               <OrderModalProvider>
                 <AuthGuard>
                   <PixelCurtainProvider>
@@ -26,7 +26,6 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
             </DataProvider>
           </AuthProvider>
         </ToastProvider>
-      </AppMotionProvider>
     </div>
   );
 }

@@ -166,8 +166,8 @@ function GoalSettingsModalContent({
                   </Tooltip>
                 </div>
 
-                <div className="flex items-center gap-2 font-mono text-xs text-[#d4d4d8] min-w-0">
-                  <span id="goal-modal-title" className="text-[#d4d4d8] font-normal truncate">
+                <div className="flex items-center gap-2 font-mono text-xs text-neutral-300 min-w-0">
+                  <span id="goal-modal-title" className="text-neutral-300 font-normal truncate">
                     Финансовая цель
                   </span>
                   <span className="text-[#52525b] shrink-0">·</span>

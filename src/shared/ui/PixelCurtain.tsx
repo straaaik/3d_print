@@ -1,11 +1,13 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useMemo, useTransition } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
+import { usePageTransition } from './page-transition/PageTransitionProvider';
+import type { CurtainHandler, NavigationOptions } from './page-transition/model';
 
 interface PixelCurtainContextType {
-  navigate: (href: string) => void;
+  navigate: (href: string, options?: NavigationOptions) => void;
   isTransitioning: boolean;
 }
 
@@ -30,8 +32,25 @@ interface Tile {
 
 export function PixelCurtainProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const { navigate: transitionNavigate, registerCurtain, state: transitionState } = usePageTransition();
   const [, startReactTransition] = useTransition();
-  const [phase, setPhase] = useState<'idle' | 'covering' | 'revealing'>('idle');
+  const [phase, setPhaseState] = useState<'idle' | 'covering' | 'revealing'>('idle');
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
+  const timersRef = useRef<NodeJS.Timeout[]>([]);
+  const reduced = useReducedMotion();
+
+  const clearAllTimers = useCallback(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+  }, []);
+
+  useEffect(() => () => clearAllTimers(), [clearAllTimers]);
+
+  const setPhase = useCallback((nextPhase: 'idle' | 'covering' | 'revealing') => {
+    phaseRef.current = nextPhase;
+    setPhaseState(nextPhase);
+  }, []);
 
   // Генерация сетки пикселей с предсказуемым псевдослучайным шахматным паттерном задержек
   const tiles: Tile[] = useMemo(() => {
@@ -61,74 +80,70 @@ export function PixelCurtainProvider({ children }: { children: React.ReactNode }
     return list;
   }, []);
 
-  const navigate = useCallback((href: string) => {
-    if (phase !== 'idle') return;
-
-    const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-    const isFromHome = currentPath === '/';
-    const isToHome = href === '/' || href.startsWith('/?');
-
-    // Анимация занавеса срабатывает ТОЛЬКО при переходе с главной или на главную
-    if (!isFromHome && !isToHome) {
-      router.push(href);
-      return;
-    }
-
-    // 1. Фаза закрытия пикселями (Covering)
-    setPhase('covering');
-
-    // 2. После полного закрытия экрана (360ms) переходим на целевой маршрут
-    setTimeout(() => {
-      startReactTransition(() => {
-        router.push(href);
-      });
-
-      // 3. Фаза раскрытия новой страницы (Revealing)
-      setTimeout(() => {
-        setPhase('revealing');
-
-        // 4. Завершение анимации и возвращение в исходное состояние
-        setTimeout(() => {
-          setPhase('idle');
-        }, 380);
-      }, 70);
-    }, 380);
-  }, [phase, router]);
-
-  const isTransitioning = phase !== 'idle';
-
-  // Глобальный перехват кликов по внутренним ссылкам (строго только с главной или на главную)
-  React.useEffect(() => {
-    const handleGlobalClick = (e: MouseEvent) => {
-      // Игнорируем клики с модификаторами (Ctrl/Cmd/Shift/Alt для открытия в новой вкладке)
-      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-
-      // Ищем ближайший тег <a>
-      const anchor = (e.target as HTMLElement)?.closest('a');
-      if (!anchor) return;
-
-      const href = anchor.getAttribute('href');
-      // Проверяем, что ссылка внутренняя
-      if (href && href.startsWith('/') && !href.startsWith('//') && !href.startsWith('/#')) {
-        if (anchor.target === '_blank' || anchor.hasAttribute('download')) return;
-
-        // Если уже на этой странице — ничего не делаем
-        if (window.location.pathname === href) return;
-
-        const isFromHome = window.location.pathname === '/';
-        const isToHome = href === '/' || href.startsWith('/?');
-
-        // Если это переход между внутренними разделами (не с главной и не на главную) — не перехватываем
-        if (!isFromHome && !isToHome) return;
-
-        e.preventDefault();
-        navigate(href);
+  const curtainHandler: CurtainHandler = useCallback((target: string, options?: NavigationOptions) => {
+    return new Promise<boolean>((resolve) => {
+      if (phaseRef.current !== 'idle') {
+        resolve(false);
+        return;
       }
-    };
 
-    document.addEventListener('click', handleGlobalClick, { capture: true });
-    return () => document.removeEventListener('click', handleGlobalClick, { capture: true });
-  }, [navigate]);
+      if (reduced) {
+        if (options?.replace) {
+          router.replace(target, { scroll: options?.scroll ?? true });
+        } else {
+          router.push(target, { scroll: options?.scroll ?? true });
+        }
+        resolve(true);
+        return;
+      }
+
+      clearAllTimers();
+
+      // 1. Фаза закрытия пикселями (Covering)
+      setPhase('covering');
+
+      // 2. После полного закрытия экрана (380ms) переходим на целевой маршрут
+      const coverTimer = setTimeout(() => {
+        startReactTransition(() => {
+          if (options?.replace) {
+            router.replace(target, { scroll: options?.scroll ?? true });
+          } else {
+            router.push(target, { scroll: options?.scroll ?? true });
+          }
+        });
+
+        // 3. Фаза раскрытия новой страницы (Revealing)
+        const revealTimer = setTimeout(() => {
+          setPhase('revealing');
+
+          // 4. Завершение анимации и возвращение в исходное состояние
+          const idleTimer = setTimeout(() => {
+            setPhase('idle');
+            resolve(true);
+          }, 380);
+
+          timersRef.current.push(idleTimer);
+        }, 70);
+
+        timersRef.current.push(revealTimer);
+      }, 380);
+
+      timersRef.current.push(coverTimer);
+    });
+  }, [router, reduced, clearAllTimers, setPhase]);
+
+  // Регистрируем обработчик шторки в центральном координаторе переходов
+  useEffect(() => {
+    if (!registerCurtain) return;
+    return registerCurtain(curtainHandler);
+  }, [registerCurtain, curtainHandler]);
+
+  const navigate = useCallback((href: string, options?: NavigationOptions) => {
+    void transitionNavigate(href, options);
+  }, [transitionNavigate]);
+
+  const isCurtainTransitioning = phase !== 'idle';
+  const isTransitioning = isCurtainTransitioning || transitionState.phase !== 'idle';
 
   return (
     <PixelCurtainContext.Provider value={{ navigate, isTransitioning }}>
@@ -136,8 +151,9 @@ export function PixelCurtainProvider({ children }: { children: React.ReactNode }
 
       {/* Полноэкранный слой пиксельного занавеса (Curtains: Pixels) */}
       <AnimatePresence>
-        {isTransitioning && (
+        {isCurtainTransitioning && (
           <div
+            data-testid="pixel-curtain"
             className="fixed inset-0 z-[99999] pointer-events-auto grid w-screen h-screen overflow-hidden select-none bg-transparent"
             style={{
               gridTemplateColumns: `repeat(${COLS}, minmax(0, 1fr))`,

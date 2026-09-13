@@ -1179,7 +1179,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                               : isLastChild && collectionColor
                               ? `${collectionColor}60`
                               : 'rgba(255, 255, 255, 0.05)',
-                            borderRadius: isElevated ? 12 : 0,
+                            borderRadius: isElevated ? 4 : 0,
                             boxShadow: isElevated
                               ? '0 0 0 1px rgba(255, 255, 255, 0.22), 0 24px 50px -10px rgba(0, 0, 0, 0.95)'
                               : isAsm && isExpandedRow
@@ -2354,7 +2354,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                               : isLastChild && collectionColor
                               ? `${collectionColor}60`
                               : 'rgba(255, 255, 255, 0.05)',
-                            borderRadius: isElevated ? 12 : 0,
+                            borderRadius: isElevated ? 4 : 0,
                             boxShadow: isElevated
                               ? '0 0 0 1px rgba(255, 255, 255, 0.22), 0 24px 50px -10px rgba(0, 0, 0, 0.95)'
                               : isAsm && isExpandedRow

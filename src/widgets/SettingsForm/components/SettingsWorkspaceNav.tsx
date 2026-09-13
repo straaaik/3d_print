@@ -1,17 +1,21 @@
 'use client';
 
 import type { ComponentType } from 'react';
-import { BriefcaseBusiness, Database, Layers3, Percent, SlidersHorizontal } from 'lucide-react';
+import { BriefcaseBusiness, Database, Layers3, Palette, Percent, SlidersHorizontal, UserRound } from 'lucide-react';
 import type { SettingsTabId } from './SettingsTabs';
 
+export type SettingsSectionId = SettingsTabId | 'profile' | 'appearance';
+
 export const SETTINGS_SECTIONS: Array<{
-  id: SettingsTabId;
+  id: SettingsSectionId;
   label: string;
   description: string;
   heading: string;
   intro: string;
   icon: ComponentType<{ className?: string }>;
 }> = [
+  { id: 'profile', label: 'Профиль', description: 'Личный бейдж, данные аккаунта и пароль', heading: 'Личный профиль', intro: 'Ваш пропуск в мастерскую и информация об аккаунте.', icon: UserRound },
+  { id: 'appearance', label: 'Оформление', description: 'Фон, реакция на курсор и 3D-иконки', heading: 'Оформление рабочего пространства', intro: 'Настройте интерфейс под себя. Изменения применяются сразу и сохраняются на этом устройстве.', icon: Palette },
   { id: 'general', label: 'Основные', description: 'Валюта, электричество и принтер по умолчанию', heading: 'Основные параметры мастерской', intro: 'Задайте базовые значения, которые используются во всех новых расчётах.', icon: SlidersHorizontal },
   { id: 'labor', label: 'Работа мастера', description: 'Ставка, время и правила учёта труда', heading: 'Стоимость и режим работы мастера', intro: 'Определите, как ручная работа входит в себестоимость и итоговую цену.', icon: BriefcaseBusiness },
   { id: 'pricing', label: 'Цена и риски', description: 'Наценка, срочность и резерв на брак', heading: 'Правила ценообразования', intro: 'Настройте запас прибыли и компенсацию производственных рисков.', icon: Percent },
@@ -20,42 +24,40 @@ export const SETTINGS_SECTIONS: Array<{
 ];
 
 export function SettingsWorkspaceNav({ activeTab, onSelectTab, changesMap }: {
-  activeTab: SettingsTabId;
-  onSelectTab: (tab: SettingsTabId) => void;
+  activeTab: SettingsSectionId;
+  onSelectTab: (tab: SettingsSectionId) => void;
   changesMap: Record<SettingsTabId, number>;
 }) {
   return (
-    <nav aria-label="Разделы настроек" className="rounded-xl border border-white/10 bg-neutral-950/65 p-2">
-      <div className="px-2 pb-2 pt-1">
-        <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-neutral-500">CONFIGURATION MAP</p>
-        <p className="mt-1 font-sans text-xs leading-relaxed text-neutral-400">Выберите область — справа останутся только относящиеся к ней параметры.</p>
-      </div>
-      <div className="space-y-1">
-        {SETTINGS_SECTIONS.map((section) => {
+    <nav aria-label="Разделы настроек" className="min-w-0 rounded-xl border border-white/10 bg-neutral-950/65 p-2 lg:sticky lg:top-4">
+      <div className="flex gap-1 overflow-x-auto pb-1 lg:block lg:space-y-1 lg:overflow-visible lg:pb-0">
+        {SETTINGS_SECTIONS.map((section, index) => {
           const Icon = section.icon;
           const isActive = activeTab === section.id;
-          const changedCount = changesMap[section.id];
+          const changedCount = section.id === 'profile' || section.id === 'appearance' ? 0 : changesMap[section.id];
           return (
+            <div key={section.id} className="shrink-0 lg:shrink">
+              {(index === 0 || index === 2 || index === 6) && <p className="hidden px-3 pb-2 pt-3 font-mono text-[9px] uppercase tracking-[0.18em] text-neutral-500 lg:block">{index === 0 ? 'Аккаунт' : index === 2 ? 'Мастерская' : 'Хранилище'}</p>}
             <button
-              key={section.id}
               type="button"
               aria-current={isActive ? 'page' : undefined}
               onClick={() => onSelectTab(section.id)}
-              className={`group flex w-full items-start gap-3 rounded-lg border px-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
+              className={`group flex w-full items-center gap-2 rounded-lg border px-3 py-2.5 text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 lg:items-start lg:gap-3 ${
                 isActive ? 'border-white/15 bg-white/[0.08] text-white' : 'border-transparent text-neutral-400 hover:border-white/10 hover:bg-white/[0.035] hover:text-neutral-200'
               }`}
             >
-              <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${isActive ? 'border-cyan-500/25 bg-cyan-500/[0.08] text-cyan-400' : 'border-white/10 bg-neutral-950 text-neutral-500'}`}>
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border ${isActive ? 'border-white/20 bg-white/10 text-white' : 'border-white/10 bg-neutral-950 text-neutral-500'}`}>
                 <Icon className="h-3.5 w-3.5" />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center justify-between gap-2">
-                  <span className="font-sans text-xs font-semibold">{section.label}</span>
+                  <span className="whitespace-nowrap font-sans text-xs font-semibold">{section.label}</span>
                   {changedCount > 0 ? <span className="rounded border border-amber-800/40 bg-amber-950/60 px-1.5 py-0.5 font-mono text-[8px] font-bold text-amber-400">{changedCount} {changedCount === 1 ? 'изменение' : 'изменения'}</span> : null}
                 </span>
-                <span className="mt-1 block font-sans text-[11px] leading-snug text-neutral-500">{section.description}</span>
+                <span className="mt-1 hidden font-sans text-[11px] leading-snug text-neutral-400 lg:block">{section.description}</span>
               </span>
             </button>
+            </div>
           );
         })}
       </div>

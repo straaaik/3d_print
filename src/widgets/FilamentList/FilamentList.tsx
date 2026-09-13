@@ -468,18 +468,13 @@ export function FilamentList() {
         onClose={() => setIsFormOpen(false)}
         title={editingFilament ? 'Редактирование катушки' : 'Новая катушка'}
         subtitle="Параметры материала"
-        variant="cyan"
         maxWidth="2xl"
-        badge={<span className="rounded border border-cyan-800/40 bg-cyan-950/60 px-2 py-0.5 text-[9px] font-bold text-cyan-400">MATERIAL</span>}
         footer={(
           <div className="flex w-full items-center justify-between gap-3">
             <span>UNIT COST: {previewUnitCost.toFixed(2)} {currencySymbol}/г</span>
-            <div className="flex gap-2">
-              <CockpitButton onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>Закрыть</CockpitButton>
-              <CockpitButton type="submit" form="filament-form" disabled={isSubmitting}>
-                {isSubmitting ? 'Сохранение...' : editingFilament ? 'Сохранить' : 'Добавить'}
-              </CockpitButton>
-            </div>
+            <CockpitButton type="submit" form="filament-form" disabled={isSubmitting}>
+              {isSubmitting ? 'Сохранение...' : editingFilament ? 'Сохранить' : 'Добавить'}
+            </CockpitButton>
           </div>
         )}
       >
@@ -497,7 +492,7 @@ export function FilamentList() {
               </div>
               <Input label={`Цена катушки, ${currencySymbol}`} type="number" min="0" step="any" placeholder="0.00" value={price} onChange={(event) => setPrice(event.target.value)} error={errors.price} requiredStar />
             </div>
-            <ColorPicker label="Цвет пластика" value={color} onChange={setColor} defaultVariant="spool" />
+            <ColorPicker label="Цвет пластика" value={color} onChange={setColor} defaultVariant="spool" inline />
             <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-neutral-950/60 p-3 font-mono">
               <Metric label="Вес" value={`${Number(weightG || 0).toLocaleString('ru-RU')} г`} />
               <Metric label="Расчётная ставка" value={`${previewUnitCost.toFixed(2)} ${currencySymbol}/г`} bordered accent />
@@ -511,7 +506,6 @@ export function FilamentList() {
         onClose={() => setDeleteTarget(null)}
         title="Удаление катушки"
         subtitle={deleteTarget ? deleteTarget.name : 'Подтверждение действия'}
-        variant="warning"
         maxWidth="md"
         footer={(
           <div className="flex w-full justify-end gap-2">

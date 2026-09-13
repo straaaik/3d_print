@@ -1,8 +1,10 @@
-import Link from 'next/link';
+import { PageErrorReady } from '../shared/ui/page-transition/PageReadySurface';
+import { PageTransitionLink as Link } from '../shared/ui/page-transition/PageTransitionLink';
 
 export default function NotFound() {
   return (
     <main className="min-h-screen bg-dot-grid px-3 py-4 font-sans text-white sm:px-6 sm:py-6">
+      <PageErrorReady />
       <section className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl">
         <div className="flex items-center gap-3 border-b border-white/10 bg-neutral-900/60 px-4 py-3 font-mono text-xs sm:px-5">
           <div className="flex items-center gap-1.5" aria-hidden="true">

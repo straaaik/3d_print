@@ -164,3 +164,15 @@ test('workspace tab labels reserve their active width so the navigation shell do
   assert.match(html, /aria-hidden="true"/);
   assert.equal((html.match(/Статистика/g) ?? []).length, 2);
 });
+
+test('managed workspace panel exposes ready content without a local animation or fallback completion', () => {
+  let completed = 0;
+  const html = renderToStaticMarkup(
+    <CockpitPanelTransition activeKey="calculator" direction={1} managed onTransitionComplete={() => { completed += 1; }}>
+      <div>Скелетон представления</div>
+    </CockpitPanelTransition>,
+  );
+  assert.match(html, /data-cockpit-panel="calculator"/);
+  assert.doesNotMatch(html, /opacity:|transform:/);
+  assert.equal(completed, 0);
+});

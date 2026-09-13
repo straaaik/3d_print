@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { PageTransitionLink as Link } from '../../../shared/ui/page-transition/PageTransitionLink';
+import { usePageRouter as useRouter } from '../../../shared/ui/page-transition/PageTransitionLink';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   KeyRound,
@@ -204,10 +204,10 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Индикатор облака */}
+            {/* Индикатор статуса */}
             <span className="flex items-center gap-1 text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded">
               <MotionPulse className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              Supabase Cloud
+              System Online
             </span>
           </div>
 
@@ -536,7 +536,7 @@ export default function LoginPage() {
           <div className="border-t border-white/10 px-4 py-2.5 bg-neutral-950 flex items-center justify-between text-[11px] font-mono text-neutral-500">
             <div className="flex items-center gap-2">
               <MotionPulse className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-              <span>TLS 1.3 · SUPABASE AUTH</span>
+              <span>TLS 1.3 · ENCRYPTED AUTH</span>
             </div>
             <span>INVITE-ONLY GATEWAY</span>
           </div>
@@ -548,7 +548,7 @@ export default function LoginPage() {
       <footer className="w-full text-center py-6 border-t border-white/10 select-none bg-neutral-950/80 backdrop-blur-md font-mono text-xs text-neutral-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>3D LABS · ENGINE v2.4 · ACCESS RUNTIME</span>
-          <span>ДАННЫЕ СОХРАНЯЮТСЯ В LOCALSTORAGE И SUPABASE</span>
+          <span>АВТОМАТИЧЕСКОЕ СОХРАНЕНИЕ И СИНХРОНИЗАЦИЯ</span>
         </div>
       </footer>
 

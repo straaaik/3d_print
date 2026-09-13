@@ -29,6 +29,7 @@ test.describe('визуальная стабильность основных э
   for (const route of routes) {
     test(`${route.path} соответствует эталонному дизайну`, async ({ page }) => {
       await page.goto(route.path);
+      await expect(page.locator('[data-transition-phase]')).toHaveAttribute('data-transition-phase', 'idle');
 
       await expect(page).toHaveURL(route.path);
       await expect(page.getByText(route.readyText, { exact: false }).first()).toBeVisible();

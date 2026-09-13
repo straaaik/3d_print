@@ -306,7 +306,7 @@ export function AdminPanel() {
                 <Activity className={`h-5 w-5 ${isOnline ? 'text-emerald-400' : 'text-amber-400'}`} />
               </div>
               <div className="divide-y divide-white/5">
-                <SystemRow label="База данных" value={isOnline ? 'SUPABASE CLOUD · ONLINE' : 'LOCAL CACHE · OFFLINE'} tone={isOnline ? 'good' : 'warn'} />
+                <SystemRow label="База данных" value={isOnline ? 'CONNECTED · ONLINE' : 'OFFLINE MODE'} tone={isOnline ? 'good' : 'warn'} />
                 <SystemRow label="Текущая роль" value={currentUser?.role === 'admin' ? 'ADMINISTRATOR' : 'USER'} tone={currentUser?.role === 'admin' ? 'good' : 'warn'} />
                 <SystemRow label="Активные аккаунты" value={`${users.filter((user) => user.is_active).length} / ${users.length}`} />
                 <SystemRow label="Свободные ключи" value={String(stats.active)} />
@@ -337,7 +337,6 @@ export function AdminPanel() {
         onClose={() => !isDeleting && setKeyToDelete(null)}
         title="Удаление ключа"
         subtitle="Регистрационный доступ"
-        variant="error"
         maxWidth="md"
         footer={(
           <div className="flex w-full justify-end gap-2">
@@ -356,7 +355,6 @@ export function AdminPanel() {
         onClose={() => !isDeleting && setUserToDelete(null)}
         title="Удаление пользователя"
         subtitle={userToDelete?.name || 'Аккаунт'}
-        variant="error"
         maxWidth="md"
         footer={(
           <div className="flex w-full justify-end gap-2">
@@ -479,7 +477,7 @@ function AdminExpandedOverview({
         <p className="font-mono text-[9px] font-bold uppercase tracking-[0.18em] text-neutral-500">SESSION & GUARDRAILS</p>
         <h2 className="mt-1.5 font-sans text-base font-bold text-white">Контрольная сводка</h2>
         <div className="mt-3 divide-y divide-white/5 rounded-lg border border-white/10 bg-neutral-950/55 px-3">
-          <SystemRow label="Подключение" value={isOnline ? 'SUPABASE CLOUD · ONLINE' : 'LOCAL CACHE · OFFLINE'} tone={isOnline ? 'good' : 'warn'} />
+          <SystemRow label="Подключение" value={isOnline ? 'CONNECTED · ONLINE' : 'OFFLINE MODE'} tone={isOnline ? 'good' : 'warn'} />
           <SystemRow label="Оператор" value={currentUserName} />
           <SystemRow label="Роль" value="ADMINISTRATOR" tone="good" />
         </div>

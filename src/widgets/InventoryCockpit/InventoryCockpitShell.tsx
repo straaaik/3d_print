@@ -168,7 +168,7 @@ export function InventoryCockpitShell({
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <span className="flex items-center gap-1.5 whitespace-nowrap">
               {isOnline ? <Database className="h-3 w-3 text-emerald-400" /> : <HardDrive className="h-3 w-3" />}
-              DATABASE: {isOnline ? 'SUPABASE CLOUD' : 'LOCALSTORAGE'}
+              DATABASE: {isOnline ? 'CONNECTED' : 'OFFLINE'}
             </span>
             <span className="hidden sm:inline">•</span>
             <span className="hidden whitespace-nowrap sm:inline">VIEW: {isExpanded ? 'FULLSCREEN' : 'COMPACT'}</span>

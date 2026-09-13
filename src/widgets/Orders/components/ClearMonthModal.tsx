@@ -31,7 +31,6 @@ export function ClearMonthModal({
     <CockpitModal
       isOpen={isOpen}
       onClose={onClose}
-      variant="error"
       maxWidth="sm"
       title={title}
       subtitle="Очистка реестра"

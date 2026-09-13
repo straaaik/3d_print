@@ -33,8 +33,9 @@ export function ProfileBadge({ name, email, role, memberId, memberSince, active 
   }
 
   function move(event: PointerEvent<HTMLDivElement>) {
-    if (reducedMotion || event.pointerType !== 'mouse' || !bounds.current) return;
-    const rect = bounds.current;
+    if (reducedMotion || (event.pointerType && event.pointerType !== 'mouse')) return;
+    const rect = bounds.current || event.currentTarget.getBoundingClientRect();
+    bounds.current = rect;
     const x = Math.max(-1, Math.min(1, ((event.clientX - rect.left) / rect.width - 0.5) * 2));
     const y = Math.max(-1, Math.min(1, ((event.clientY - rect.top) / rect.height - 0.5) * 2));
     rotateX.set(-y * 6);

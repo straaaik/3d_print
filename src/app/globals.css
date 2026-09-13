@@ -1,27 +1,57 @@
 @import "tailwindcss";
 
+:root {
+  /* ==========================================================================
+     ГЛАВНЫЙ ЦВЕТ СВЕТЛОГО ТЕКСТА И ЧЕКА (THEME ACCENT / BONE / SAND)
+     Измените это значение ниже, чтобы мгновенно сменить цвет во всём приложении:
+     ========================================================================== */
+  --cockpit-accent-color: #D2CCBB;
+
+  /* ==========================================================================
+     ГЛАВНОЕ СКРУГЛЕНИЕ ИНТЕРФЕЙСА (GLOBAL BORDER RADIUS)
+     Измените это значение ниже, чтобы мгновенно сменить скругления во всём приложении:
+     ========================================================================== */
+  --cockpit-radius: 4px;
+
+  --background: #0a0a0a;
+  --foreground: var(--cockpit-accent-color);
+}
+
 @theme {
   --color-primary: #0CB4E0;
   --color-secondary: #537D8E;
   --color-tertiary: #FEB63D;
   --color-neutral-accent: #72787B;
   
+  --color-sand: var(--cockpit-accent-color);
+  --color-receipt: var(--cockpit-accent-color);
+  --color-white: var(--cockpit-accent-color);
+
+  /* Гармоничные светлые оттенки текста и бейджей, привязанные к главному цвету */
+  --color-neutral-100: color-mix(in srgb, var(--cockpit-accent-color) 96%, black);
+  --color-neutral-200: color-mix(in srgb, var(--cockpit-accent-color) 88%, black);
+  --color-neutral-300: color-mix(in srgb, var(--cockpit-accent-color) 78%, black);
+  --color-neutral-400: color-mix(in srgb, var(--cockpit-accent-color) 62%, black);
+
+  --color-zinc-100: color-mix(in srgb, var(--cockpit-accent-color) 96%, black);
+  --color-zinc-200: color-mix(in srgb, var(--cockpit-accent-color) 88%, black);
+  --color-zinc-300: color-mix(in srgb, var(--cockpit-accent-color) 78%, black);
+  --color-zinc-400: color-mix(in srgb, var(--cockpit-accent-color) 62%, black);
+
   --font-sans: var(--font-inter), sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
 
-  --radius-xs: 0.125rem;
-  --radius-sm: 0.1875rem;
-  --radius-md: 0.25rem;
-  --radius-lg: 0.375rem;
-  --radius-xl: 0.5rem;
-  --radius-2xl: 0.625rem;
-  --radius-3xl: 0.75rem;
-  --radius-4xl: 1rem;
-}
-
-:root {
-  --background: #0a0a0a;
-  --foreground: #f8fafc;
+  /* Единая система скруглений (управляется через переменную --cockpit-radius) */
+  --radius: var(--cockpit-radius);
+  --radius-xs: var(--cockpit-radius);
+  --radius-sm: var(--cockpit-radius);
+  --radius-md: var(--cockpit-radius);
+  --radius-lg: var(--cockpit-radius);
+  --radius-xl: var(--cockpit-radius);
+  --radius-2xl: var(--cockpit-radius);
+  --radius-3xl: var(--cockpit-radius);
+  --radius-4xl: var(--cockpit-radius);
+  --radius-full: 9999px;
 }
 
 html {

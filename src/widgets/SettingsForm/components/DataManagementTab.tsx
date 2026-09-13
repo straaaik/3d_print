@@ -269,7 +269,6 @@ export function DataManagementTab({
           onClose={() => !isSeeding && setIsConfirmSeedModalOpen(false)}
           title="Генерация данных"
           subtitle="Тестовые сущности"
-          variant="warning"
           maxWidth="sm"
           footer={
             <div className="flex gap-2 justify-end w-full">
@@ -313,7 +312,6 @@ export function DataManagementTab({
         onClose={() => !isClearing && setIsConfirmClearModalOpen(false)}
         title="Очистка базы данных"
         subtitle="Полный сброс"
-        variant="error"
         maxWidth="sm"
         footer={
           <div className="flex gap-2 justify-end w-full">
@@ -343,7 +341,7 @@ export function DataManagementTab({
         }
       >
         <p className="text-xs text-neutral-300 font-sans">
-          Вы действительно хотите полностью удалить все данные из всех таблиц? База данных и локальное хранилище станут пустыми.
+          Вы действительно хотите полностью удалить все данные из всех таблиц? Все сохраненные записи будут удалены.
         </p>
       </CockpitModal>
     </div>

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { usePageRouter as useRouter } from './page-transition/PageTransitionLink';
 import { useAuth } from '../../entities/model/AuthProvider';
 import { ShieldAlert, Lock } from 'lucide-react';
 
@@ -69,7 +70,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
           <footer className="w-full select-none border-t border-white/10 bg-neutral-950/80 py-6 font-mono text-[11px] text-neutral-500 backdrop-blur-md">
             <div className="mx-auto flex max-w-[1500px] flex-col items-center justify-between gap-2 px-4 sm:flex-row">
               <span>3D LABS · SETTINGS RUNTIME v2.4</span>
-              <span>CONFIG: LOCALSTORAGE + SUPABASE CLOUD</span>
+              <span>CONFIG: SECURE SYNCED RUNTIME</span>
             </div>
           </footer>
         </div>

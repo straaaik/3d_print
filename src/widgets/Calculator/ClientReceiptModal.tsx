@@ -104,7 +104,7 @@ function getReceiptPrintMarkup(imageUrl: string, orderNumber: string): string {
         <style>
           @page { margin: 10mm; size: auto; }
           body {
-            background: #f4f4f5;
+            background: var(--cockpit-accent-color, #D2CCBB);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -427,8 +427,8 @@ export function ClientReceiptModal({
                 </Tooltip>
               </div>
 
-              <div className="flex items-center gap-2 font-mono text-xs text-[#d4d4d8] min-w-0">
-                <span id="client-receipt-title" className="text-[#d4d4d8] font-normal truncate">
+              <div className="flex items-center gap-2 font-mono text-xs text-neutral-300 min-w-0">
+                <span id="client-receipt-title" className="text-neutral-300 font-normal truncate">
                   Чек для клиента
                 </span>
                 <span className="text-[#52525b] shrink-0">·</span>
@@ -609,7 +609,7 @@ export function ClientReceiptModal({
                 <div
                   ref={receiptRef}
                   style={{
-                    backgroundColor: '#b8b6ae',
+                    backgroundColor: 'var(--cockpit-accent-color, #D2CCBB)',
                     color: '#0a0a0a',
                     width: '300px',
                     padding: '24px 18px',

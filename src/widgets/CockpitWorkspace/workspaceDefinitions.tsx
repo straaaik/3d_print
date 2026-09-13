@@ -1,4 +1,6 @@
-import type React from 'react';
+import React from 'react';
+import { WorkspaceReadyBoundary } from './WorkspaceReadyBoundary';
+import type { CockpitTabId } from './CockpitWorkspace';
 import type { OrdersTableProps } from '../Orders/OrdersTable';
 import type { ProductsListProps } from '../ProductsList/ProductsList';
 import {
@@ -22,29 +24,48 @@ export interface WorkspaceDynamicAdapter {
   ): React.ComponentType<TProps>;
 }
 
+export function withWorkspaceReady<TProps extends object>(
+  tab: CockpitTabId,
+  load: () => Promise<React.ComponentType<TProps>>,
+): () => Promise<React.ComponentType<TProps>> {
+  let pending: Promise<React.ComponentType<TProps>> | undefined;
+  return () => {
+    pending ??= load().then((Component) => {
+      function LoadedWorkspace(props: TProps) {
+        return <WorkspaceReadyBoundary tab={tab}><Component {...props} /></WorkspaceReadyBoundary>;
+      }
+      return LoadedWorkspace;
+    }).catch((error: unknown) => {
+      pending = undefined;
+      throw error;
+    });
+    return pending;
+  };
+}
+
 export const workspaceDefinitions = {
   orders: {
-    load: () => import('../Orders/OrdersTable').then((module) => module.OrdersTable),
+    load: withWorkspaceReady('orders', () => import('../Orders/OrdersTable').then((module) => module.OrdersTable)),
     loading: OrdersSkeleton,
   } satisfies WorkspaceDefinition<OrdersTableProps>,
   stats: {
-    load: () => import('../Stats/StatsDashboard').then((module) => module.StatsDashboard),
+    load: withWorkspaceReady('stats', () => import('../Stats/StatsDashboard').then((module) => module.StatsDashboard)),
     loading: StatsSkeleton,
   } satisfies WorkspaceDefinition,
   calculator: {
-    load: () => import('../Calculator/Calculator').then((module) => module.Calculator),
+    load: withWorkspaceReady('calculator', () => import('../Calculator/Calculator').then((module) => module.Calculator)),
     loading: CalculatorSkeleton,
   } satisfies WorkspaceDefinition,
   products: {
-    load: () => import('../ProductsList/ProductsList').then((module) => module.ProductsList),
+    load: withWorkspaceReady('products', () => import('../ProductsList/ProductsList').then((module) => module.ProductsList)),
     loading: ProductsSkeleton,
   } satisfies WorkspaceDefinition<ProductsListProps>,
   filaments: {
-    load: () => import('../FilamentList/FilamentList').then((module) => module.FilamentList),
+    load: withWorkspaceReady('filaments', () => import('../FilamentList/FilamentList').then((module) => module.FilamentList)),
     loading: FilamentsSkeleton,
   } satisfies WorkspaceDefinition,
   printers: {
-    load: () => import('../PrinterList/PrinterList').then((module) => module.PrinterList),
+    load: withWorkspaceReady('printers', () => import('../PrinterList/PrinterList').then((module) => module.PrinterList)),
     loading: PrintersSkeleton,
   } satisfies WorkspaceDefinition,
 };

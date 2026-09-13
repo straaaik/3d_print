@@ -1,4 +1,5 @@
 .scene {
+  font-family: var(--font-inter, sans-serif);
   width: min(100%, 370px);
   margin-inline: auto;
   padding-top: 142px;

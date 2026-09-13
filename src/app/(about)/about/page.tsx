@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
+import { PageTransitionLink as Link } from '../../../shared/ui/page-transition/PageTransitionLink';
 import {
 
   ArrowRight

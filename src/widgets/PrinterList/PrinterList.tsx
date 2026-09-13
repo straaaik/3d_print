@@ -503,18 +503,13 @@ export function PrinterList() {
         onClose={() => setIsFormOpen(false)}
         title={editingPrinter ? 'Редактирование принтера' : 'Новый 3D-принтер'}
         subtitle="Параметры оборудования"
-        variant="cyan"
         maxWidth="2xl"
-        badge={<span className="rounded border border-cyan-800/40 bg-cyan-950/60 px-2 py-0.5 text-[9px] font-bold text-cyan-400">MACHINE</span>}
         footer={(
           <div className="flex w-full items-center justify-between gap-3">
             <span>HOURLY COST: {previewHourlyCost.toFixed(2)} {currencySymbol}/ч</span>
-            <div className="flex gap-2">
-              <CockpitButton onClick={() => setIsFormOpen(false)} disabled={isSubmitting}>Закрыть</CockpitButton>
-              <CockpitButton type="submit" form="printer-form" disabled={isSubmitting}>
-                {isSubmitting ? 'Сохранение...' : editingPrinter ? 'Сохранить' : 'Добавить'}
-              </CockpitButton>
-            </div>
+            <CockpitButton type="submit" form="printer-form" disabled={isSubmitting}>
+              {isSubmitting ? 'Сохранение...' : editingPrinter ? 'Сохранить' : 'Добавить'}
+            </CockpitButton>
           </div>
         )}
       >
@@ -536,7 +531,7 @@ export function PrinterList() {
               <NumberCounter label="Расчётный ресурс, ч" value={Number.parseInt(lifespanHours, 10) || 0} onChange={(value) => setLifespanHours(String(value))} min={1} max={1000000} step={100} />
               {errors.lifespanHours && <p className="mt-1 text-[11px] text-rose-400">{errors.lifespanHours}</p>}
             </div>
-            <ColorPicker label="Цвет оборудования" value={color} onChange={setColor} defaultVariant="matrix" />
+            <ColorPicker label="Цвет оборудования" value={color} onChange={setColor} defaultVariant="matrix" inline />
             <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-neutral-950/60 p-3 font-mono">
               <MachineMetric label="Энергия" value={`${(Number(powerW || 0) / 1000 * electricityRate).toFixed(2)} ${currencySymbol}/ч`} />
               <MachineMetric label="Полная ставка" value={`${previewHourlyCost.toFixed(2)} ${currencySymbol}/ч`} bordered accent />
@@ -550,7 +545,6 @@ export function PrinterList() {
         onClose={() => setDeleteTarget(null)}
         title="Удаление принтера"
         subtitle={deleteTarget ? deleteTarget.name : 'Подтверждение действия'}
-        variant="warning"
         maxWidth="md"
         footer={(
           <div className="flex w-full justify-end gap-2">

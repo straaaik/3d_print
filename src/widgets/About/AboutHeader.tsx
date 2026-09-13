@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
+import { PageTransitionLink as Link } from '../../shared/ui/page-transition/PageTransitionLink';
 import { Box, Menu, X, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../entities/model/AuthProvider';
 import { MotionPing } from '../../shared/ui/MotionPrimitives';
@@ -35,7 +35,7 @@ export function AboutHeader() {
           </div>
 
           <div className="hidden sm:flex items-center gap-4 text-[11px] font-mono text-neutral-400">
-            <span>OFFLINE LOCALSTORAGE + CLOUD SYNC</span>
+            <span>OFFLINE-FIRST + CLOUD SYNC</span>
             <span className="text-white/20">|</span>
             <Link
               href={isAuthenticated ? '/orders' : '/login'}

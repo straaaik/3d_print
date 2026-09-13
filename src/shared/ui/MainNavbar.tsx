@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { PageTransitionLink as Link } from './page-transition/PageTransitionLink';
+import { usePathname } from 'next/navigation';
+import { usePageRouter as useRouter } from './page-transition/PageTransitionLink';
 import { AnimatePresence, motion } from 'motion/react';
 import { useAuth } from '../../entities/model/AuthProvider';
 import {
@@ -100,13 +101,13 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
             className="flex items-center gap-2.5 bg-neutral-950/85 hover:bg-neutral-900/90 border border-white/15 backdrop-blur-xl px-3 py-1.5 rounded-xl text-white shadow-2xl cursor-pointer group"
           >
             <Link
-              href="/profile"
+              href="/settings?section=profile"
               aria-label="Открыть профиль"
-              aria-current={pathname === '/profile' ? 'page' : undefined}
+              aria-current={pathname === '/settings' ? 'page' : undefined}
               onClick={(event) => {
                 if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
                 setIsProfileOpen(false);
-                void handleClick(event, '/profile');
+                void handleClick(event, '/settings?section=profile');
               }}
               className="flex min-w-0 items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/60"
             >

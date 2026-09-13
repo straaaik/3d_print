@@ -2,7 +2,7 @@
 
 import React, { startTransition, useCallback, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { useRouter } from 'next/navigation';
+import { usePageRouter as useRouter } from '../../shared/ui/page-transition/PageTransitionLink';
 import { MotionConfig } from 'motion/react';
 import { Clock, RefreshCw } from 'lucide-react';
 import { CockpitButton } from '../../shared/ui/CockpitButton';
@@ -29,7 +29,7 @@ import { PeriodFilterBar } from './components/PeriodFilterBar';
 import { StatsKpiCards } from './components/StatsKpiCards';
 import { StatsEmptyState } from './components/StatsEmptyState';
 
-const ChartSkeleton = () => <MotionPulseDiv className="min-h-64 rounded-xl border border-white/10 bg-white/[0.03]" />;
+const ChartSkeleton = () => <MotionPulseDiv data-page-pending="" className="min-h-64 rounded-xl border border-white/10 bg-white/[0.03]" />;
 
 const FinancialDynamicsChart = dynamic(() => import('./components/FinancialDynamicsChart').then((module) => module.FinancialDynamicsChart), { loading: ChartSkeleton });
 const PaymentGapChart = dynamic(() => import('./components/PaymentGapChart').then((module) => module.PaymentGapChart), { loading: ChartSkeleton });
@@ -39,7 +39,7 @@ const ProductPerformanceChart = dynamic(() => import('./components/ProductPerfor
 const CostStructureChart = dynamic(() => import('./components/CostStructureChart').then((module) => module.CostStructureChart), { loading: ChartSkeleton });
 const FilamentUsageChart = dynamic(() => import('./components/FilamentUsageChart').then((module) => module.FilamentUsageChart), { loading: ChartSkeleton });
 const PrinterWorkloadChart = dynamic(() => import('./components/PrinterWorkloadChart').then((module) => module.PrinterWorkloadChart), { loading: ChartSkeleton });
-const StatsInsights = dynamic(() => import('./components/StatsInsights').then((module) => module.StatsInsights));
+const StatsInsights = dynamic(() => import('./components/StatsInsights').then((module) => module.StatsInsights), { loading: ChartSkeleton });
 
 type LoadState = 'ready' | 'refreshing' | 'error';
 
@@ -179,7 +179,7 @@ export function StatsDashboard() {
               </div>
               <div className="flex min-w-0 flex-wrap items-center gap-2 border-l border-white/10 pl-3 font-mono text-xs">
                 <strong className="text-white">3D-LABS</strong><span className="text-neutral-600">{'//'}</span><span className="text-neutral-400">СТАТИСТИКА</span>
-                <span className={`flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] ${isOnline ? 'border-emerald-800/40 bg-emerald-950/60 text-emerald-400' : 'border-white/10 bg-white/5 text-neutral-400'}`}><i className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-neutral-500'}`} />{isOnline ? 'Supabase Cloud' : 'LocalStorage'}</span>
+                <span className={`flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] ${isOnline ? 'border-emerald-800/40 bg-emerald-950/60 text-emerald-400' : 'border-white/10 bg-white/5 text-neutral-400'}`}><i className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-neutral-500'}`} />{isOnline ? 'Online' : 'Offline'}</span>
               </div>
             </div>
 
@@ -267,7 +267,7 @@ export function StatsDashboard() {
           </CockpitContentTransition>
 
           <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-neutral-950 px-5 py-2.5 font-mono text-[11px] text-neutral-500">
-            <div className="flex items-center gap-3"><span>DATABASE: {isOnline ? 'SUPABASE CLOUD' : 'LOCALSTORAGE'}</span><span className="hidden sm:inline">•</span><span className="hidden sm:inline">ORDERS: {orders.length}</span><span className="hidden md:inline">•</span><span className="hidden md:inline">PRODUCTS: {savedCalculations.length}</span></div>
+            <div className="flex items-center gap-3"><span>DATABASE: {isOnline ? 'CONNECTED' : 'OFFLINE'}</span><span className="hidden sm:inline">•</span><span className="hidden sm:inline">ORDERS: {orders.length}</span><span className="hidden md:inline">•</span><span className="hidden md:inline">PRODUCTS: {savedCalculations.length}</span></div>
             <span>{lastUpdatedAt ? `CALCULATED: ${lastUpdatedAt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'DATA: READY'}</span>
           </footer>
         </div>

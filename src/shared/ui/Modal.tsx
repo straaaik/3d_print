@@ -178,9 +178,9 @@ export function Modal({
                   </Tooltip>
                 </div>
 
-                <div className="flex items-center gap-2 font-mono text-xs text-[#d4d4d8] min-w-0">
+                <div className="flex items-center gap-2 font-mono text-xs text-neutral-300 min-w-0">
                   {styleConfig.icon}
-                  <span className="text-[#d4d4d8] font-normal truncate">
+                  <span className="text-neutral-300 font-normal truncate">
                     {title}
                   </span>
                   {subtitle && (

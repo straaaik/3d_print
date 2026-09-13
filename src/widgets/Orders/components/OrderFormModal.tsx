@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useEffectEvent, useMemo, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePageRouter as useRouter } from '../../../shared/ui/page-transition/PageTransitionLink';
 import {
   Order,
   CostItem,
@@ -105,26 +105,6 @@ const DEFAULT_EXPENSE_CATEGORIES: string[] = [
   'Налоги и эквайринг',
   'Обучение и курсы',
   'Прочие расходы',
-];
-
-interface PresetExpenseItem {
-  id: string;
-  title: string;
-  amount: number;
-  client: string;
-  notes: string;
-  date?: string;
-}
-
-const DEFAULT_PRESET_EXPENSES: PresetExpenseItem[] = [
-  { id: 'exp-pre-1', title: 'Катушка PLA 1кг', amount: 1200, client: 'Пластик и филамент', notes: 'Черный / Белый базовый', date: '' },
-  { id: 'exp-pre-2', title: 'Катушка PETG 1кг', amount: 1100, client: 'Пластик и филамент', notes: 'FDplast / Kingroon', date: '' },
-  { id: 'exp-pre-3', title: 'Фотополимерная смола 1кг', amount: 2400, client: 'Фотополимерная смола', notes: 'Anycubic Standard Grey', date: '' },
-  { id: 'exp-pre-4', title: 'Изопропиловый спирт 5л', amount: 1350, client: 'Химия и изопропанол', notes: 'Абсолютированный 99.8%', date: '' },
-  { id: 'exp-pre-5', title: 'Комплект сопел 0.4', amount: 850, client: 'Комплектующие и сопла', notes: 'Hardened Steel 0.4mm', date: '' },
-  { id: 'exp-pre-6', title: 'Упаковочные коробки 50 шт', amount: 1500, client: 'Упаковка и коробки', notes: 'Самосборные коробки Т-23', date: '' },
-  { id: 'exp-pre-7', title: 'Аренда мастерской', amount: 15000, client: 'Аренда мастерской', notes: 'Ежемесячный платеж', date: '' },
-  { id: 'exp-pre-8', title: 'Электроэнергия мастерской', amount: 3200, client: 'Электроэнергия и ЖКХ', notes: 'По счетчику за месяц', date: '' },
 ];
 
 interface OrderFormModalProps {
@@ -315,11 +295,7 @@ export function OrderFormModal({
       }
     }
 
-    const existingReal = Array.from(uniqueMap.values());
-    if (existingReal.length > 0) {
-      return existingReal;
-    }
-    return DEFAULT_PRESET_EXPENSES;
+    return Array.from(uniqueMap.values());
   }, [allOrders]);
 
   const filteredPastExpenses = useMemo(() => {
@@ -1431,7 +1407,9 @@ export function OrderFormModal({
                           })
                         ) : (
                           <div className="text-[11px] text-[#71717a] py-3 px-1 text-center font-mono">
-                            [ Расход не найден ]
+                            {pastExpensesList.length === 0
+                              ? '[ История расходов пуста ]'
+                              : `[ Расход «${expenseHistorySearchQuery}» не найден ]`}
                           </div>
                         )}
                       </div>
@@ -1561,7 +1539,7 @@ export function OrderFormModal({
                                       <span>3D-ПРИНТЕР</span>
                                     </span>
                                     <span className="text-[#52525b] lowercase text-[10px]">
-                                      {printers.length > 0 ? `${filteredPrinters.length} из ${printers.length}` : 'пресеты'}
+                                      {printers.length > 0 ? `${filteredPrinters.length} из ${printers.length}` : '0 из 0'}
                                     </span>
                                   </div>
 
@@ -1616,27 +1594,9 @@ export function OrderFormModal({
                                         [ Принтер «{printerSearch}» не найден ]
                                       </div>
                                     ) : (
-                                      ['Bambu Lab X1C', 'Creality Ender 3', 'Anycubic Kobra', 'Elegoo Neptune']
-                                        .filter(pName => !printerSearch.trim() || pName.toLowerCase().includes(printerSearch.toLowerCase()))
-                                        .map(pName => {
-                                          const isSelected = isPrinterSelected(pName);
-                                          return (
-                                            <button
-                                              key={pName}
-                                              type="button"
-                                              onClick={() => handleSelectPrinter(pName)}
-                                              className={`flex items-center gap-2.5 py-0.5 text-xs font-mono cursor-pointer text-left w-full ${
-                                                isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-[#d4d4d8]'
-                                              }`}
-                                            >
-                                              <span className="w-2 h-2 rounded-full bg-[#38bdf8] shrink-0" />
-                                              <span className="relative inline-flex items-center">
-                                                <span>{pName}</span>
-                                                <HandDrawnUnderline isSelected={isSelected} />
-                                              </span>
-                                            </button>
-                                          );
-                                        })
+                                      <div className="text-xs text-[#71717a] py-2 font-mono">
+                                        [ Принтеры не добавлены ]
+                                      </div>
                                     )}
                                   </div>
                                 </div>
@@ -1649,7 +1609,7 @@ export function OrderFormModal({
                                       <span>МАТЕРИАЛ ПЛАСТИКА</span>
                                     </span>
                                     <span className="text-[#52525b] lowercase text-[10px]">
-                                      {filaments.length > 0 ? `${filteredFilaments.length} из ${filaments.length}` : 'пресеты'}
+                                      {filaments.length > 0 ? `${filteredFilaments.length} из ${filaments.length}` : '0 из 0'}
                                     </span>
                                   </div>
 
@@ -1704,27 +1664,9 @@ export function OrderFormModal({
                                         [ Пластик «{filamentSearch}» не найден ]
                                       </div>
                                     ) : (
-                                      ['PLA', 'PETG', 'ABS', 'TPU', 'Nylon', 'PC', 'ASA', 'PETG-CF']
-                                        .filter(fName => !filamentSearch.trim() || fName.toLowerCase().includes(filamentSearch.toLowerCase()))
-                                        .map(fName => {
-                                          const isSelected = isFilamentSelected(fName);
-                                          return (
-                                            <button
-                                              key={fName}
-                                              type="button"
-                                              onClick={() => handleSelectFilament(fName)}
-                                              className={`flex items-center gap-2.5 py-0.5 text-xs font-mono cursor-pointer text-left w-full ${
-                                                isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-[#d4d4d8]'
-                                              }`}
-                                            >
-                                              <span className="w-2 h-2 rounded-full bg-[#fb923c] shrink-0" />
-                                              <span className="relative inline-flex items-center">
-                                                <span>{fName}</span>
-                                                <HandDrawnUnderline isSelected={isSelected} />
-                                              </span>
-                                            </button>
-                                          );
-                                        })
+                                      <div className="text-xs text-[#71717a] py-2 font-mono">
+                                        [ Пластик не добавлен ]
+                                      </div>
                                     )}
                                   </div>
                                 </div>

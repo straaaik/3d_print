@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
+import { PageTransitionLink as Link } from '../../shared/ui/page-transition/PageTransitionLink';
 import { Box, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../entities/model/AuthProvider';
 import { MotionPulse } from '../../shared/ui/MotionPrimitives';
@@ -69,7 +69,7 @@ export function AboutFooter() {
           </p>
 
           <div className="pt-2 font-mono text-xs text-neutral-500 space-y-1">
-            <div>ARCHITECTURE: NEXT.JS 16 · REACT 19 · SUPABASE</div>
+            <div>ARCHITECTURE: NEXT.JS 16 · REACT 19 · CLOUD PLATFORM</div>
             <div>STATUS: ALL NODES OPERATIONAL · 99.98% UPTIME</div>
           </div>
         </div>
@@ -92,8 +92,8 @@ export function AboutFooter() {
           <div className="font-mono text-xs font-bold text-white uppercase tracking-wider">Технологии</div>
           <ul className="space-y-2 text-xs">
             <li><span className="text-neutral-400">IndexedDB STL Engine</span></li>
-            <li><span className="text-neutral-400">LocalStorage Offline Sync</span></li>
-            <li><span className="text-neutral-400">Supabase Cloud Security</span></li>
+            <li><span className="text-neutral-400">Offline-First Engine</span></li>
+            <li><span className="text-neutral-400">Cloud Security Architecture</span></li>
             <li><span className="text-neutral-400">Лицензионные ключи</span></li>
             <li><span className="text-neutral-400">Расчет машино-часов</span></li>
             <li><span className="text-neutral-400">Экспорт в Telegram/WhatsApp</span></li>

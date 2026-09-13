@@ -412,7 +412,7 @@ function OrderRowDrawerEditor({
 }: OrderRowDrawerProps) {
   const isExpense = order.type === 'expense';
   const [customExpenseCategories, setCustomExpenseCategories] = useState<string[]>(() => {
-    if (typeof window === 'undefined') return [];
+    if (typeof window === 'undefined' || !isExpense) return [];
     try {
       const saved = localStorage.getItem('3d_custom_expense_categories');
       return saved ? JSON.parse(saved) : [];
@@ -893,6 +893,7 @@ function OrderRowDrawerEditor({
 
   return (
     <div
+      data-row-drawer="true"
       onClick={(e) => e.stopPropagation()}
       className="p-2.5 sm:p-3 font-mono text-xs select-none space-y-2 bg-neutral-950/98 text-white border-t border-white/10"
     >
@@ -930,7 +931,7 @@ function OrderRowDrawerEditor({
           {/* Слева от названия: Номер заказа + Доход/Расход */}
           <div className="flex items-center gap-1.5 shrink-0">
             {/* Номер заказа */}
-            <span className="h-8 flex items-center justify-center font-mono text-xs font-bold px-2.5 rounded-md tracking-wider shrink-0 text-cyan-400 bg-cyan-950/40 border border-cyan-800/40">
+            <span className="h-8 flex items-center justify-center font-mono text-xs font-bold px-2.5 rounded-md tracking-wider shrink-0 text-neutral-200 bg-white/5 border border-white/10">
               {formatOrderNumber(order)}
             </span>
 
@@ -1777,7 +1778,7 @@ function OrderRowDrawerEditor({
           </span>
           <div className="flex items-center gap-2.5">
             {order.product_id && !isExpense && (
-              <span className="flex items-center gap-1 text-[9px] font-mono text-cyan-400 uppercase tracking-wider">
+              <span className="flex items-center gap-1 text-[9px] font-mono text-neutral-400 uppercase tracking-wider">
                 <Tag className="w-2.5 h-2.5" />
                 <span>Связан с каталогом</span>
               </span>

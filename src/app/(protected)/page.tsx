@@ -1,7 +1,9 @@
 'use client';
 
+import { ProtectedPageReady } from '../../shared/ui/page-transition/PageReadySurface';
+
 import React, { useState } from 'react';
-import Link from 'next/link';
+import { PageTransitionLink as Link } from '../../shared/ui/page-transition/PageTransitionLink';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../entities/model/DataProvider';
@@ -122,6 +124,7 @@ export default function HomePage() {
   }
 
   return (
+    <ProtectedPageReady viewKey="/">
     <div className="min-h-screen w-full relative flex flex-col justify-between p-4 sm:p-8 select-none overflow-hidden">
       {/* Верхний бар: штамп системы и меню пользователя */}
       <div className="w-full flex items-center justify-between z-20">
@@ -252,5 +255,6 @@ export default function HomePage() {
         </div>
       </div>
     </div>
+    </ProtectedPageReady>
   );
 }

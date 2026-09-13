@@ -255,7 +255,7 @@ export function SpecInteractive() {
 
             {/* Статусная сноска */}
             <div className="border-t border-white/10 pt-4 flex items-center justify-between text-xs font-mono text-neutral-500">
-              <span>Синхронизация: Supabase Cloud</span>
+              <span>Синхронизация: Облачная база данных</span>
               <span className="text-emerald-400">● Готов к работе</span>
             </div>
 

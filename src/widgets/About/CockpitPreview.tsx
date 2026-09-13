@@ -498,9 +498,9 @@ export function CockpitPreview() {
         {/* Подвал консоли со статусной строкой */}
         <div className="border-t border-white/10 px-4 py-2 bg-neutral-950 flex items-center justify-between text-[11px] font-mono text-neutral-500">
           <div className="flex items-center gap-3">
-            <span>DATABASE: SUPABASE CLOUD</span>
+            <span>DATABASE: CONNECTED</span>
             <span className="hidden sm:inline">•</span>
-            <span className="hidden sm:inline">CACHE: LOCALSTORAGE SYNCED</span>
+            <span className="hidden sm:inline">CACHE: SYNCED</span>
           </div>
           <div>FPS: 60 · RESPONSE: 18ms</div>
         </div>

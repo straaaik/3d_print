@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useSyncExternalStore } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePageRouter as useRouter } from '../../shared/ui/page-transition/PageTransitionLink';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../entities/model/DataProvider';
 import { useToast } from '../../entities/model/ToastProvider';
@@ -380,8 +380,8 @@ export function Calculator() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!isOnline) {
       showWarning(
-        'Загрузка локальных файлов STL доступна только при подключенном Supabase (облачном хранилище). Используйте ссылку на 3D-модель или подключите Supabase в Настройках.',
-        'Требуется Supabase'
+        'Загрузка локальных файлов STL доступна только при активном подключении к сети. Используйте ссылку на 3D-модель или проверьте соединение.',
+        'Требуется подключение'
       );
       e.target.value = '';
       return;
@@ -429,12 +429,12 @@ export function Calculator() {
               {isOnline ? (
                 <span className="flex items-center gap-1 text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                  Supabase Cloud
+                  Online
                 </span>
               ) : (
                 <span className="flex items-center gap-1 text-[10px] font-mono text-neutral-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded">
                   <span className="w-1.5 h-1.5 rounded-full bg-neutral-400" />
-                  LocalStorage
+                  Offline
                 </span>
               )}
             </div>
@@ -1088,7 +1088,7 @@ export function Calculator() {
 
             {/* ===================== ПРАВАЯ КОЛОНКА: ЧЕК (MUTED MATTE RECEIPT) ===================== */}
             <div className="w-full">
-              <div className="w-full bg-[#b8b6ae] text-neutral-950 shadow-[0_20px_50px_rgba(0,0,0,0.6)] rounded-none p-5 relative overflow-hidden flex flex-col justify-between space-y-4 select-none">
+              <div className="w-full bg-[var(--cockpit-accent-color,#D2CCBB)] text-neutral-950 shadow-[0_20px_50px_rgba(0,0,0,0.6)] rounded-none p-5 relative overflow-hidden flex flex-col justify-between space-y-4 select-none">
 
               <div>
                 {/* 1. Верхняя шапка чека */}
@@ -1317,9 +1317,9 @@ export function Calculator() {
         {/* 3. ПОДВАЛ КОНСОЛИ (В ТОЧНОСТИ КАК НА СКРИНШОТЕ) */}
         <div className="border-t border-white/10 px-5 py-2.5 bg-neutral-950 flex items-center justify-between text-[11px] font-mono text-neutral-500">
           <div className="flex items-center gap-3">
-            <span>DATABASE: SUPABASE CLOUD</span>
+            <span>DATABASE: {isOnline ? 'CONNECTED' : 'OFFLINE'}</span>
             <span className="hidden sm:inline">•</span>
-            <span className="hidden sm:inline">CACHE: LOCALSTORAGE SYNCED</span>
+            <span className="hidden sm:inline">CACHE: SYNCED</span>
           </div>
           <div>FPS: 60 · RESPONSE: 18ms</div>
         </div>

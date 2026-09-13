@@ -1,7 +1,6 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Tooltip } from './Tooltip';
 
 export interface CockpitModalProps {
   isOpen: boolean;
@@ -9,12 +8,9 @@ export interface CockpitModalProps {
   title?: React.ReactNode;
   subtitle?: React.ReactNode;
   stamp?: string;
-  badge?: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
-  variant?: 'default' | 'error' | 'warning' | 'success' | 'cyan';
-  showLeds?: boolean;
 }
 
 const maxWidthClasses = {
@@ -34,15 +30,20 @@ export function CockpitModal({
   title,
   subtitle,
   stamp = 'ОКНО',
-  badge,
   children,
   footer,
   maxWidth = 'lg',
-  variant = 'default',
 }: CockpitModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const [currentTimeStr, setCurrentTimeStr] = useState('');
+
+  // Stable ref for onClose to avoid re-triggering focus-trap effect
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+  const handleClose = useCallback(() => onCloseRef.current(), []);
 
   // Системное время для правой части шапки (как в GoalSettingsModal)
   useEffect(() => {
@@ -76,7 +77,7 @@ export function CockpitModal({
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab' || !dialog) return;
@@ -106,7 +107,7 @@ export function CockpitModal({
       document.removeEventListener('keydown', handleKeyDown, true);
       previousFocus?.focus();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -114,21 +115,6 @@ export function CockpitModal({
   }, []);
 
   const sizeClass = maxWidthClasses[maxWidth] || maxWidthClasses.lg;
-
-  const getVariantAccent = () => {
-    switch (variant) {
-      case 'error':
-        return 'shadow-[0_25px_90px_-15px_rgba(244,63,94,0.3)]';
-      case 'warning':
-        return 'shadow-[0_25px_90px_-15px_rgba(245,158,11,0.3)]';
-      case 'success':
-        return 'shadow-[0_25px_90px_-15px_rgba(16,185,129,0.3)]';
-      case 'cyan':
-        return 'shadow-[0_25px_90px_-15px_rgba(6,182,212,0.3)]';
-      default:
-        return 'shadow-[0_25px_90px_-15px_rgba(0,0,0,0.95)]';
-    }
-  };
 
   const modalContent = (
     <AnimatePresence>
@@ -141,11 +127,11 @@ export function CockpitModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
-            onClick={onClose}
+            onClick={handleClose}
             className="fixed inset-0 bg-black/80 backdrop-blur-xl"
           />
 
-          {/* Главное окно в стиле Cockpit Console с эффектом кинематографичного подъема без внешней обводки */}
+          {/* Главное окно в стиле Cockpit Console с эффектом кинематографичного подъема */}
           <motion.div
             ref={dialogRef}
             role="dialog"
@@ -158,26 +144,21 @@ export function CockpitModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 16 }}
             transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-            className={`relative w-full ${sizeClass} my-auto rounded-2xl ${getVariantAccent()} bg-neutral-950/95 shadow-2xl backdrop-blur-2xl overflow-hidden z-10 flex flex-col max-h-[92vh] font-sans border-0`}
+            className={`relative w-full ${sizeClass} my-auto rounded-2xl bg-neutral-950/95 shadow-[0_25px_90px_-15px_rgba(0,0,0,0.95)] backdrop-blur-2xl overflow-hidden z-10 flex flex-col max-h-[92vh] font-sans border-0`}
           >
             {/* 1. Верхняя панель (Cockpit Topbar: Red LED + Title + Live time) */}
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-2.5 bg-neutral-900/60 shrink-0 gap-3">
-              {/* Левая часть: красный терминальный кружок закрытия + заголовок раздела */}
+              {/* Левая часть: красный кружок закрытия + заголовок */}
               <div className="flex items-center gap-4 min-w-0">
-                <div className="flex items-center gap-2 shrink-0">
-                  <Tooltip content="Закрыть окно">
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      title="Закрыть окно"
-                      aria-label="Закрыть окно"
-                      className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] cursor-pointer border-none outline-none"
-                    />
-                  </Tooltip>
-                </div>
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  aria-label="Закрыть окно"
+                  className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] cursor-pointer border-none outline-none shrink-0 transition-colors"
+                />
 
-                <div className="flex items-center gap-2 font-mono text-xs text-[#d4d4d8] min-w-0">
-                  <span id={titleId} className="text-[#d4d4d8] font-normal truncate">
+                <div className="flex items-center gap-2 font-mono text-xs text-neutral-300 min-w-0">
+                  <span id={titleId} className="text-neutral-300 font-normal truncate">
                     {title || stamp}
                   </span>
                   {subtitle && (
@@ -188,11 +169,10 @@ export function CockpitModal({
                       </span>
                     </>
                   )}
-                  {badge && <div className="shrink-0">{badge}</div>}
                 </div>
               </div>
 
-              {/* Правая часть: Только системное время (без крестика) */}
+              {/* Правая часть: системное время */}
               <div className="flex items-center gap-3 shrink-0">
                 <div className="font-mono text-xs text-[#71717a] tabular-nums">
                   {currentTimeStr}
@@ -223,3 +203,4 @@ export function CockpitModal({
 
   return createPortal(modalContent, document.body);
 }
+

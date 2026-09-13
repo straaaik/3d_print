@@ -40,7 +40,7 @@ interface SyncOperation {
 
 export class DatabaseOperationError extends Error {
   constructor(operation: string, readonly causeData?: unknown) {
-    super(`Supabase отклонил операцию: ${operation}`);
+    super(`Сервер отклонил операцию: ${operation}`);
     this.name = 'DatabaseOperationError';
   }
 }

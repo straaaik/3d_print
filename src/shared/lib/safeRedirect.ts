@@ -54,5 +54,11 @@ export function resolveSafeRedirectPath(candidate: string | null | undefined, fa
 }
 
 export function isPublicAuthPath(pathname: string): boolean {
-  return pathname === '/login' || pathname === '/about' || pathname === '/auth/callback' || pathname.startsWith('/auth/callback/');
+  return (
+    pathname === '/login' ||
+    pathname === '/about' ||
+    pathname === '/auth/callback' ||
+    pathname.startsWith('/auth/callback/') ||
+    (process.env.NODE_ENV === 'development' && pathname.startsWith('/design-sandbox'))
+  );
 }

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter, usePathname } from 'next/navigation';
+import { PageTransitionLink as Link } from '../../shared/ui/page-transition/PageTransitionLink';
+import { usePathname } from 'next/navigation';
+import { usePageRouter as useRouter } from '../../shared/ui/page-transition/PageTransitionLink';
 import { motion, AnimatePresence } from 'motion/react';
 import {
 
@@ -65,14 +66,14 @@ export function UserProfileMenu() {
         className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-neutral-900 border border-white/10 hover:border-white/20 hover:bg-neutral-800 shadow-md cursor-pointer backdrop-blur-xl group"
       >
         <Link
-          href="/profile"
+          href="/settings?section=profile"
           aria-label="Открыть профиль"
-          aria-current={pathname === '/profile' ? 'page' : undefined}
+          aria-current={pathname === '/settings' ? 'page' : undefined}
           onClick={(event) => {
             if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
             event.preventDefault();
             setIsOpen(false);
-            curtainNavigate('/profile');
+            curtainNavigate('/settings?section=profile');
           }}
           className="flex items-center gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/60"
         >

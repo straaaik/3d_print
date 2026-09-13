@@ -1,12 +1,12 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useCallback, useContext, useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Filament, Printer, Settings, SavedCalculation, CustomCostItem, ProductCollection, Order } from '../../shared/types';
 import * as api from '../../shared/api/db';
 import { parseDataBackup, type ParsedDataBackup } from '../../shared/lib/dataBackup';
 import { useToast } from './ToastProvider';
 import { useAuth } from './AuthProvider';
-import { loadInitialData } from './loadInitialData';
+import { loadInitialData, createInitialDataLoadScope, type InitialLoadSnapshot } from './loadInitialData';
 
 import { usePersistentState } from '../../shared/lib/usePersistentState';
 
@@ -21,6 +21,7 @@ interface DataContextType {
   monthlyGoals: api.MonthlyGoalsConfig;
   setMonthlyGoals: React.Dispatch<React.SetStateAction<api.MonthlyGoalsConfig>>;
   isLoading: boolean;
+  initialLoad: InitialLoadSnapshot;
   isOnline: boolean;
 
   // Блокировка переходов при несохраненных настройках
@@ -115,6 +116,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [monthlyGoals, setMonthlyGoals] = useState<api.MonthlyGoalsConfig>(api.DEFAULT_MONTHLY_GOALS_CONFIG);
   const [isLoading, setIsLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState<InitialLoadSnapshot>({ revision: 0, completed: [], status: 'loading' });
+  const [initialLoadUserId, setInitialLoadUserId] = useState<string | null>(null);
+  const loadScope = useRef(createInitialDataLoadScope());
+  const activeUserId = useRef<string | null>(null);
+  const userId = currentUser?.id ?? null;
+
+  // Invalidate before passive effects or pending request callbacks can publish for an old session.
+  useLayoutEffect(() => {
+    const scope = loadScope.current;
+    activeUserId.current = isAuthLoading ? null : userId;
+    scope.invalidate();
+    return () => {
+      activeUserId.current = null;
+      scope.invalidate();
+    };
+  }, [userId, isAuthLoading]);
   const [isOnline, setIsOnline] = useState(false);
   const [isSettingsDirty, setIsSettingsDirty] = useState(false);
   const settingsSaveRef = useRef<(() => Promise<boolean>) | null>(null);
@@ -167,7 +184,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   // Инициализация данных
   const loadData = useCallback(async () => {
+    if (!userId || isAuthLoading || activeUserId.current !== userId) return;
+    const scope = loadScope.current;
+    const load = scope.begin(userId);
     setIsLoading(true);
+    setInitialLoadUserId(userId);
+    setInitialLoad({ revision: load.revision, completed: [], status: 'loading' });
     try {
       const {
         onlineStatus,
@@ -178,7 +200,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         collections: loadedCollections,
         orders: loadedOrders,
         monthlyGoals: loadedMonthlyGoals,
-      } = await loadInitialData(api);
+      } = await loadInitialData(api, (task, outcome) => {
+        if (!scope.isCurrent(load)) return;
+        setInitialLoad(previous => {
+          if (!scope.isCurrent(load) || previous.revision !== load.revision) return previous;
+          if (outcome === 'error') return { ...previous, status: 'error' };
+          if (previous.completed.includes(task)) return previous;
+          return { ...previous, completed: [...previous.completed, task] };
+        });
+      });
+
+      if (!scope.isCurrent(load)) return;
 
       setIsOnline(onlineStatus);
       setSettings(loadedSettings);
@@ -188,16 +220,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setCollections(loadedCollections);
       setOrders(loadedOrders);
       setMonthlyGoals(loadedMonthlyGoals);
+      setInitialLoad(previous => scope.isCurrent(load) && previous.revision === load.revision
+        ? { ...previous, status: 'ready' } : previous);
     } catch (error) {
+      if (!scope.isCurrent(load)) return;
+      setInitialLoad(previous => scope.isCurrent(load) && previous.revision === load.revision
+        ? { ...previous, status: 'error' } : previous);
       console.error('Ошибка инициализации данных:', error);
     } finally {
-      setIsLoading(false);
+      if (scope.isCurrent(load)) setIsLoading(false);
     }
-  }, []);
+  }, [userId, isAuthLoading]);
 
   useEffect(() => {
     if (isAuthLoading) return;
-    if (!currentUser) {
+    if (!userId) {
       let cancelled = false;
       queueMicrotask(() => {
         if (cancelled) return;
@@ -210,6 +247,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setMonthlyGoals(api.DEFAULT_MONTHLY_GOALS_CONFIG);
         setIsOnline(false);
         setIsLoading(false);
+        setInitialLoadUserId(null);
+        setInitialLoad(previous => ({ revision: previous.revision + 1, completed: [], status: 'loading' }));
       });
       return () => { cancelled = true; };
     }
@@ -269,7 +308,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('monthly_goals_updated', handleRefreshGoals);
       window.removeEventListener('storage', handleStorage);
     };
-  }, [currentUser, isAuthLoading, loadData]);
+  }, [userId, isAuthLoading, loadData]);
 
   // Автоматическое отслеживание статуса сети и автосинхронизация при восстановлении соединения
   useEffect(() => {
@@ -526,6 +565,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         monthlyGoals,
         setMonthlyGoals,
         isLoading,
+        initialLoad: initialLoadUserId === userId && !isAuthLoading
+          ? initialLoad : { revision: initialLoad.revision, completed: [], status: 'loading' },
         isOnline,
         isSettingsDirty,
         setIsSettingsDirty,

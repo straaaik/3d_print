@@ -31,7 +31,7 @@ test('точки реагируют на клик, возвращаются и �
 });
 test('фон переключается в настройках и сохраняется после перезагрузки', async ({ page }) => {
   await page.goto('/settings');
-  await page.getByRole('button', { name: /^Основные/ }).click();
+  await page.getByRole('button', { name: /^Оформление/ }).click();
   const background = page.locator('[data-app-background]');
   await expect(page.getByRole('button', { name: 'Фон: Пиксели', exact: true })).toHaveCount(0);
   for (const [name, variant] of [['Крестики', 'crosses'], ['Графит', 'none'], ['Точки', 'dots']]) {
@@ -57,7 +57,7 @@ test('фон переключается в настройках и сохран�
 
 test('выбор фона синхронизируется между вкладками', async ({ page, context }) => {
   await page.goto('/settings');
-  await page.getByRole('button', { name: /^Основные/ }).click();
+  await page.getByRole('button', { name: /^Оформление/ }).click();
   const second = await context.newPage();
   await second.goto('/calculator');
   await expect(second.locator('[data-app-background]')).toHaveAttribute('data-app-background', 'dots');
@@ -108,7 +108,7 @@ test('сохранённые пиксели заменяются точками'
   await page.addInitScript(storageKey => localStorage.setItem(storageKey, JSON.stringify({
     variant: 'pixels', contrast: 'quiet', interactive: false,
   })), key);
-  await page.goto('/settings');
+  await page.goto('/settings?section=appearance');
   await expect(page.locator('[data-app-background]')).toHaveAttribute('data-app-background', 'dots');
   await expect(page.getByRole('combobox', { name: 'Контраст фона' })).toContainText('мягкий');
 });
@@ -185,7 +185,7 @@ test('выбор фона работает при недоступном localSt
     };
   }, key);
   await page.goto('/settings');
-  await page.getByRole('button', { name: /^Основные/ }).click();
+  await page.getByRole('button', { name: /^Оформление/ }).click();
   await page.getByRole('button', { name: 'Фон: Крестики', exact: true }).click();
   await expect(page.locator('[data-app-background]')).toHaveAttribute('data-app-background', 'crosses');
   await expect(page.getByText('Браузер запретил сохранение.', { exact: false })).toBeVisible();
