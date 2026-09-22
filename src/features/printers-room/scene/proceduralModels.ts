@@ -25,8 +25,208 @@ import {
   createPtfeTubeMaterial,
   createSpoolFlangeMaterial,
   createPrinterScreenMaterial,
+  createWarmLedMaterial,
+  createPerimeterConcreteMaterial,
+  createFoliageMaterial,
+  createSoilMaterial,
+  createSteelRackMaterial,
+  createPlanterTextTexture,
+  createStationPlaqueTexture,
+  createHolographicOutlineMaterial,
   resolveColorHex,
 } from './materials';
+
+function createCurbSection(
+  parent: THREE.Group,
+  length: number,
+  height: number,
+  thickness: number,
+  x: number,
+  z: number,
+  rotY: number,
+  concreteMat: THREE.Material,
+  ledMat: THREE.Material,
+): void {
+  const curbGroup = new THREE.Group();
+  curbGroup.position.set(x, 0, z);
+  curbGroup.rotation.y = rotY;
+
+  const revealH = 0.035;
+  const upperH = height - revealH;
+
+  // Upper main concrete block
+  const blockGeom = new THREE.BoxGeometry(length, upperH, thickness);
+  const block = new THREE.Mesh(blockGeom, concreteMat);
+  block.position.set(0, revealH + upperH / 2, 0);
+  block.castShadow = true;
+  block.receiveShadow = true;
+  curbGroup.add(block);
+
+  // Inset lower reveal base
+  const revealGeom = new THREE.BoxGeometry(length, revealH, thickness - 0.06);
+  const reveal = new THREE.Mesh(revealGeom, concreteMat);
+  reveal.position.set(0, revealH / 2, 0);
+  curbGroup.add(reveal);
+
+  // Continuous warm LED light strip inside the recessed reveal
+  const ledGeom = new THREE.BoxGeometry(length * 0.96, 0.016, 0.016);
+  const ledStrip = new THREE.Mesh(ledGeom, ledMat);
+  ledStrip.position.set(0, revealH / 2, thickness / 2 - 0.018);
+  curbGroup.add(ledStrip);
+
+  parent.add(curbGroup);
+}
+
+function createPlantCluster(width = 0.5, depth = 0.5): THREE.Group {
+  const group = new THREE.Group();
+  const foliageMat = createFoliageMaterial();
+
+  const frondCount = 16;
+  for (let i = 0; i < frondCount; i++) {
+    const angle = (i / frondCount) * Math.PI * 2 + (Math.random() * 0.2 - 0.1);
+    const radius = 0.12 + (i % 3) * 0.08;
+    const frondHeight = 0.24 + (i % 4) * 0.06;
+
+    const leafGeom = new THREE.ConeGeometry(0.045, frondHeight, 5);
+    const leaf = new THREE.Mesh(leafGeom, foliageMat);
+    leaf.rotation.x = 0.35 + (i % 3) * 0.15;
+    leaf.rotation.z = Math.sin(angle) * 0.3;
+    leaf.rotation.y = angle;
+    leaf.position.set(
+      Math.cos(angle) * radius,
+      frondHeight * 0.45,
+      Math.sin(angle) * radius,
+    );
+    leaf.castShadow = true;
+    group.add(leaf);
+  }
+  return group;
+}
+
+function createPlanter(
+  width: number,
+  height: number,
+  depth: number,
+  textLines?: { l1: string; l2?: string; l3?: string },
+): THREE.Group {
+  const planter = new THREE.Group();
+  const concreteMat = createPerimeterConcreteMaterial();
+  const soilMat = createSoilMaterial();
+  const warmLedMat = createWarmLedMaterial();
+
+  const wallThick = 0.06;
+  const boxGeom = new THREE.BoxGeometry(width, height, depth);
+  const box = new THREE.Mesh(boxGeom, concreteMat);
+  box.position.y = height / 2;
+  box.castShadow = true;
+  box.receiveShadow = true;
+  planter.add(box);
+
+  // Recessed warm LED underglow strip along bottom front
+  const underGlow = new THREE.Mesh(
+    new THREE.BoxGeometry(width * 0.92, 0.016, 0.016),
+    warmLedMat,
+  );
+  underGlow.position.set(0, 0.02, depth / 2 + 0.005);
+  planter.add(underGlow);
+
+  // Soil bed inside top
+  const soilGeom = new THREE.BoxGeometry(width - wallThick * 2, 0.04, depth - wallThick * 2);
+  const soil = new THREE.Mesh(soilGeom, soilMat);
+  soil.position.y = height - 0.02;
+  planter.add(soil);
+
+  // Plant foliage clusters
+  const plant = createPlantCluster(width, depth);
+  plant.position.set(0, height, 0);
+  planter.add(plant);
+
+  if (textLines) {
+    const textTexture = createPlanterTextTexture(textLines.l1, textLines.l2, textLines.l3);
+    if (textTexture) {
+      const plaqueMat = new THREE.MeshStandardMaterial({
+        map: textTexture,
+        roughness: 0.4,
+        metalness: 0.5,
+      });
+      const plaqueMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(depth * 0.72, height * 0.45),
+        plaqueMat,
+      );
+      plaqueMesh.rotation.y = Math.PI / 2;
+      plaqueMesh.position.set(width / 2 + 0.002, height * 0.55, 0);
+      planter.add(plaqueMesh);
+    }
+  }
+
+  return planter;
+}
+
+export function createIndustrialFilamentRack(height = 2.3, width = 0.65, depth = 1.45): THREE.Group {
+  const rack = new THREE.Group();
+  const steelMat = createSteelRackMaterial();
+  const warmLedMat = createWarmLedMaterial();
+
+  const postSize = 0.045;
+  const postGeom = new THREE.BoxGeometry(postSize, height, postSize);
+
+  const halfW = width / 2 - postSize / 2;
+  const halfD = depth / 2 - postSize / 2;
+  const halfH = height / 2;
+
+  const postPositions: [number, number, number][] = [
+    [-halfW, halfH, -halfD],
+    [halfW, halfH, -halfD],
+    [-halfW, halfH, halfD],
+    [halfW, halfH, halfD],
+  ];
+
+  postPositions.forEach((pos) => {
+    const post = new THREE.Mesh(postGeom, steelMat);
+    post.position.set(...pos);
+    post.castShadow = true;
+    rack.add(post);
+  });
+
+  // Vertical warm LED strip on front-left post
+  const verticalLedGeom = new THREE.BoxGeometry(0.016, height * 0.94, 0.016);
+  const verticalLed = new THREE.Mesh(verticalLedGeom, warmLedMat);
+  verticalLed.position.set(-halfW + postSize / 2 + 0.01, halfH, halfD + 0.01);
+  rack.add(verticalLed);
+
+  const shelfLevels = [0.25, 0.75, 1.25, 1.75];
+  const shelfThick = 0.03;
+
+  const shelfColors: string[][] = [
+    ['#22c55e', '#16a34a', '#15803d', '#14532d'],
+    ['#38bdf8', '#0284c7', '#1d4ed8', '#1e3a8a'],
+    ['#facc15', '#f97316', '#ef4444', '#b91c1c'],
+    ['#f8fafc', '#cbd5e1', '#64748b', '#1e293b'],
+  ];
+
+  shelfLevels.forEach((sy, tierIdx) => {
+    const shelfGeom = new THREE.BoxGeometry(width, shelfThick, depth);
+    const shelf = new THREE.Mesh(shelfGeom, steelMat);
+    shelf.position.set(0, sy, 0);
+    shelf.castShadow = true;
+    shelf.receiveShadow = true;
+    rack.add(shelf);
+
+    const colors = shelfColors[tierIdx];
+    const spoolsPerShelf = 4;
+    const spoolSpacing = (depth - 0.25) / spoolsPerShelf;
+    for (let s = 0; s < spoolsPerShelf; s++) {
+      const color = colors[s % colors.length];
+      const spool = createRealisticSpool(color, 0.12, 0.05);
+      spool.rotation.y = Math.PI / 2;
+      const sz = -depth / 2 + 0.16 + s * spoolSpacing;
+      spool.position.set(0, sy + 0.13, sz);
+      rack.add(spool);
+    }
+  });
+
+  return rack;
+}
 
 export function createDioramaRoom(size: [number, number, number]): THREE.Group {
   const room = new THREE.Group();
@@ -40,8 +240,8 @@ export function createDioramaRoom(size: [number, number, number]): THREE.Group {
   baseMesh.receiveShadow = true;
   room.add(baseMesh);
 
-  // 2. Floor plane with subtle grid
-  const floorGeom = new THREE.PlaneGeometry(width * 0.98, depth * 0.98);
+  // 2. Floor plane with sleek slate concrete finish
+  const floorGeom = new THREE.PlaneGeometry(width * 0.99, depth * 0.99);
   const floorMat = createFloorMaterial();
   const floorMesh = new THREE.Mesh(floorGeom, floorMat);
   floorMesh.rotation.x = -Math.PI / 2;
@@ -49,54 +249,77 @@ export function createDioramaRoom(size: [number, number, number]): THREE.Group {
   floorMesh.receiveShadow = true;
   room.add(floorMesh);
 
-  const gridHelper = new THREE.GridHelper(
-    Math.min(width, depth) * 0.96,
-    Math.round(Math.min(width, depth) * 2),
-    0x3f3f46,
-    0x222228,
-  );
-  gridHelper.position.y = 0.002;
-  room.add(gridHelper);
+  const concreteMat = createPerimeterConcreteMaterial();
+  const warmLedMat = createWarmLedMaterial();
 
-  // 3. Back & Left quarter walls (give diorama depth without occluding camera from front/right)
-  const wallHeight = 2.4;
-  const wallThickness = 0.18;
+  // 3. Perimeter modular concrete curbs with recessed warm LED reveal channel
+  const curbHeight = 0.52;
+  const curbThickness = 0.32;
 
-  // Back wall (z negative)
-  const backWallGeom = new THREE.BoxGeometry(width, wallHeight, wallThickness);
-  const wallMat = createWallMaterial();
-  const backWall = new THREE.Mesh(backWallGeom, wallMat);
-  backWall.position.set(0, wallHeight / 2, -depth / 2 + wallThickness / 2);
-  backWall.receiveShadow = true;
-  room.add(backWall);
+  // Back Curb (along Z negative)
+  createCurbSection(room, width - 0.2, curbHeight, curbThickness, 0, -depth / 2 + curbThickness / 2, 0, concreteMat, warmLedMat);
 
-  // Left wall (x negative)
-  const leftWallGeom = new THREE.BoxGeometry(wallThickness, wallHeight, depth);
-  const leftWall = new THREE.Mesh(leftWallGeom, wallMat);
-  leftWall.position.set(-width / 2 + wallThickness / 2, wallHeight / 2, 0);
-  leftWall.receiveShadow = true;
-  room.add(leftWall);
+  // Left Curb (along X negative)
+  createCurbSection(room, depth - 0.2, curbHeight, curbThickness, -width / 2 + curbThickness / 2, 0, Math.PI / 2, concreteMat, warmLedMat);
 
-  // Subtle wall accent trim (neon lab line along back wall)
-  const trimGeom = new THREE.BoxGeometry(width * 0.85, 0.02, 0.02);
-  const trimMat = new THREE.MeshStandardMaterial({
-    color: 0x0cb4e0,
-    emissive: 0x0cb4e0,
-    emissiveIntensity: 0.8,
+  // Front Curb (along Z positive)
+  createCurbSection(room, width - 0.2, curbHeight, curbThickness, 0, depth / 2 - curbThickness / 2, 0, concreteMat, warmLedMat);
+
+  // Right Curb (along X positive)
+  createCurbSection(room, depth - 0.2, curbHeight, curbThickness, width / 2 - curbThickness / 2, 0, Math.PI / 2, concreteMat, warmLedMat);
+
+  // 4. Front-Left Corner Block with metallic plaque "LAYERLAB"
+  const cornerBlockGeom = new THREE.BoxGeometry(0.7, curbHeight + 0.06, 0.45);
+  const cornerBlock = new THREE.Mesh(cornerBlockGeom, concreteMat);
+  cornerBlock.position.set(-width / 2 + 0.6, (curbHeight + 0.06) / 2, depth / 2 - 0.225);
+  cornerBlock.castShadow = true;
+  room.add(cornerBlock);
+
+  const plaqueTexture = createPlanterTextTexture('LAYERLAB');
+  if (plaqueTexture) {
+    const plaqueMat = new THREE.MeshStandardMaterial({
+      map: plaqueTexture,
+      roughness: 0.35,
+      metalness: 0.6,
+    });
+    const plaqueMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.25), plaqueMat);
+    plaqueMesh.position.set(-width / 2 + 0.6, (curbHeight + 0.06) / 2, depth / 2 + 0.005);
+    room.add(plaqueMesh);
+  }
+
+  // 5. Planter 1: Left Wall Large Planter with "GOOD PRINTS BRIGHTER DAYS" + ferns
+  const planter1 = createPlanter(0.72, 1.05, 1.45, {
+    l1: 'GOOD',
+    l2: 'PRINTS',
+    l3: 'BRIGHTER DAYS',
   });
-  const trimMesh = new THREE.Mesh(trimGeom, trimMat);
-  trimMesh.position.set(0, 1.8, -depth / 2 + wallThickness + 0.01);
-  room.add(trimMesh);
+  planter1.position.set(-width / 2 + 0.68, 0, -1.2);
+  room.add(planter1);
+
+  // 6. Planter 2: Front-Left Low Planter with ferns
+  const planter2 = createPlanter(0.55, 0.65, 1.2);
+  planter2.position.set(-width / 2 + 0.62, 0, 1.7);
+  room.add(planter2);
+
+  // 7. Planter 3: Right Side Planter
+  const planter3 = createPlanter(0.5, 0.8, 0.6);
+  planter3.position.set(width / 2 - 0.58, 0, 1.4);
+  room.add(planter3);
+
+  // 8. 4-Tier Industrial Filament Spool Rack on Right Side
+  const filamentRack = createIndustrialFilamentRack();
+  filamentRack.position.set(width / 2 - 1.25, 0, -0.6);
+  room.add(filamentRack);
 
   return room;
 }
 
 export function createWorkbench(width: number, height: number, depth: number): THREE.Group {
   const workbench = new THREE.Group();
-  const topThickness = 0.05;
+  const topThickness = 0.065;
   const legSize = 0.06;
 
-  // Tabletop
+  // 1. Solid Walnut Tabletop
   const topGeom = new THREE.BoxGeometry(width, topThickness, depth);
   const topMat = createTabletopMaterial();
   const topMesh = new THREE.Mesh(topGeom, topMat);
@@ -105,13 +328,13 @@ export function createWorkbench(width: number, height: number, depth: number): T
   topMesh.receiveShadow = true;
   workbench.add(topMesh);
 
-  // 4 Legs
+  // 2. 4 Steel Square Tube Legs
   const legHeight = height - topThickness;
   const legGeom = new THREE.BoxGeometry(legSize, legHeight, legSize);
   const legMat = createTableLegsMaterial();
 
-  const xOffset = width / 2 - legSize / 2 - 0.06;
-  const zOffset = depth / 2 - legSize / 2 - 0.06;
+  const xOffset = width / 2 - legSize / 2 - 0.08;
+  const zOffset = depth / 2 - legSize / 2 - 0.08;
   const legY = legHeight / 2;
 
   const legPositions: [number, number, number][] = [
@@ -129,15 +352,55 @@ export function createWorkbench(width: number, height: number, depth: number): T
     workbench.add(legMesh);
   });
 
-  // Sturdy crossbars
-  const crossGeomX = new THREE.BoxGeometry(width - 0.18, 0.03, 0.03);
-  const crossBack = new THREE.Mesh(crossGeomX, legMat);
-  crossBack.position.set(0, 0.22, -zOffset);
-  workbench.add(crossBack);
+  // 3. Industrial Floor Runner Bars
+  const runnerGeom = new THREE.BoxGeometry(legSize, 0.035, depth - 0.16 + legSize);
+  const leftRunner = new THREE.Mesh(runnerGeom, legMat);
+  leftRunner.position.set(-xOffset, 0.0175, 0);
+  leftRunner.castShadow = true;
+  workbench.add(leftRunner);
 
-  const crossFront = new THREE.Mesh(crossGeomX, legMat);
-  crossFront.position.set(0, 0.22, zOffset);
-  workbench.add(crossFront);
+  const rightRunner = new THREE.Mesh(runnerGeom, legMat);
+  rightRunner.position.set(xOffset, 0.0175, 0);
+  rightRunner.castShadow = true;
+  workbench.add(rightRunner);
+
+  // 4. Suspended Under-Desk Drawer Units
+  const drawerUnitW = 0.52;
+  const drawerUnitH = 0.32;
+  const drawerUnitD = depth * 0.72;
+
+  const drawerXPositions = width > 3.0 ? [-width * 0.26, width * 0.26] : [0];
+  drawerXPositions.forEach((dx) => {
+    const drawerUnit = new THREE.Group();
+    drawerUnit.position.set(dx, height - topThickness - drawerUnitH / 2 - 0.01, 0);
+
+    const unitBox = new THREE.Mesh(
+      new THREE.BoxGeometry(drawerUnitW, drawerUnitH, drawerUnitD),
+      legMat,
+    );
+    unitBox.castShadow = true;
+    drawerUnit.add(unitBox);
+
+    const dFaceH = drawerUnitH * 0.44;
+    const dFaceY = [-drawerUnitH * 0.24, drawerUnitH * 0.24];
+    dFaceY.forEach((fy) => {
+      const dFace = new THREE.Mesh(
+        new THREE.BoxGeometry(drawerUnitW - 0.02, dFaceH - 0.015, 0.01),
+        createPrinterFrameMaterial(),
+      );
+      dFace.position.set(0, fy, drawerUnitD / 2 + 0.005);
+      drawerUnit.add(dFace);
+
+      const handle = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12, 0.018, 0.016),
+        createBrushedPillarMaterial(),
+      );
+      handle.position.set(0, fy, drawerUnitD / 2 + 0.016);
+      drawerUnit.add(handle);
+    });
+
+    workbench.add(drawerUnit);
+  });
 
   return workbench;
 }
@@ -522,9 +785,20 @@ export function createProceduralPrinter(
     new THREE.TubeGeometry(tubeCurve, 28, 0.003, 6, false),
     spoolMat,
   );
-  bodyGroup.add(filamentCurveMesh);
-
   root.add(bodyGroup);
+
+  // Front wooden rim station plaque (e.g. P1S, A1, K1 as in reference image)
+  const plaqueTex = createStationPlaqueTexture(printer.name);
+  if (plaqueTex) {
+    const pMat = new THREE.MeshStandardMaterial({
+      map: plaqueTex,
+      roughness: 0.35,
+      metalness: 0.15,
+    });
+    const plaque = new THREE.Mesh(new THREE.PlaneGeometry(0.18, 0.045), pMat);
+    plaque.position.set(0, -0.032, 0.651);
+    root.add(plaque);
+  }
 
   // Setup user data
   const userData: InteractivePrinterUserData = {

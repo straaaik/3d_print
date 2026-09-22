@@ -87,6 +87,14 @@ export function PrinterRoom3D({
     sceneRef.current?.resetFocus();
   }, []);
 
+  const handleZoomIn = useCallback(() => {
+    sceneRef.current?.zoomIn();
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    sceneRef.current?.zoomOut();
+  }, []);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -99,11 +107,13 @@ export function PrinterRoom3D({
 
   if (!webGlSupported) {
     return (
-      <div className="w-full h-[540px] rounded-2xl bg-neutral-900/60 border border-white/10 flex flex-col items-center justify-center p-6 text-center text-neutral-300">
-        <AlertCircle size={36} className="text-amber-400 mb-3" />
-        <h3 className="text-base font-semibold text-white">Аппаратное 3D-ускорение недоступно</h3>
-        <p className="text-xs text-neutral-400 mt-1 max-w-sm">
-          Ваш браузер или видеокарта временно не поддерживают WebGL. Вы можете переключиться в режим таблицы или карточек.
+      <div className="w-full p-8 rounded-2xl bg-neutral-900/60 border border-white/10 text-center flex flex-col items-center gap-3">
+        <AlertCircle size={28} className="text-amber-400" />
+        <h4 className="font-semibold text-sm text-neutral-200">
+          3D-режим не поддерживается браузером
+        </h4>
+        <p className="text-xs text-neutral-400 max-w-md">
+          Для отображения 3D-комнаты требуется поддержка WebGL. Пожалуйста, включите аппаратное ускорение в браузере или используйте другой режим отображения.
         </p>
       </div>
     );
@@ -124,6 +134,8 @@ export function PrinterRoom3D({
         printersCount={printers.length}
         hasSelection={Boolean(selectedPrinter)}
         onResetFocus={handleResetFocus}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
       />
 
       {/* Slide-out detail drawer */}

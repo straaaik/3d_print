@@ -151,13 +151,13 @@ export class PrinterRoomScene {
   }
 
   private initLights(): void {
-    // 1. Soft ambient fill (balanced with IBL)
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
+    // 1. Soft atmospheric ambient fill
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
     this.scene.add(ambientLight);
 
-    // 2. Key directional light with soft shadow mapping
-    const keyLight = new THREE.DirectionalLight(0xfff7ed, 1.5);
-    keyLight.position.set(9, 14, 9);
+    // 2. Warm Key directional light with soft shadow mapping
+    const keyLight = new THREE.DirectionalLight(0xfff3e0, 1.4);
+    keyLight.position.set(8, 14, 8);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
     keyLight.shadow.mapSize.height = 2048;
@@ -172,15 +172,28 @@ export class PrinterRoomScene {
     keyLight.shadow.camera.bottom = -shadowExtent;
     this.scene.add(keyLight);
 
-    // 3. Cool cyan rim light from behind
-    const rimLight = new THREE.DirectionalLight(0x0cb4e0, 0.5);
-    rimLight.position.set(-8, 6, -8);
+    // 3. Warm Table Spotlights creating inviting pools of light on the walnut wood
+    const spotBack = new THREE.SpotLight(0xffdfba, 2.0, 14, Math.PI / 4, 0.75);
+    spotBack.position.set(-0.2, 5.8, -1.25);
+    spotBack.target.position.set(-0.2, 0.85, -1.25);
+    this.scene.add(spotBack);
+    this.scene.add(spotBack.target);
+
+    const spotFront = new THREE.SpotLight(0xffdfba, 2.0, 14, Math.PI / 4, 0.75);
+    spotFront.position.set(-0.2, 5.8, 1.25);
+    spotFront.target.position.set(-0.2, 0.85, 1.25);
+    this.scene.add(spotFront);
+    this.scene.add(spotFront.target);
+
+    // 4. Cool cyan rim light from back-left for printer contours
+    const rimLight = new THREE.DirectionalLight(0x0cb4e0, 0.45);
+    rimLight.position.set(-8, 7, -8);
     this.scene.add(rimLight);
 
-    // 4. Subtle accent point lights
-    const pointLight = new THREE.PointLight(0x0cb4e0, 0.4, 14);
-    pointLight.position.set(0, 4.5, 0);
-    this.scene.add(pointLight);
+    // 5. Warm amber accent point light near perimeter curb
+    const warmPoint = new THREE.PointLight(0xffaa44, 0.65, 8);
+    warmPoint.position.set(-3.2, 0.6, 0);
+    this.scene.add(warmPoint);
   }
 
   private rebuildScene(): void {
@@ -267,6 +280,16 @@ export class PrinterRoomScene {
     this.targetCamPos.set(...this.layoutConfig.overviewCameraPosition);
     this.targetCamLookAt.set(...this.layoutConfig.overviewCameraTarget);
     this.onSelectPrinter(null);
+  }
+
+  public zoomIn(): void {
+    if (this.isDisposed) return;
+    this.targetCamPos.multiplyScalar(0.88);
+  }
+
+  public zoomOut(): void {
+    if (this.isDisposed) return;
+    this.targetCamPos.multiplyScalar(1.14);
   }
 
   private onPointerMove = (e: PointerEvent): void => {

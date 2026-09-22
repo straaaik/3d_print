@@ -204,19 +204,186 @@ export function createWallMaterial(): THREE.MeshStandardMaterial {
   });
 }
 
+// Procedural Walnut Wood Tabletop Texture (warm rich wood grain)
+export function createWalnutWoodTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  // 1. Base warm walnut gradient
+  const grad = ctx.createLinearGradient(0, 0, 512, 0);
+  grad.addColorStop(0, '#754b2b');
+  grad.addColorStop(0.3, '#845431');
+  grad.addColorStop(0.7, '#6b4326');
+  grad.addColorStop(1, '#7a4e2d');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 512, 512);
+
+  // 2. Wood grain fibrous lines along X
+  ctx.lineWidth = 1.2;
+  for (let y = 0; y < 512; y += 2) {
+    const freq = 0.02 + ((y % 40) / 40) * 0.015;
+    const alpha = 0.08 + Math.sin(y * 0.12) * 0.06;
+    ctx.strokeStyle = y % 4 === 0 ? `rgba(45, 25, 12, ${alpha + 0.08})` : `rgba(160, 110, 68, ${alpha})`;
+    ctx.beginPath();
+    for (let x = 0; x < 512; x += 8) {
+      const wave = Math.sin(x * freq) * 3.5 + Math.cos(x * 0.006 + y * 0.05) * 2;
+      if (x === 0) {
+        ctx.moveTo(x, y + wave);
+      } else {
+        ctx.lineTo(x, y + wave);
+      }
+    }
+    ctx.stroke();
+  }
+
+  // 3. Subtle organic wood knots & grain swirls
+  for (let k = 0; k < 3; k++) {
+    const kx = 120 + k * 140;
+    const ky = 160 + (k % 2) * 180;
+    const radial = ctx.createRadialGradient(kx, ky, 2, kx, ky, 65);
+    radial.addColorStop(0, 'rgba(40, 20, 10, 0.25)');
+    radial.addColorStop(0.4, 'rgba(65, 35, 18, 0.12)');
+    radial.addColorStop(1, 'rgba(120, 75, 40, 0)');
+    ctx.fillStyle = radial;
+    ctx.beginPath();
+    ctx.ellipse(kx, ky, 70, 18, 0.1, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(2, 1);
+  return texture;
+}
+
+export function createPlanterTextTexture(
+  line1: string,
+  line2?: string,
+  line3?: string,
+): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  ctx.fillStyle = '#22242a';
+  ctx.fillRect(0, 0, 512, 256);
+
+  ctx.fillStyle = '#9aa1af';
+  ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.textAlign = 'left';
+
+  let y = 80;
+  ctx.fillText(line1.toUpperCase(), 40, y);
+  if (line2) {
+    y += 44;
+    ctx.fillText(line2.toUpperCase(), 40, y);
+  }
+  if (line3) {
+    y += 44;
+    ctx.fillText(line3.toUpperCase(), 40, y);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  return texture;
+}
+
+export function createStationPlaqueTexture(name: string): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  ctx.fillStyle = '#53341d';
+  ctx.fillRect(0, 0, 256, 64);
+
+  ctx.fillStyle = '#f8fafc';
+  ctx.font = 'bold 30px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const cleanName = name.length > 8 ? name.slice(0, 7) : name;
+  ctx.fillText(cleanName.toUpperCase(), 128, 32);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  return texture;
+}
+
 export function createTabletopMaterial(): THREE.MeshStandardMaterial {
+  const woodTexture = createWalnutWoodTexture();
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x825330,
+    roughness: 0.38,
+    metalness: 0.08,
+  });
+  if (woodTexture) {
+    mat.map = woodTexture;
+  }
+  return mat;
+}
+
+export function createWarmLedMaterial(): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({
-    color: 0x1d1e25,
-    roughness: 0.48,
-    metalness: 0.4,
+    color: 0xffaa44,
+    emissive: 0xffaa44,
+    emissiveIntensity: 3.5,
+    roughness: 0.1,
+  });
+}
+
+export function createPerimeterConcreteMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0x22242a,
+    roughness: 0.85,
+    metalness: 0.15,
+  });
+}
+
+export function createFoliageMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0x1d5838,
+    roughness: 0.42,
+    metalness: 0.06,
+  });
+}
+
+export function createSoilMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0x141210,
+    roughness: 0.95,
+  });
+}
+
+export function createSteelRackMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0x1c1d22,
+    roughness: 0.35,
+    metalness: 0.82,
+  });
+}
+
+export function createHolographicOutlineMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0x00f0ff,
+    emissive: 0x00f0ff,
+    emissiveIntensity: 3.2,
+    roughness: 0.1,
   });
 }
 
 export function createTableLegsMaterial(): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({
-    color: 0x282932,
-    roughness: 0.35,
-    metalness: 0.75,
+    color: 0x1e1f24,
+    roughness: 0.4,
+    metalness: 0.8,
   });
 }
 
