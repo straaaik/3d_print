@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { Printer } from '../../../shared/types';
 import type { StationPosition } from './layout';
 import type { InteractivePrinterGroup, InteractivePrinterUserData } from './types';
+import { cloneBambuA1Model } from './bambuModelLoader';
 import {
   createPlatformMaterial,
   createFloorMaterial,
@@ -374,6 +375,7 @@ export function createContactShadow(width = 0.74, depth = 0.74): THREE.Mesh {
 export function createProceduralPrinter(
   printer: Printer,
   station: StationPosition,
+  glbTemplate?: THREE.Group | null,
 ): InteractivePrinterGroup {
   const root = new THREE.Group() as unknown as InteractivePrinterGroup;
   root.position.set(...station.position);
@@ -395,6 +397,9 @@ export function createProceduralPrinter(
   const bodyGroup = new THREE.Group();
   bodyGroup.position.y = 0.015;
 
+  if (glbTemplate) {
+    bodyGroup.add(cloneBambuA1Model(glbTemplate));
+  } else {
   const pWidth = 0.58;
   const pHeight = 0.68;
   const pDepth = 0.58;
@@ -720,6 +725,9 @@ export function createProceduralPrinter(
     new THREE.TubeGeometry(tubeCurve, 28, 0.003, 6, false),
     spoolMat,
   );
+  bodyGroup.add(filamentCurveMesh);
+  }
+
   root.add(bodyGroup);
 
   // Front wooden rim station plaque (e.g. P1S, A1, K1 as in reference image)
@@ -750,6 +758,22 @@ export function createProceduralPrinter(
   root.userData = userData;
 
   return root;
+}
+
+export function applyBambuA1ModelToPrinterGroup(
+  printerGroup: InteractivePrinterGroup,
+  template: THREE.Group,
+): void {
+  const bodyGroup = printerGroup.userData?.bodyGroup;
+  if (!bodyGroup) return;
+
+  while (bodyGroup.children.length > 0) {
+    const child = bodyGroup.children[0];
+    bodyGroup.remove(child);
+    disposeHierarchy(child);
+  }
+
+  bodyGroup.add(cloneBambuA1Model(template));
 }
 
 function createRealisticSpool(colorHex: string, radius = 0.075, width = 0.042): THREE.Group {

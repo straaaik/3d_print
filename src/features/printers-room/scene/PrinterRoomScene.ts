@@ -9,8 +9,10 @@ import {
   createDioramaRoom,
   createWorkbench,
   createProceduralPrinter,
+  applyBambuA1ModelToPrinterGroup,
   disposeHierarchy,
 } from './proceduralModels';
+import { loadBambuA1Template } from './bambuModelLoader';
 import type { InteractivePrinterGroup } from './types';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
@@ -51,6 +53,7 @@ export class PrinterRoomScene {
   private pointerDownPos = { x: 0, y: 0 };
   private rafId: number | null = null;
   private isDisposed = false;
+  private bambuTemplate: THREE.Group | null = null;
 
   constructor(options: PrinterRoomSceneOptions) {
     this.canvas = options.canvas;
@@ -79,9 +82,21 @@ export class PrinterRoomScene {
 
     this.initRenderer(width, height);
     this.initLights();
+    this.initBambuModel();
     this.rebuildScene();
     this.bindEvents();
     this.startLoop();
+  }
+
+  private initBambuModel(): void {
+    loadBambuA1Template().then((template) => {
+      if (template && !this.isDisposed) {
+        this.bambuTemplate = template;
+        this.printerGroups.forEach((group) => {
+          applyBambuA1ModelToPrinterGroup(group, template);
+        });
+      }
+    });
   }
 
   private initRenderer(width: number, height: number): void {
@@ -191,11 +206,11 @@ export class PrinterRoomScene {
       this.scene.add(desk);
     });
 
-    // 3. Procedural CoreXY 3D Printers
+    // 3. Procedural / GLB CoreXY 3D Printers
     this.layoutConfig.stations.forEach((station) => {
       const printer = this.printers.find((p) => p.id === station.printerId);
       if (printer) {
-        const printerMesh = createProceduralPrinter(printer, station);
+        const printerMesh = createProceduralPrinter(printer, station, this.bambuTemplate);
         this.printerGroups.push(printerMesh);
         this.scene.add(printerMesh);
       }

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import * as THREE from 'three';
 import type { Printer } from '../src/shared/types';
 import type { StationPosition } from '../src/features/printers-room/scene/layout';
 import {
@@ -7,6 +8,7 @@ import {
   createWorkbench,
   createPrinterMat,
   createProceduralPrinter,
+  applyBambuA1ModelToPrinterGroup,
   disposeHierarchy,
 } from '../src/features/printers-room/scene/proceduralModels';
 
@@ -82,5 +84,28 @@ test('createPrinterScreenMaterial and createPeiPlateMaterial initialize graceful
   assert.ok(screenMat);
   const peiMat = createPeiPlateMaterial();
   assert.ok(peiMat);
+});
+
+test('createProceduralPrinter with glbTemplate attaches cloned model to bodyGroup', () => {
+  const dummyTemplate = new THREE.Group();
+  const dummyPart = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5));
+  dummyTemplate.add(dummyPart);
+
+  const printerGroup = createProceduralPrinter(dummyPrinter, dummyStation, dummyTemplate);
+  assert.ok(printerGroup);
+  assert.equal(printerGroup.userData.bodyGroup.children.length, 1);
+  disposeHierarchy(printerGroup);
+});
+
+test('applyBambuA1ModelToPrinterGroup dynamically swaps procedural body for cloned template', () => {
+  const printerGroup = createProceduralPrinter(dummyPrinter, dummyStation);
+  assert.ok(printerGroup.userData.bodyGroup.children.length > 1);
+
+  const dummyTemplate = new THREE.Group();
+  dummyTemplate.add(new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 0.4)));
+
+  applyBambuA1ModelToPrinterGroup(printerGroup, dummyTemplate);
+  assert.equal(printerGroup.userData.bodyGroup.children.length, 1);
+  disposeHierarchy(printerGroup);
 });
 
