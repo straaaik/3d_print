@@ -8,6 +8,8 @@ import {
   calculatePrinterMetrics,
   filterAndSortFilaments,
   filterAndSortPrinters,
+  getEffectivePrinterViewMode,
+  getPrinterViewModeOptions,
   parseRequiredNonNegative,
 } from '../src/widgets/InventoryCockpit/model';
 
@@ -104,3 +106,29 @@ test('printer fullscreen insights split hourly fleet cost into depreciation and 
   assert.deepEqual(insights.hourlyCostLeaders.map((item) => item.id), ['p-1', 'p-2']);
   assert.ok(Math.abs(insights.energySharePercent - 3.055 / 22.055 * 100) < 1e-10);
 });
+
+test('getEffectivePrinterViewMode allows 3D room in dev but safely falls back to cards in production', () => {
+  assert.equal(getEffectivePrinterViewMode('room3d', true), 'room3d');
+  assert.equal(getEffectivePrinterViewMode('room3d', false), 'cards');
+  assert.equal(getEffectivePrinterViewMode('table', false), 'table');
+  assert.equal(getEffectivePrinterViewMode('cards', false), 'cards');
+  assert.equal(getEffectivePrinterViewMode('table', true), 'table');
+  assert.equal(getEffectivePrinterViewMode('cards', true), 'cards');
+});
+
+test('getPrinterViewModeOptions excludes room3d in production and includes it in development', () => {
+  const prodOptions = getPrinterViewModeOptions('icon-table', 'icon-cards', 'icon-3d', false);
+  assert.deepEqual(
+    prodOptions.map((opt) => opt.value),
+    ['table', 'cards'],
+    'Production options must not include room3d',
+  );
+
+  const devOptions = getPrinterViewModeOptions('icon-table', 'icon-cards', 'icon-3d', true);
+  assert.deepEqual(
+    devOptions.map((opt) => opt.value),
+    ['table', 'cards', 'room3d'],
+    'Development options must include room3d',
+  );
+});
+

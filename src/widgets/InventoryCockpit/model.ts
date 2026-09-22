@@ -2,6 +2,35 @@ import type { Filament, Printer } from '../../shared/types';
 
 export type FilamentSort = 'name-asc' | 'name-desc' | 'unit-cost-asc' | 'unit-cost-desc' | 'price-asc' | 'price-desc' | 'weight-asc' | 'weight-desc';
 export type PrinterSort = 'name-asc' | 'name-desc' | 'hourly-cost-asc' | 'hourly-cost-desc' | 'price-asc' | 'price-desc' | 'power-asc' | 'power-desc' | 'lifespan-asc' | 'lifespan-desc';
+export type InventoryViewMode = 'table' | 'cards' | 'room3d';
+
+export function getEffectivePrinterViewMode(
+  storedMode: InventoryViewMode,
+  is3DRoomEnabled: boolean,
+): InventoryViewMode {
+  if (!is3DRoomEnabled && storedMode === 'room3d') {
+    return 'cards';
+  }
+  return storedMode;
+}
+
+export function getPrinterViewModeOptions<TIcon>(
+  tableIcon: TIcon,
+  cardsIcon: TIcon,
+  room3dIcon: TIcon,
+  is3DRoomEnabled: boolean,
+) {
+  const options: Array<{ value: InventoryViewMode; label: string; icon: TIcon; ariaLabel: string }> = [
+    { value: 'table', label: 'Таблица', icon: tableIcon, ariaLabel: 'Режим таблицы' },
+    { value: 'cards', label: 'Карточки', icon: cardsIcon, ariaLabel: 'Режим карточек' },
+  ];
+
+  if (is3DRoomEnabled) {
+    options.push({ value: 'room3d', label: '3D-комната', icon: room3dIcon, ariaLabel: 'Режим 3D-комнаты' });
+  }
+
+  return options;
+}
 
 export function parseRequiredNonNegative(value: string) {
   if (value.trim() === '') return null;

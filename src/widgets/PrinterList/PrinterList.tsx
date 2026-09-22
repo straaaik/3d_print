@@ -48,18 +48,18 @@ import {
   calculatePrinterMetrics,
   calculatePrinterInsights,
   filterAndSortPrinters,
+  getEffectivePrinterViewMode,
   getPrinterHourlyCost,
+  getPrinterViewModeOptions,
   parseRequiredNonNegative,
+  type InventoryViewMode,
   type PrinterSort,
 } from '../InventoryCockpit/model';
 
-type InventoryViewMode = 'table' | 'cards' | 'room3d';
+const is3DRoomEnabled = process.env.NODE_ENV !== 'production';
 
-const VIEW_MODE_OPTIONS: ReadonlyArray<SegmentedFilterOption<InventoryViewMode>> = [
-  { value: 'table', label: 'Таблица', icon: Table, ariaLabel: 'Режим таблицы' },
-  { value: 'cards', label: 'Карточки', icon: LayoutGrid, ariaLabel: 'Режим карточек' },
-  { value: 'room3d', label: '3D-комната', icon: Box, ariaLabel: 'Режим 3D-комнаты' },
-];
+const VIEW_MODE_OPTIONS: ReadonlyArray<SegmentedFilterOption<InventoryViewMode>> =
+  getPrinterViewModeOptions(Table, LayoutGrid, Box, is3DRoomEnabled);
 
 const PrinterRoom3DSkeleton = () => (
   <div className="w-full h-[580px] sm:h-[640px] rounded-2xl border border-white/10 bg-white/[0.02] flex items-center justify-center animate-pulse text-xs text-neutral-500">
@@ -67,12 +67,14 @@ const PrinterRoom3DSkeleton = () => (
   </div>
 );
 
-const PrinterRoom3D = dynamic(
-  () => import('../../features/printers-room').then((m) => m.PrinterRoom3D),
-  {
-    loading: PrinterRoom3DSkeleton,
-  },
-);
+const PrinterRoom3D = is3DRoomEnabled
+  ? dynamic(
+      () => import('../../features/printers-room').then((m) => m.PrinterRoom3D),
+      {
+        loading: PrinterRoom3DSkeleton,
+      },
+    )
+  : null;
 
 const SORT_OPTIONS = [
   { value: 'name-asc', label: 'По названию' },
@@ -97,6 +99,7 @@ export function PrinterList() {
   const [query, setQuery] = useState('');
   const [sort, setSort] = usePersistentState<PrinterSort>('3d_printers_sort', 'name-asc');
   const [viewMode, setViewMode] = usePersistentState<InventoryViewMode>('3d_printers_view_mode', 'cards');
+  const effectiveViewMode = getEffectivePrinterViewMode(viewMode, is3DRoomEnabled);
 
   const [name, setName] = usePersistentState('3d_printer_draft_name', '');
   const [powerW, setPowerW] = usePersistentState('3d_printer_draft_power', '300');
@@ -475,7 +478,7 @@ export function PrinterList() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <SegmentedFilter
-              value={viewMode}
+              value={effectiveViewMode}
               onChange={(value) => setViewMode(value as InventoryViewMode)}
               options={VIEW_MODE_OPTIONS}
               ariaLabel="Режим отображения принтеров"
@@ -494,7 +497,7 @@ export function PrinterList() {
           </div>
         </InventoryRegistryToolbar>
 
-        {viewMode === 'room3d' ? (
+        {is3DRoomEnabled && effectiveViewMode === 'room3d' && PrinterRoom3D ? (
           <PrinterRoom3D
             printers={visiblePrinters}
             electricityRate={electricityRate}
@@ -509,7 +512,7 @@ export function PrinterList() {
             data={visiblePrinters}
             columns={printerColumns}
             keyExtractor={(printer) => printer.id}
-            viewMode={viewMode}
+            viewMode={effectiveViewMode === 'room3d' ? 'cards' : effectiveViewMode}
             renderCard={renderPrinterCard}
             renderMobileCard={renderPrinterCard}
             emptyState={<EmptyState hasRecords={printers.length > 0} onAdd={openAdd} onReset={() => setQuery('')} />}
