@@ -43,7 +43,7 @@ export function calculateRoomLayout(printers: Array<{ id: string }>): RoomLayout
     const workbenches: WorkbenchConfig[] = [
       {
         id: 'desk-0',
-        position: [0, TABLE_HEIGHT / 2, 0],
+        position: [0, 0, 0],
         size: [defaultTableWidth, TABLE_HEIGHT, TABLE_DEPTH],
       },
     ];
@@ -56,7 +56,7 @@ export function calculateRoomLayout(printers: Array<{ id: string }>): RoomLayout
         10.5 * ISO_DIR[1],
         10.5 * ISO_DIR[2],
       ],
-      overviewCameraTarget: [0, 0.7, 0],
+      overviewCameraTarget: [0, TABLE_HEIGHT + 0.2, 0],
     };
   }
 
@@ -68,7 +68,7 @@ export function calculateRoomLayout(printers: Array<{ id: string }>): RoomLayout
     const deskWidth = Math.max(3.0, count * PRINTER_SPACING_X + 0.8);
     workbenches.push({
       id: 'desk-0',
-      position: [0, TABLE_HEIGHT / 2, 0],
+      position: [0, 0, 0],
       size: [deskWidth, TABLE_HEIGHT, TABLE_DEPTH],
     });
 
@@ -96,11 +96,11 @@ export function calculateRoomLayout(printers: Array<{ id: string }>): RoomLayout
         camDist * ISO_DIR[1],
         camDist * ISO_DIR[2],
       ],
-      overviewCameraTarget: [0, TABLE_HEIGHT / 2 + 0.25, 0],
+      overviewCameraTarget: [0, TABLE_HEIGHT + 0.35, 0],
     };
   }
 
-  // 4 or more printers: 2 rows (back row at z = -1.2, front row at z = 1.2)
+  // 4 or more printers: 2 rows (back row at z = -1.25, front row at z = 1.25)
   const half = Math.ceil(count / 2);
   const row0Count = half;
   const row1Count = count - half;
@@ -112,14 +112,14 @@ export function calculateRoomLayout(printers: Array<{ id: string }>): RoomLayout
   // Back row
   workbenches.push({
     id: 'desk-back',
-    position: [0, TABLE_HEIGHT / 2, -rowZOffset],
+    position: [0, 0, -rowZOffset],
     size: [deskWidth, TABLE_HEIGHT, TABLE_DEPTH],
   });
 
   // Front row
   workbenches.push({
     id: 'desk-front',
-    position: [0, TABLE_HEIGHT / 2, rowZOffset],
+    position: [0, 0, rowZOffset],
     size: [deskWidth, TABLE_HEIGHT, TABLE_DEPTH],
   });
 
@@ -162,7 +162,7 @@ export function calculateRoomLayout(printers: Array<{ id: string }>): RoomLayout
       camDist * ISO_DIR[1],
       camDist * ISO_DIR[2],
     ],
-    overviewCameraTarget: [0, TABLE_HEIGHT / 2 + 0.3, 0],
+    overviewCameraTarget: [0, TABLE_HEIGHT + 0.35, 0],
   };
 }
 
@@ -170,8 +170,8 @@ export function getFocusCameraTarget(stationPos: [number, number, number]): {
   position: [number, number, number];
   target: [number, number, number];
 } {
-  const focusDistance = 3.8;
-  const targetYOffset = 0.42;
+  const focusDistance = 3.6;
+  const targetYOffset = 0.35;
 
   const target: [number, number, number] = [
     stationPos[0],
