@@ -72,3 +72,15 @@ test('createProceduralPrinter creates interactive group with proper userData and
   // Test disposal cleanly traverses without throwing
   disposeHierarchy(printerGroup);
 });
+
+test('createPrinterScreenMaterial and createPeiPlateMaterial initialize gracefully in non-DOM environment', () => {
+  const {
+    createPrinterScreenMaterial,
+    createPeiPlateMaterial,
+  } = require('../src/features/printers-room/scene/materials');
+  const screenMat = createPrinterScreenMaterial('Bambu Lab X1', '#8b5cf6');
+  assert.ok(screenMat);
+  const peiMat = createPeiPlateMaterial();
+  assert.ok(peiMat);
+});
+

@@ -12,6 +12,11 @@ import {
   disposeHierarchy,
 } from './proceduralModels';
 import type { InteractivePrinterGroup } from './types';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 export interface PrinterRoomSceneOptions {
   canvas: HTMLCanvasElement;
@@ -38,6 +43,10 @@ export class PrinterRoomScene {
   private layoutConfig: RoomLayoutConfig;
   private hoveredGroup: InteractivePrinterGroup | null = null;
   private selectedPrinterId: string | null = null;
+
+  private composer: EffectComposer | null = null;
+  private bloomPass: UnrealBloomPass | null = null;
+  private envTexture: THREE.Texture | null = null;
 
   private currentCamPos: THREE.Vector3;
   private targetCamPos: THREE.Vector3;
@@ -95,20 +104,59 @@ export class PrinterRoomScene {
       this.renderer.shadowMap.enabled = true;
       this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      this.renderer.toneMappingExposure = 1.15;
+      this.renderer.toneMappingExposure = 1.05;
+
+      // Setup IBL Studio Environment for realistic material reflections
+      try {
+        const pmrem = new THREE.PMREMGenerator(this.renderer);
+        pmrem.compileEquirectangularShader();
+        const roomEnv = new RoomEnvironment();
+        this.envTexture = pmrem.fromScene(roomEnv).texture;
+        this.scene.environment = this.envTexture;
+        pmrem.dispose();
+      } catch (e) {
+        console.warn('Could not initialize IBL RoomEnvironment', e);
+      }
+
+      // Setup postprocessing pipeline with selective Bloom
+      this.initPostProcessing(width, height);
     } catch (e) {
       console.error('Failed to initialize WebGLRenderer for 3D Printers Room', e);
       this.renderer = null;
     }
   }
 
+  private initPostProcessing(width: number, height: number): void {
+    if (!this.renderer) return;
+    try {
+      this.composer = new EffectComposer(this.renderer);
+      const renderPass = new RenderPass(this.scene, this.camera);
+      this.composer.addPass(renderPass);
+
+      // Subtle, high-end bloom for emissive LEDs, screens and neon strips
+      this.bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(width, height),
+        0.42, // strength
+        0.35, // radius
+        0.88, // threshold
+      );
+      this.composer.addPass(this.bloomPass);
+
+      const outputPass = new OutputPass();
+      this.composer.addPass(outputPass);
+    } catch (e) {
+      console.warn('Post-processing could not be initialized, falling back to direct render', e);
+      this.composer = null;
+    }
+  }
+
   private initLights(): void {
-    // 1. Soft ambient fill
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+    // 1. Soft ambient fill (balanced with IBL)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
     this.scene.add(ambientLight);
 
     // 2. Key directional light with soft shadow mapping
-    const keyLight = new THREE.DirectionalLight(0xfff7ed, 1.8);
+    const keyLight = new THREE.DirectionalLight(0xfff7ed, 1.5);
     keyLight.position.set(9, 14, 9);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 2048;
@@ -125,12 +173,12 @@ export class PrinterRoomScene {
     this.scene.add(keyLight);
 
     // 3. Cool cyan rim light from behind
-    const rimLight = new THREE.DirectionalLight(0x0cb4e0, 0.55);
+    const rimLight = new THREE.DirectionalLight(0x0cb4e0, 0.5);
     rimLight.position.set(-8, 6, -8);
     this.scene.add(rimLight);
 
     // 4. Subtle accent point lights
-    const pointLight = new THREE.PointLight(0x0cb4e0, 0.45, 14);
+    const pointLight = new THREE.PointLight(0x0cb4e0, 0.4, 14);
     pointLight.position.set(0, 4.5, 0);
     this.scene.add(pointLight);
   }
@@ -332,6 +380,9 @@ export class PrinterRoomScene {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
+    if (this.composer) {
+      this.composer.setSize(width, height);
+    }
   };
 
   private startLoop(): void {
@@ -365,7 +416,10 @@ export class PrinterRoomScene {
         }
       });
 
-      if (this.renderer) {
+      // 3. Render via Bloom EffectComposer when available, fallback to WebGLRenderer
+      if (this.composer) {
+        this.composer.render();
+      } else if (this.renderer) {
         this.renderer.render(this.scene, this.camera);
       }
     };
@@ -384,6 +438,16 @@ export class PrinterRoomScene {
     this.scene.children.forEach((child) => {
       disposeHierarchy(child);
     });
+
+    if (this.envTexture) {
+      this.envTexture.dispose();
+      this.envTexture = null;
+    }
+
+    if (this.composer) {
+      this.composer.dispose();
+      this.composer = null;
+    }
 
     if (this.renderer) {
       this.renderer.dispose();

@@ -24,6 +24,7 @@ import {
   createPeiPlateMaterial,
   createPtfeTubeMaterial,
   createSpoolFlangeMaterial,
+  createPrinterScreenMaterial,
   resolveColorHex,
 } from './materials';
 
@@ -280,6 +281,24 @@ export function createProceduralPrinter(
   topSideRight.position.set(px - 0.02, pHeight - 0.0175, 0);
   bodyGroup.add(topSideRight);
 
+  // Angled Bambu OS Touchscreen Display on top front
+  const screenGroup = new THREE.Group();
+  screenGroup.position.set(0.06, pHeight + 0.034, pz - 0.015);
+  screenGroup.rotation.x = -Math.PI / 5.5;
+
+  const bezelGeom = new THREE.BoxGeometry(0.14, 0.088, 0.012);
+  const bezel = new THREE.Mesh(bezelGeom, frameMat);
+  bezel.castShadow = true;
+  screenGroup.add(bezel);
+
+  const displayGeom = new THREE.PlaneGeometry(0.13, 0.078);
+  const displayMat = createPrinterScreenMaterial(printer.name, printerColor);
+  const display = new THREE.Mesh(displayGeom, displayMat);
+  display.position.z = 0.0065;
+  screenGroup.add(display);
+
+  bodyGroup.add(screenGroup);
+
   // 5. Right Exterior Panel with Profiled Inset
   const rightPanelGeom = new THREE.BoxGeometry(0.01, pHeight - 0.07, pDepth - 0.08);
   const rightPanel = new THREE.Mesh(rightPanelGeom, frameMat);
@@ -382,7 +401,19 @@ export function createProceduralPrinter(
   fanHub.position.set(0, 0.005, 0.049);
   toolheadGroup.add(fanHub);
 
-  // Nozzle
+  // Status LED and logo bar on toolhead
+  const thLedGeom = new THREE.BoxGeometry(0.024, 0.006, 0.004);
+  const thLed = new THREE.Mesh(thLedGeom, createStatusLedMaterial());
+  thLed.position.set(0, 0.042, 0.049);
+  toolheadGroup.add(thLed);
+
+  // Filament manual release lever on top of toolhead
+  const leverGeom = new THREE.BoxGeometry(0.014, 0.018, 0.012);
+  const lever = new THREE.Mesh(leverGeom, createHotendMaterial());
+  lever.position.set(-0.025, 0.065, 0);
+  toolheadGroup.add(lever);
+
+  // Brass Nozzle
   const nozzleGeom = new THREE.ConeGeometry(0.012, 0.022, 12);
   const nozzle = new THREE.Mesh(nozzleGeom, createHotendMaterial());
   nozzle.rotation.x = Math.PI;
@@ -390,6 +421,19 @@ export function createProceduralPrinter(
   toolheadGroup.add(nozzle);
 
   bodyGroup.add(toolheadGroup);
+
+  // Auxiliary Part Cooling Fan (on Left Inner Chamber Wall)
+  const auxFanGroup = new THREE.Group();
+  auxFanGroup.position.set(-px + 0.025, 0.32, 0.02);
+  const auxHousingGeom = new THREE.BoxGeometry(0.02, 0.16, 0.22);
+  const auxHousing = new THREE.Mesh(auxHousingGeom, frameMat);
+  auxFanGroup.add(auxHousing);
+
+  const auxGrilleGeom = new THREE.BoxGeometry(0.005, 0.12, 0.18);
+  const auxGrille = new THREE.Mesh(auxGrilleGeom, carbonMat);
+  auxGrille.position.x = 0.01;
+  auxFanGroup.add(auxGrille);
+  bodyGroup.add(auxFanGroup);
 
   // 12. Textured PEI Build Plate with Front Handle
   const bedGroup = new THREE.Group();
