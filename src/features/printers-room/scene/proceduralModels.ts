@@ -230,83 +230,18 @@ export function createIndustrialFilamentRack(height = 2.3, width = 0.65, depth =
 
 export function createDioramaRoom(size: [number, number, number]): THREE.Group {
   const room = new THREE.Group();
-  const [width, height, depth] = size;
+  const [width] = size;
 
-  // 1. Base pedestal platform
-  const baseGeom = new THREE.BoxGeometry(width, height, depth);
-  const baseMat = createPlatformMaterial();
-  const baseMesh = new THREE.Mesh(baseGeom, baseMat);
-  baseMesh.position.y = -height / 2;
-  baseMesh.receiveShadow = true;
-  room.add(baseMesh);
-
-  // 2. Floor plane with sleek slate concrete finish
-  const floorGeom = new THREE.PlaneGeometry(width * 0.99, depth * 0.99);
+  // 1. Expansive Infinite Floor Plane (smoothly blends with fog into background)
+  const floorGeom = new THREE.PlaneGeometry(120, 120);
   const floorMat = createFloorMaterial();
   const floorMesh = new THREE.Mesh(floorGeom, floorMat);
   floorMesh.rotation.x = -Math.PI / 2;
-  floorMesh.position.y = 0.001;
+  floorMesh.position.y = 0;
   floorMesh.receiveShadow = true;
   room.add(floorMesh);
 
-  const concreteMat = createPerimeterConcreteMaterial();
-  const warmLedMat = createWarmLedMaterial();
-
-  // 3. Perimeter modular concrete curbs with recessed warm LED reveal channel
-  const curbHeight = 0.52;
-  const curbThickness = 0.32;
-
-  // Back Curb (along Z negative)
-  createCurbSection(room, width - 0.2, curbHeight, curbThickness, 0, -depth / 2 + curbThickness / 2, 0, concreteMat, warmLedMat);
-
-  // Left Curb (along X negative)
-  createCurbSection(room, depth - 0.2, curbHeight, curbThickness, -width / 2 + curbThickness / 2, 0, Math.PI / 2, concreteMat, warmLedMat);
-
-  // Front Curb (along Z positive)
-  createCurbSection(room, width - 0.2, curbHeight, curbThickness, 0, depth / 2 - curbThickness / 2, 0, concreteMat, warmLedMat);
-
-  // Right Curb (along X positive)
-  createCurbSection(room, depth - 0.2, curbHeight, curbThickness, width / 2 - curbThickness / 2, 0, Math.PI / 2, concreteMat, warmLedMat);
-
-  // 4. Front-Left Corner Block with metallic plaque "LAYERLAB"
-  const cornerBlockGeom = new THREE.BoxGeometry(0.7, curbHeight + 0.06, 0.45);
-  const cornerBlock = new THREE.Mesh(cornerBlockGeom, concreteMat);
-  cornerBlock.position.set(-width / 2 + 0.6, (curbHeight + 0.06) / 2, depth / 2 - 0.225);
-  cornerBlock.castShadow = true;
-  room.add(cornerBlock);
-
-  const plaqueTexture = createPlanterTextTexture('LAYERLAB');
-  if (plaqueTexture) {
-    const plaqueMat = new THREE.MeshStandardMaterial({
-      map: plaqueTexture,
-      roughness: 0.35,
-      metalness: 0.6,
-    });
-    const plaqueMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.25), plaqueMat);
-    plaqueMesh.position.set(-width / 2 + 0.6, (curbHeight + 0.06) / 2, depth / 2 + 0.005);
-    room.add(plaqueMesh);
-  }
-
-  // 5. Planter 1: Left Wall Large Planter with "GOOD PRINTS BRIGHTER DAYS" + ferns
-  const planter1 = createPlanter(0.72, 1.05, 1.45, {
-    l1: 'GOOD',
-    l2: 'PRINTS',
-    l3: 'BRIGHTER DAYS',
-  });
-  planter1.position.set(-width / 2 + 0.68, 0, -1.2);
-  room.add(planter1);
-
-  // 6. Planter 2: Front-Left Low Planter with ferns
-  const planter2 = createPlanter(0.55, 0.65, 1.2);
-  planter2.position.set(-width / 2 + 0.62, 0, 1.7);
-  room.add(planter2);
-
-  // 7. Planter 3: Right Side Planter
-  const planter3 = createPlanter(0.5, 0.8, 0.6);
-  planter3.position.set(width / 2 - 0.58, 0, 1.4);
-  room.add(planter3);
-
-  // 8. 4-Tier Industrial Filament Spool Rack on Right Side
+  // 2. Freestanding 4-Tier Industrial Filament Spool Rack on Right Side
   const filamentRack = createIndustrialFilamentRack();
   filamentRack.position.set(width / 2 - 1.25, 0, -0.6);
   room.add(filamentRack);

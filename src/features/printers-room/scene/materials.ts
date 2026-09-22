@@ -334,8 +334,8 @@ export function createWarmLedMaterial(): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({
     color: 0xffaa44,
     emissive: 0xffaa44,
-    emissiveIntensity: 3.5,
-    roughness: 0.1,
+    emissiveIntensity: 0.2,
+    roughness: 0.2,
   });
 }
 
@@ -374,8 +374,8 @@ export function createHolographicOutlineMaterial(): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({
     color: 0x00f0ff,
     emissive: 0x00f0ff,
-    emissiveIntensity: 3.2,
-    roughness: 0.1,
+    emissiveIntensity: 0.2,
+    roughness: 0.2,
   });
 }
 
@@ -429,7 +429,7 @@ export function createStatusLedMaterial(): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({
     color: 0x10b981,
     emissive: 0x10b981,
-    emissiveIntensity: 2.2,
+    emissiveIntensity: 0.3,
     roughness: 0.2,
   });
 }
@@ -441,8 +441,6 @@ export function createMatMaterial(colorHex: string): THREE.MeshStandardMaterial 
     color: color,
     roughness: 0.45,
     metalness: 0.15,
-    emissive: color,
-    emissiveIntensity: 0.15,
   });
 }
 
@@ -451,8 +449,6 @@ export function createMatEdgeMaterial(colorHex: string): THREE.MeshStandardMater
   const color = new THREE.Color(hex);
   return new THREE.MeshStandardMaterial({
     color: color,
-    emissive: color,
-    emissiveIntensity: 0.75,
     roughness: 0.25,
   });
 }
@@ -503,9 +499,9 @@ export function createToolheadMaterial(): THREE.MeshStandardMaterial {
 export function createChamberLedMaterial(): THREE.MeshStandardMaterial {
   return new THREE.MeshStandardMaterial({
     color: 0x00f0ff,
-    emissive: 0x00f0ff,
-    emissiveIntensity: 2.8,
-    roughness: 0.1,
+    emissive: 0x00a0b0,
+    emissiveIntensity: 0.2,
+    roughness: 0.2,
   });
 }
 
@@ -554,7 +550,7 @@ export function createPrinterScreenMaterial(
     mat.map = texture;
     mat.emissive = new THREE.Color(0xffffff);
     mat.emissiveMap = texture;
-    mat.emissiveIntensity = 0.9;
+    mat.emissiveIntensity = 0.2;
   }
   return mat;
 }

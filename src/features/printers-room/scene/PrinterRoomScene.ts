@@ -12,10 +12,6 @@ import {
   disposeHierarchy,
 } from './proceduralModels';
 import type { InteractivePrinterGroup } from './types';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 
 export interface PrinterRoomSceneOptions {
@@ -44,8 +40,6 @@ export class PrinterRoomScene {
   private hoveredGroup: InteractivePrinterGroup | null = null;
   private selectedPrinterId: string | null = null;
 
-  private composer: EffectComposer | null = null;
-  private bloomPass: UnrealBloomPass | null = null;
   private envTexture: THREE.Texture | null = null;
 
   private currentCamPos: THREE.Vector3;
@@ -106,6 +100,11 @@ export class PrinterRoomScene {
       this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
       this.renderer.toneMappingExposure = 1.05;
 
+      // Infinite dark studio background & soft depth fog (seamless infinite floor)
+      const bgColor = new THREE.Color(0x0e0f14);
+      this.scene.background = bgColor;
+      this.scene.fog = new THREE.Fog(0x0e0f14, 15, 38);
+
       // Setup IBL Studio Environment for realistic material reflections
       try {
         const pmrem = new THREE.PMREMGenerator(this.renderer);
@@ -117,36 +116,9 @@ export class PrinterRoomScene {
       } catch (e) {
         console.warn('Could not initialize IBL RoomEnvironment', e);
       }
-
-      // Setup postprocessing pipeline with selective Bloom
-      this.initPostProcessing(width, height);
     } catch (e) {
       console.error('Failed to initialize WebGLRenderer for 3D Printers Room', e);
       this.renderer = null;
-    }
-  }
-
-  private initPostProcessing(width: number, height: number): void {
-    if (!this.renderer) return;
-    try {
-      this.composer = new EffectComposer(this.renderer);
-      const renderPass = new RenderPass(this.scene, this.camera);
-      this.composer.addPass(renderPass);
-
-      // Subtle, high-end bloom for emissive LEDs, screens and neon strips
-      this.bloomPass = new UnrealBloomPass(
-        new THREE.Vector2(width, height),
-        0.42, // strength
-        0.35, // radius
-        0.88, // threshold
-      );
-      this.composer.addPass(this.bloomPass);
-
-      const outputPass = new OutputPass();
-      this.composer.addPass(outputPass);
-    } catch (e) {
-      console.warn('Post-processing could not be initialized, falling back to direct render', e);
-      this.composer = null;
     }
   }
 
@@ -189,11 +161,6 @@ export class PrinterRoomScene {
     const rimLight = new THREE.DirectionalLight(0x0cb4e0, 0.45);
     rimLight.position.set(-8, 7, -8);
     this.scene.add(rimLight);
-
-    // 5. Warm amber accent point light near perimeter curb
-    const warmPoint = new THREE.PointLight(0xffaa44, 0.65, 8);
-    warmPoint.position.set(-3.2, 0.6, 0);
-    this.scene.add(warmPoint);
   }
 
   private rebuildScene(): void {
@@ -403,9 +370,6 @@ export class PrinterRoomScene {
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(width, height);
-    if (this.composer) {
-      this.composer.setSize(width, height);
-    }
   };
 
   private startLoop(): void {
@@ -439,10 +403,8 @@ export class PrinterRoomScene {
         }
       });
 
-      // 3. Render via Bloom EffectComposer when available, fallback to WebGLRenderer
-      if (this.composer) {
-        this.composer.render();
-      } else if (this.renderer) {
+      // 3. Crisp direct rendering without bloom/glow
+      if (this.renderer) {
         this.renderer.render(this.scene, this.camera);
       }
     };
@@ -465,11 +427,6 @@ export class PrinterRoomScene {
     if (this.envTexture) {
       this.envTexture.dispose();
       this.envTexture = null;
-    }
-
-    if (this.composer) {
-      this.composer.dispose();
-      this.composer = null;
     }
 
     if (this.renderer) {
