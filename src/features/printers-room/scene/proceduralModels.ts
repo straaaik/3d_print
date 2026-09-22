@@ -90,7 +90,7 @@ export function createDioramaRoom(size: [number, number, number]): THREE.Group {
   return room;
 }
 
-export function createWorkbench(width: number, depth: number, height: number): THREE.Group {
+export function createWorkbench(width: number, height: number, depth: number): THREE.Group {
   const workbench = new THREE.Group();
   const topThickness = 0.05;
   const legSize = 0.06;

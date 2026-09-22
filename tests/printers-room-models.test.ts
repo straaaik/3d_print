@@ -35,9 +35,12 @@ test('createDioramaRoom creates room group with platform and walls', () => {
 });
 
 test('createWorkbench creates desk structure with tabletop and legs', () => {
-  const desk = createWorkbench(3.2, 1.3, 0.85);
+  const desk = createWorkbench(3.2, 0.85, 1.3);
   assert.ok(desk);
   assert.ok(desk.children.length >= 4); // top + legs
+  // Tabletop top surface should be exactly at height 0.85 (position.y + thickness/2 = 0.825 + 0.025)
+  const topMesh = desk.children[0] as { position: { y: number } };
+  assert.equal(Math.round((topMesh.position.y + 0.025) * 1000) / 1000, 0.85);
   disposeHierarchy(desk);
 });
 
