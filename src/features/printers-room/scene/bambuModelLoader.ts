@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 let cachedTemplate: THREE.Group | null = null;
 let loadPromise: Promise<THREE.Group | null> | null = null;
 
-export const BAMBU_A1_MODEL_URL = '/models/bambulab-a1.glb';
+export const BAMBU_A1_MODEL_URL = '/models/bambulab-a1.glb?v=2';
 export const BAMBU_A1_TARGET_HEIGHT = 0.65; // meters
 
 /**
@@ -48,9 +48,11 @@ export function loadBambuA1Template(url = BAMBU_A1_MODEL_URL): Promise<THREE.Gro
               mesh.receiveShadow = true;
               if (mesh.material) {
                 const mat = mesh.material as THREE.MeshStandardMaterial;
-                mat.roughness = Math.max(mat.roughness ?? 0.5, 0.3);
-                mat.metalness = Math.min(mat.metalness ?? 0.5, 0.7);
-                mat.envMapIntensity = 1.0;
+                mat.envMapIntensity = 0.9;
+                if (mat.map) {
+                  mat.map.colorSpace = THREE.SRGBColorSpace;
+                  mat.map.needsUpdate = true;
+                }
                 mat.needsUpdate = true;
               }
             }
