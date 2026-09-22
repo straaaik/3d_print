@@ -134,3 +134,63 @@ export function createContactShadowMaterial(): THREE.MeshBasicMaterial {
     depthWrite: false,
   });
 }
+
+export function createBrushedPillarMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0x646975,
+    roughness: 0.28,
+    metalness: 0.85,
+  });
+}
+
+export function createCarbonRodMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0x18181d,
+    roughness: 0.2,
+    metalness: 0.75,
+  });
+}
+
+export function createToolheadMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0xdbe0e8,
+    roughness: 0.35,
+    metalness: 0.15,
+  });
+}
+
+export function createChamberLedMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0x00f0ff,
+    emissive: 0x00f0ff,
+    emissiveIntensity: 3.5,
+    roughness: 0.1,
+  });
+}
+
+export function createPeiPlateMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0x27282f,
+    roughness: 0.6,
+    metalness: 0.35,
+  });
+}
+
+export function createPtfeTubeMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0xdbeafe,
+    transparent: true,
+    opacity: 0.75,
+    roughness: 0.25,
+    metalness: 0.1,
+  });
+}
+
+export function createSpoolFlangeMaterial(): THREE.MeshStandardMaterial {
+  return new THREE.MeshStandardMaterial({
+    color: 0x24252c,
+    roughness: 0.45,
+    metalness: 0.3,
+  });
+}
+

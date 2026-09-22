@@ -17,6 +17,13 @@ import {
   createMatEdgeMaterial,
   createSpoolMaterial,
   createContactShadowMaterial,
+  createBrushedPillarMaterial,
+  createCarbonRodMaterial,
+  createToolheadMaterial,
+  createChamberLedMaterial,
+  createPeiPlateMaterial,
+  createPtfeTubeMaterial,
+  createSpoolFlangeMaterial,
   resolveColorHex,
 } from './materials';
 
@@ -192,176 +199,286 @@ export function createProceduralPrinter(
   const pWidth = 0.58;
   const pHeight = 0.68;
   const pDepth = 0.58;
-  const pillarSize = 0.032;
+  const px = pWidth / 2;
+  const py = pHeight / 2;
+  const pz = pDepth / 2;
 
   const frameMat = createPrinterFrameMaterial();
+  const brushedPillarMat = createBrushedPillarMaterial();
+  const carbonMat = createCarbonRodMaterial();
+  const toolheadMat = createToolheadMaterial();
+  const ledMat = createChamberLedMaterial();
+  const peiMat = createPeiPlateMaterial();
   const glassMat = createPrinterGlassMaterial();
-  const bedMat = createPrinterBedMaterial();
-  const hotendMat = createHotendMaterial();
-  const ledMat = createStatusLedMaterial();
+  const tubeMat = createPtfeTubeMaterial();
   const spoolMat = createSpoolMaterial(printerColor);
 
-  // 4 Corner pillars
-  const pillarGeom = new THREE.BoxGeometry(pillarSize, pHeight, pillarSize);
-  const px = pWidth / 2 - pillarSize / 2;
-  const pz = pDepth / 2 - pillarSize / 2;
-  const py = pHeight / 2;
+  // --- A. OUTER CHASSIS & ROUNDED PILLARS (Bambu Lab CoreXY) ---
 
-  const pillarCoords: [number, number, number][] = [
-    [-px, py, -pz],
-    [px, py, -pz],
-    [-px, py, pz],
-    [px, py, pz],
-  ];
+  // 1. Distinctive Front-Left Brushed Metallic Column (rounded pillar)
+  const pillarRadius = 0.042;
+  const leftColGeom = new THREE.CylinderGeometry(pillarRadius, pillarRadius, pHeight, 20);
+  const leftCol = new THREE.Mesh(leftColGeom, brushedPillarMat);
+  leftCol.position.set(-px + pillarRadius, py, pz - pillarRadius);
+  leftCol.castShadow = true;
+  bodyGroup.add(leftCol);
 
-  pillarCoords.forEach((coords) => {
-    const pillar = new THREE.Mesh(pillarGeom, frameMat);
-    pillar.position.set(...coords);
-    pillar.castShadow = true;
-    bodyGroup.add(pillar);
-  });
+  // 2. Front-Right, Rear-Left, Rear-Right Posts (dark slate)
+  const cornerSize = 0.038;
+  const postGeom = new THREE.BoxGeometry(cornerSize, pHeight, cornerSize);
 
-  // Top & Bottom frame beams
-  const beamGeomX = new THREE.BoxGeometry(pWidth, pillarSize, pillarSize);
-  const beamGeomZ = new THREE.BoxGeometry(pillarSize, pillarSize, pDepth - pillarSize * 2);
+  const rightFrontPost = new THREE.Mesh(postGeom, frameMat);
+  rightFrontPost.position.set(px - cornerSize / 2, py, pz - cornerSize / 2);
+  rightFrontPost.castShadow = true;
+  bodyGroup.add(rightFrontPost);
 
-  // Bottom frame
-  const botFront = new THREE.Mesh(beamGeomX, frameMat);
-  botFront.position.set(0, pillarSize / 2, pz);
-  bodyGroup.add(botFront);
+  const leftRearPost = new THREE.Mesh(postGeom, frameMat);
+  leftRearPost.position.set(-px + cornerSize / 2, py, -pz + cornerSize / 2);
+  leftRearPost.castShadow = true;
+  bodyGroup.add(leftRearPost);
 
-  const botBack = new THREE.Mesh(beamGeomX, frameMat);
-  botBack.position.set(0, pillarSize / 2, -pz);
-  bodyGroup.add(botBack);
+  const rightRearPost = new THREE.Mesh(postGeom, frameMat);
+  rightRearPost.position.set(px - cornerSize / 2, py, -pz + cornerSize / 2);
+  rightRearPost.castShadow = true;
+  bodyGroup.add(rightRearPost);
 
-  const botLeft = new THREE.Mesh(beamGeomZ, frameMat);
-  botLeft.position.set(-px, pillarSize / 2, 0);
-  bodyGroup.add(botLeft);
-
-  const botRight = new THREE.Mesh(beamGeomZ, frameMat);
-  botRight.position.set(px, pillarSize / 2, 0);
-  bodyGroup.add(botRight);
-
-  // Bottom chassis base plate
-  const basePlateGeom = new THREE.BoxGeometry(pWidth - 0.04, 0.04, pDepth - 0.04);
-  const basePlate = new THREE.Mesh(basePlateGeom, frameMat);
-  basePlate.position.set(0, 0.02, 0);
+  // 3. Bottom Base Plate & 4 Feet
+  const baseGeom = new THREE.BoxGeometry(pWidth - 0.01, 0.035, pDepth - 0.01);
+  const basePlate = new THREE.Mesh(baseGeom, frameMat);
+  basePlate.position.set(0, 0.0175, 0);
   basePlate.castShadow = true;
   bodyGroup.add(basePlate);
 
-  // Top frame
-  const topY = pHeight - pillarSize / 2;
-  const topFront = new THREE.Mesh(beamGeomX, frameMat);
-  topFront.position.set(0, topY, pz);
-  bodyGroup.add(topFront);
+  // 4. Top Frame & Rear AMS Deck
+  const topFrontBar = new THREE.Mesh(
+    new THREE.BoxGeometry(pWidth - 0.02, 0.035, 0.045),
+    frameMat,
+  );
+  topFrontBar.position.set(0, pHeight - 0.0175, pz - 0.0225);
+  topFrontBar.castShadow = true;
+  bodyGroup.add(topFrontBar);
 
-  const topBack = new THREE.Mesh(beamGeomX, frameMat);
-  topBack.position.set(0, topY, -pz);
-  bodyGroup.add(topBack);
+  const topRearDeck = new THREE.Mesh(
+    new THREE.BoxGeometry(pWidth - 0.02, 0.035, pDepth * 0.46),
+    frameMat,
+  );
+  topRearDeck.position.set(0, pHeight - 0.0175, -pz * 0.54);
+  topRearDeck.castShadow = true;
+  bodyGroup.add(topRearDeck);
 
-  const topLeft = new THREE.Mesh(beamGeomZ, frameMat);
-  topLeft.position.set(-px, topY, 0);
-  bodyGroup.add(topLeft);
+  const topSideLeft = new THREE.Mesh(
+    new THREE.BoxGeometry(0.04, 0.035, pDepth),
+    frameMat,
+  );
+  topSideLeft.position.set(-px + 0.02, pHeight - 0.0175, 0);
+  bodyGroup.add(topSideLeft);
 
-  const topRight = new THREE.Mesh(beamGeomZ, frameMat);
-  topRight.position.set(px, topY, 0);
-  bodyGroup.add(topRight);
+  const topSideRight = new THREE.Mesh(
+    new THREE.BoxGeometry(0.04, 0.035, pDepth),
+    frameMat,
+  );
+  topSideRight.position.set(px - 0.02, pHeight - 0.0175, 0);
+  bodyGroup.add(topSideRight);
 
-  // Top glass lid
-  const topGlassGeom = new THREE.BoxGeometry(pWidth - 0.04, 0.01, pDepth - 0.04);
-  const topGlass = new THREE.Mesh(topGlassGeom, glassMat);
-  topGlass.position.set(0, pHeight, 0);
-  bodyGroup.add(topGlass);
+  // 5. Right Exterior Panel with Profiled Inset
+  const rightPanelGeom = new THREE.BoxGeometry(0.01, pHeight - 0.07, pDepth - 0.08);
+  const rightPanel = new THREE.Mesh(rightPanelGeom, frameMat);
+  rightPanel.position.set(px - 0.005, py, 0);
+  rightPanel.castShadow = true;
+  bodyGroup.add(rightPanel);
 
-  // Enclosure side glass panels
-  const sideGlassGeom = new THREE.BoxGeometry(0.008, pHeight - pillarSize * 2, pDepth - pillarSize * 2);
-  const leftGlass = new THREE.Mesh(sideGlassGeom, glassMat);
-  leftGlass.position.set(-px + 0.01, py, 0);
-  bodyGroup.add(leftGlass);
+  const rightInsetGeom = new THREE.BoxGeometry(0.008, pHeight * 0.52, pDepth * 0.38);
+  const rightInset = new THREE.Mesh(rightInsetGeom, brushedPillarMat);
+  rightInset.position.set(px + 0.002, py, 0.02);
+  bodyGroup.add(rightInset);
 
-  const rightGlass = new THREE.Mesh(sideGlassGeom, glassMat);
-  rightGlass.position.set(px - 0.01, py, 0);
-  bodyGroup.add(rightGlass);
-
-  // Back panel (opaque dark metal with cable routes)
-  const backPanelGeom = new THREE.BoxGeometry(pWidth - pillarSize * 2, pHeight - pillarSize * 2, 0.01);
+  // 6. Back Exterior Panel & Spool Hub Relief
+  const backPanelGeom = new THREE.BoxGeometry(pWidth - 0.04, pHeight - 0.07, 0.01);
   const backPanel = new THREE.Mesh(backPanelGeom, frameMat);
-  backPanel.position.set(0, py, -pz + 0.01);
+  backPanel.position.set(0, py, -pz + 0.005);
   backPanel.castShadow = true;
   bodyGroup.add(backPanel);
 
-  // Front glass door
-  const frontDoorGeom = new THREE.BoxGeometry(pWidth - pillarSize * 2, pHeight - pillarSize * 2, 0.008);
-  const frontDoor = new THREE.Mesh(frontDoorGeom, glassMat);
-  frontDoor.position.set(0, py, pz - 0.01);
+  // 7. Left Side Glass Window
+  const leftGlassGeom = new THREE.BoxGeometry(0.008, pHeight * 0.65, pDepth - 0.08);
+  const leftGlass = new THREE.Mesh(leftGlassGeom, glassMat);
+  leftGlass.position.set(-px + 0.005, py + 0.06, 0);
+  bodyGroup.add(leftGlass);
+
+  const leftLowerPanel = new THREE.Mesh(
+    new THREE.BoxGeometry(0.01, pHeight * 0.28, pDepth - 0.08),
+    frameMat,
+  );
+  leftLowerPanel.position.set(-px + 0.005, py * 0.3, 0);
+  bodyGroup.add(leftLowerPanel);
+
+  // 8. Front Glass Door with Handle Latch
+  const doorGeom = new THREE.BoxGeometry(pWidth - 0.085, pHeight - 0.075, 0.008);
+  const frontDoor = new THREE.Mesh(doorGeom, glassMat);
+  frontDoor.position.set(0.018, py, pz - 0.004);
   bodyGroup.add(frontDoor);
 
-  // Interior: Heated build bed
-  const bedGeom = new THREE.BoxGeometry(0.40, 0.015, 0.40);
-  const bed = new THREE.Mesh(bedGeom, bedMat);
-  bed.position.set(0, 0.22, 0);
-  bed.castShadow = true;
-  bodyGroup.add(bed);
+  const handleGeom = new THREE.BoxGeometry(0.012, 0.045, 0.016);
+  const handle = new THREE.Mesh(handleGeom, brushedPillarMat);
+  handle.position.set(-0.04, py - 0.04, pz + 0.006);
+  bodyGroup.add(handle);
 
-  // Interior: Z-axis leadscrew rods
-  const rodGeom = new THREE.CylinderGeometry(0.006, 0.006, pHeight - 0.1, 8);
-  const rodLeft = new THREE.Mesh(rodGeom, hotendMat);
-  rodLeft.position.set(-0.18, py, -0.16);
-  bodyGroup.add(rodLeft);
+  // --- B. CHAMBER INTERIOR & LIGHTING ---
 
-  const rodRight = new THREE.Mesh(rodGeom, hotendMat);
-  rodRight.position.set(0.18, py, -0.16);
-  bodyGroup.add(rodRight);
+  // 9. Chamber Neon LED Light Strip along upper left frame
+  const ledStripGeom = new THREE.BoxGeometry(0.016, 0.016, pDepth * 0.66);
+  const ledStrip = new THREE.Mesh(ledStripGeom, ledMat);
+  ledStrip.position.set(-px + 0.065, pHeight - 0.038, 0);
+  bodyGroup.add(ledStrip);
 
-  // Interior: CoreXY crossbar and Toolhead Extruder
-  const gantryBarGeom = new THREE.BoxGeometry(pWidth - 0.08, 0.015, 0.015);
-  const gantryBar = new THREE.Mesh(gantryBarGeom, hotendMat);
-  gantryBar.position.set(0, 0.48, 0.02);
-  bodyGroup.add(gantryBar);
+  // Real cyan point light illuminating the chamber interior
+  const chamberLight = new THREE.PointLight(0x00f0ff, 1.4, 1.6);
+  chamberLight.position.set(-px + 0.08, pHeight - 0.06, 0);
+  bodyGroup.add(chamberLight);
 
-  const toolheadGeom = new THREE.BoxGeometry(0.07, 0.07, 0.07);
-  const toolhead = new THREE.Mesh(toolheadGeom, frameMat);
-  toolhead.position.set(0.02, 0.48, 0.02);
-  toolhead.castShadow = true;
-  bodyGroup.add(toolhead);
+  // 10. Dual Carbon-Fiber X-Rods
+  const rodLength = pWidth - 0.13;
+  const rodGeom = new THREE.CylinderGeometry(0.0075, 0.0075, rodLength, 16);
 
-  // Nozzle tip
-  const nozzleGeom = new THREE.ConeGeometry(0.012, 0.02, 8);
-  const nozzle = new THREE.Mesh(nozzleGeom, hotendMat);
+  const upperCarbonRod = new THREE.Mesh(rodGeom, carbonMat);
+  upperCarbonRod.rotation.z = Math.PI / 2;
+  upperCarbonRod.position.set(0, 0.49, 0.015);
+  bodyGroup.add(upperCarbonRod);
+
+  const lowerCarbonRod = new THREE.Mesh(rodGeom, carbonMat);
+  lowerCarbonRod.rotation.z = Math.PI / 2;
+  lowerCarbonRod.position.set(0, 0.44, 0.015);
+  bodyGroup.add(lowerCarbonRod);
+
+  // Y-axis side carriages
+  const carriageGeom = new THREE.BoxGeometry(0.035, 0.085, 0.065);
+  const leftCarriage = new THREE.Mesh(carriageGeom, frameMat);
+  leftCarriage.position.set(-px + 0.065, 0.465, 0.015);
+  bodyGroup.add(leftCarriage);
+
+  const rightCarriage = new THREE.Mesh(carriageGeom, frameMat);
+  rightCarriage.position.set(px - 0.065, 0.465, 0.015);
+  bodyGroup.add(rightCarriage);
+
+  // 11. Sculpted Light-Grey Toolhead (Bambu Lab Printhead)
+  const toolheadGroup = new THREE.Group();
+  toolheadGroup.position.set(0.01, 0.465, 0.015);
+
+  const thBodyGeom = new THREE.BoxGeometry(0.095, 0.115, 0.095);
+  const thBody = new THREE.Mesh(thBodyGeom, toolheadMat);
+  thBody.castShadow = true;
+  toolheadGroup.add(thBody);
+
+  // Circular fan intake grill on front face
+  const fanGrillGeom = new THREE.CylinderGeometry(0.026, 0.026, 0.006, 24);
+  const fanGrill = new THREE.Mesh(fanGrillGeom, frameMat);
+  fanGrill.rotation.x = Math.PI / 2;
+  fanGrill.position.set(0, 0.005, 0.049);
+  toolheadGroup.add(fanGrill);
+
+  const fanHubGeom = new THREE.CylinderGeometry(0.012, 0.012, 0.008, 16);
+  const fanHub = new THREE.Mesh(fanHubGeom, carbonMat);
+  fanHub.rotation.x = Math.PI / 2;
+  fanHub.position.set(0, 0.005, 0.049);
+  toolheadGroup.add(fanHub);
+
+  // Nozzle
+  const nozzleGeom = new THREE.ConeGeometry(0.012, 0.022, 12);
+  const nozzle = new THREE.Mesh(nozzleGeom, createHotendMaterial());
   nozzle.rotation.x = Math.PI;
-  nozzle.position.set(0.02, 0.435, 0.02);
-  bodyGroup.add(nozzle);
+  nozzle.position.set(0, -0.068, 0);
+  toolheadGroup.add(nozzle);
 
-  // Front bezel details: Touchscreen & Glowing LED
-  const screenGeom = new THREE.BoxGeometry(0.12, 0.07, 0.01);
-  const screenMat = new THREE.MeshStandardMaterial({
-    color: 0x09090b,
-    roughness: 0.2,
-    metalness: 0.8,
-  });
-  const screen = new THREE.Mesh(screenGeom, screenMat);
-  screen.rotation.x = -0.3; // tilted screen
-  screen.position.set(0.16, topY - 0.04, pz + 0.015);
-  bodyGroup.add(screen);
+  bodyGroup.add(toolheadGroup);
 
-  const ledGeom = new THREE.SphereGeometry(0.01, 12, 12);
-  const led = new THREE.Mesh(ledGeom, ledMat);
-  led.position.set(-0.20, topY, pz + 0.01);
-  bodyGroup.add(led);
+  // 12. Textured PEI Build Plate with Front Handle
+  const bedGroup = new THREE.Group();
+  bedGroup.position.set(0, 0.22, 0);
 
-  // Top spool holder & colored filament spool
-  const spoolHolderGeom = new THREE.CylinderGeometry(0.01, 0.01, 0.12, 8);
-  const spoolHolder = new THREE.Mesh(spoolHolderGeom, frameMat);
-  spoolHolder.rotation.z = Math.PI / 2;
-  spoolHolder.position.set(-0.08, pHeight + 0.06, -0.12);
-  bodyGroup.add(spoolHolder);
+  const heatbed = new THREE.Mesh(
+    new THREE.BoxGeometry(0.40, 0.018, 0.40),
+    frameMat,
+  );
+  heatbed.castShadow = true;
+  bedGroup.add(heatbed);
 
-  const spoolGeom = new THREE.TorusGeometry(0.06, 0.024, 12, 24);
-  const spool = new THREE.Mesh(spoolGeom, spoolMat);
-  spool.rotation.y = Math.PI / 2;
-  spool.position.set(-0.08, pHeight + 0.06, -0.12);
-  spool.castShadow = true;
-  bodyGroup.add(spool);
+  const peiSheet = new THREE.Mesh(
+    new THREE.BoxGeometry(0.42, 0.01, 0.42),
+    peiMat,
+  );
+  peiSheet.position.y = 0.012;
+  peiSheet.receiveShadow = true;
+  bedGroup.add(peiSheet);
+
+  // Front pull-tab
+  const pullTab = new THREE.Mesh(
+    new THREE.BoxGeometry(0.09, 0.008, 0.035),
+    frameMat,
+  );
+  pullTab.position.set(0, 0.012, 0.225);
+  bedGroup.add(pullTab);
+
+  bodyGroup.add(bedGroup);
+
+  // Z-axis dual leadscrews
+  const leadRodGeom = new THREE.CylinderGeometry(0.007, 0.007, pHeight - 0.14, 12);
+  const leftLead = new THREE.Mesh(leadRodGeom, createHotendMaterial());
+  leftLead.position.set(-0.14, py, -0.16);
+  bodyGroup.add(leftLead);
+
+  const rightLead = new THREE.Mesh(leadRodGeom, createHotendMaterial());
+  rightLead.position.set(0.14, py, -0.16);
+  bodyGroup.add(rightLead);
+
+  // --- C. TOP AMS MULTI-SPOOL MODULE (As in photo) ---
+
+  const amsTray = new THREE.Mesh(
+    new THREE.BoxGeometry(0.38, 0.035, 0.25),
+    frameMat,
+  );
+  amsTray.position.set(0.03, pHeight + 0.02, -0.12);
+  amsTray.castShadow = true;
+  bodyGroup.add(amsTray);
+
+  // Spool 1 (Right): Active spool with printer color & cutout holes
+  const spool1 = createRealisticSpool(printerColor, 0.075, 0.042);
+  spool1.position.set(0.12, pHeight + 0.09, -0.12);
+  bodyGroup.add(spool1);
+
+  // Spool 2 (Left): Complementary grey spool as in photo
+  const spool2 = createRealisticSpool('#94a3b8', 0.075, 0.042);
+  spool2.position.set(-0.04, pHeight + 0.09, -0.12);
+  bodyGroup.add(spool2);
+
+  // Left side hanging spool (as on the far left edge of the photo)
+  const sideHolderGeom = new THREE.CylinderGeometry(0.012, 0.012, 0.08, 12);
+  const sideHolder = new THREE.Mesh(sideHolderGeom, frameMat);
+  sideHolder.rotation.z = Math.PI / 2;
+  sideHolder.position.set(-px - 0.035, py + 0.05, -0.08);
+  bodyGroup.add(sideHolder);
+
+  const sideSpool = createRealisticSpool(printerColor, 0.11, 0.048);
+  sideSpool.position.set(-px - 0.065, py + 0.05, -0.08);
+  bodyGroup.add(sideSpool);
+
+  // --- D. CURVED PTFE FILAMENT TUBE (Looping into printhead) ---
+
+  const tubeCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0.12, pHeight + 0.09, -0.06),
+    new THREE.Vector3(0.07, pHeight + 0.14, 0.02),
+    new THREE.Vector3(0.04, pHeight + 0.08, 0.08),
+    new THREE.Vector3(0.01, 0.54, 0.015),
+  ]);
+
+  const ptfeGeom = new THREE.TubeGeometry(tubeCurve, 28, 0.006, 8, false);
+  const ptfeMesh = new THREE.Mesh(ptfeGeom, tubeMat);
+  bodyGroup.add(ptfeMesh);
+
+  const filamentCurveMesh = new THREE.Mesh(
+    new THREE.TubeGeometry(tubeCurve, 28, 0.003, 6, false),
+    spoolMat,
+  );
+  bodyGroup.add(filamentCurveMesh);
 
   root.add(bodyGroup);
 
@@ -380,6 +497,55 @@ export function createProceduralPrinter(
   root.userData = userData;
 
   return root;
+}
+
+function createRealisticSpool(colorHex: string, radius = 0.075, width = 0.042): THREE.Group {
+  const spool = new THREE.Group();
+  const flangeMat = createSpoolFlangeMaterial();
+  const filamentMat = createSpoolMaterial(colorHex);
+  const hubMat = createPrinterFrameMaterial();
+
+  // Central hub
+  const hubGeom = new THREE.CylinderGeometry(radius * 0.32, radius * 0.32, width, 16);
+  const hub = new THREE.Mesh(hubGeom, hubMat);
+  hub.rotation.z = Math.PI / 2;
+  spool.add(hub);
+
+  // Wound filament cylinder
+  const filamentGeom = new THREE.CylinderGeometry(radius * 0.92, radius * 0.92, width * 0.9, 24);
+  const filament = new THREE.Mesh(filamentGeom, filamentMat);
+  filament.rotation.z = Math.PI / 2;
+  filament.castShadow = true;
+  spool.add(filament);
+
+  // Two side flanges with cutout holes
+  const flangeThickness = 0.0035;
+  const xOffsets = [-width / 2 - flangeThickness / 2, width / 2 + flangeThickness / 2];
+
+  xOffsets.forEach((xOff) => {
+    const discGeom = new THREE.CylinderGeometry(radius, radius, flangeThickness, 24);
+    const disc = new THREE.Mesh(discGeom, flangeMat);
+    disc.rotation.z = Math.PI / 2;
+    disc.position.x = xOff;
+    spool.add(disc);
+
+    // 4 radial cutout circles on each flange face (as on the Bambu spools in the photo)
+    const holeCount = 4;
+    const holeRadius = radius * 0.22;
+    const distFromCenter = radius * 0.58;
+    for (let h = 0; h < holeCount; h++) {
+      const angle = (h / holeCount) * Math.PI * 2;
+      const hy = Math.cos(angle) * distFromCenter;
+      const hz = Math.sin(angle) * distFromCenter;
+      const holeGeom = new THREE.CylinderGeometry(holeRadius, holeRadius, flangeThickness + 0.001, 12);
+      const holeMesh = new THREE.Mesh(holeGeom, hubMat);
+      holeMesh.rotation.z = Math.PI / 2;
+      holeMesh.position.set(xOff, hy, hz);
+      spool.add(holeMesh);
+    }
+  });
+
+  return spool;
 }
 
 export function disposeHierarchy(object: THREE.Object3D): void {
