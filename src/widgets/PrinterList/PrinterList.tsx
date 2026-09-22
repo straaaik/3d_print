@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Activity,
   Banknote,
   BarChart3,
   Bolt,
+  Box,
   Cpu,
   Edit3,
   Gauge,
@@ -23,10 +25,10 @@ import { useData } from '../../entities/model/DataProvider';
 import type { Printer } from '../../shared/types';
 import { CockpitButton } from '../../shared/ui/CockpitButton';
 import { CockpitDropdown } from '../../shared/ui/CockpitDropdown';
+import { PrinterFormFields } from '../InventoryCockpit/InventoryFormFields';
 import { CockpitModal } from '../../shared/ui/CockpitModal';
-import { ColorPicker } from '../../shared/ui/ColorPicker';
 import { Input } from '../../shared/ui/Input';
-import { NumberCounter } from '../../shared/ui/NumberCounter';
+import { CockpitDeleteModal } from '../../shared/ui/CockpitDeleteModal';
 import { SegmentedFilter, type SegmentedFilterOption } from '../../shared/ui/SegmentedFilter';
 import { formatCurrency } from '../../shared/lib/format';
 import { usePersistentState } from '../../shared/lib/usePersistentState';
@@ -51,12 +53,26 @@ import {
   type PrinterSort,
 } from '../InventoryCockpit/model';
 
-type InventoryViewMode = 'table' | 'cards';
+type InventoryViewMode = 'table' | 'cards' | 'room3d';
 
 const VIEW_MODE_OPTIONS: ReadonlyArray<SegmentedFilterOption<InventoryViewMode>> = [
   { value: 'table', label: 'Таблица', icon: Table, ariaLabel: 'Режим таблицы' },
   { value: 'cards', label: 'Карточки', icon: LayoutGrid, ariaLabel: 'Режим карточек' },
+  { value: 'room3d', label: '3D-комната', icon: Box, ariaLabel: 'Режим 3D-комнаты' },
 ];
+
+const PrinterRoom3DSkeleton = () => (
+  <div className="w-full h-[580px] sm:h-[640px] rounded-2xl border border-white/10 bg-white/[0.02] flex items-center justify-center animate-pulse text-xs text-neutral-500">
+    Загрузка 3D-комнаты...
+  </div>
+);
+
+const PrinterRoom3D = dynamic(
+  () => import('../../features/printers-room').then((m) => m.PrinterRoom3D),
+  {
+    loading: PrinterRoom3DSkeleton,
+  },
+);
 
 const SORT_OPTIONS = [
   { value: 'name-asc', label: 'По названию' },
@@ -478,24 +494,35 @@ export function PrinterList() {
           </div>
         </InventoryRegistryToolbar>
 
-        <InventoryRegistryTable
-          ariaLabel="Реестр 3D-принтеров"
-          data={visiblePrinters}
-          columns={printerColumns}
-          keyExtractor={(printer) => printer.id}
-          viewMode={viewMode}
-          renderCard={renderPrinterCard}
-          renderMobileCard={renderPrinterCard}
-          emptyState={<EmptyState hasRecords={printers.length > 0} onAdd={openAdd} onReset={() => setQuery('')} />}
-          isExpanded={isExpanded}
-          currentSort={sort}
-          onSort={setSort}
-          onRowClick={openEdit}
-          minWidth={isExpanded ? '1560px' : '1080px'}
-          visibleCount={visiblePrinters.length}
-          totalCount={visiblePrinters.length}
-          registryLabel="PRINTER FLEET REGISTRY"
-        />
+        {viewMode === 'room3d' ? (
+          <PrinterRoom3D
+            printers={visiblePrinters}
+            electricityRate={electricityRate}
+            currency={currencySymbol}
+            onEditPrinter={openEdit}
+            onDeletePrinter={(printer) => setDeleteTarget(printer)}
+            onAddPrinter={openAdd}
+          />
+        ) : (
+          <InventoryRegistryTable
+            ariaLabel="Реестр 3D-принтеров"
+            data={visiblePrinters}
+            columns={printerColumns}
+            keyExtractor={(printer) => printer.id}
+            viewMode={viewMode}
+            renderCard={renderPrinterCard}
+            renderMobileCard={renderPrinterCard}
+            emptyState={<EmptyState hasRecords={printers.length > 0} onAdd={openAdd} onReset={() => setQuery('')} />}
+            isExpanded={isExpanded}
+            currentSort={sort}
+            onSort={setSort}
+            onRowClick={openEdit}
+            minWidth={isExpanded ? '1560px' : '1080px'}
+            visibleCount={visiblePrinters.length}
+            totalCount={visiblePrinters.length}
+            registryLabel="PRINTER FLEET REGISTRY"
+          />
+        )}
       </div>
 
       <CockpitModal
@@ -503,68 +530,39 @@ export function PrinterList() {
         onClose={() => setIsFormOpen(false)}
         title={editingPrinter ? 'Редактирование принтера' : 'Новый 3D-принтер'}
         subtitle="Параметры оборудования"
-        maxWidth="2xl"
+        maxWidth="3xl"
         footer={(
           <div className="flex w-full items-center justify-between gap-3">
-            <span>HOURLY COST: {previewHourlyCost.toFixed(2)} {currencySymbol}/ч</span>
+            <span>Час печати: {previewHourlyCost.toFixed(2)} {currencySymbol}/ч</span>
             <CockpitButton type="submit" form="printer-form" disabled={isSubmitting}>
               {isSubmitting ? 'Сохранение...' : editingPrinter ? 'Сохранить' : 'Добавить'}
             </CockpitButton>
           </div>
         )}
       >
-        <form id="printer-form" onSubmit={submit} className="grid gap-5 md:grid-cols-[190px_1fr]">
-          <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] p-5 text-center" style={{ color }}>
-            <PrinterMachineIcon className="h-28 w-28" title="Предпросмотр 3D-принтера" />
-            <span className="mt-3 rounded border border-white/10 bg-neutral-950/80 px-2 py-1 font-mono text-[10px] text-neutral-300">{color.toUpperCase()}</span>
-          </div>
-          <div className="space-y-4">
-            <Input label="Название 3D-принтера" placeholder="Bambu Lab A1" value={name} onChange={(event) => setName(event.target.value)} error={errors.name} autoFocus requiredStar />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <NumberCounter label="Мощность, Вт" value={Number.parseInt(powerW, 10) || 0} onChange={(value) => setPowerW(String(value))} min={1} max={10000} />
-                {errors.powerW && <p className="mt-1 text-[11px] text-rose-400">{errors.powerW}</p>}
-              </div>
-              <Input label={`Цена покупки, ${currencySymbol}`} type="number" min="0" step="any" placeholder="0.00" value={price} onChange={(event) => setPrice(event.target.value)} error={errors.price} requiredStar />
-            </div>
-            <div>
-              <NumberCounter label="Расчётный ресурс, ч" value={Number.parseInt(lifespanHours, 10) || 0} onChange={(value) => setLifespanHours(String(value))} min={1} max={1000000} step={100} />
-              {errors.lifespanHours && <p className="mt-1 text-[11px] text-rose-400">{errors.lifespanHours}</p>}
-            </div>
-            <ColorPicker label="Цвет оборудования" value={color} onChange={setColor} defaultVariant="matrix" inline />
-            <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-neutral-950/60 p-3 font-mono">
-              <MachineMetric label="Энергия" value={`${(Number(powerW || 0) / 1000 * electricityRate).toFixed(2)} ${currencySymbol}/ч`} />
-              <MachineMetric label="Полная ставка" value={`${previewHourlyCost.toFixed(2)} ${currencySymbol}/ч`} bordered accent />
-            </div>
-          </div>
+        <form id="printer-form" onSubmit={submit}>
+          <PrinterFormFields
+            values={{ name, price, powerW, lifespanHours, color }}
+            onChange={(field, value) => ({ name: setName, price: setPrice, powerW: setPowerW, lifespanHours: setLifespanHours, color: setColor })[field](value)}
+            errors={errors}
+            currencySymbol={currencySymbol}
+          />
         </form>
       </CockpitModal>
 
-      <CockpitModal
+      <CockpitDeleteModal
         isOpen={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
         title="Удаление принтера"
-        subtitle={deleteTarget ? deleteTarget.name : 'Подтверждение действия'}
-        maxWidth="md"
-        footer={(
-          <div className="flex w-full justify-end gap-2">
-            <CockpitButton onClick={() => setDeleteTarget(null)}>Закрыть</CockpitButton>
-            <CockpitButton onClick={confirmDelete} icon={Trash2} className="border-rose-500/30 bg-rose-950/50 text-rose-300 hover:bg-rose-900/60">Удалить принтер</CockpitButton>
-          </div>
-        )}
-      >
-        {deleteTarget && (
-          <div className="flex items-center gap-4 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4">
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-neutral-950" style={{ color: deleteTarget.color || '#D4D4D4' }}>
-              <PrinterMachineIcon className="h-11 w-11" title={`3D-принтер ${deleteTarget.name}`} />
-            </span>
-            <div className="min-w-0">
-              <p className="truncate font-sans text-sm font-bold text-white">{deleteTarget.name}</p>
-              <p className="mt-1 font-mono text-[11px] text-neutral-400">{deleteTarget.power_w.toLocaleString('ru-RU')} Вт · {formatCurrency(deleteTarget.price, currencySymbol)}</p>
-            </div>
-          </div>
-        )}
-      </CockpitModal>
+        itemName={deleteTarget?.name}
+        itemDetails={
+          deleteTarget
+            ? `${deleteTarget.power_w.toLocaleString('ru-RU')} Вт · ${formatCurrency(deleteTarget.price, currencySymbol)}`
+            : undefined
+        }
+        description="Вы действительно хотите удалить этот 3D-принтер из производственного парка? Действие необратимо."
+      />
     </InventoryCockpitShell>
   );
 }
@@ -651,15 +649,6 @@ function FleetCostFact({ label, value, share, tone }: { label: string; value: st
       </div>
       <p className="mt-1.5 truncate font-mono text-xs font-bold text-white tabular-nums">{value}</p>
       <p className="mt-1 font-mono text-[9px] text-neutral-500 tabular-nums">{share.toFixed(1)}% общей ставки</p>
-    </div>
-  );
-}
-
-function MachineMetric({ label, value, bordered = false, accent = false }: { label: string; value: string; bordered?: boolean; accent?: boolean }) {
-  return (
-    <div className={`min-w-0 px-3 py-2.5 ${bordered ? 'border-x border-white/10' : ''}`}>
-      <p className="font-mono text-[9px] uppercase tracking-wider text-neutral-500">{label}</p>
-      <p className={`mt-1 truncate font-mono text-[11px] font-semibold tabular-nums sm:text-xs ${accent ? 'text-cyan-400' : 'text-white'}`}>{value}</p>
     </div>
   );
 }
