@@ -29,6 +29,12 @@ const unitTestFiles = [
   'tests/hub-icon-preferences.test.ts',
   'tests/assembly-totals.test.ts',
   'tests/products-search.test.tsx',
+  'tests/cockpit-delete-modal.test.tsx',
+  'tests/round-modals.test.tsx',
+  'tests/receipt-template.test.ts',
+  'tests/order-contacts-modal.test.tsx',
+  'tests/inventory-spool-background.test.tsx',
+  'tests/printers-room-layout.test.ts',
 ];
 
 rmSync(outputDirectory, { recursive: true, force: true });
@@ -88,6 +94,12 @@ try {
     resolve(outputDirectory, 'tests', 'hub-icon-preferences.test.js'),
     resolve(outputDirectory, 'tests', 'assembly-totals.test.js'),
     resolve(outputDirectory, 'tests', 'products-search.test.js'),
+    resolve(outputDirectory, 'tests', 'receipt-template.test.js'),
+    resolve(outputDirectory, 'tests', 'order-contacts-modal.test.js'),
+    resolve(outputDirectory, 'tests', 'inventory-spool-background.test.js'),
+    resolve(outputDirectory, 'tests', 'cockpit-delete-modal.test.js'),
+    resolve(outputDirectory, 'tests', 'round-modals.test.js'),
+    resolve(outputDirectory, 'tests', 'printers-room-layout.test.js'),
   ], { stdio: 'inherit' });
   process.exitCode = run.status ?? 1;
 } finally {
