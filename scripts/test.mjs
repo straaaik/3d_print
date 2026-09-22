@@ -36,6 +36,7 @@ const unitTestFiles = [
   'tests/inventory-spool-background.test.tsx',
   'tests/printers-room-layout.test.ts',
   'tests/printers-room-models.test.ts',
+  'tests/printers-room-ui.test.tsx',
 ];
 
 rmSync(outputDirectory, { recursive: true, force: true });
@@ -102,6 +103,7 @@ try {
     resolve(outputDirectory, 'tests', 'round-modals.test.js'),
     resolve(outputDirectory, 'tests', 'printers-room-layout.test.js'),
     resolve(outputDirectory, 'tests', 'printers-room-models.test.js'),
+    resolve(outputDirectory, 'tests', 'printers-room-ui.test.js'),
   ], { stdio: 'inherit' });
   process.exitCode = run.status ?? 1;
 } finally {
