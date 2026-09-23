@@ -480,7 +480,7 @@ describe('AssemblyPartDrawer interactive slide-out menu', () => {
         onClose={() => {}}
         onLoadIntoCalculator={() => {}}
         onCreateOrder={() => {}}
-        onOpenQuickEditModal={() => {}}
+        onOpenEditAssembly={() => {}}
         onOpenStlModal={() => {}}
       />
     );

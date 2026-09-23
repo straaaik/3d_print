@@ -13,11 +13,20 @@
      ========================================================================== */
   --cockpit-radius: 4px;
 
+  /* ==========================================================================
+     РАЗМЫТИЕ ФОНА ДЛЯ МОДАЛЬНЫХ ОКОН (MODAL BACKDROP BLUR)
+     Измените это значение ниже, чтобы мгновенно сменить степень размытия во всём приложении:
+     ========================================================================== */
+  --cockpit-modal-blur: 4px;
+
   --background: #0a0a0a;
   --foreground: var(--cockpit-accent-color);
 }
 
 @theme {
+  --blur-sm: var(--cockpit-modal-blur);
+  --blur-cockpit-modal: var(--cockpit-modal-blur);
+
   --color-primary: #0CB4E0;
   --color-secondary: #537D8E;
   --color-tertiary: #FEB63D;
@@ -158,4 +167,33 @@ input[type="number"]::-webkit-inner-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
+}
+
+/* Order-form palette, scoped to catalog, equipment and system dialog shells.
+   Order dialogs and controls elsewhere retain their existing appearance. */
+.cockpit-form-modal :is(input, textarea):not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]):not([class~="bg-transparent"]),
+.cockpit-form-modal [data-number-counter-control],
+.cockpit-form-modal button[aria-haspopup="listbox"] {
+  background-color: rgb(20 20 22 / 90%);
+  border-color: #26262b;
+  font-family: var(--font-mono);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.cockpit-form-modal :is(input, textarea)::placeholder {
+  color: #52525b;
+}
+
+.cockpit-form-modal :is(label, span).uppercase {
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+}
+
+.cockpit-form-modal :is(input, textarea):focus,
+.cockpit-form-modal [data-number-counter-control]:focus-within,
+.cockpit-form-modal button[aria-haspopup="listbox"]:focus-visible {
+  border-color: color-mix(in srgb, var(--cockpit-accent-color) 40%, transparent);
+  --tw-ring-shadow: 0 0 #0000;
 }

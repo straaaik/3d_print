@@ -2,10 +2,11 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Order } from '../types';
-import { getOrderMonthKey, formatMonthKeyLabel, formatMoney } from '../helpers';
+import { getOrderMonthKey, formatMonthKeyLabel } from '../helpers';
 import { Tooltip } from '../../../shared/ui/Tooltip';
+import { CockpitButton } from '../../../shared/ui/CockpitButton';
 
 const MONTH_NAMES = [
   { num: 1, name: 'Январь', short: 'Янв', code: '01' },
@@ -140,7 +141,6 @@ function OpenNewMonthModalContent({
   };
 
   const realCurrentKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-  const pickedStats = monthStatsMap.get(pickedMonthKey) || { count: 0, income: 0, expense: 0 };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 select-none overflow-hidden">
@@ -194,7 +194,7 @@ function OpenNewMonthModalContent({
                   {currentTimeStr}
                 </span>
                 <span className="text-neutral-600 hidden sm:inline">|</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded border border-white/10 bg-white/[0.04] text-[#a1a1aa] uppercase tracking-wider font-semibold">
+                <span className="text-[11px] text-[#a1a1aa] uppercase tracking-wider font-semibold">
                   {year} ГОД
                 </span>
               </div>
@@ -262,10 +262,10 @@ function OpenNewMonthModalContent({
                           : 'bg-[#141416]/70 border-[#222226] text-[#a1a1aa] hover:text-white hover:bg-[#18181c] hover:border-[#383840]'
                       }`}
                     >
-                      {/* Верхняя строка: Код + Название + Галочка */}
+                      {/* Верхняя строка: Код + Название */}
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <span className={`text-[10px] font-mono ${isPicked ? 'text-amber-400' : 'text-[#71717a]'}`}>
+                          <span className={`text-[10px] font-mono ${isPicked ? 'text-[#d4d4d8]' : 'text-[#71717a]'}`}>
                             {m.code}
                           </span>
                           <span className="relative inline-flex items-center font-bold text-xs text-white">
@@ -273,10 +273,6 @@ function OpenNewMonthModalContent({
                             <HandDrawnUnderline isSelected={isPicked} />
                           </span>
                         </div>
-
-                        {isPicked && (
-                          <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        )}
                       </div>
 
                       {/* Нижняя строка: Заказы + Бейдж СЕЙЧАС */}
@@ -301,27 +297,6 @@ function OpenNewMonthModalContent({
                   );
                 })}
               </div>
-
-              {/* Информационная сводка выбранного месяца */}
-              <div className="p-3 bg-[#141416]/80 border border-[#26262b] rounded-xl flex items-center justify-between text-xs font-mono text-[#a1a1aa]">
-                <div className="flex items-center gap-2">
-                  <span className="text-[#71717a] uppercase text-[10px] tracking-wider">ВЫБРАН:</span>
-                  <span className="text-white font-bold tracking-wide">
-                    {formatMonthKeyLabel(pickedMonthKey)}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-4 text-xs">
-                  {pickedStats.count > 0 && (
-                    <span className="text-emerald-400 font-medium">
-                      +{formatMoney(pickedStats.income)}
-                    </span>
-                  )}
-                  <span className="text-[#52525b] text-[10px] hidden sm:inline">
-                    Двойной клик для быстрого открытия
-                  </span>
-                </div>
-              </div>
             </div>
 
             {/* 3. Нижняя панель телеметрии и кнопки */}
@@ -331,21 +306,12 @@ function OpenNewMonthModalContent({
               </div>
 
               <div className="flex items-center gap-2.5 ml-auto">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-3.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-[#a1a1aa] hover:text-white hover:bg-white/[0.08] hover:border-white/20 cursor-pointer text-xs font-mono select-none"
-                >
-                  [ Закрыть ]
-                </button>
-
-                <button
+                <CockpitButton
                   type="button"
                   onClick={handleConfirm}
-                  className="px-4 py-1.5 rounded-lg bg-white text-black font-bold hover:bg-neutral-200 cursor-pointer text-xs font-mono select-none shadow-md"
                 >
-                  [ Открыть {formatMonthKeyLabel(pickedMonthKey)} → ]
-                </button>
+                  Открыть {formatMonthKeyLabel(pickedMonthKey)} →
+                </CockpitButton>
               </div>
             </div>
           </motion.div>

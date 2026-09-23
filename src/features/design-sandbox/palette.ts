@@ -6,7 +6,7 @@ export interface PaletteColor {
 }
 
 export const APP_PALETTE: PaletteColor[] = [
-  // 1. Фирменные цвета 3D Labs (Core Brand)
+  // 1. Фирменные цвета Kumo CRM (Core Brand)
   {
     name: 'Cockpit Bone / Sand',
     hex: '#D2CCBB',
@@ -146,7 +146,7 @@ export const APP_PALETTE: PaletteColor[] = [
     category: 'typography',
   },
 
-  // 5. Популярные цвета филаментов 3D Labs
+  // 5. Популярные цвета филаментов Kumo CRM
   {
     name: 'Prusa Orange',
     hex: '#EA580C',

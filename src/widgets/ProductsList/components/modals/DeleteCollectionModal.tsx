@@ -1,8 +1,8 @@
+'use client';
+
 import React, { useState } from 'react';
 import { ProductCollection } from '../../../../shared/types';
-import { Modal } from '../../../../shared/ui/Modal';
-import { CockpitButton } from '../../../../shared/ui/CockpitButton';
-import { Check, AlertTriangle } from 'lucide-react';
+import { RoundDeleteModal } from '../../../../shared/ui/RoundDeleteModal';
 
 interface DeleteCollectionModalProps {
   collection: ProductCollection | null;
@@ -31,88 +31,36 @@ export function DeleteCollectionModal({
   };
 
   return (
-    <Modal
+    <RoundDeleteModal
       isOpen={Boolean(collection)}
       onClose={onClose}
+      onConfirm={handleConfirm}
+      isDeleting={isDeleting}
       title="Удаление коллекции"
-      subtitle={collection.name}
-      maxWidth="md"
-      variant="warning"
-      footer={
-        <div className="flex justify-end gap-2 w-full font-mono text-xs">
-          <CockpitButton type="button" onClick={onClose} disabled={isDeleting}>
-            Закрыть
-          </CockpitButton>
-          <CockpitButton
-            type="button"
-            disabled={isDeleting}
-            onClick={handleConfirm}
-            className={
-              deleteWithProducts
-                ? 'bg-rose-950/60 text-rose-300 border-rose-800/40 hover:bg-rose-900/80 hover:text-white font-bold'
-                : 'border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold'
-            }
-          >
-            {isDeleting ? 'Удаление...' : 'Подтвердить'}
-          </CockpitButton>
-        </div>
+      itemName={`«${collection.name}»`}
+      itemDetails={deleteWithProducts ? 'Коллекция и вложенные товары' : 'Только коллекция'}
+      description={
+        deleteWithProducts
+          ? 'Коллекция и все входящие в неё товары будут безвозвратно удалены.'
+          : 'Коллекция будет удалена. Её товары останутся в общем каталоге.'
       }
     >
-      <div className="space-y-3 pt-1 select-none font-mono text-xs">
-        <div className="space-y-2 text-xs">
-          {/* Вариант 1: Расформировать */}
-          <div
-            onClick={() => setDeleteWithProducts(false)}
-            className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer ${
-              !deleteWithProducts
-                ? 'bg-white/10 border-white/25 text-white font-semibold shadow-sm'
-                : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white'
-            }`}
-          >
-            <div>
-              <div className="font-bold flex items-center gap-2 text-white">
-                <span>Расформировать коллекцию</span>
-                <span className="px-2 py-0.5 text-[10px] bg-emerald-950/60 text-emerald-300 border border-emerald-800/40 rounded font-mono font-bold">
-                  Рекомендуется
-                </span>
-              </div>
-              <div className="text-[11px] text-neutral-400 mt-1 font-sans">
-                Коллекция удалится, а все товары останутся в каталоге как самостоятельные позиции.
-              </div>
-            </div>
-            {!deleteWithProducts && (
-              <div className="w-5 h-5 rounded-full bg-white text-neutral-950 flex items-center justify-center shrink-0 ml-2 shadow-sm font-bold">
-                <Check size={13} strokeWidth={3} />
-              </div>
-            )}
-          </div>
-
-          {/* Вариант 2: Удалить вместе с товарами */}
-          <div
-            onClick={() => setDeleteWithProducts(true)}
-            className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer ${
-              deleteWithProducts
-                ? 'bg-rose-950/40 border-rose-800/60 text-white font-semibold shadow-sm'
-                : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white'
-            }`}
-          >
-            <div>
-              <div className="font-bold text-rose-300 flex items-center gap-1.5">
-                <AlertTriangle size={14} className="text-rose-400" />
-                <span>Удалить коллекцию и все вложенные товары</span>
-              </div>
-              <div className="text-[11px] text-neutral-400 mt-1 font-sans">
-                Все варианты товаров внутри коллекции будут безвозвратно удалены из базы.
-              </div>
-            </div>
-            {deleteWithProducts && (
-              <div className="w-5 h-5 rounded-full bg-rose-500 flex items-center justify-center text-white shrink-0 ml-2 shadow-sm">
-                <Check size={13} strokeWidth={3} />
-              </div>
-            )}
-          </div>
-        </div>
+      <div className="pt-1 flex flex-col items-center gap-1.5">
+        <label className="flex items-center gap-2 cursor-pointer text-[10.5px] text-neutral-300 hover:text-white select-none">
+          <input
+            type="checkbox"
+            checked={deleteWithProducts}
+            onChange={(e) => setDeleteWithProducts(e.target.checked)}
+            className="rounded border-neutral-700 bg-neutral-900 text-rose-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+          />
+          <span>Удалить с товарами</span>
+        </label>
+        {deleteWithProducts && (
+          <span className="text-[9.5px] text-rose-300 font-mono tracking-tight text-center">
+            Товары удалятся безвозвратно
+          </span>
+        )}
       </div>
-    </Modal>
+    </RoundDeleteModal>
   );
 }

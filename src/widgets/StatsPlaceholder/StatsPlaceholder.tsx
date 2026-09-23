@@ -78,7 +78,7 @@ export function StatsPlaceholder({ onGoToCalculator }: StatsPlaceholderProps) {
       {/* Планируемые отчеты */}
       <div className="bg-neutral-950/90 border border-white/15 rounded-2xl p-5 sm:p-6 space-y-3">
         <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">
-          3D-LABS // ПЛАНИРУЕМЫЕ ОТЧЕТЫ И ГРАФИКИ
+          KUMO CRM // ПЛАНИРУЕМЫЕ ОТЧЕТЫ И ГРАФИКИ
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

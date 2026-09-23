@@ -22,10 +22,10 @@ import { useData } from '../../entities/model/DataProvider';
 import type { Filament } from '../../shared/types';
 import { CockpitButton } from '../../shared/ui/CockpitButton';
 import { CockpitDropdown } from '../../shared/ui/CockpitDropdown';
+import { FilamentFormFields } from '../InventoryCockpit/InventoryFormFields';
 import { CockpitModal } from '../../shared/ui/CockpitModal';
-import { ColorPicker } from '../../shared/ui/ColorPicker';
 import { Input } from '../../shared/ui/Input';
-import { NumberCounter } from '../../shared/ui/NumberCounter';
+import { CockpitDeleteModal } from '../../shared/ui/CockpitDeleteModal';
 import { SegmentedFilter, type SegmentedFilterOption } from '../../shared/ui/SegmentedFilter';
 import { formatCurrency } from '../../shared/lib/format';
 import { usePersistentState } from '../../shared/lib/usePersistentState';
@@ -468,64 +468,39 @@ export function FilamentList() {
         onClose={() => setIsFormOpen(false)}
         title={editingFilament ? 'Редактирование катушки' : 'Новая катушка'}
         subtitle="Параметры материала"
-        maxWidth="2xl"
+        maxWidth="3xl"
         footer={(
           <div className="flex w-full items-center justify-between gap-3">
-            <span>UNIT COST: {previewUnitCost.toFixed(2)} {currencySymbol}/г</span>
+            <span>Стоимость: {previewUnitCost.toFixed(2)} {currencySymbol}/г</span>
             <CockpitButton type="submit" form="filament-form" disabled={isSubmitting}>
               {isSubmitting ? 'Сохранение...' : editingFilament ? 'Сохранить' : 'Добавить'}
             </CockpitButton>
           </div>
         )}
       >
-        <form id="filament-form" onSubmit={submit} className="grid gap-5 md:grid-cols-[180px_1fr]">
-          <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] p-5 text-center" style={{ color }}>
-            <FilamentSpoolIcon className="h-28 w-28" title="Предпросмотр катушки" />
-            <span className="mt-3 rounded border border-white/10 bg-neutral-950/80 px-2 py-1 font-mono text-[10px] text-neutral-300">{color.toUpperCase()}</span>
-          </div>
-          <div className="space-y-4">
-            <Input label="Название филамента" placeholder="Bambu Lab PLA Matte Black" value={name} onChange={(event) => setName(event.target.value)} error={errors.name} autoFocus requiredStar />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <NumberCounter label="Вес катушки, г" value={Number.parseInt(weightG, 10) || 0} onChange={(value) => setWeightG(String(value))} min={1} max={100000} />
-                {errors.weightG && <p className="mt-1 text-[11px] text-rose-400">{errors.weightG}</p>}
-              </div>
-              <Input label={`Цена катушки, ${currencySymbol}`} type="number" min="0" step="any" placeholder="0.00" value={price} onChange={(event) => setPrice(event.target.value)} error={errors.price} requiredStar />
-            </div>
-            <ColorPicker label="Цвет пластика" value={color} onChange={setColor} defaultVariant="spool" inline />
-            <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-neutral-950/60 p-3 font-mono">
-              <Metric label="Вес" value={`${Number(weightG || 0).toLocaleString('ru-RU')} г`} />
-              <Metric label="Расчётная ставка" value={`${previewUnitCost.toFixed(2)} ${currencySymbol}/г`} bordered accent />
-            </div>
-          </div>
+        <form id="filament-form" onSubmit={submit}>
+          <FilamentFormFields
+            values={{ name, price, weightG, color }}
+            onChange={(field, value) => ({ name: setName, price: setPrice, weightG: setWeightG, color: setColor })[field](value)}
+            errors={errors}
+            currencySymbol={currencySymbol}
+          />
         </form>
       </CockpitModal>
 
-      <CockpitModal
+      <CockpitDeleteModal
         isOpen={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
         title="Удаление катушки"
-        subtitle={deleteTarget ? deleteTarget.name : 'Подтверждение действия'}
-        maxWidth="md"
-        footer={(
-          <div className="flex w-full justify-end gap-2">
-            <CockpitButton onClick={() => setDeleteTarget(null)}>Закрыть</CockpitButton>
-            <CockpitButton onClick={confirmDelete} icon={Trash2} className="border-rose-500/30 bg-rose-950/50 text-rose-300 hover:bg-rose-900/60">Удалить катушку</CockpitButton>
-          </div>
-        )}
-      >
-        {deleteTarget && (
-          <div className="flex items-center gap-4 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4">
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-neutral-950" style={{ color: deleteTarget.color || '#D4D4D4' }}>
-              <FilamentSpoolIcon className="h-11 w-11" title={`Катушка ${deleteTarget.name}`} />
-            </span>
-            <div className="min-w-0">
-              <p className="truncate font-sans text-sm font-bold text-white">{deleteTarget.name}</p>
-              <p className="mt-1 font-mono text-[11px] text-neutral-400">{deleteTarget.weight_g.toLocaleString('ru-RU')} г · {formatCurrency(deleteTarget.price, currencySymbol)}</p>
-            </div>
-          </div>
-        )}
-      </CockpitModal>
+        itemName={deleteTarget?.name}
+        itemDetails={
+          deleteTarget
+            ? `${deleteTarget.weight_g.toLocaleString('ru-RU')} г · ${formatCurrency(deleteTarget.price, currencySymbol)}`
+            : undefined
+        }
+        description="Вы действительно хотите списать эту катушку филамента со склада? Действие необратимо."
+      />
     </InventoryCockpitShell>
   );
 }
@@ -593,15 +568,6 @@ function FilamentExpandedAnalytics({
         </div>
       </div>
     </section>
-  );
-}
-
-function Metric({ label, value, bordered = false, accent = false }: { label: string; value: string; bordered?: boolean; accent?: boolean }) {
-  return (
-    <div className={`min-w-0 px-3 py-2.5 ${bordered ? 'border-l border-white/10' : ''}`}>
-      <p className="font-mono text-[9px] uppercase tracking-wider text-neutral-500">{label}</p>
-      <p className={`mt-1 truncate font-mono text-[11px] font-semibold tabular-nums sm:text-xs ${accent ? 'text-cyan-400' : 'text-white'}`}>{value}</p>
-    </div>
   );
 }
 

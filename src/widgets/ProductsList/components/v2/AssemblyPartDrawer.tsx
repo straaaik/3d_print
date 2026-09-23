@@ -47,6 +47,7 @@ export interface AssemblyPartDrawerProps {
   parentAssembly: SavedCalculation;
   currencySymbol?: string;
   onClose: () => void;
+  onOpenEditAssembly?: (item: SavedCalculation) => void;
   onOpenQuickEditModal?: (item: SavedCalculation) => void;
   onCreateOrder?: (item: SavedCalculation) => void;
   onLoadIntoCalculator?: (item: SavedCalculation) => void;
@@ -68,6 +69,7 @@ export function AssemblyPartDrawer({
   parentAssembly,
   currencySymbol = '₽',
   onClose,
+  onOpenEditAssembly,
   onOpenQuickEditModal,
   onCreateOrder,
   onLoadIntoCalculator,
@@ -143,8 +145,8 @@ export function AssemblyPartDrawer({
     });
   };
 
-  const handleOpenQuickEditModal = () => {
-    onOpenQuickEditModal?.(parentAssembly);
+  const handleOpenEditAssembly = () => {
+    onOpenEditAssembly?.(parentAssembly);
   };
 
   return (
@@ -154,7 +156,8 @@ export function AssemblyPartDrawer({
         currencySymbol={currencySymbol}
         onInlineUpdateProduct={handleInlineUpdateProduct}
         onSetStock={handleSetStock}
-        onOpenQuickEditModal={handleOpenQuickEditModal}
+        onOpenEditAssembly={handleOpenEditAssembly}
+        onOpenQuickEditModal={handleOpenEditAssembly}
         onOpenStlModal={onOpenStlModal}
         onLoadIntoCalculator={onLoadIntoCalculator}
         onCreateOrder={onCreateOrder}

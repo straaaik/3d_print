@@ -67,14 +67,14 @@ export function IsometricSpoolPicker({
   const contrast = getContrastTextColor(currentColor);
 
   const pickerBody = (
-    <div className="w-[280px] flex flex-col items-center gap-3 font-mono select-none text-xs">
+    <div className="w-full flex flex-col items-center gap-3 font-mono select-none text-xs">
       {/* Шапка изометрической катушки */}
-      <div className="w-full flex items-center justify-between pb-1.5 border-b border-white/10 text-[10px] text-neutral-400">
-        <div className="flex items-center gap-1.5">
-          <Box size={12} className="text-cyan-400" />
-          <span className="font-bold text-neutral-200">SPOOL // ISOMETRIC-3D</span>
+      <div className="w-full flex items-center justify-between pb-1.5 border-b border-white/10 text-[10px] text-neutral-400 gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <Box size={12} className="text-cyan-400 shrink-0" />
+          <span className="font-bold text-neutral-200 truncate">SPOOL // 3D</span>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 shrink-0">
           {hasDropper && (
             <button
               type="button"
@@ -87,13 +87,13 @@ export function IsometricSpoolPicker({
             </button>
           )}
           <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-neutral-400">
-            PRO-SPOOL 1KG
+            1KG
           </span>
         </div>
       </div>
 
       {/* Изометрическая 3D модель катушки филамента в перспективе */}
-      <div className="relative w-[230px] h-[160px] flex items-center justify-center">
+      <div className="relative w-full max-w-[220px] aspect-[240/170] flex items-center justify-center">
         <svg viewBox="0 0 240 170" className="w-full h-full drop-shadow-2xl">
           {/* Тень под катушкой на столе */}
           <ellipse cx="120" cy="145" rx="85" ry="20" fill="rgba(0,0,0,0.6)" filter="blur(4px)" />
@@ -237,9 +237,9 @@ export function IsometricSpoolPicker({
       </div>
 
       {/* Быстрые пресеты катушек */}
-      <div className="w-full flex items-center justify-between gap-1 pt-1 border-t border-white/10">
-        <span className="text-[9px] text-neutral-500">ПРЕСЕТЫ:</span>
-        <div className="flex items-center gap-1.5">
+      <div className="w-full flex items-center justify-between gap-1.5 pt-1.5 border-t border-white/10">
+        <span className="text-[9px] text-neutral-500 uppercase tracking-wider shrink-0">ПРЕСЕТЫ:</span>
+        <div className="flex flex-wrap items-center gap-1.5 justify-end">
           {FILAMENT_PRESETS.slice(0, 6).map((p) => (
             <Tooltip key={p.hex} content={p.name}>
               <button
@@ -249,7 +249,7 @@ export function IsometricSpoolPicker({
                   setHsl(hexToHsl(p.hex));
                   onChange(p.hex);
                 }}
-                className="w-4 h-4 rounded-full border border-white/25 hover:scale-110 transition-transform cursor-pointer shadow-inner"
+                className="w-4 h-4 rounded-full border border-white/25 hover:scale-110 transition-transform cursor-pointer shadow-inner shrink-0"
                 style={{ backgroundColor: p.hex }}
               />
             </Tooltip>
@@ -262,7 +262,7 @@ export function IsometricSpoolPicker({
   if (inline) {
     return (
       <div
-        className={`p-3.5 rounded-xl border border-white/15 bg-neutral-950/90 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.8)] backdrop-blur-xl ${className}`}
+        className={`p-3.5 sm:p-4 rounded-xl border border-white/10 bg-neutral-900/60 shadow-[0_15px_40px_-10px_rgba(0,0,0,0.8)] backdrop-blur-xl w-full ${className}`}
       >
         {label && (
           <span className="block mb-2 text-[11px] font-mono text-neutral-400 select-none">

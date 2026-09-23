@@ -15,9 +15,11 @@ import { LaborSettingsTab } from './components/LaborSettingsTab';
 import { PricingSettingsTab } from './components/PricingSettingsTab';
 import { MaterialsSettingsTab } from './components/MaterialsSettingsTab';
 import { DataManagementTab } from './components/DataManagementTab';
+import { ReceiptTemplateTab } from './components/ReceiptTemplateTab';
 import { LiveCalculationPreview } from './components/LiveCalculationPreview';
 import { Save, RotateCcw, CheckCircle2 } from 'lucide-react';
 import { hasNumericSettingChanged, isSettingsDraftEquivalent, normalizeWholeMinutes, parseNonNegativeSetting } from './model';
+import { saveMonthlyGoalsConfig, type MonthlyGoalsConfig } from '../../shared/api/db';
 
 const getNormalizedMaterialMultipliers = (multipliers?: Record<string, number> | null): Record<string, number> => ({
   pla_petg: multipliers?.pla_petg ?? 100,
@@ -32,13 +34,15 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
     printers,
     updateSettings,
     setIsSettingsDirty,
-    settingsSaveRef
+    settingsSaveRef,
+    monthlyGoals,
+    setMonthlyGoals,
   } = useData();
   const { showToast } = useToast();
 
   const searchParams = useSearchParams();
   const activeTab = SETTINGS_SECTIONS.find((section) => section.id === searchParams.get('section'))?.id ?? 'general';
-  const isWorkshopSection = !['profile', 'appearance', 'data'].includes(activeTab);
+  const isWorkshopSection = !['profile', 'appearance', 'data', 'receipt'].includes(activeTab);
   const setActiveTab = (tab: SettingsSectionId) => {
     if (tab === activeTab) return;
     const params = new URLSearchParams(searchParams.toString());
@@ -58,6 +62,7 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
   const [electricityRate, setElectricityRate] = useState(() => (settings?.electricity_rate ?? 4.89).toString());
   const [defaultPrinterId, setDefaultPrinterId] = useState(() => settings?.default_printer_id || '');
   const [minOrderPrice, setMinOrderPrice] = useState(() => (settings?.min_order_price ?? 300).toString());
+  const [defaultGoal, setDefaultGoal] = useState(() => (monthlyGoals?.defaultGoal ?? 0).toString());
 
   // Работа мастера
   const [laborRate, setLaborRate] = useState(() => (settings?.labor_rate_per_hour ?? 0).toString());
@@ -76,6 +81,7 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
     getNormalizedMaterialMultipliers(settings?.material_multipliers)
   );
   const [previousSettings, setPreviousSettings] = useState(settings);
+  const [previousMonthlyGoals, setPreviousMonthlyGoals] = useState(monthlyGoals);
 
   if (settings && settings !== previousSettings) {
     const shouldHydrate = previousSettings ? isSettingsDraftEquivalent({
@@ -111,6 +117,14 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
     }
   }
 
+  if (monthlyGoals && monthlyGoals !== previousMonthlyGoals) {
+    const isGoalEquivalent = !hasNumericSettingChanged(defaultGoal, previousMonthlyGoals?.defaultGoal ?? 0);
+    setPreviousMonthlyGoals(monthlyGoals);
+    if (isGoalEquivalent) {
+      setDefaultGoal((monthlyGoals.defaultGoal ?? 0).toString());
+    }
+  }
+
   // Сброс изменений к исходным сохраненным значениям
   const handleResetToSaved = useCallback(() => {
     if (!settings) return;
@@ -118,6 +132,7 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
     setElectricityRate((settings.electricity_rate ?? 4.89).toString());
     setDefaultPrinterId(settings.default_printer_id || '');
     setMinOrderPrice((settings.min_order_price ?? 300).toString());
+    setDefaultGoal((monthlyGoals?.defaultGoal ?? 0).toString());
     setLaborRate((settings.labor_rate_per_hour ?? 0).toString());
     setLaborTimeMinutes((settings.labor_time_minutes ?? 15).toString());
     setIsOwnerLaborDefault(settings.is_owner_labor_default ?? true);
@@ -128,13 +143,14 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
     setEnableMaterialDifficulty(settings.enable_material_difficulty ?? true);
     setMaterialMultipliers(getNormalizedMaterialMultipliers(settings.material_multipliers));
     showToast('Изменения сброшены к сохраненным параметрам', 'info');
-  }, [settings, showToast]);
+  }, [settings, monthlyGoals, showToast]);
 
   // Флаги изменений полей
   const isCurrencyChanged = currency !== (settings?.currency || '₽');
   const isElectricityRateChanged = hasNumericSettingChanged(electricityRate, settings?.electricity_rate ?? 4.89);
   const isDefaultPrinterChanged = defaultPrinterId !== (settings?.default_printer_id || '');
   const isMinOrderPriceChanged = hasNumericSettingChanged(minOrderPrice, settings?.min_order_price ?? 300);
+  const isDefaultGoalChanged = hasNumericSettingChanged(defaultGoal, monthlyGoals?.defaultGoal ?? 0);
 
   const isLaborRateChanged = hasNumericSettingChanged(laborRate, settings?.labor_rate_per_hour ?? 0);
   const isLaborTimeMinutesChanged = hasNumericSettingChanged(laborTimeMinutes, settings?.labor_time_minutes ?? 15);
@@ -159,6 +175,7 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
       isElectricityRateChanged,
       isDefaultPrinterChanged,
       isMinOrderPriceChanged,
+      isDefaultGoalChanged,
     ].filter(Boolean).length;
 
     const laborChanges = [
@@ -192,6 +209,7 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
     isElectricityRateChanged,
     isDefaultPrinterChanged,
     isMinOrderPriceChanged,
+    isDefaultGoalChanged,
     isLaborRateChanged,
     isLaborTimeMinutesChanged,
     isOwnerLaborDefaultChanged,
@@ -253,6 +271,15 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
     try {
       await updateSettings(settingsPayload);
 
+      if (isDefaultGoalChanged) {
+        const updatedGoals: MonthlyGoalsConfig = {
+          ...monthlyGoals,
+          defaultGoal: parseNonNegativeSetting(defaultGoal, 0),
+        };
+        setMonthlyGoals(updatedGoals);
+        await saveMonthlyGoalsConfig(updatedGoals);
+      }
+
       showToast('Настройки успешно сохранены!', 'success');
     } catch (err) {
       console.error(err);
@@ -265,6 +292,10 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
     isSaving,
     updateSettings,
     settingsPayload,
+    isDefaultGoalChanged,
+    monthlyGoals,
+    defaultGoal,
+    setMonthlyGoals,
     showToast,
   ]);
 
@@ -273,6 +304,14 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
       settingsSaveRef.current = async () => {
         try {
           await updateSettings(settingsPayload);
+          if (isDefaultGoalChanged) {
+            const updatedGoals: MonthlyGoalsConfig = {
+              ...monthlyGoals,
+              defaultGoal: parseNonNegativeSetting(defaultGoal, 0),
+            };
+            setMonthlyGoals(updatedGoals);
+            await saveMonthlyGoalsConfig(updatedGoals);
+          }
           return true;
         } catch (err) {
           console.error(err);
@@ -289,6 +328,10 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
     settingsSaveRef,
     updateSettings,
     settingsPayload,
+    isDefaultGoalChanged,
+    monthlyGoals,
+    defaultGoal,
+    setMonthlyGoals,
   ]);
 
   useEffect(() => {
@@ -365,6 +408,9 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
             minOrderPrice={minOrderPrice}
             setMinOrderPrice={setMinOrderPrice}
             isMinOrderPriceChanged={isMinOrderPriceChanged}
+            defaultGoal={defaultGoal}
+            setDefaultGoal={setDefaultGoal}
+            isDefaultGoalChanged={isDefaultGoalChanged}
           />
         ) : null}
 
@@ -412,6 +458,10 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
           />
         ) : null}
 
+        {activeTab === 'receipt' ? (
+          <ReceiptTemplateTab />
+        ) : null}
+
         {activeTab === 'data' ? (
           <DataManagementTab
             isSeeding={isSeeding}
@@ -428,7 +478,7 @@ export function SettingsFormModern({ isExpanded = false }: { isExpanded?: boolea
         </section>
       </div>
 
-      {isExpanded && activeTab !== 'profile' && activeTab !== 'appearance' ? (
+      {isExpanded && activeTab !== 'profile' && activeTab !== 'appearance' && activeTab !== 'receipt' ? (
         <div className="grid items-start gap-3 xl:grid-cols-[340px_minmax(0,1fr)]">
           <SettingsSnapshot
             currency={currency}

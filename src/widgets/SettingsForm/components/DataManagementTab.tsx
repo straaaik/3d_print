@@ -4,6 +4,7 @@ import React, { useRef } from 'react';
 import { Card } from '../../../shared/ui/Card';
 import { CockpitButton } from '../../../shared/ui/CockpitButton';
 import { CockpitModal } from '../../../shared/ui/CockpitModal';
+import { RoundDeleteModal } from '../../../shared/ui/RoundDeleteModal';
 import { useToast } from '../../../entities/model/ToastProvider';
 import { useData } from '../../../entities/model/DataProvider';
 import { createDataBackup } from '../../../shared/lib/dataBackup';
@@ -268,16 +269,12 @@ export function DataManagementTab({
           isOpen={isConfirmSeedModalOpen}
           onClose={() => !isSeeding && setIsConfirmSeedModalOpen(false)}
           title="Генерация данных"
-          subtitle="Тестовые сущности"
+          subtitle="С заменой текущих данных"
           maxWidth="sm"
           footer={
             <div className="flex gap-2 justify-end w-full">
-              <CockpitButton disabled={isSeeding} onClick={() => setIsConfirmSeedModalOpen(false)}>
-                Закрыть
-              </CockpitButton>
               <CockpitButton
                 disabled={isSeeding}
-                isActive={true}
                 onClick={async () => {
                   setIsSeeding(true);
                   try {
@@ -291,59 +288,43 @@ export function DataManagementTab({
                     setIsSeeding(false);
                   }
                 }}
-                className="border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold"
               >
-                {isSeeding ? 'Генерация...' : 'Сгенерировать'}
+                {isSeeding ? 'Генерация...' : 'Заменить тестовыми данными'}
               </CockpitButton>
             </div>
           }
         >
           <div className="text-xs text-neutral-300 space-y-2 font-sans">
             <p>
-              Все текущие таблицы будут наполнены новым случайно сгенерированным набором оборудования, пластика, каталога товаров и заказов.
+              Текущие данные будут удалены и заменены примерами принтеров, материалов, товаров и заказов. Перед заменой сохраните резервную копию.
             </p>
           </div>
         </CockpitModal>
       )}
 
       {/* Модальное окно подтверждения полной очистки */}
-      <CockpitModal
+      <RoundDeleteModal
         isOpen={isConfirmClearModalOpen}
         onClose={() => !isClearing && setIsConfirmClearModalOpen(false)}
+        onConfirm={async () => {
+          setIsClearing(true);
+          try {
+            await clearAllData();
+            setIsConfirmClearModalOpen(false);
+            showToast('Все таблицы базы данных очищены.', 'info');
+          } catch (err) {
+            console.error(err);
+            showToast('Ошибка при очистке таблиц.', 'error');
+          } finally {
+            setIsClearing(false);
+          }
+        }}
+        isDeleting={isClearing}
         title="Очистка базы данных"
-        subtitle="Полный сброс"
-        maxWidth="sm"
-        footer={
-          <div className="flex gap-2 justify-end w-full">
-            <CockpitButton disabled={isClearing} onClick={() => setIsConfirmClearModalOpen(false)}>
-              Закрыть
-            </CockpitButton>
-            <CockpitButton
-              disabled={isClearing}
-              onClick={async () => {
-                setIsClearing(true);
-                try {
-                  await clearAllData();
-                  setIsConfirmClearModalOpen(false);
-                  showToast('Все таблицы базы данных очищены.', 'info');
-                } catch (err) {
-                  console.error(err);
-                  showToast('Ошибка при очистке таблиц.', 'error');
-                } finally {
-                  setIsClearing(false);
-                }
-              }}
-              className="bg-rose-950/60 text-rose-300 border-rose-800/40 hover:bg-rose-900/80 hover:text-white font-bold"
-            >
-              {isClearing ? 'Очистка...' : 'Удалить всё'}
-            </CockpitButton>
-          </div>
-        }
-      >
-        <p className="text-xs text-neutral-300 font-sans">
-          Вы действительно хотите полностью удалить все данные из всех таблиц? Все сохраненные записи будут удалены.
-        </p>
-      </CockpitModal>
+        itemName="Полный сброс всех таблиц"
+        itemDetails="Принтеры, катушки, товары, заказы"
+        description="Удалить все сохранённые данные приложения? Отменить действие нельзя. Перед удалением сохраните резервную копию."
+      />
     </div>
   );
 }

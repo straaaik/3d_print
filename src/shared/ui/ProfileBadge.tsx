@@ -58,8 +58,8 @@ export function ProfileBadge({ name, email, role, memberId, memberSince, active 
         style={{ rotateX: reducedMotion ? 0 : rotateX, rotateY: reducedMotion ? 0 : rotateY }}
       >
         <div className={styles.lanyard} aria-hidden="true">
-          <div className={`${styles.strap} ${styles.strapLeft}`}><span>3D LABS · MAKERS ACCESS · 3D LABS · MAKERS ACCESS</span></div>
-          <div className={`${styles.strap} ${styles.strapRight}`}><span>3D LABS · MAKERS ACCESS · 3D LABS · MAKERS ACCESS</span></div>
+          <div className={`${styles.strap} ${styles.strapLeft}`}><span>KUMO CRM · MAKERS ACCESS · KUMO CRM · MAKERS ACCESS</span></div>
+          <div className={`${styles.strap} ${styles.strapRight}`}><span>KUMO CRM · MAKERS ACCESS · KUMO CRM · MAKERS ACCESS</span></div>
           <div className={styles.clip} />
           <div className={styles.loop} />
         </div>
@@ -68,7 +68,7 @@ export function ProfileBadge({ name, email, role, memberId, memberSince, active 
           <div className={styles.slot} aria-hidden="true" />
           <div className={styles.insert}>
             <div className={styles.brandRow}>
-              <span className={styles.brand}><Box size={17} strokeWidth={2.2} /> 3D LABS</span>
+              <span className={styles.brand}><Box size={17} strokeWidth={2.2} /> KUMO CRM</span>
               <span className={styles.serial}>NO {memberId}</span>
             </div>
             <p className={styles.eyebrow}>МАСТЕРСКАЯ · ЛИЧНЫЙ ПРОПУСК</p>

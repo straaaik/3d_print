@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { SavedCalculation, ProductCollection } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
-import { Package, Layers, Check } from 'lucide-react';
+import { ModalDropdown } from '../../../../shared/ui/ModalDropdown';
 
 interface MoveProductModalProps {
   movingProduct: SavedCalculation | null;
@@ -72,74 +72,30 @@ function MoveProductModalForm({
       maxWidth="md"
       footer={
         <div className="flex justify-end gap-2 w-full font-mono text-xs">
-          <CockpitButton type="button" onClick={onClose} disabled={isSaving}>
-            Закрыть
-          </CockpitButton>
           <CockpitButton
             type="button"
             disabled={isSaving}
             onClick={handleSave}
-            isActive={true}
-            className="border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold"
           >
             {isSaving ? 'Сохранение...' : 'Применить'}
           </CockpitButton>
         </div>
       }
     >
-      <div className="space-y-3 pt-1 font-mono text-xs">
-        <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider">
-          Выберите целевую коллекцию:
-        </label>
-
-        <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
-          {/* Вариант: Без коллекции */}
-          <div
-            onClick={() => setTargetCollectionId('none')}
-            className={`p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer ${
-              targetCollectionId === 'none'
-                ? 'bg-white/10 border-white/25 text-white font-semibold'
-                : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Package size={15} className={targetCollectionId === 'none' ? 'text-cyan-400' : 'text-neutral-500'} />
-              <div>
-                <span className="font-bold block font-mono">Без коллекции (Общий каталог)</span>
-                <span className="text-[10px] text-neutral-500 font-sans">Сделать самостоятельной позицией</span>
-              </div>
-            </div>
-            {targetCollectionId === 'none' && <Check size={14} className="text-cyan-400" />}
-          </div>
-
-          {/* Список существующих коллекций */}
-          {collections.map((col) => {
-            const isSelected = targetCollectionId === col.id;
-            const childCount = savedCalculations.filter((c) => c.collection_id === col.id).length;
-            return (
-              <div
-                key={col.id}
-                onClick={() => setTargetCollectionId(col.id)}
-                className={`p-2.5 rounded-xl border flex items-center justify-between text-xs cursor-pointer ${
-                  isSelected
-                    ? 'bg-white/10 border-white/25 text-white font-semibold'
-                    : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Layers size={15} className={isSelected ? 'text-cyan-400' : 'text-neutral-500'} />
-                  <div>
-                    <span className="font-bold block font-mono">{col.name}</span>
-                    <span className="text-[10px] text-neutral-500 font-sans">
-                      {col.category || 'Разное'} • {childCount} вариантов
-                    </span>
-                  </div>
-                </div>
-                {isSelected && <Check size={14} className="text-cyan-400" />}
-              </div>
-            );
-          })}
-        </div>
+      <div className="space-y-4">
+        <ModalDropdown
+          label="Куда переместить"
+          ariaLabel="Куда переместить товар"
+          value={targetCollectionId}
+          onChange={setTargetCollectionId}
+          options={[
+            { value: 'none', label: 'Без коллекции', subtext: 'Оставить в общем каталоге' },
+            ...collections.map((col) => ({ value: col.id, label: col.name, subtext: 'Товаров: ' + savedCalculations.filter((c) => c.collection_id === col.id).length })),
+          ]}
+          searchable
+          usePortal
+        />
+        <p className="text-[11px] leading-relaxed text-neutral-500">Товар сохранит цену, настройки печати и файлы.</p>
       </div>
     </Modal>
   );

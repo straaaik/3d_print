@@ -264,7 +264,7 @@ export function PageTransitionProvider({ children }: { children: React.ReactNode
     if (typeof window === 'undefined') return;
     (window as unknown as { testLoading?: (ms?: number, autoNavigate?: boolean | string) => void }).testLoading = (ms = 3500, autoNavigate = true) => {
       (window as unknown as { __DEBUG_TRANSITION_DELAY?: number }).__DEBUG_TRANSITION_DELAY = ms;
-      console.log(`%c[3D-LABS]%c Задержка перехода установлена на ${ms}мс!`, 'color: #06b6d4; font-weight: bold;', 'color: #e5e5e5;');
+      console.log(`%c[KUMO-CRM]%c Задержка перехода установлена на ${ms}мс!`, 'color: #06b6d4; font-weight: bold;', 'color: #e5e5e5;');
       if (autoNavigate) {
         let target = typeof autoNavigate === 'string' ? autoNavigate : '';
         if (!target) {
@@ -272,10 +272,10 @@ export function PageTransitionProvider({ children }: { children: React.ReactNode
           target = currentPath.includes('calculator') ? '/orders' : '/calculator';
         }
         if (!target.startsWith('/')) target = '/' + target;
-        console.log(`%c[3D-LABS]%c Автоматический переход на ${target}...`, 'color: #06b6d4; font-weight: bold;', 'color: #e5e5e5;');
+        console.log(`%c[KUMO-CRM]%c Автоматический переход на ${target}...`, 'color: #06b6d4; font-weight: bold;', 'color: #e5e5e5;');
         void navigate(target);
       } else {
-        console.log(`%c[3D-LABS]%c Кликните на любую вкладку в меню (например, [Калькулятор] или [Статистика]), чтобы увидеть анимацию.`, 'color: #06b6d4; font-weight: bold;', 'color: #e5e5e5;');
+        console.log(`%c[KUMO-CRM]%c Кликните на любую вкладку в меню (например, [Калькулятор] или [Статистика]), чтобы увидеть анимацию.`, 'color: #06b6d4; font-weight: bold;', 'color: #e5e5e5;');
       }
     };
   }, [navigate]);

@@ -131,7 +131,7 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
   const progressPercent = toast.duration > 0 ? (remainingTime / toast.duration) * 100 : 100;
   const hasTitle = Boolean(toast.title && toast.title.trim().length > 0);
   const mainTitle = hasTitle ? toast.title : toast.message;
-  const subtitle = hasTitle ? toast.message : '3D-LABS';
+  const subtitle = hasTitle ? toast.message : 'KUMO CRM';
 
   return (
     <motion.div
@@ -298,7 +298,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
 
       {/* Контейнер для всплывающих уведомлений в правом верхнем углу */}
-      <div className="fixed top-4 right-4 sm:top-5 sm:right-5 z-[9999] flex flex-col gap-2.5 max-w-[calc(100vw-32px)] sm:max-w-[420px] w-full pointer-events-none select-none items-end">
+      <div className="fixed top-4 right-4 sm:top-5 sm:right-5 z-[99999] flex flex-col gap-2.5 max-w-[calc(100vw-32px)] sm:max-w-[420px] w-full pointer-events-none select-none items-end">
         <AnimatePresence mode="popLayout">
           {toasts.map((toast) => (
             <ToastItem key={toast.id} toast={toast} onRemove={removeToast} />

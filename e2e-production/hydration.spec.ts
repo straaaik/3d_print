@@ -27,7 +27,7 @@ test('production login hydrates and responds to clicks without blocked scripts',
     }
   });
   await page.goto('/login');
-  await expect(page.getByRole('heading', { name: 'Вход в систему 3D Labs' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Вход в систему Kumo CRM' })).toBeVisible();
   await page.getByRole('button', { name: /регистрация/i }).click();
   await expect(page.getByLabel('Имя или название студии')).toBeVisible();
   expect(errors).toEqual([]);

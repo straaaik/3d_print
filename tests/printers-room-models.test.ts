@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as THREE from 'three';
+import { instanceTemplate, disposeInstances } from '../src/features/printers-room/scene/instances';
 import type { Printer } from '../src/shared/types';
 import type { StationPosition } from '../src/features/printers-room/scene/layout';
 import {
@@ -20,6 +21,35 @@ const dummyPrinter: Printer = {
   lifespan_hours: 8000,
   color: '#8b5cf6', // Violet
 };
+
+test('instances preserve nested GLB transforms and share geometry without disposing the template', () => {
+  const source = new THREE.Group();
+  source.position.y = .5;
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial());
+  mesh.position.x = 2;
+  source.add(mesh);
+  let disposed = false;
+  mesh.geometry.addEventListener('dispose', () => { disposed = true; });
+  const group = instanceTemplate(source, [new THREE.Matrix4().makeTranslation(10, 0, 0)]);
+  const batch = group.children[0] as THREE.InstancedMesh;
+  assert.equal(batch.geometry, mesh.geometry);
+  const matrix = new THREE.Matrix4();
+  batch.getMatrixAt(0, matrix);
+  assert.equal(matrix.elements[12], 12);
+  assert.equal(matrix.elements[13], .5);
+  disposeInstances(group);
+  assert.equal(disposed, false, 'rebuilding a room must not invalidate its shared template');
+});
+
+test('large instance sets are split for culling and preserve selection indices', () => {
+  const source = new THREE.Group();
+  source.add(new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial()));
+  const group = instanceTemplate(source, Array.from({ length: 200 }, (_, i) => new THREE.Matrix4().makeTranslation(i, 0, 0)));
+  assert.equal(group.children.length, 4);
+  assert.equal(group.children[3].userData.instanceOffset, 192);
+  assert.equal((group.children[3] as THREE.InstancedMesh).count, 8);
+  disposeInstances(group);
+});
 
 const dummyStation: StationPosition = {
   index: 0,
@@ -108,4 +138,3 @@ test('applyBambuA1ModelToPrinterGroup dynamically swaps procedural body for clon
   assert.equal(printerGroup.userData.bodyGroup.children.length, 1);
   disposeHierarchy(printerGroup);
 });
-

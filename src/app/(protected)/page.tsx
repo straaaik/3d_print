@@ -130,7 +130,7 @@ export default function HomePage() {
       <div className="w-full flex items-center justify-between z-20">
         <div className="flex items-center gap-2 font-mono text-xs text-neutral-400 tracking-wider">
           <MotionPulse className="w-2 h-2 rounded-full bg-emerald-400" />
-          <span className="font-semibold text-neutral-300">3D-LABS</span>
+          <span className="font-semibold text-neutral-300">KUMO-CRM</span>
           <span className="text-neutral-600">{'//'}</span>
           <span className="text-neutral-400">OPERATIONS HUB</span>
         </div>
@@ -244,7 +244,7 @@ export default function HomePage() {
       {/* Нижняя телеметрия */}
       <div className="w-full flex items-center justify-between text-[11px] font-mono text-neutral-600 z-20 pt-4 border-t border-white/5">
         <div className="flex items-center gap-2">
-          <span>3D LABS</span>
+          <span>KUMO CRM</span>
           <span>·</span>
           <span>SYSTEM RUNTIME 2.4</span>
         </div>

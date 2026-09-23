@@ -40,6 +40,7 @@ interface AssemblyExpandedRowProps {
   currencySymbol?: string;
   mode?: 'expanded' | 'compact' | 'cards';
   searchQuery?: string;
+  onOpenEditAssembly?: (item: SavedCalculation) => void;
   onOpenQuickEditModal?: (item: SavedCalculation) => void;
   onCreateOrder?: (item: SavedCalculation) => void;
   onLoadIntoCalculator?: (item: SavedCalculation) => void;
@@ -59,6 +60,7 @@ export function AssemblyExpandedRow({
   currencySymbol = '₽',
   mode = 'expanded',
   searchQuery = '',
+  onOpenEditAssembly,
   onOpenQuickEditModal,
   onCreateOrder,
   onLoadIntoCalculator,
@@ -233,8 +235,8 @@ export function AssemblyExpandedRow({
           {isEmpty ? (
             <div className="py-6 px-4 text-center space-y-2 text-neutral-500">
               <p className="text-xs text-neutral-400">В спецификации сборки пока нет компонентов</p>
-              {onOpenQuickEditModal && (
-                <CockpitButton size="sm" icon={Edit2} onClick={() => onOpenQuickEditModal(assembly)}>
+              {onOpenEditAssembly && (
+                <CockpitButton size="sm" icon={Edit2} onClick={() => onOpenEditAssembly(assembly)}>
                   Редактировать состав
                 </CockpitButton>
               )}
@@ -421,6 +423,7 @@ export function AssemblyExpandedRow({
                                     if (setElevatedRow) setElevatedRow(null);
                                     handleTogglePartIndex(null);
                                   }}
+                                  onOpenEditAssembly={onOpenEditAssembly}
                                   onOpenQuickEditModal={onOpenQuickEditModal}
                                   onCreateOrder={onCreateOrder}
                                   onLoadIntoCalculator={onLoadIntoCalculator}
@@ -669,8 +672,8 @@ export function AssemblyExpandedRow({
                 В калькулятор
               </CockpitButton>
             )}
-            {onOpenQuickEditModal && (
-              <CockpitButton size="sm" icon={Edit2} onClick={() => onOpenQuickEditModal(assembly)}>
+            {onOpenEditAssembly && (
+              <CockpitButton size="sm" icon={Edit2} onClick={() => onOpenEditAssembly(assembly)}>
                 Редактировать состав
               </CockpitButton>
             )}
@@ -707,8 +710,8 @@ export function AssemblyExpandedRow({
           }}
         >
           <p className="text-xs text-neutral-400">В спецификации сборки пока нет компонентов</p>
-          {onOpenQuickEditModal && (
-            <CockpitButton size="sm" icon={Edit2} onClick={() => onOpenQuickEditModal(assembly)}>
+          {onOpenEditAssembly && (
+            <CockpitButton size="sm" icon={Edit2} onClick={() => onOpenEditAssembly(assembly)}>
               Редактировать состав
             </CockpitButton>
           )}
@@ -1000,12 +1003,12 @@ export function AssemblyExpandedRow({
                       {/* ДЕЙСТВИЯ */}
                       <div className="py-2 px-3 whitespace-nowrap text-right font-mono min-w-0">
                         <div className="flex items-center justify-end gap-1.5 shrink-0">
-                          {onOpenQuickEditModal && (
+                          {onOpenEditAssembly && (
                             <button
                               type="button"
                               onClick={(e) => {
                                 e?.stopPropagation?.();
-                                onOpenQuickEditModal(assembly);
+                                onOpenEditAssembly(assembly);
                               }}
                               className="px-2 py-1 rounded-md font-mono text-[11px] bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white border border-white/10 flex items-center gap-1 cursor-pointer transition-colors"
                               title="Редактировать спецификацию сборки"
@@ -1054,6 +1057,7 @@ export function AssemblyExpandedRow({
                               if (setElevatedRow) setElevatedRow(null);
                               handleTogglePartIndex(null);
                             }}
+                            onOpenEditAssembly={onOpenEditAssembly}
                             onOpenQuickEditModal={onOpenQuickEditModal}
                             onCreateOrder={onCreateOrder}
                             onLoadIntoCalculator={onLoadIntoCalculator}
@@ -1281,10 +1285,10 @@ export function AssemblyExpandedRow({
                     {/* ДЕЙСТВИЯ */}
                     <div className="py-2 px-3 whitespace-nowrap text-right font-mono min-w-0">
                       <div className="flex items-center justify-end gap-1.5 shrink-0">
-                        {onOpenQuickEditModal && (
+                        {onOpenEditAssembly && (
                           <button
                             type="button"
-                            onClick={() => onOpenQuickEditModal(assembly)}
+                            onClick={() => onOpenEditAssembly(assembly)}
                             className="px-2 py-1 rounded-md font-mono text-[11px] bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white border border-white/10 flex items-center gap-1 cursor-pointer transition-colors"
                             title="Редактировать спецификацию сборки"
                           >
@@ -1509,10 +1513,10 @@ export function AssemblyExpandedRow({
                     {/* ДЕЙСТВИЯ */}
                     <div className="py-2 px-3 whitespace-nowrap text-right font-mono min-w-0">
                       <div className="flex items-center justify-end gap-1.5 shrink-0">
-                        {onOpenQuickEditModal && (
+                        {onOpenEditAssembly && (
                           <button
                             type="button"
-                            onClick={() => onOpenQuickEditModal(assembly)}
+                            onClick={() => onOpenEditAssembly(assembly)}
                             className="px-2 py-1 rounded-md font-mono text-[11px] bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white border border-white/10 flex items-center gap-1 cursor-pointer transition-colors"
                             title="Редактировать спецификацию сборки"
                           >
@@ -1581,8 +1585,8 @@ export function AssemblyExpandedRow({
               В калькулятор
             </CockpitButton>
           )}
-          {onOpenQuickEditModal && (
-            <CockpitButton size="sm" icon={Edit2} onClick={() => onOpenQuickEditModal(assembly)}>
+          {onOpenEditAssembly && (
+            <CockpitButton size="sm" icon={Edit2} onClick={() => onOpenEditAssembly(assembly)}>
               Редактировать состав
             </CockpitButton>
           )}

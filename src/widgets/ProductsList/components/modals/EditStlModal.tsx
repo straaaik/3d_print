@@ -3,8 +3,7 @@ import { SavedCalculation } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
 import { Input } from '../../../../shared/ui/Input';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
-import { Tooltip } from '../../../../shared/ui/Tooltip';
-import { FileCode, Download, ExternalLink, Trash2, Upload } from 'lucide-react';
+import { Download, Trash2, Upload } from 'lucide-react';
 
 interface EditStlModalProps {
   item: SavedCalculation | null;
@@ -77,83 +76,33 @@ function EditStlModalForm({
       maxWidth="md"
       footer={
         <div className="flex justify-end gap-2 w-full font-mono text-xs">
-          <CockpitButton type="button" onClick={onClose} disabled={isSaving}>
-            Закрыть
-          </CockpitButton>
           <CockpitButton
             type="submit"
             disabled={isSaving}
-            isActive={true}
-            onClick={handleSubmit}
-            className="border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold"
+            form="model-files-form"
           >
             {isSaving ? 'Сохранение...' : 'Сохранить'}
           </CockpitButton>
         </div>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-3 pt-1 font-mono text-xs">
-        <div className="bg-neutral-900 p-3 rounded-xl border border-white/10 space-y-1.5">
-          <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
-            <ExternalLink size={13} className="text-cyan-400" />
-            Веб-ссылка на 3D-модель
-          </label>
-          <Input
-            placeholder="https://www.printables.com/model/..."
-            value={url}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUrl(e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-2 pt-2 border-t border-white/10">
-          <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
-            <FileCode size={13} className="text-emerald-400" />
-            Локальный STL файл
-          </label>
-
+      <form id="model-files-form" onSubmit={handleSubmit} className="space-y-5">
+        <Input label="Ссылка на модель" aria-label="Ссылка на модель" placeholder="https://www.printables.com/model/..." value={url} onChange={(e) => setUrl(e.target.value)} hint="Необязательно, если модель хранится в файле." />
+        <div className="space-y-2">
+          <span className="text-xs text-neutral-400">Файл модели</span>
           {fileData ? (
-            <div className="flex items-center justify-between p-2.5 bg-neutral-900 border border-white/10 rounded-xl text-xs">
-              <div className="flex items-center gap-2 min-w-0 font-mono">
-                <FileCode size={15} className="text-cyan-400 shrink-0" />
-                <span className="text-white font-medium truncate">{fileName || 'model.stl'}</span>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <Tooltip content="Скачать STL">
-                  <button
-                    type="button"
-                    onClick={handleDownload}
-                    className="p-1.5 text-neutral-400 hover:text-white rounded hover:bg-white/10 cursor-pointer"
-                  >
-                    <Download size={14} />
-                  </button>
-                </Tooltip>
-                <Tooltip content="Удалить файл">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFileData('');
-                      setFileName('');
-                    }}
-                    className="p-1.5 text-rose-400 hover:text-rose-300 rounded hover:bg-rose-950/40 cursor-pointer"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </Tooltip>
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-[#26262b] bg-[#121214]/90 p-3">
+              <span className="min-w-0 truncate text-xs text-neutral-200">{fileName || 'model.stl'}</span>
+              <div className="flex shrink-0 gap-1">
+                <CockpitButton type="button" onClick={handleDownload} icon={Download} aria-label="Скачать файл модели" />
+                <CockpitButton type="button" onClick={() => { setFileData(''); setFileName(''); }} icon={Trash2} aria-label="Убрать файл модели" />
               </div>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center p-4 bg-neutral-900 border border-dashed border-white/15 hover:border-cyan-400/60 rounded-xl cursor-pointer group">
-              <Upload size={18} className="text-neutral-400 group-hover:text-cyan-400 mb-1 " />
-              <span className="text-xs text-neutral-300 font-mono group-hover:text-white">
-                [ Загрузить STL файл ]
-              </span>
-              <span className="text-[10px] text-neutral-500 mt-0.5 font-mono">до 50 МБ</span>
-              <input
-                type="file"
-                accept=".stl,.obj,.step,.3mf"
-                onChange={handleFileUpload}
-                className="hidden"
-              />
+            <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-[#36363c] p-4 text-xs text-neutral-300 focus-within:outline focus-within:outline-white/40">
+              <Upload className="h-4 w-4 shrink-0 text-neutral-500" />
+              <span className="space-y-1"><span className="block">Выбрать файл</span><span className="block text-[11px] text-neutral-500">STL, OBJ, STEP или 3MF</span></span>
+              <input aria-label="Загрузить файл модели" type="file" accept=".stl,.obj,.step,.3mf" onChange={handleFileUpload} className="sr-only" />
             </label>
           )}
         </div>

@@ -129,7 +129,7 @@ export function CockpitContentTransition({ children, className = '' }: CockpitCo
     (window as unknown as { previewLoading?: (show?: boolean) => void }).previewLoading = (show = true) => {
       setIsPreview(show);
       console.log(
-        `%c[3D-LABS]%c Режим предпросмотра загрузки: ${show ? 'ВКЛЮЧЕН (введите previewLoading(false), чтобы скрыть)' : 'ВЫКЛЮЧЕН'}`,
+        `%c[KUMO-CRM]%c Режим предпросмотра загрузки: ${show ? 'ВКЛЮЧЕН (введите previewLoading(false), чтобы скрыть)' : 'ВЫКЛЮЧЕН'}`,
         'color: #06b6d4; font-weight: bold;',
         'color: #e5e5e5;'
       );

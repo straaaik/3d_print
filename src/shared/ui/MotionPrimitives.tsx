@@ -18,6 +18,7 @@ export interface MotionPulseDivProps extends StaticMotionProps<'div'> {
 
 const pulseAnimation = { opacity: [0.55, 1, 0.55] };
 const pulseTransition = { duration: 1.8, ease: 'easeInOut' as const, repeat: Infinity };
+const inViewViewport = { margin: '100px' } as const;
 
 export function MotionPulse({ active = true, className = '', ...props }: MotionPulseProps) {
   const shouldReduceMotion = useReducedMotion();
@@ -27,7 +28,8 @@ export function MotionPulse({ active = true, className = '', ...props }: MotionP
       {...props}
       className={`inline-block ${className}`}
       initial={false}
-      animate={active && !shouldReduceMotion ? pulseAnimation : { opacity: 1 }}
+      whileInView={active && !shouldReduceMotion ? pulseAnimation : undefined}
+      viewport={inViewViewport}
       transition={active && !shouldReduceMotion ? pulseTransition : { duration: 0 }}
     />
   );
@@ -40,7 +42,8 @@ export function MotionPulseDiv({ active = true, ...props }: MotionPulseDivProps)
     <motion.div
       {...props}
       initial={false}
-      animate={active && !shouldReduceMotion ? pulseAnimation : { opacity: 1 }}
+      whileInView={active && !shouldReduceMotion ? pulseAnimation : undefined}
+      viewport={inViewViewport}
       transition={active && !shouldReduceMotion ? pulseTransition : { duration: 0 }}
     />
   );
@@ -57,7 +60,8 @@ export function MotionPulseRow({ active = true, ...props }: MotionPulseRowProps)
     <motion.tr
       {...props}
       initial={false}
-      animate={active && !shouldReduceMotion ? pulseAnimation : { opacity: 1 }}
+      whileInView={active && !shouldReduceMotion ? pulseAnimation : undefined}
+      viewport={inViewViewport}
       transition={active && !shouldReduceMotion ? pulseTransition : { duration: 0 }}
     />
   );
@@ -72,9 +76,10 @@ export function MotionPing(props: MotionPingProps) {
     <motion.span
       {...props}
       initial={false}
-      animate={shouldReduceMotion
+      whileInView={shouldReduceMotion
         ? { opacity: 0.35, scale: 1 }
         : { opacity: [0.7, 0], scale: [1, 2] }}
+      viewport={inViewViewport}
       transition={shouldReduceMotion
         ? { duration: 0 }
         : { duration: 1.2, ease: 'easeOut', repeat: Infinity }}

@@ -422,7 +422,7 @@ export function Calculator() {
             </div>
 
             <div className="flex items-center gap-2 pl-3 border-l border-white/10 font-mono text-xs text-neutral-300">
-              <span className="text-white font-bold">3D-LABS</span>
+              <span className="text-white font-bold">KUMO-CRM</span>
               <span className="text-neutral-600">{'//'}</span>
               <span className="text-neutral-400 hidden sm:inline">КАЛЬКУЛЯТОР</span>
 
@@ -1093,8 +1093,8 @@ export function Calculator() {
               <div>
                 {/* 1. Верхняя шапка чека */}
                 <div className="flex items-center justify-between font-mono text-[11px] text-neutral-700 tracking-wider font-medium">
-                  <span className="font-bold text-neutral-900">3D LABS · PRODUCTION</span>
-                  <span>№ 3DL-CALC-2026</span>
+                  <span className="font-bold text-neutral-900">KUMO CRM · PRODUCTION</span>
+                  <span>№ KUMO-CALC-2026</span>
                 </div>
 
                 {/* Пунктирный разделитель */}
@@ -1244,7 +1244,7 @@ export function Calculator() {
                 <div className="border-b border-dashed border-neutral-600/35 my-3" />
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-[10px] font-mono text-neutral-600 font-medium">
-                    <span>AUTH · 0X3DLABS2026</span>
+                    <span>AUTH · 0XKUMOCRM2026</span>
                     <span>CLIENT · ESTIMATE</span>
                   </div>
 
@@ -1347,7 +1347,7 @@ export function Calculator() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsSaveModalOpen(false)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-md"
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm"
             />
 
             <motion.div
@@ -1357,14 +1357,15 @@ export function Calculator() {
               className="relative w-full max-w-lg bg-neutral-950 border border-white/15 rounded-2xl p-6 shadow-2xl z-10 space-y-4"
             >
               <div className="flex items-center justify-between border-b border-white/10 pb-3 font-mono text-xs text-neutral-400">
-                <span className="text-white font-bold">3D-LABS // CATALOG_REGISTRY</span>
-                <button
-                  type="button"
-                  onClick={() => setIsSaveModalOpen(false)}
-                  className="p-1 text-neutral-400 hover:text-white cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsSaveModalOpen(false)}
+                    aria-label="Закрыть окно"
+                    className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] cursor-pointer border-none outline-none shrink-0 transition-colors"
+                  />
+                  <span className="text-neutral-300">Сохранение в каталог</span>
+                </div>
               </div>
 
               <h3 className="text-lg font-bold text-white">Сохранить расчет в каталог товаров</h3>
@@ -1432,20 +1433,12 @@ export function Calculator() {
                 </div>
 
                 <div className="flex justify-end gap-2 pt-3 border-t border-white/10">
-                  <button
-                    type="button"
-                    onClick={() => setIsSaveModalOpen(false)}
-                    className="px-4 py-2 text-xs text-neutral-400 hover:text-white cursor-pointer"
-                  >
-                    Отмена
-                  </button>
-                  <button
+                  <CockpitButton
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-5 py-2 text-xs font-bold bg-white text-black rounded-xl hover:bg-neutral-200 cursor-pointer"
                   >
                     {isSubmitting ? 'Сохранение...' : 'Сохранить в каталог'}
-                  </button>
+                  </CockpitButton>
                 </div>
               </form>
             </motion.div>

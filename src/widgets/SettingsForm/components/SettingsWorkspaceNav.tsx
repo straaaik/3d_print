@@ -1,10 +1,10 @@
 'use client';
 
 import type { ComponentType } from 'react';
-import { BriefcaseBusiness, Database, Layers3, Palette, Percent, SlidersHorizontal, UserRound } from 'lucide-react';
+import { BriefcaseBusiness, Database, Layers3, Palette, Percent, Receipt, SlidersHorizontal, UserRound } from 'lucide-react';
 import type { SettingsTabId } from './SettingsTabs';
 
-export type SettingsSectionId = SettingsTabId | 'profile' | 'appearance';
+export type SettingsSectionId = SettingsTabId | 'profile' | 'appearance' | 'receipt';
 
 export const SETTINGS_SECTIONS: Array<{
   id: SettingsSectionId;
@@ -20,6 +20,7 @@ export const SETTINGS_SECTIONS: Array<{
   { id: 'labor', label: 'Работа мастера', description: 'Ставка, время и правила учёта труда', heading: 'Стоимость и режим работы мастера', intro: 'Определите, как ручная работа входит в себестоимость и итоговую цену.', icon: BriefcaseBusiness },
   { id: 'pricing', label: 'Цена и риски', description: 'Наценка, срочность и резерв на брак', heading: 'Правила ценообразования', intro: 'Настройте запас прибыли и компенсацию производственных рисков.', icon: Percent },
   { id: 'materials', label: 'Материалы', description: 'Коэффициенты сложности пластиков', heading: 'Сложность печати материалами', intro: 'Укажите, насколько технические и гибкие пластики повышают стоимость.', icon: Layers3 },
+  { id: 'receipt', label: 'Шаблон чека', description: 'Заготовка чека, реквизиты оплаты и видимость', heading: 'Шаблон товарного чека', intro: 'Настройте стандартную заготовку чека для клиентов: постоянные надписи, реквизиты оплаты и видимость блоков.', icon: Receipt },
   { id: 'data', label: 'Данные', description: 'Резервная копия, импорт и тестовые данные', heading: 'Управление данными', intro: 'Создавайте резервные копии и восстанавливайте локальные данные мастерской.', icon: Database },
 ];
 
@@ -34,10 +35,10 @@ export function SettingsWorkspaceNav({ activeTab, onSelectTab, changesMap }: {
         {SETTINGS_SECTIONS.map((section, index) => {
           const Icon = section.icon;
           const isActive = activeTab === section.id;
-          const changedCount = section.id === 'profile' || section.id === 'appearance' ? 0 : changesMap[section.id];
+          const changedCount = section.id === 'profile' || section.id === 'appearance' || section.id === 'receipt' ? 0 : changesMap[section.id];
           return (
             <div key={section.id} className="shrink-0 lg:shrink">
-              {(index === 0 || index === 2 || index === 6) && <p className="hidden px-3 pb-2 pt-3 font-mono text-[9px] uppercase tracking-[0.18em] text-neutral-500 lg:block">{index === 0 ? 'Аккаунт' : index === 2 ? 'Мастерская' : 'Хранилище'}</p>}
+              {(index === 0 || index === 2 || index === 7) && <p className="hidden px-3 pb-2 pt-3 font-mono text-[9px] uppercase tracking-[0.18em] text-neutral-500 lg:block">{index === 0 ? 'Аккаунт' : index === 2 ? 'Мастерская' : 'Хранилище'}</p>}
             <button
               type="button"
               aria-current={isActive ? 'page' : undefined}

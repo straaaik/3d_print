@@ -128,7 +128,7 @@ export function CockpitModal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
             onClick={handleClose}
-            className="fixed inset-0 bg-black/80 backdrop-blur-xl"
+            className="fixed inset-0 bg-black/85 backdrop-blur-sm"
           />
 
           {/* Главное окно в стиле Cockpit Console с эффектом кинематографичного подъема */}
@@ -144,17 +144,20 @@ export function CockpitModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.94, y: 16 }}
             transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-            className={`relative w-full ${sizeClass} my-auto rounded-2xl bg-neutral-950/95 shadow-[0_25px_90px_-15px_rgba(0,0,0,0.95)] backdrop-blur-2xl overflow-hidden z-10 flex flex-col max-h-[92vh] font-sans border-0`}
+            className={`cockpit-form-modal relative w-full ${sizeClass} my-auto rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl overflow-hidden z-10 flex flex-col max-h-[92vh] font-mono`}
           >
             {/* 1. Верхняя панель (Cockpit Topbar: Red LED + Title + Live time) */}
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-2.5 bg-neutral-900/60 shrink-0 gap-3">
               {/* Левая часть: красный кружок закрытия + заголовок */}
               <div className="flex items-center gap-4 min-w-0">
-                <button
+                <motion.button
                   type="button"
                   onClick={handleClose}
                   aria-label="Закрыть окно"
-                  className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] cursor-pointer border-none outline-none shrink-0 transition-colors"
+                  initial={false}
+                  whileHover={{ backgroundColor: '#f87171' }}
+                  transition={{ duration: 0.18 }}
+                  className="w-3 h-3 rounded-full bg-[#36363c] cursor-pointer border-none outline-none shrink-0 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900"
                 />
 
                 <div className="flex items-center gap-2 font-mono text-xs text-neutral-300 min-w-0">
@@ -163,7 +166,7 @@ export function CockpitModal({
                   </span>
                   {subtitle && (
                     <>
-                      <span className="text-[#52525b] shrink-0">·</span>
+                      <span className="hidden sm:inline text-[#52525b] shrink-0">·</span>
                       <span className="text-[#71717a] hidden sm:inline truncate">
                         {subtitle}
                       </span>
@@ -173,7 +176,7 @@ export function CockpitModal({
               </div>
 
               {/* Правая часть: системное время */}
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="hidden sm:flex items-center gap-3 shrink-0">
                 <div className="font-mono text-xs text-[#71717a] tabular-nums">
                   {currentTimeStr}
                 </div>
@@ -181,13 +184,13 @@ export function CockpitModal({
             </div>
 
             {/* 3. Прокручиваемый рабочий контент */}
-            <div className="p-4 sm:p-6 overflow-y-auto flex-1 custom-scrollbar text-xs sm:text-sm text-neutral-200">
+            <div className="p-5 sm:p-6 bg-[#18181c] overflow-y-auto flex-1 custom-scrollbar text-xs text-neutral-200 font-mono">
               {children}
             </div>
 
             {/* 4. Нижний футер (если передан) */}
             {footer && (
-              <div className="border-t border-white/10 px-4 sm:px-6 py-3 bg-neutral-950 flex flex-wrap items-center justify-between gap-3 text-[11px] font-mono text-neutral-500 shrink-0">
+              <div className="border-t border-white/10 px-5 py-3 bg-neutral-900/60 flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-neutral-500 shrink-0">
                 {footer}
               </div>
             )}

@@ -259,28 +259,17 @@ export function UserProfileMenu() {
         onClose={() => setIsLogoutModalOpen(false)}
         title="Выход из системы"
         subtitle="Завершение сеанса"
-        variant="error"
         maxWidth="sm"
+        footer={
+          <div className="flex w-full justify-end">
+            <CockpitButton type="button" onClick={handleConfirmLogout}>Выйти</CockpitButton>
+          </div>
+        }
       >
         <div className="space-y-3 font-mono text-xs">
           <p className="text-neutral-300 leading-relaxed font-sans">
             Вы действительно хотите выйти из системы?
           </p>
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
-            <CockpitButton
-              type="button"
-              onClick={() => setIsLogoutModalOpen(false)}
-            >
-              Закрыть
-            </CockpitButton>
-            <CockpitButton
-              type="button"
-              onClick={handleConfirmLogout}
-              className="bg-rose-950/60 text-rose-300 border-rose-800/40 hover:bg-rose-900/80"
-            >
-              Выйти
-            </CockpitButton>
-          </div>
         </div>
       </Modal>
     </div>

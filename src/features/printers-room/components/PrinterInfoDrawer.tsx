@@ -65,7 +65,7 @@ export function PrinterInfoDrawer({
               </h3>
               <div className="flex items-center gap-1.5 text-xs text-emerald-400 mt-0.5">
                 <CheckCircle2 size={12} />
-                <span>Готов к печати</span>
+                <span>В парке оборудования</span>
               </div>
             </div>
           </div>

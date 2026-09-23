@@ -94,7 +94,7 @@ export function NumberCounter({
         </span>
       )}
 
-      <div className={`flex items-center rounded-xl h-9 min-h-[36px] overflow-hidden select-none ${
+      <div data-number-counter-control className={`flex items-center rounded-xl h-9 min-h-[36px] overflow-hidden select-none ${
         disabled
           ? 'bg-neutral-950 border border-white/5 opacity-40 cursor-not-allowed'
           : isModified

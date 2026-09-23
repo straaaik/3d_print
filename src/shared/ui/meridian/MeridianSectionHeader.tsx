@@ -38,7 +38,7 @@ export function MeridianSectionHeader({
             <MotionPulse className="w-2 h-2 rounded-full bg-cyan-400" />
             <span className="text-cyan-400 font-bold uppercase tracking-wider">{stamp}</span>
             <span>·</span>
-            <span>3D LABS OS {version}</span>
+            <span>KUMO CRM OS {version}</span>
           </div>
 
           {/* Заголовок */}

@@ -76,7 +76,7 @@ export interface CockpitTableProps<T> {
   /** Функция извлечения уникального ID строки */
   keyExtractor: (item: T, index: number) => string;
 
-  /** Заголовок реестра (например: '3D-LABS // CATALOG_REGISTRY') */
+  /** Заголовок реестра (например: 'KUMO-CRM // CATALOG_REGISTRY') */
   title?: string;
 
   /** Иконка в заголовке */

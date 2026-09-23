@@ -1,22 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Check, Eye, EyeOff } from 'lucide-react';
+import { motion } from 'motion/react';
 import { Modal } from '../../shared/ui/Modal';
+import { Input } from '../../shared/ui/Input';
 import { CockpitButton } from '../../shared/ui/CockpitButton';
+import { ModalDetails } from '../../shared/ui/ModalDetails';
+import { MotionRevealDiv } from '../../shared/ui/MotionPrimitives';
 import { useAuth } from '../../entities/model/AuthProvider';
 import { useToast } from '../../entities/model/ToastProvider';
-import {
-  User as UserIcon,
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  Palette,
-  ShieldCheck,
-  Check,
-  AlertCircle,
-  Save
-} from 'lucide-react';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -116,214 +109,48 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Профиль пользователя"
-      subtitle="Настройки аккаунта"
-      maxWidth="md"
+    <Modal isOpen={isOpen} onClose={onClose} title="Профиль" subtitle={currentUser?.role === 'admin' ? 'Администратор' : 'Пользователь'} maxWidth="md"
+      footer={<div className="flex w-full justify-end"><CockpitButton type="submit" form="edit-profile-form" disabled={isSaving}>{isSaving ? 'Сохранение...' : 'Сохранить'}</CockpitButton></div>}
     >
-      <form onSubmit={handleSubmit} className="space-y-4 pt-1 font-mono text-xs">
-        {/* Сообщение об ошибке */}
-        {error && (
-          <div className="bg-rose-950/60 border border-rose-800/40 rounded-xl p-3 flex items-start gap-2 text-rose-300 text-xs">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* Верхняя плашка с текущим аватаром */}
-        <div className="bg-neutral-900 border border-white/10 rounded-2xl p-4 flex flex-col sm:flex-row items-center gap-4">
-          <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center font-extrabold text-2xl text-neutral-950 shadow-xl shrink-0 "
-            style={{ backgroundColor: avatarColor }}
-          >
-            {name ? name.charAt(0).toUpperCase() : '?'}
-          </div>
-
-          <div className="space-y-1.5 text-center sm:text-left flex-1">
-            <div className="text-xs text-neutral-400 uppercase tracking-wider flex items-center justify-center sm:justify-start gap-1.5 font-mono">
-              <Palette className="w-3.5 h-3.5 text-cyan-400" />
-              Цвет аватара:
+      <form id="edit-profile-form" onSubmit={handleSubmit} className="space-y-5">
+        {error && <p role="alert" className="text-xs leading-relaxed text-rose-300">{error}</p>}
+        <Input label="Имя" aria-label="Имя пользователя" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ваше имя" required autoFocus />
+        <Input label="Электронная почта" aria-label="Электронная почта" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" required />
+        <ModalDetails title="Оформление и данные аккаунта">
+          <div className="flex items-center gap-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-base text-neutral-950" style={{ backgroundColor: avatarColor }}>{name ? name.charAt(0).toUpperCase() : '?'}</span>
+            <div className="space-y-2">
+              <span className="text-xs text-neutral-400">Цвет аватара</span>
+              <div className="flex flex-wrap gap-2">
+                {AVATAR_PALETTE.map((color) => (
+                  <motion.button key={color} type="button" aria-label={'Цвет аватара ' + color} aria-pressed={avatarColor === color} onClick={() => setAvatarColor(color)} whileHover={{ scale: 1.12 }} transition={{ duration: 0.15 }} className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full border border-white/20" style={{ backgroundColor: color }}>
+                    {avatarColor === color && <Check className="h-3 w-3 text-neutral-950" />}
+                  </motion.button>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center justify-center sm:justify-start gap-1.5 flex-wrap">
-              {AVATAR_PALETTE.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => setAvatarColor(color)}
-                  className={`w-6 h-6 rounded-lg cursor-pointer flex items-center justify-center ${
-                    avatarColor === color ? 'scale-110 ring-2 ring-white shadow-md' : ' opacity-70 hover:opacity-100'
-                  }`}
-                  style={{ backgroundColor: color }}
-                >
-                  {avatarColor === color && (
-                    <Check className={`w-3.5 h-3.5 ${color === '#FFFFFF' ? 'text-black' : 'text-white'}`} />
-                  )}
-                </button>
+          </div>
+          <p className="break-all text-[11px] leading-relaxed text-neutral-500">Ключ регистрации: {currentUser?.registration_key_used || 'Системный аккаунт'}</p>
+        </ModalDetails>
+        <div className="space-y-4 border-t border-[#2a2a30] pt-3">
+          <CockpitButton aria-expanded={isChangingPassword} onClick={() => setIsChangingPassword(!isChangingPassword)}>{isChangingPassword ? 'Не менять пароль' : 'Изменить пароль'}</CockpitButton>
+          {isChangingPassword && (
+            <MotionRevealDiv className="space-y-4">
+              {[
+                { label: 'Текущий пароль', value: currentPassword, setValue: setCurrentPassword, visible: showCurrentPass, setVisible: setShowCurrentPass, autoComplete: 'current-password' },
+                { label: 'Новый пароль', value: newPassword, setValue: setNewPassword, visible: showNewPass, setVisible: setShowNewPass, autoComplete: 'new-password' },
+                { label: 'Повторите новый пароль', value: confirmPassword, setValue: setConfirmPassword, visible: showConfirmPass, setVisible: setShowConfirmPass, autoComplete: 'new-password' },
+              ].map((field) => (
+                <div key={field.label} className="relative">
+                  <Input label={field.label} aria-label={field.label} type={field.visible ? 'text' : 'password'} value={field.value} onChange={(e) => field.setValue(e.target.value)} autoComplete={field.autoComplete} className="pr-10" required />
+                  <motion.button type="button" aria-label={(field.visible ? 'Скрыть: ' : 'Показать: ') + field.label} onClick={() => field.setVisible(!field.visible)} whileHover={{ color: 'var(--cockpit-accent-color)' }} className="absolute bottom-2.5 right-3 cursor-pointer text-neutral-500">
+                    {field.visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </motion.button>
+                </div>
               ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Поле Имя */}
-        <div className="space-y-1.5">
-          <label className="text-xs text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
-            <UserIcon className="w-3.5 h-3.5 text-cyan-400" />
-            Имя пользователя / Название студии:
-          </label>
-          <input
-            type="text"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Ваше имя"
-            className="w-full h-9 bg-neutral-900 border border-white/15 hover:border-white/25 focus:border-cyan-400 rounded-xl px-3 text-xs text-white focus:outline-none font-sans"
-          />
-        </div>
-
-        {/* Поле Email */}
-        <div className="space-y-1.5">
-          <label className="text-xs text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Mail className="w-3.5 h-3.5 text-cyan-400" />
-            Электронная почта:
-          </label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="name@example.com"
-            className="w-full h-9 bg-neutral-900 border border-white/15 hover:border-white/25 focus:border-cyan-400 rounded-xl px-3 text-xs text-white focus:outline-none font-mono"
-          />
-        </div>
-
-        {/* Системная информация */}
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="bg-neutral-900 border border-white/10 rounded-xl p-2.5">
-            <div className="text-[10px] text-neutral-500 uppercase tracking-wider">Роль в системе</div>
-            <div className="font-bold text-white flex items-center gap-1 mt-0.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-              {currentUser?.role === 'admin' ? 'Администратор' : 'Пользователь'}
-            </div>
-          </div>
-          <div className="bg-neutral-900 border border-white/10 rounded-xl p-2.5">
-            <div className="text-[10px] text-neutral-500 uppercase tracking-wider">Ключ регистрации</div>
-            <div className="font-mono text-amber-300 text-[11px] truncate font-bold mt-0.5">
-              {currentUser?.registration_key_used || 'Системный'}
-            </div>
-          </div>
-        </div>
-
-        {/* Переключатель смены пароля */}
-        <div className="pt-2 border-t border-white/10">
-          <button
-            type="button"
-            onClick={() => setIsChangingPassword(!isChangingPassword)}
-            className="text-xs font-mono font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1.5 cursor-pointer"
-          >
-            <Lock className="w-3.5 h-3.5" />
-            <span>{isChangingPassword ? '[ Отменить смену пароля ]' : '[ Изменить пароль аккаунта ]'}</span>
-          </button>
-        </div>
-
-        {/* Блок смены пароля */}
-        {isChangingPassword && (
-          <div className="space-y-3 p-3.5 bg-neutral-900/60 border border-white/15 rounded-2xl">
-            {/* Текущий пароль */}
-            <div className="space-y-1.5">
-              <label className="text-xs text-neutral-400 uppercase tracking-wider flex items-center gap-1">
-                <span>Текущий пароль</span>
-                <span className="text-rose-400 font-bold">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type={showCurrentPass ? 'text' : 'password'}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full h-9 bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl pl-3 pr-10 text-xs text-white focus:outline-none font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrentPass(!showCurrentPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white cursor-pointer"
-                >
-                  {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Новый пароль и повтор */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs text-neutral-400 uppercase tracking-wider">
-                    Новый пароль
-                  </label>
-                  <span className="text-[10px] text-neutral-500">мин. 6</span>
-                </div>
-                <div className="relative">
-                  <input
-                    type={showNewPass ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full h-9 bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl pl-3 pr-10 text-xs text-white focus:outline-none font-mono"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPass(!showNewPass)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white cursor-pointer"
-                  >
-                    {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs text-neutral-400 uppercase tracking-wider block">
-                  Повтор пароля
-                </label>
-                <div className="relative">
-                  <input
-                    type={showConfirmPass ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full h-9 bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl pl-3 pr-10 text-xs text-white focus:outline-none font-mono"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPass(!showConfirmPass)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white cursor-pointer"
-                  >
-                    {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Кнопки модалки */}
-        <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
-          <CockpitButton
-            type="button"
-            onClick={onClose}
-            disabled={isSaving}
-          >
-            Закрыть
-          </CockpitButton>
-          <CockpitButton
-            type="submit"
-            disabled={isSaving}
-            icon={Save}
-            isActive={true}
-            className="border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold"
-          >
-            {isSaving ? 'Сохранение...' : 'Сохранить изменения'}
-          </CockpitButton>
+              <p className="text-[11px] text-neutral-500">Новый пароль — не менее 6 символов.</p>
+            </MotionRevealDiv>
+          )}
         </div>
       </form>
     </Modal>

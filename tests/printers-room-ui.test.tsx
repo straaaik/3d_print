@@ -48,7 +48,7 @@ test('PrinterInfoDrawer renders printer telemetry and actions when selected', ()
   assert.ok(html.includes('Удалить'), 'Should include delete button');
 });
 
-test('PrinterRoomOverlay renders Studio A header and active printers count', () => {
+test('PrinterRoomOverlay shows inventory count without inventing live printer status', () => {
   const html = renderToString(
     <PrinterRoomOverlay
       printersCount={3}
@@ -57,9 +57,8 @@ test('PrinterRoomOverlay renders Studio A header and active printers count', () 
     />,
   );
 
-  assert.ok(html.includes('Studio A'), 'Should display Studio A header');
-  assert.ok(html.includes('PRINTERS') && html.includes('3'), 'Should display printer count tagline');
-  assert.ok(html.includes('All systems operational'), 'Should display operational status');
+  assert.ok(html.includes('Принтеров') && html.includes('3'), 'Should display inventory count');
+  assert.ok(!html.includes('All systems operational') && !html.includes('Онлайн'), 'Inventory is not live telemetry');
 });
 
 test('PrinterRoomOverlay displays Isometric View button and 2D/3D controls', () => {
@@ -71,6 +70,6 @@ test('PrinterRoomOverlay displays Isometric View button and 2D/3D controls', () 
     />,
   );
 
-  assert.ok(html.includes('Isometric View'), 'Should render Isometric View control');
+  assert.ok(html.includes('Общий вид'), 'Should render overview control');
   assert.ok(html.includes('3D'), 'Should render 3D pill badge');
 });

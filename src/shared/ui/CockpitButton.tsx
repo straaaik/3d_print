@@ -13,6 +13,7 @@ export interface CockpitButtonProps extends Omit<ButtonHTMLAttributes<HTMLButton
   badge?: React.ReactNode;
   size?: 'sm' | 'md';
   accentColor?: string;
+  fullWidth?: boolean;
 }
 
 export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonProps>(
@@ -32,12 +33,13 @@ export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonPr
       tooltipShortcut,
       tooltipSubtext,
       accentColor,
+      fullWidth = false,
       style,
       ...props
     },
     ref
   ) {
-    const sizeStyles = size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3.5 py-1.5 text-xs sm:text-sm';
+    const sizeStyles = size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-xs';
 
     const buttonNode = (
       <button
@@ -48,7 +50,9 @@ export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonPr
           ...style,
           ...(accentColor ? ({ ['--cbtn-accent' as any]: accentColor } as React.CSSProperties) : {}),
         }}
-        className={`group/cbtn font-mono flex items-center gap-1.5 cursor-pointer border rounded-lg ${sizeStyles} ${
+        className={`group/cbtn font-mono flex items-center gap-1.5 cursor-pointer border rounded-lg transition-colors duration-150 ${sizeStyles} ${
+          fullWidth ? 'w-full justify-center' : ''
+        } ${
           disabled
             ? 'border-white/5 bg-white/[0.02] text-neutral-600 opacity-40 cursor-not-allowed'
             : isActive
@@ -60,7 +64,7 @@ export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonPr
         {dotColor && <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor}`} />}
         {Icon && (
           <Icon
-            className={`w-3 h-3 shrink-0 ${
+            className={`w-3 h-3 shrink-0 transition-colors duration-150 ${
               disabled
                 ? 'text-neutral-600'
                 : isActive
@@ -73,7 +77,7 @@ export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonPr
         )}
         <span className="inline-flex items-center gap-1">
           <span
-            className={`${
+            className={`transition-colors duration-150 ${
               disabled
                 ? 'text-neutral-600'
                 : isActive
@@ -96,7 +100,7 @@ export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonPr
             </span>
           )}
           <span
-            className={`${
+            className={`transition-colors duration-150 ${
               disabled
                 ? 'text-neutral-600'
                 : isActive

@@ -186,7 +186,7 @@ function TableCategoryDropdownPortal({
       </div>
       <div className="px-3 py-1 bg-neutral-950 border-t border-white/5 text-[9px] font-mono text-neutral-500 uppercase tracking-wider flex items-center justify-between shrink-0">
         <span>{categoriesList.length} КАТЕГОРИЙ</span>
-        <span className="text-neutral-600">3DLABS</span>
+        <span className="text-neutral-600">KUMO CRM</span>
       </div>
     </motion.div>,
     document.body
@@ -303,7 +303,7 @@ function TableFilamentDropdownPortal({
       </div>
       <div className="px-3 py-1 bg-neutral-950 border-t border-white/5 text-[9px] font-mono text-neutral-500 uppercase tracking-wider flex items-center justify-between shrink-0">
         <span>{filaments.length} ТИПОВ МАТЕРИАЛА</span>
-        <span className="text-neutral-600">3DLABS</span>
+        <span className="text-neutral-600">KUMO CRM</span>
       </div>
     </motion.div>,
     document.body
@@ -341,7 +341,7 @@ interface ProductsV2TableProps {
   onInlineUpdateCollection?: (collectionId: string, updates: Partial<ProductCollection>) => void;
   onSetStock: (item: SavedCalculation, newStock: number) => void;
   onOpenCategoryModal: (item: SavedCalculation) => void;
-  onOpenQuickEditModal: (item: SavedCalculation) => void;
+  onOpenEditAssembly?: (item: SavedCalculation) => void;
   onCreateOrder: (item: SavedCalculation) => void;
   onLoadIntoCalculator: (item: SavedCalculation) => void;
   onStageForAssembly: (item: SavedCalculation) => void;
@@ -399,7 +399,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
   onInlineUpdateCollection,
   onSetStock,
   onOpenCategoryModal,
-  onOpenQuickEditModal,
+  onOpenEditAssembly,
   onCreateOrder,
   onLoadIntoCalculator,
   onStageForAssembly,
@@ -801,19 +801,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                       </motion.div>
                     </button>
                   )}
-                  {row.rowKind === 'product' && (
-                    <button
-                      type="button"
-                      aria-label="Редактировать товар"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenQuickEditModal(row.item);
-                      }}
-                      className="rounded-lg border border-white/10 bg-white/5 p-1.5 text-neutral-300 hover:text-white"
-                    >
-                      <Edit2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
+
                 </div>
               </div>
 
@@ -904,7 +892,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                           currencySymbol={currencySymbol}
                           mode="cards"
                           searchQuery={searchQuery}
-                          onOpenQuickEditModal={onOpenQuickEditModal}
+                          onOpenEditAssembly={onOpenEditAssembly}
                           onCreateOrder={onCreateOrder}
                           onLoadIntoCalculator={onLoadIntoCalculator}
                           onOpenStlModal={onOpenStlModal}
@@ -1423,7 +1411,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        onOpenQuickEditModal(prodRow.item);
+                                        onOpenEditAssembly?.(prodRow.item);
                                       }}
                                       className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-mono bg-white/[0.03] text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 cursor-pointer max-w-[125px]"
                                       title="Клик для редактирования спецификации сборки"
@@ -1646,7 +1634,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                     onInlineUpdateProduct={onInlineUpdateProduct}
                                     onInlineUpdateCollection={onInlineUpdateCollection}
                                     onSetStock={onSetStock}
-                                    onOpenQuickEditModal={onOpenQuickEditModal}
+                                    onOpenEditAssembly={onOpenEditAssembly}
                                     onOpenStlModal={onOpenStlModal}
                                     onLoadIntoCalculator={onLoadIntoCalculator}
                                     onCreateOrder={onCreateOrder}
@@ -1693,7 +1681,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   currencySymbol={currencySymbol}
                                   mode="expanded"
                                   searchQuery={searchQuery}
-                                  onOpenQuickEditModal={onOpenQuickEditModal}
+                                  onOpenEditAssembly={onOpenEditAssembly}
                                   onCreateOrder={onCreateOrder}
                                   onLoadIntoCalculator={onLoadIntoCalculator}
                                   onOpenStlModal={onOpenStlModal}
@@ -2586,7 +2574,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        onOpenQuickEditModal(prodRow.item);
+                                        onOpenEditAssembly?.(prodRow.item);
                                       }}
                                       className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-xs font-mono bg-white/[0.03] text-neutral-300 hover:text-white border border-white/10 hover:border-white/20 cursor-pointer max-w-[125px]"
                                       title="Клик для редактирования спецификации сборки"
@@ -2776,7 +2764,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                     onInlineUpdateProduct={onInlineUpdateProduct}
                                     onInlineUpdateCollection={onInlineUpdateCollection}
                                     onSetStock={onSetStock}
-                                    onOpenQuickEditModal={onOpenQuickEditModal}
+                                    onOpenEditAssembly={onOpenEditAssembly}
                                     onOpenStlModal={onOpenStlModal}
                                     onLoadIntoCalculator={onLoadIntoCalculator}
                                     onCreateOrder={onCreateOrder}
@@ -2823,7 +2811,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   currencySymbol={currencySymbol}
                                   mode="compact"
                                   searchQuery={searchQuery}
-                                  onOpenQuickEditModal={onOpenQuickEditModal}
+                                  onOpenEditAssembly={onOpenEditAssembly}
                                   onCreateOrder={onCreateOrder}
                                   onLoadIntoCalculator={onLoadIntoCalculator}
                                   onOpenStlModal={onOpenStlModal}
@@ -3528,17 +3516,19 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                     <span>В коллекцию...</span>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onOpenQuickEditModal(pRow.item);
-                      setContextMenu(null);
-                    }}
-                    className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 text-left cursor-pointer"
-                  >
-                    <Edit2 className="w-3.5 h-3.5 text-neutral-400" />
-                    <span>Редактировать</span>
-                  </button>
+                  {pRow.item.type === 'assembly' && onOpenEditAssembly && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onOpenEditAssembly(pRow.item);
+                        setContextMenu(null);
+                      }}
+                      className="w-full px-2 py-1.5 rounded-lg flex items-center gap-2 text-neutral-300 hover:text-white hover:bg-white/10 text-left cursor-pointer"
+                    >
+                      <Wrench className="w-3.5 h-3.5 text-neutral-400" />
+                      <span>Спецификация сборки</span>
+                    </button>
+                  )}
                 </>
               );
             })()

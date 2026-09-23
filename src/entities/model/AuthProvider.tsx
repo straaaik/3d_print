@@ -11,7 +11,7 @@ import { createInitialAuthRenderState, reconcileDevSessionHydration, reconcilePa
 
 const DEV_FALLBACK_USER: User = {
   id: 'dev-admin-id',
-  email: 'dev@3dlabs.pro',
+  email: 'dev@kumocrm.pro',
   name: 'Kumo',
   role: 'admin',
   is_active: true,

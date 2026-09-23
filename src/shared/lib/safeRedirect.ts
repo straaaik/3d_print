@@ -59,6 +59,7 @@ export function isPublicAuthPath(pathname: string): boolean {
     pathname === '/about' ||
     pathname === '/auth/callback' ||
     pathname.startsWith('/auth/callback/') ||
-    (process.env.NODE_ENV === 'development' && pathname.startsWith('/design-sandbox'))
+    (process.env.NODE_ENV === 'development' &&
+      (pathname.startsWith('/design-sandbox') || pathname.startsWith('/modals-test')))
   );
 }

@@ -33,7 +33,7 @@ export default function GlobalError({
                 <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80" />
               </div>
               <div className="h-4 w-px bg-white/15" />
-              <span className="font-bold tracking-wider text-neutral-200">3D-LABS // GLOBAL_RECOVERY</span>
+              <span className="font-bold tracking-wider text-neutral-200">KUMO-CRM // GLOBAL_RECOVERY</span>
               <span className="rounded border border-rose-800/40 bg-rose-950/50 px-2 py-0.5 text-[10px] text-rose-300">ERROR</span>
             </div>
 
@@ -50,7 +50,7 @@ export default function GlobalError({
             <div className="flex items-center justify-between border-t border-white/10 bg-neutral-950 px-5 py-2.5 font-mono text-[11px] text-neutral-500">
               <span>DATABASE: PRESERVED</span><span>GLOBAL RECOVERY READY</span>
             </div>
-            <footer className="border-t border-white/10 bg-neutral-950 px-5 py-2.5 text-center font-mono text-[11px] text-neutral-500">3D LABS · [GLOBAL_RECOVERY] RUNTIME</footer>
+            <footer className="border-t border-white/10 bg-neutral-950 px-5 py-2.5 text-center font-mono text-[11px] text-neutral-500">KUMO CRM · [GLOBAL_RECOVERY] RUNTIME</footer>
           </section>
         </main>
       </body>

@@ -13,7 +13,7 @@ export default function NotFound() {
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/80" />
           </div>
           <div className="h-4 w-px bg-white/15" />
-          <span className="font-bold tracking-wider text-neutral-200">3D-LABS // ROUTE_RESOLUTION</span>
+          <span className="font-bold tracking-wider text-neutral-200">KUMO-CRM // ROUTE_RESOLUTION</span>
           <span className="rounded border border-amber-800/40 bg-amber-950/50 px-2 py-0.5 text-[10px] text-amber-300">404</span>
         </div>
         <div className="space-y-4 p-5 sm:p-6">
@@ -28,7 +28,7 @@ export default function NotFound() {
           </div>
         </div>
         <div className="flex items-center justify-between border-t border-white/10 bg-neutral-950 px-5 py-2.5 font-mono text-[11px] text-neutral-500"><span>ROUTE: UNRESOLVED</span><span>RUNTIME READY</span></div>
-        <footer className="border-t border-white/10 bg-neutral-950 px-5 py-2.5 text-center font-mono text-[11px] text-neutral-500">3D LABS · [ROUTE_RESOLUTION] RUNTIME</footer>
+        <footer className="border-t border-white/10 bg-neutral-950 px-5 py-2.5 text-center font-mono text-[11px] text-neutral-500">KUMO CRM · [ROUTE_RESOLUTION] RUNTIME</footer>
       </section>
     </main>
   );

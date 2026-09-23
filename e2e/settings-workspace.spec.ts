@@ -4,7 +4,7 @@ test('единые настройки разделяют профиль, офо�
   await page.goto('/settings?section=profile');
   await expect(page.getByRole('article', { name: 'Бейдж профиля' })).toBeVisible();
   const nav = page.getByRole('navigation', { name: 'Разделы настроек' });
-  await expect(nav.getByRole('button')).toHaveCount(7);
+  await expect(nav.getByRole('button')).toHaveCount(8);
   await nav.getByRole('button', { name: /Оформление/ }).click();
   await expect(page).toHaveURL('/settings?section=appearance');
   await expect(page.getByRole('heading', { name: 'Поверхность рабочего пространства' })).toBeVisible();

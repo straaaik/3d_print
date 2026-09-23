@@ -3,7 +3,39 @@ import test from 'node:test';
 import {
   calculateRoomLayout,
   getFocusCameraTarget,
+  getOverviewSpan,
 } from '../src/features/printers-room/scene/layout';
+
+test('portrait overview fits the floor width and top view fits its depth', () => {
+  const layout = calculateRoomLayout(Array.from({ length: 52 }, (_, i) => ({ id: `${i}` })));
+  const portrait = getOverviewSpan(layout, .45);
+  assert.ok(portrait > getOverviewSpan(layout, 1.5));
+  assert.ok(portrait * .45 > (layout.roomSize[0] + layout.roomSize[2]) / Math.SQRT2);
+  assert.ok(getOverviewSpan(layout, 1, true) > layout.roomSize[2]);
+});
+
+test('large farms grow in both dimensions instead of forming two unbounded rows', () => {
+  for (const count of [12, 52, 200]) {
+    const layout = calculateRoomLayout(Array.from({ length: count }, (_, i) => ({ id: `p${i}` })));
+    assert.equal(layout.stations.length, count);
+    assert.ok(layout.roomSize[0] / layout.roomSize[2] < 2, 'floor must remain compact');
+    assert.ok(new Set(layout.stations.map(s => s.position[2])).size >= Math.floor(Math.sqrt(count) / 2));
+    for (const station of layout.stations) {
+      assert.ok(Math.abs(station.position[0]) + .7 < layout.roomSize[0] / 2);
+      assert.ok(Math.abs(station.position[2]) + .6 < layout.roomSize[2] / 2);
+    }
+  }
+});
+
+test('reference room reserves a separate left storage aisle and a rear shelf aisle', () => {
+  const layout = calculateRoomLayout(Array.from({ length: 52 }, (_, i) => ({ id: `${i}` })));
+  for (const bench of layout.workbenches) {
+    const left = bench.position[0] - bench.size[0] / 2;
+    const back = bench.position[2] - bench.size[2] / 2;
+    assert.ok(left - (-layout.roomSize[0] / 2) >= 2, 'left storage and walking aisle');
+    assert.ok(back - (-layout.roomSize[2] / 2) >= 1.8, 'rear shelving clearance');
+  }
+});
 
 test('calculateRoomLayout handles 0 printers with a default empty showcase desk', () => {
   const layout = calculateRoomLayout([]);

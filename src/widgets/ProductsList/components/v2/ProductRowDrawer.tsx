@@ -38,6 +38,7 @@ interface ProductRowDrawerProps {
   onInlineUpdateProduct?: (productId: string, updates: Partial<SavedCalculation>) => void;
   onInlineUpdateCollection?: (collectionId: string, updates: Partial<ProductCollection>) => void;
   onSetStock?: (item: SavedCalculation, newStock: number) => void;
+  onOpenEditAssembly?: (item: SavedCalculation) => void;
   onOpenQuickEditModal?: (item: SavedCalculation) => void;
   onOpenStlModal?: (item: SavedCalculation) => void;
   onLoadIntoCalculator?: (item: SavedCalculation) => void;
@@ -57,6 +58,7 @@ export function ProductRowDrawer({
   onInlineUpdateProduct,
   onInlineUpdateCollection,
   onSetStock,
+  onOpenEditAssembly,
   onOpenQuickEditModal,
   onOpenStlModal,
   onLoadIntoCalculator,
@@ -734,14 +736,14 @@ export function ProductRowDrawer({
             </CockpitButton>
           )}
 
-          {isProduct && onOpenQuickEditModal && (
+          {(isAsm || isPart) && (onOpenEditAssembly || onOpenQuickEditModal) && (
             <CockpitButton
               size="sm"
-              icon={isAsm || isPart ? Wrench : Edit2}
+              icon={Wrench}
               accentColor={effectiveColor}
-              onClick={() => onOpenQuickEditModal(item!)}
+              onClick={() => (onOpenEditAssembly || onOpenQuickEditModal)?.(item!)}
             >
-              {isAsm || isPart ? 'Спецификация сборки' : 'Полный редактор'}
+              Спецификация сборки
             </CockpitButton>
           )}
 

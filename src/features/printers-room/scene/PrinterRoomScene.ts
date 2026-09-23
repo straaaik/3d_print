@@ -1,20 +1,12 @@
 import * as THREE from 'three';
-import type { Printer } from '../../../shared/types';
-import {
-  calculateRoomLayout,
-  getFocusCameraTarget,
-  type RoomLayoutConfig,
-} from './layout';
-import {
-  createDioramaRoom,
-  createWorkbench,
-  createProceduralPrinter,
-  applyBambuA1ModelToPrinterGroup,
-  disposeHierarchy,
-} from './proceduralModels';
-import { loadBambuA1Template } from './bambuModelLoader';
-import type { InteractivePrinterGroup } from './types';
+import { animate, type AnimationPlaybackControls } from 'motion';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
+import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
+import type { Printer } from '../../../shared/types';
+import { calculateRoomLayout, getOverviewSpan } from './layout';
+import { buildRoom, loadRoomAssets, disposeRoomAssets, roomModels, translation, type RoomAssets } from './roomAssets';
+import { disposeAssets, disposeInstances, instanceTemplate } from './instances';
+import { RoomPostProcessing } from './roomPostProcessing';
 
 export interface PrinterRoomSceneOptions {
   canvas: HTMLCanvasElement;
@@ -22,431 +14,387 @@ export interface PrinterRoomSceneOptions {
   printers: Printer[];
   onSelectPrinter: (printer: Printer | null) => void;
   onHoverPrinter: (printer: Printer | null) => void;
+  onReady?: () => void;
+  onError?: (message: string) => void;
 }
 
+/** A static, instanced farm. There is deliberately no continuous render loop. */
 export class PrinterRoomScene {
-  private canvas: HTMLCanvasElement;
-  private container: HTMLElement;
-  private printers: Printer[];
-  private onSelectPrinter: (printer: Printer | null) => void;
-  private onHoverPrinter: (printer: Printer | null) => void;
-
+  private scene = new THREE.Scene();
+  private camera = new THREE.OrthographicCamera(-10, 10, 10, -10, .1, 2000);
   private renderer: THREE.WebGLRenderer | null = null;
-  private scene: THREE.Scene;
-  private camera: THREE.PerspectiveCamera;
-  private raycaster: THREE.Raycaster;
-  private mouse: THREE.Vector2;
+  private environment: THREE.WebGLRenderTarget | null = null;
+  private post: RoomPostProcessing | null = null;
+  private assets: RoomAssets | null = null;
+  private architecture: THREE.Group | null = null;
+  private architectureOwned: THREE.Object3D[] = [];
+  private machines: THREE.Group | null = null;
+  private picks: THREE.InstancedMesh | null = null;
+  private markers: THREE.InstancedMesh | null = null;
+  private selection: THREE.LineSegments;
+  private lights: THREE.Light[] = [];
+  private key: THREE.DirectionalLight;
+  private backWash: THREE.RectAreaLight;
+  private leftWash: THREE.RectAreaLight;
+  private layout;
+  private printers: Printer[];
+  private target = new THREE.Vector3(0, .4, 0);
+  private span = 10;
+  private top = false;
+  private selectedId: string | null = null;
+  private hoveredId: string | null = null;
+  private frame: number | null = null;
+  private frames = 0;
+  private disposed = false;
+  private visible = true;
+  private lost = false;
+  private lod = false;
+  private transition: AnimationPlaybackControls | null = null;
+  private resizeObserver: ResizeObserver;
+  private intersectionObserver: IntersectionObserver;
+  private raycaster = new THREE.Raycaster();
+  private pointer = new THREE.Vector2();
+  private down: { x: number; y: number; target: THREE.Vector3 } | null = null;
+  private dragged = false;
 
-  private printerGroups: InteractivePrinterGroup[] = [];
-  private layoutConfig: RoomLayoutConfig;
-  private hoveredGroup: InteractivePrinterGroup | null = null;
-  private selectedPrinterId: string | null = null;
-
-  private envTexture: THREE.Texture | null = null;
-
-  private currentCamPos: THREE.Vector3;
-  private targetCamPos: THREE.Vector3;
-  private currentCamLookAt: THREE.Vector3;
-  private targetCamLookAt: THREE.Vector3;
-
-  private isDragging = false;
-  private pointerDownPos = { x: 0, y: 0 };
-  private rafId: number | null = null;
-  private isDisposed = false;
-  private bambuTemplate: THREE.Group | null = null;
-
-  constructor(options: PrinterRoomSceneOptions) {
-    this.canvas = options.canvas;
-    this.container = options.container;
+  constructor(private options: PrinterRoomSceneOptions) {
     this.printers = options.printers;
-    this.onSelectPrinter = options.onSelectPrinter;
-    this.onHoverPrinter = options.onHoverPrinter;
-
-    this.scene = new THREE.Scene();
-    this.raycaster = new THREE.Raycaster();
-    this.mouse = new THREE.Vector2(-999, -999);
-
-    const width = this.container.clientWidth || 800;
-    const height = this.container.clientHeight || 500;
-
-    this.camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
-
-    this.layoutConfig = calculateRoomLayout(this.printers);
-    this.currentCamPos = new THREE.Vector3(...this.layoutConfig.overviewCameraPosition);
-    this.targetCamPos = this.currentCamPos.clone();
-    this.currentCamLookAt = new THREE.Vector3(...this.layoutConfig.overviewCameraTarget);
-    this.targetCamLookAt = this.currentCamLookAt.clone();
-
-    this.camera.position.copy(this.currentCamPos);
-    this.camera.lookAt(this.currentCamLookAt);
-
-    this.initRenderer(width, height);
-    this.initLights();
-    this.initBambuModel();
-    this.rebuildScene();
-    this.bindEvents();
-    this.startLoop();
-  }
-
-  private initBambuModel(): void {
-    loadBambuA1Template().then((template) => {
-      if (template && !this.isDisposed) {
-        this.bambuTemplate = template;
-        this.printerGroups.forEach((group) => {
-          applyBambuA1ModelToPrinterGroup(group, template);
-        });
-      }
+    this.layout = calculateRoomLayout(this.printers);
+    this.scene.background = new THREE.Color('#10171d');
+    const outline = new THREE.EdgesGeometry(new THREE.BoxGeometry(.94, .012, .8));
+    this.selection = new THREE.LineSegments(outline, new THREE.LineBasicMaterial({ color: '#6cbdff', depthTest: false }));
+    this.selection.renderOrder = 10;
+    this.selection.visible = false;
+    this.scene.add(this.selection);
+    this.key = new THREE.DirectionalLight('#d8e1ef', .8);
+    this.key.position.set(-6, 12, 8);
+    this.key.castShadow = true;
+    this.key.shadow.mapSize.set(2048, 2048);
+    this.key.shadow.bias = -.0006;
+    this.key.shadow.normalBias = .06;
+    this.key.shadow.radius = 5;
+    this.key.shadow.blurSamples = 6;
+    const fill = new THREE.DirectionalLight('#a9cfff', .18);
+    fill.position.set(8, 7, -5);
+    RectAreaLightUniformsLib.init();
+    this.backWash = new THREE.RectAreaLight('#ffd09a', 3.2, 10, .18);
+    this.leftWash = new THREE.RectAreaLight('#ffd09a', 2.4, 10, .18);
+    this.lights = [this.key, fill, this.backWash, this.leftWash, new THREE.HemisphereLight('#c5d9ee', '#191b21', .2), new THREE.AmbientLight('#b7c8de', .035)];
+    this.scene.add(...this.lights);
+    this.resizeObserver = new ResizeObserver(this.handleResize);
+    this.intersectionObserver = new IntersectionObserver(entries => {
+      this.visible = entries[0]?.isIntersecting ?? true;
+      if (!this.visible) this.stopTransition();
+      else this.invalidate();
     });
-  }
-
-  private initRenderer(width: number, height: number): void {
     try {
-      this.renderer = new THREE.WebGLRenderer({
-        canvas: this.canvas,
-        antialias: true,
-        alpha: true,
-        powerPreference: 'high-performance',
-      });
-      const dpr = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1;
-      this.renderer.setPixelRatio(dpr);
-      this.renderer.setSize(width, height);
-      this.renderer.shadowMap.enabled = true;
-      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      this.renderer = new THREE.WebGLRenderer({ canvas: options.canvas, antialias: true, powerPreference: 'low-power' });
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
       this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      this.renderer.toneMappingExposure = 1.05;
-
-      // Infinite dark studio background & soft depth fog (seamless infinite floor)
-      const bgColor = new THREE.Color(0x0e0f14);
-      this.scene.background = bgColor;
-      this.scene.fog = new THREE.Fog(0x0e0f14, 15, 38);
-
-      // Setup IBL Studio Environment for realistic material reflections
-      try {
-        const pmrem = new THREE.PMREMGenerator(this.renderer);
-        pmrem.compileEquirectangularShader();
-        const roomEnv = new RoomEnvironment();
-        this.envTexture = pmrem.fromScene(roomEnv).texture;
-        this.scene.environment = this.envTexture;
-        pmrem.dispose();
-      } catch (e) {
-        console.warn('Could not initialize IBL RoomEnvironment', e);
-      }
-    } catch (e) {
-      console.error('Failed to initialize WebGLRenderer for 3D Printers Room', e);
-      this.renderer = null;
+      this.renderer.toneMappingExposure = .92;
+      this.renderer.shadowMap.enabled = true;
+      this.renderer.shadowMap.type = THREE.VSMShadowMap;
+      this.renderer.shadowMap.autoUpdate = false;
+      this.createEnvironment();
+      this.resizeObserver.observe(options.container);
+      this.intersectionObserver.observe(options.container);
+      this.bindEvents();
+      this.handleResize();
+      void this.load();
+    } catch {
+      options.onError?.('3D-режим недоступен. Используйте таблицу или карточки принтеров.');
     }
   }
 
-  private initLights(): void {
-    // 1. Soft atmospheric ambient fill
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
-    this.scene.add(ambientLight);
-
-    // 2. Warm Key directional light with soft shadow mapping
-    const keyLight = new THREE.DirectionalLight(0xfff3e0, 1.4);
-    keyLight.position.set(8, 14, 8);
-    keyLight.castShadow = true;
-    keyLight.shadow.mapSize.width = 2048;
-    keyLight.shadow.mapSize.height = 2048;
-    keyLight.shadow.camera.near = 0.5;
-    keyLight.shadow.camera.far = 40;
-    keyLight.shadow.bias = -0.0003;
-
-    const shadowExtent = 8;
-    keyLight.shadow.camera.left = -shadowExtent;
-    keyLight.shadow.camera.right = shadowExtent;
-    keyLight.shadow.camera.top = shadowExtent;
-    keyLight.shadow.camera.bottom = -shadowExtent;
-    this.scene.add(keyLight);
-
-    // 3. Warm Table Spotlights creating inviting pools of light on the walnut wood
-    const spotBack = new THREE.SpotLight(0xffdfba, 2.0, 14, Math.PI / 4, 0.75);
-    spotBack.position.set(-0.2, 5.8, -1.25);
-    spotBack.target.position.set(-0.2, 0.85, -1.25);
-    this.scene.add(spotBack);
-    this.scene.add(spotBack.target);
-
-    const spotFront = new THREE.SpotLight(0xffdfba, 2.0, 14, Math.PI / 4, 0.75);
-    spotFront.position.set(-0.2, 5.8, 1.25);
-    spotFront.target.position.set(-0.2, 0.85, 1.25);
-    this.scene.add(spotFront);
-    this.scene.add(spotFront.target);
-
-    // 4. Cool cyan rim light from back-left for printer contours
-    const rimLight = new THREE.DirectionalLight(0x0cb4e0, 0.45);
-    rimLight.position.set(-8, 7, -8);
-    this.scene.add(rimLight);
+  private createEnvironment(): void {
+    if (!this.renderer) return;
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    const environmentScene = new RoomEnvironment();
+    try {
+      const replacement = pmrem.fromScene(environmentScene, .04);
+      this.environment?.dispose();
+      this.environment = replacement;
+      this.scene.environment = replacement.texture;
+      this.scene.environmentIntensity = .5;
+    } finally {
+      environmentScene.dispose(); pmrem.dispose();
+    }
   }
 
-  private rebuildScene(): void {
-    // Clear previous dynamic meshes (excluding lights)
-    const objectsToRemove: THREE.Object3D[] = [];
-    this.scene.children.forEach((child) => {
-      if (!(child instanceof THREE.Light)) {
-        objectsToRemove.push(child);
-      }
-    });
-
-    objectsToRemove.forEach((obj) => {
-      this.scene.remove(obj);
-      disposeHierarchy(obj);
-    });
-
-    this.printerGroups = [];
-    this.layoutConfig = calculateRoomLayout(this.printers);
-
-    // 1. Diorama Room Base
-    const room = createDioramaRoom(this.layoutConfig.roomSize);
-    this.scene.add(room);
-
-    // 2. Workbenches
-    this.layoutConfig.workbenches.forEach((bench) => {
-      const desk = createWorkbench(...bench.size);
-      desk.position.set(...bench.position);
-      this.scene.add(desk);
-    });
-
-    // 3. Procedural / GLB CoreXY 3D Printers
-    this.layoutConfig.stations.forEach((station) => {
-      const printer = this.printers.find((p) => p.id === station.printerId);
-      if (printer) {
-        const printerMesh = createProceduralPrinter(printer, station, this.bambuTemplate);
-        this.printerGroups.push(printerMesh);
-        this.scene.add(printerMesh);
-      }
-    });
-
-    // If no printer is selected, maintain overview framing
-    if (!this.selectedPrinterId) {
-      this.targetCamPos.set(...this.layoutConfig.overviewCameraPosition);
-      this.targetCamLookAt.set(...this.layoutConfig.overviewCameraTarget);
-    } else {
-      const selectedStation = this.layoutConfig.stations.find((s) => s.printerId === this.selectedPrinterId);
-      if (selectedStation) {
-        const focus = getFocusCameraTarget(selectedStation.position);
-        this.targetCamPos.set(...focus.position);
-        this.targetCamLookAt.set(...focus.target);
-      } else {
-        this.resetFocus();
-      }
+  private async load(): Promise<void> {
+    try {
+      const assets = await loadRoomAssets();
+      if (this.disposed) { disposeRoomAssets(assets); return; }
+      this.assets = assets;
+      this.rebuild();
+      this.options.onReady?.();
+    } catch (error) {
+      if (!this.disposed) this.options.onError?.(error instanceof Error ? error.message : 'Не удалось открыть комнату.');
     }
+  }
+
+  private clearRoom(): void {
+    if (this.architecture) disposeInstances(this.architecture);
+    if (this.machines) disposeInstances(this.machines);
+    if (this.picks) { this.picks.dispose(); this.picks.removeFromParent(); disposeAssets([this.picks]); }
+    if (this.markers) { this.markers.dispose(); this.markers.removeFromParent(); disposeAssets([this.markers]); }
+    disposeAssets(this.architectureOwned);
+    this.architectureOwned = [];
+    this.architecture = null; this.machines = null; this.picks = null; this.markers = null;
+  }
+
+  private rebuild(): void {
+    if (!this.assets || !this.renderer) return;
+    this.stopTransition();
+    this.clearRoom();
+    this.layout = calculateRoomLayout(this.printers);
+    const room = buildRoom(this.layout, this.assets);
+    this.architecture = room.group;
+    this.architectureOwned = room.owned;
+    this.scene.add(room.group);
+    const [roomWidth, , roomDepth] = this.layout.roomSize;
+    this.backWash.width = roomWidth - 1;
+    this.backWash.position.set(0, 2.12, -roomDepth / 2 + 1);
+    this.backWash.lookAt(0, .7, -roomDepth / 2 + .3);
+    this.leftWash.width = roomDepth - 3;
+    this.leftWash.position.set(-roomWidth / 2 + 1, 2.12, 0);
+    this.leftWash.lookAt(-roomWidth / 2 + .3, .7, 0);
+    // Invisible simple boxes make hit testing independent of GLB triangle count.
+    this.picks = new THREE.InstancedMesh(new THREE.BoxGeometry(.95, .85, .85),
+      new THREE.MeshBasicMaterial({ visible: false }), this.printers.length);
+    this.picks.visible = false;
+    this.markers = new THREE.InstancedMesh(new THREE.BoxGeometry(.065, .018, .065),
+      new THREE.MeshBasicMaterial(), this.printers.length);
+    const color = new THREE.Color();
+    for (let i = 0; i < this.layout.stations.length; i++) {
+      const [x, y, z] = this.layout.stations[i].position;
+      this.picks.setMatrixAt(i, translation(x, y + .42, z));
+      this.markers.setMatrixAt(i, translation(x - .46, y + .01, z + .37));
+      const hex = this.printers[i].color;
+      color.set(hex && /^#[\da-f]{6}$/i.test(hex) ? hex : '#8094a3');
+      this.markers.setColorAt(i, color);
+    }
+    this.picks.computeBoundingSphere(); this.markers.computeBoundingSphere();
+    this.scene.add(this.picks, this.markers);
+    const extent = Math.max(this.layout.roomSize[0], this.layout.roomSize[2]);
+    this.key.position.set(-extent * .7, extent * 1.5, -extent * .3);
+    Object.assign(this.key.shadow.camera, { left: -extent, right: extent, top: extent, bottom: -extent, far: extent * 5 });
+    this.key.shadow.camera.updateProjectionMatrix();
+    this.renderer.shadowMap.enabled = this.printers.length <= 80;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.printers.length > 80 ? 1 : 1.5));
+    this.updatePostProcessing();
+    this.hoveredId = null;
+    this.options.onHoverPrinter(null);
+    if (this.selectedId && this.printers.some(p => p.id === this.selectedId)) this.selectPrinterById(this.selectedId);
+    else this.resetFocus();
+    this.updateModels(true);
+    this.renderer.shadowMap.needsUpdate = true;
+    this.invalidate();
+  }
+
+  private updatePostProcessing(): void {
+    if (!this.renderer) return;
+    const enabled = this.printers.length <= 80 && this.options.container.clientWidth >= 700;
+    if (enabled && !this.post) this.post = new RoomPostProcessing(this.renderer, this.scene, this.camera);
+    if (!enabled && this.post) { this.post.dispose(); this.post = null; }
+    this.post?.resize(this.options.container.clientWidth, this.options.container.clientHeight);
+  }
+
+  private updateModels(force = false): void {
+    if (!this.assets) return;
+    const useLod = this.printers.length > 80 && this.span > 8;
+    if (!force && this.machines && this.lod === useLod) return;
+    this.lod = useLod;
+    if (this.machines) disposeInstances(this.machines);
+    this.machines = instanceTemplate(useLod ? this.assets.lod : this.assets.printer,
+      this.layout.stations.map(station => translation(...station.position)));
+    this.scene.add(this.machines);
+    if (this.renderer) this.renderer.shadowMap.needsUpdate = true;
   }
 
   public updatePrinters(printers: Printer[]): void {
-    if (this.isDisposed) return;
+    if (this.disposed || this.printers === printers) return;
     this.printers = printers;
-    this.rebuildScene();
+    this.rebuild();
   }
-
-  public selectPrinterById(printerId: string | null): void {
-    if (this.isDisposed) return;
-    this.selectedPrinterId = printerId;
-    if (!printerId) {
-      this.resetFocus();
-      return;
-    }
-
-    const station = this.layoutConfig.stations.find((s) => s.printerId === printerId);
-    const printer = this.printers.find((p) => p.id === printerId);
-    if (station && printer) {
-      const focus = getFocusCameraTarget(station.position);
-      this.targetCamPos.set(...focus.position);
-      this.targetCamLookAt.set(...focus.target);
-      this.onSelectPrinter(printer);
-    }
+  public selectPrinterById(id: string | null): void {
+    if (this.disposed) return;
+    const index = this.printers.findIndex(p => p.id === id);
+    if (index < 0) { this.resetFocus(); return; }
+    this.selectedId = id;
+    const position = this.layout.stations[index].position;
+    this.updateSelection();
+    // Leave room on the right for the detail drawer on desktop.
+    this.moveCamera(new THREE.Vector3(position[0] + (this.aspect > 1.3 ? .8 : 0), position[1] + .3, position[2]),
+      this.aspect > 1.3 ? 3.8 : 5.5);
+    this.options.onSelectPrinter(this.printers[index]);
   }
-
   public resetFocus(): void {
-    if (this.isDisposed) return;
-    this.selectedPrinterId = null;
-    this.targetCamPos.set(...this.layoutConfig.overviewCameraPosition);
-    this.targetCamLookAt.set(...this.layoutConfig.overviewCameraTarget);
-    this.onSelectPrinter(null);
+    if (this.disposed) return;
+    this.selectedId = null;
+    this.updateSelection();
+    this.moveCamera(new THREE.Vector3(0, .4, 0), getOverviewSpan(this.layout, this.aspect, this.top));
+    this.options.onSelectPrinter(null);
   }
-
-  public zoomIn(): void {
-    if (this.isDisposed) return;
-    this.targetCamPos.multiplyScalar(0.88);
+  public setTopView(top: boolean): void {
+    this.top = top;
+    this.resetFocus();
   }
-
+  public zoomIn(): void { this.moveCamera(this.target.clone(), Math.max(2.4, this.span * .8)); }
   public zoomOut(): void {
-    if (this.isDisposed) return;
-    this.targetCamPos.multiplyScalar(1.14);
+    this.moveCamera(this.target.clone(), Math.min(getOverviewSpan(this.layout, this.aspect, this.top) * 1.8, this.span * 1.25));
+  }
+  private get aspect(): number { return Math.max(1, this.options.container.clientWidth) / Math.max(1, this.options.container.clientHeight); }
+
+  private stopTransition(): void { this.transition?.stop(); this.transition = null; }
+  private moveCamera(target: THREE.Vector3, span: number): void {
+    this.stopTransition();
+    const start = this.target.clone(), startSpan = this.span;
+    if (!this.visible || document.hidden || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      this.target.copy(target); this.span = span; this.updateModels(); this.invalidate(); return;
+    }
+    this.transition = animate(0, 1, { duration: .38, ease: [.16, 1, .3, 1], onUpdate: value => {
+      this.target.lerpVectors(start, target, value);
+      this.span = THREE.MathUtils.lerp(startSpan, span, value);
+      this.updateModels(); this.invalidate();
+    } });
   }
 
-  private onPointerMove = (e: PointerEvent): void => {
-    if (this.isDisposed) return;
-    const rect = this.canvas.getBoundingClientRect();
-    this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-    this.raycaster.setFromCamera(this.mouse, this.camera);
-    const intersects = this.raycaster.intersectObjects(this.printerGroups, true);
-
-    let nextHovered: InteractivePrinterGroup | null = null;
-    if (intersects.length > 0) {
-      let curr: THREE.Object3D | null = intersects[0].object;
-      while (curr && curr !== this.scene) {
-        if ((curr as InteractivePrinterGroup).userData?.isPrinter) {
-          nextHovered = curr as InteractivePrinterGroup;
-          break;
-        }
-        curr = curr.parent;
-      }
+  private updateSelection(): void {
+    const id = this.selectedId ?? this.hoveredId;
+    const station = this.layout.stations.find(s => s.printerId === id);
+    this.selection.visible = Boolean(station);
+    if (station) this.selection.position.set(station.position[0], station.position[1] + .015, station.position[2]);
+    this.invalidate();
+  }
+  private pick(event: PointerEvent): Printer | null {
+    if (!this.picks) return null;
+    const rect = this.options.canvas.getBoundingClientRect();
+    this.pointer.set((event.clientX - rect.left) / rect.width * 2 - 1, -(event.clientY - rect.top) / rect.height * 2 + 1);
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    const hit = this.raycaster.intersectObject(this.picks, false)[0];
+    return hit?.instanceId !== undefined ? this.printers[hit.instanceId] ?? null : null;
+  }
+  private onMove = (event: PointerEvent): void => {
+    if (this.down && (Math.abs(event.clientX - this.down.x) + Math.abs(event.clientY - this.down.y) > 5 || this.dragged)) {
+      this.dragged = true; this.stopTransition();
+      const scale = this.span / Math.max(1, this.options.container.clientHeight);
+      const dx = (event.clientX - this.down.x) * scale;
+      const dy = (event.clientY - this.down.y) * scale;
+      const right = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 0);
+      const up = new THREE.Vector3().setFromMatrixColumn(this.camera.matrixWorld, 1);
+      this.target.copy(this.down.target).addScaledVector(right, -dx).addScaledVector(up, dy);
+      this.invalidate(); return;
     }
-
-    if (nextHovered !== this.hoveredGroup) {
-      this.hoveredGroup = nextHovered;
-      this.container.style.cursor = nextHovered ? 'pointer' : 'default';
-      this.onHoverPrinter(nextHovered ? nextHovered.userData.printer : null);
-    }
-
-    // Update target elevations: elevated on hover, on floor otherwise
-    this.printerGroups.forEach((group) => {
-      const isHovered = group === this.hoveredGroup;
-      group.userData.targetElevation = isHovered ? 0.20 : 0.0;
-    });
-  };
-
-  private onPointerDown = (e: PointerEvent): void => {
-    this.isDragging = false;
-    this.pointerDownPos = { x: e.clientX, y: e.clientY };
-  };
-
-  private onPointerUp = (e: PointerEvent): void => {
-    if (this.isDisposed) return;
-    const dx = Math.abs(e.clientX - this.pointerDownPos.x);
-    const dy = Math.abs(e.clientY - this.pointerDownPos.y);
-    if (dx > 5 || dy > 5) {
-      // Considered a drag, not a click
-      return;
-    }
-
-    const rect = this.canvas.getBoundingClientRect();
-    this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
-    this.raycaster.setFromCamera(this.mouse, this.camera);
-    const intersects = this.raycaster.intersectObjects(this.printerGroups, true);
-
-    if (intersects.length > 0) {
-      let curr: THREE.Object3D | null = intersects[0].object;
-      while (curr && curr !== this.scene) {
-        if ((curr as InteractivePrinterGroup).userData?.isPrinter) {
-          const group = curr as InteractivePrinterGroup;
-          this.selectPrinterById(group.userData.printer.id);
-          return;
-        }
-        curr = curr.parent;
-      }
-    } else {
-      // Clicked on empty space: return to overview if previously zoomed in
-      if (this.selectedPrinterId) {
-        this.resetFocus();
-      }
+    const printer = this.pick(event);
+    if ((printer?.id ?? null) !== this.hoveredId) {
+      this.hoveredId = printer?.id ?? null;
+      this.options.canvas.style.cursor = printer ? 'pointer' : 'grab';
+      this.options.onHoverPrinter(printer); this.updateSelection();
     }
   };
-
-  private onPointerLeave = (): void => {
-    if (this.isDisposed) return;
-    this.mouse.set(-999, -999);
-    if (this.hoveredGroup) {
-      this.hoveredGroup = null;
-      this.container.style.cursor = 'default';
-      this.onHoverPrinter(null);
-    }
-    this.printerGroups.forEach((group) => {
-      group.userData.targetElevation = 0.0;
-    });
+  private onDown = (event: PointerEvent): void => {
+    if (event.button !== 0) return;
+    this.down = { x: event.clientX, y: event.clientY, target: this.target.clone() };
+    this.dragged = false;
+    this.options.canvas.setPointerCapture(event.pointerId);
   };
-
+  private onUp = (event: PointerEvent): void => {
+    if (!this.down) return;
+    if (!this.dragged) this.selectPrinterById(this.pick(event)?.id ?? null);
+    this.down = null;
+    if (this.options.canvas.hasPointerCapture(event.pointerId)) this.options.canvas.releasePointerCapture(event.pointerId);
+  };
+  private onLeave = (): void => {
+    this.hoveredId = null; this.options.onHoverPrinter(null); this.updateSelection();
+  };
+  private onCancel = (): void => { this.down = null; this.dragged = false; this.onLeave(); };
+  private onVisibility = (): void => { if (document.hidden) this.stopTransition(); else this.invalidate(); };
+  private onContextLost = (event: Event): void => {
+    event.preventDefault(); this.lost = true; this.stopTransition();
+    this.post?.dispose(); this.post = null;
+    // Detach old-context disposal listeners before Three creates its new GPU state.
+    this.scene.environment = null;
+    this.environment?.dispose(); this.environment = null;
+    this.key.shadow.dispose();
+    this.key.shadow.map = null;
+    this.key.shadow.mapPass = null;
+    // Dispose GPU bindings while the old context is still lost. CPU geometry and
+    // canvas/image textures remain intact and are uploaded again after restoration.
+    this.scene.traverse(object => { if (object instanceof THREE.InstancedMesh) object.dispose(); });
+    disposeAssets([this.scene, ...(this.assets ? roomModels(this.assets) : [])]);
+    this.selection.geometry.dispose();
+    (this.selection.material as THREE.Material).dispose();
+  };
+  private onContextRestored = (): void => {
+    if (this.disposed) return;
+    this.lost = false;
+    try {
+      // Render targets have no CPU pixels to restore after losing the GPU context.
+      this.createEnvironment();
+      this.updatePostProcessing();
+      if (this.renderer) this.renderer.shadowMap.needsUpdate = true;
+      this.invalidate();
+    } catch {
+      this.options.onError?.('Не удалось восстановить 3D-комнату. Попробуйте открыть её ещё раз.');
+    }
+  };
   private bindEvents(): void {
-    this.canvas.addEventListener('pointermove', this.onPointerMove);
-    this.canvas.addEventListener('pointerdown', this.onPointerDown);
-    this.canvas.addEventListener('pointerup', this.onPointerUp);
-    this.canvas.addEventListener('pointerleave', this.onPointerLeave);
-    window.addEventListener('resize', this.handleResize);
+    const canvas = this.options.canvas;
+    canvas.addEventListener('pointermove', this.onMove); canvas.addEventListener('pointerdown', this.onDown);
+    canvas.addEventListener('pointerup', this.onUp); canvas.addEventListener('pointerleave', this.onLeave);
+    canvas.addEventListener('pointercancel', this.onCancel);
+    canvas.addEventListener('webglcontextlost', this.onContextLost); canvas.addEventListener('webglcontextrestored', this.onContextRestored);
+    document.addEventListener('visibilitychange', this.onVisibility);
   }
-
-  private unbindEvents(): void {
-    this.canvas.removeEventListener('pointermove', this.onPointerMove);
-    this.canvas.removeEventListener('pointerdown', this.onPointerDown);
-    this.canvas.removeEventListener('pointerup', this.onPointerUp);
-    this.canvas.removeEventListener('pointerleave', this.onPointerLeave);
-    window.removeEventListener('resize', this.handleResize);
-  }
-
   public handleResize = (): void => {
-    if (this.isDisposed || !this.renderer) return;
-    const width = this.container.clientWidth;
-    const height = this.container.clientHeight;
-    if (width === 0 || height === 0) return;
-
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setSize(width, height);
+    if (!this.renderer || this.disposed) return;
+    const { clientWidth: width, clientHeight: height } = this.options.container;
+    if (!width || !height) return;
+    this.stopTransition();
+    this.renderer.setSize(width, height, false);
+    this.updatePostProcessing();
+    if (!this.selectedId) this.span = getOverviewSpan(this.layout, width / height, this.top);
+    this.updateModels();
+    this.invalidate();
   };
-
-  private startLoop(): void {
-    const animate = () => {
-      if (this.isDisposed) return;
-      this.rafId = requestAnimationFrame(animate);
-
-      // 1. Smooth camera lerping for cinematic focus zoom
-      const camLerp = 0.08;
-      this.currentCamPos.lerp(this.targetCamPos, camLerp);
-      this.currentCamLookAt.lerp(this.targetCamLookAt, camLerp);
-      this.camera.position.copy(this.currentCamPos);
-      this.camera.lookAt(this.currentCamLookAt);
-
-      // 2. Smooth printer levitation physics & soft contact shadow dynamics
-      this.printerGroups.forEach((group) => {
-        const ud = group.userData;
-        const diff = ud.targetElevation - ud.currentElevation;
-        ud.currentElevation += diff * 0.16;
-
-        // Elevate printer body
-        ud.bodyGroup.position.y = 0.015 + ud.currentElevation;
-
-        // Adjust contact shadow under printer
-        const elevRatio = Math.max(0, Math.min(1, ud.currentElevation / 0.20));
-        const shadowScale = 1.0 + elevRatio * 0.18;
-        ud.shadowMesh.scale.set(shadowScale, 1, shadowScale);
-        const shadowMat = ud.shadowMesh.material as THREE.MeshBasicMaterial;
-        if (shadowMat) {
-          shadowMat.opacity = 0.45 - elevRatio * 0.22;
-        }
-      });
-
-      // 3. Crisp direct rendering without bloom/glow
-      if (this.renderer) {
-        this.renderer.render(this.scene, this.camera);
-      }
-    };
-
-    this.rafId = requestAnimationFrame(animate);
-  }
-
+  private invalidate = (): void => {
+    if (this.frame !== null || this.disposed || this.lost || !this.visible || document.hidden) return;
+    this.frame = requestAnimationFrame(this.render);
+  };
+  private render = (): void => {
+    this.frame = null;
+    if (this.disposed || this.lost || !this.visible || document.hidden || !this.renderer) return;
+    const half = this.span / 2;
+    Object.assign(this.camera, { left: -half * this.aspect, right: half * this.aspect, top: half, bottom: -half });
+    const distance = Math.max(this.layout.roomSize[0], this.layout.roomSize[2], 20);
+    this.camera.far = distance * 5;
+    this.camera.position.copy(this.target).add(this.top ? new THREE.Vector3(0, distance, .001) : new THREE.Vector3(distance, distance * .78, distance));
+    this.camera.lookAt(this.target); this.camera.updateProjectionMatrix(); this.camera.updateMatrixWorld();
+    this.renderer.info.autoReset = false;
+    this.renderer.info.reset();
+    if (this.post) this.post.render();
+    else this.renderer.render(this.scene, this.camera);
+    // Passive renderer diagnostics; useful for checking large real inventories.
+    Object.assign(this.options.canvas.dataset, { frames: String(++this.frames), drawCalls: String(this.renderer.info.render.calls),
+      triangles: String(this.renderer.info.render.triangles), geometries: String(this.renderer.info.memory.geometries), lod: this.lod ? 'low' : 'detail' });
+  };
   public dispose(): void {
-    this.isDisposed = true;
-    if (this.rafId !== null) {
-      cancelAnimationFrame(this.rafId);
-      this.rafId = null;
-    }
-    this.unbindEvents();
-
-    this.scene.children.forEach((child) => {
-      disposeHierarchy(child);
-    });
-
-    if (this.envTexture) {
-      this.envTexture.dispose();
-      this.envTexture = null;
-    }
-
-    if (this.renderer) {
-      this.renderer.dispose();
-      this.renderer = null;
-    }
+    this.disposed = true; this.stopTransition();
+    if (this.frame !== null) cancelAnimationFrame(this.frame);
+    this.resizeObserver.disconnect(); this.intersectionObserver.disconnect();
+    const canvas = this.options.canvas;
+    canvas.removeEventListener('pointermove', this.onMove); canvas.removeEventListener('pointerdown', this.onDown);
+    canvas.removeEventListener('pointerup', this.onUp); canvas.removeEventListener('pointerleave', this.onLeave);
+    canvas.removeEventListener('pointercancel', this.onCancel);
+    canvas.removeEventListener('webglcontextlost', this.onContextLost); canvas.removeEventListener('webglcontextrestored', this.onContextRestored);
+    document.removeEventListener('visibilitychange', this.onVisibility);
+    this.clearRoom();
+    this.post?.dispose(); this.post = null;
+    if (this.assets) disposeRoomAssets(this.assets);
+    this.selection.geometry.dispose(); (this.selection.material as THREE.Material).dispose();
+    for (const light of this.lights) light.dispose();
+    this.environment?.dispose();
+    this.renderer?.dispose(); this.renderer = null;
   }
 }

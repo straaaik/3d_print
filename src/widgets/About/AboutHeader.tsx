@@ -30,7 +30,7 @@ export function AboutHeader() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
             <span className="font-mono text-[11px] text-neutral-300 tracking-wider">
-              3D LABS OS · PRODUCTION RELEASE v2.4 · ВСЕ УЗЛЫ В НОРМЕ
+              KUMO CRM OS · PRODUCTION RELEASE v2.4 · ВСЕ УЗЛЫ В НОРМЕ
             </span>
           </div>
 
@@ -53,7 +53,7 @@ export function AboutHeader() {
         className={`fixed top-10 left-0 right-0 z-40 pointer-events-none px-4 sm:px-6`}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          {/* Логотип 3D Labs */}
+          {/* Логотип Kumo CRM */}
           <Link
             href="/about"
             className="pointer-events-auto flex items-center gap-2.5 bg-neutral-950/80 hover:bg-neutral-900/90 border border-white/15 backdrop-blur-xl px-3.5 py-2 rounded-xl text-white shadow-2xl group"
@@ -62,7 +62,7 @@ export function AboutHeader() {
               <Box className="w-4 h-4" />
             </div>
             <div className="flex items-baseline gap-1.5 font-sans">
-              <span className="font-bold tracking-tight text-white text-base">3D Labs</span>
+              <span className="font-bold tracking-tight text-white text-base">Kumo CRM</span>
               <span className="font-mono text-[10px] text-neutral-400">®</span>
             </div>
           </Link>
@@ -123,7 +123,7 @@ export function AboutHeader() {
                 href={isAuthenticated ? '/orders' : '/login'}
                 className="w-full py-2.5 rounded-xl bg-cyan-500 text-neutral-950 font-bold text-center text-xs flex items-center justify-center gap-2"
               >
-                {isAuthenticated ? 'В консоль 3D Labs' : 'Авторизация'}
+                {isAuthenticated ? 'В консоль Kumo CRM' : 'Авторизация'}
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>

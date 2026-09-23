@@ -116,7 +116,7 @@ export function DesignSandboxWorkspace() {
               <div className="h-4 w-px bg-white/15" />
               {/* Инженерный штамп */}
               <span className="font-bold tracking-wider text-neutral-200 uppercase text-[11px] sm:text-xs">
-                3D-LABS // ДИЗАЙН-ЛАБОРАТОРИЯ (SANDBOX)
+                KUMO-CRM // ДИЗАЙН-ЛАБОРАТОРИЯ (SANDBOX)
               </span>
               <span className="text-[9.5px] px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20 text-amber-300 font-bold hidden xs:inline">
                 DEV-ONLY
@@ -300,7 +300,7 @@ export function DesignSandboxWorkspace() {
                       Двигайте ползунки и выбирайте цвета на панели слева — изменения мгновенно отражаются на карточке расхода.
                     </li>
                     <li>
-                      Вкладка <strong>«Палитра»</strong> содержит все официальные цвета 3D Labs для быстрой вставки.
+                      Вкладка <strong>«Палитра»</strong> содержит все официальные цвета Kumo CRM для быстрой вставки.
                     </li>
                     <li>
                       Когда вы настроите идеальный вид, нажмите <strong>«[ Экспорт и код дизайна ]»</strong> внизу панели настроек, скопируйте текст и отправьте мне — я сразу перенесу этот стиль в реальный интерфейс.
@@ -330,7 +330,7 @@ export function DesignSandboxWorkspace() {
 
       {/* Глобальный футер */}
       <footer className="w-full text-center py-4 border-t border-white/10 select-none bg-neutral-950/80 backdrop-blur-md font-mono text-xs text-neutral-500">
-        <span>3D LABS · DESIGN SANDBOX v1.0 [DEV-ONLY]</span>
+        <span>KUMO CRM · DESIGN SANDBOX v1.0 [DEV-ONLY]</span>
       </footer>
     </div>
   );

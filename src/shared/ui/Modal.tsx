@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertOctagon, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { motion, AnimatePresence, type TargetAndTransition, type Transition } from 'motion/react';
@@ -103,6 +103,7 @@ export function Modal({
   variant = 'default',
   maxWidth = 'md',
 }: ModalProps) {
+  const titleId = useId();
   const [currentTimeStr, setCurrentTimeStr] = useState('');
 
   useEffect(() => {
@@ -151,16 +152,19 @@ export function Modal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/80 backdrop-blur-xl"
+            className="fixed inset-0 bg-black/85 backdrop-blur-sm"
           />
 
-          {/* Контейнер модального окна в стиле Meridian Cockpit без внешней обводки */}
+          {/* Общая палитра окон каталога и системы по эталону заказов. */}
           <motion.div
             initial={animConfig.initial}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={titleId}
             animate={animConfig.animate}
             exit={animConfig.exit}
             transition={animConfig.transition}
-            className={`relative w-full ${sizeClass} my-auto rounded-2xl bg-neutral-950/95 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl z-10 max-h-[90vh] flex flex-col overflow-hidden font-mono border-0`}
+            className={`cockpit-form-modal relative w-full ${sizeClass} my-auto rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl z-10 max-h-[92vh] flex flex-col overflow-hidden font-mono`}
           >
             {/* 1. Верхняя панель (Cockpit Topbar: Red LED + Title + Live time) */}
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-2.5 bg-neutral-900/60 select-none shrink-0 gap-3">
@@ -168,24 +172,27 @@ export function Modal({
               <div className="flex items-center gap-4 min-w-0">
                 <div className="flex items-center gap-2 shrink-0">
                   <Tooltip content="Закрыть окно">
-                    <button
+                    <motion.button
                       type="button"
                       onClick={onClose}
                       title="Закрыть окно"
                       aria-label="Закрыть окно"
-                      className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] cursor-pointer border-none outline-none shrink-0"
+                      initial={false}
+                      whileHover={{ backgroundColor: '#f87171' }}
+                      transition={{ duration: 0.18 }}
+                      className="w-3 h-3 rounded-full bg-[#36363c] cursor-pointer border-none outline-none shrink-0 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900"
                     />
                   </Tooltip>
                 </div>
 
                 <div className="flex items-center gap-2 font-mono text-xs text-neutral-300 min-w-0">
                   {styleConfig.icon}
-                  <span className="text-neutral-300 font-normal truncate">
+                  <span id={titleId} className="text-neutral-300 font-normal truncate">
                     {title}
                   </span>
                   {subtitle && (
                     <>
-                      <span className="text-[#52525b] shrink-0">·</span>
+                      <span className="hidden sm:inline text-[#52525b] shrink-0">·</span>
                       <span className="text-[#71717a] hidden sm:inline truncate">
                         {subtitle}
                       </span>
@@ -195,7 +202,7 @@ export function Modal({
               </div>
 
               {/* Правая часть: Системное время */}
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="hidden sm:flex items-center gap-3 shrink-0">
                 <div className="font-mono text-xs text-[#71717a] tabular-nums">
                   {currentTimeStr}
                 </div>
@@ -203,13 +210,13 @@ export function Modal({
             </div>
 
             {/* 2. Контент */}
-            <div className="p-4 sm:p-6 overflow-y-auto flex-1 custom-scrollbar text-xs sm:text-sm text-neutral-200 font-sans">
+            <div className="p-5 sm:p-6 bg-[#18181c] overflow-y-auto flex-1 custom-scrollbar text-xs text-neutral-200 font-mono">
               {children}
             </div>
 
             {/* 3. Футер */}
             {footer && (
-              <div className="border-t border-white/10 px-4 sm:px-6 py-3 bg-neutral-950 flex flex-wrap items-center justify-between gap-3 text-[11px] font-mono text-neutral-500 shrink-0">
+              <div className="border-t border-white/10 px-5 py-3 bg-neutral-900/60 flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-neutral-500 shrink-0">
                 {footer}
               </div>
             )}

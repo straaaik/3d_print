@@ -211,7 +211,7 @@ export function SpecInteractive() {
                 <span className="w-2 h-2 rounded-full bg-cyan-400" />
                 <span className="text-white font-bold">МОДУЛЬ [{selectedSpec.letter}] · {selectedSpec.category.toUpperCase()}</span>
               </div>
-              <span>3D LABS v2.4</span>
+              <span>KUMO CRM v2.4</span>
             </div>
 
             {/* Заголовок и описание */}

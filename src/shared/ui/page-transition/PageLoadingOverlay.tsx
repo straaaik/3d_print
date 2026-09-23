@@ -95,7 +95,7 @@ export function PageLoadingOverlay({
             <span className="h-2 w-2 rounded-full bg-emerald-500/80" />
           </div>
           <span className="h-3 w-px bg-white/15" aria-hidden="true" />
-          <span className="tracking-wider text-neutral-300">3D-LABS // LOADING</span>
+          <span className="tracking-wider text-neutral-300">KUMO-CRM // LOADING</span>
         </div>
         <div className="px-4 py-14 text-center sm:px-8 sm:py-20">
           <div
@@ -134,7 +134,7 @@ export function PageLoadingOverlay({
           <span>{phase === 'revealing' ? 'READY' : 'PLEASE WAIT'}</span>
         </div>
         <footer className="border-t border-white/10 bg-neutral-950 px-4 py-2.5 text-center font-mono text-[10px] text-neutral-500">
-          3D LABS · LOADING RUNTIME
+          KUMO CRM · LOADING RUNTIME
         </footer>
       </section>
     </motion.div>

@@ -221,7 +221,7 @@ function TableStatusDropdownPortal({
       </div>
       <div className="px-3 py-1 bg-neutral-950 border-t border-white/5 text-[9px] font-mono text-neutral-500 uppercase tracking-wider flex items-center justify-between shrink-0">
         <span>{ALL_STATUSES.length} СТАТУСОВ</span>
-        <span className="text-neutral-600">3DLABS</span>
+        <span className="text-neutral-600">KUMO CRM</span>
       </div>
     </motion.div>,
     document.body
@@ -334,7 +334,7 @@ function TableChannelDropdownPortal({
       </div>
       <div className="px-3 py-1 bg-neutral-950 border-t border-white/5 text-[9px] font-mono text-neutral-500 uppercase tracking-wider flex items-center justify-between shrink-0">
         <span>{ALL_CLIENTS.length} ИСТОЧНИКОВ</span>
-        <span className="text-neutral-600">3DLABS</span>
+        <span className="text-neutral-600">KUMO CRM</span>
       </div>
     </motion.div>,
     document.body
@@ -1845,7 +1845,6 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
                             }}
                             className="w-full overflow-hidden"
-                            style={{ willChange: 'height, opacity' }}
                           >
                             <OrderRowDrawer
                               order={order}
@@ -2678,7 +2677,6 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                               opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
                             }}
                             className="w-full overflow-hidden"
-                            style={{ willChange: 'height, opacity' }}
                           >
                             <OrderRowDrawer
                               order={order}

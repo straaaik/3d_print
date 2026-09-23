@@ -7,6 +7,7 @@ import {
   Filament,
   Printer,
 } from '../../../../shared/types';
+import { ModalDetails } from '../../../../shared/ui/ModalDetails';
 import { Modal } from '../../../../shared/ui/Modal';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
 import { Checkbox } from '../../../../shared/ui/Checkbox';
@@ -14,7 +15,6 @@ import { Tooltip } from '../../../../shared/ui/Tooltip';
 import {
   Trash2,
   Box,
-  Layers,
   Plus,
   Wrench,
   Clock,
@@ -280,32 +280,13 @@ export function AssemblyModal({
                 {profit > 0 ? '+' : ''}{formatCurrency(profit, currencySymbol)} ({marginPercent}%)
               </span>
             </div>
-            {/* Сводка по компонентам */}
-            <div className="hidden md:flex items-center gap-2 text-[11px] text-neutral-400 border-l border-white/10 pl-3">
-              <span>{parts.length} дет.</span>
-              <span>•</span>
-              <span>{totalHwPieces} мет.</span>
-              {totals.totalElectronicsPieces > 0 && (
-                <>
-                  <span>•</span>
-                  <span className="text-cyan-400 font-medium">
-                    {totals.totalElectronicsPieces} эл. ({formatCurrency(totals.electronicsFinalPrice, currencySymbol)})
-                  </span>
-                </>
-              )}
-            </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <CockpitButton type="button" onClick={onClose} disabled={isSaving}>
-              Закрыть
-            </CockpitButton>
             <CockpitButton
               type="button"
               onClick={handleSubmit}
               disabled={isSaving || !name.trim() || parts.length === 0}
-              isActive={true}
-              className="border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold"
             >
               {isSaving ? 'Сохранение...' : editingAssembly ? 'Сохранить сборку' : 'Создать сборку'}
             </CockpitButton>
@@ -313,29 +294,29 @@ export function AssemblyModal({
         </div>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-3 pt-1 select-none font-mono text-xs">
+      <form onSubmit={handleSubmit} className="space-y-5 font-mono text-xs">
         {/* Название изделия */}
-        <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
+        <div className="space-y-2">
           <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5">
-            Название сборного изделия *
+            Название сборки
           </label>
           <input
             type="text"
-            placeholder="например: Модульный держатель катушки филамента Pro на подшипниках"
+            placeholder="Например, держатель катушки"
             value={name}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
             required
             autoFocus
-            className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none font-mono"
+            className="w-full bg-[#141416]/90 border border-[#26262b] focus-within:border-white/40 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none font-mono"
           />
         </div>
 
         {/* Вкладки разделов состава */}
-        <div className="flex items-center gap-1.5 p-1 bg-neutral-950 border border-white/10 rounded-xl overflow-x-auto select-none">
+        <div className="grid grid-cols-3 gap-1 p-1 bg-[#141416]/90 border border-[#26262b] rounded-xl select-none">
           <button
             type="button"
             onClick={() => setActiveTab('parts')}
-            className={`relative flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono text-xs cursor-pointer select-none transition-colors ${
+            className={`relative flex min-w-0 items-center justify-center gap-1 px-1 sm:px-3 py-2 rounded-lg font-mono text-[11px] sm:text-xs cursor-pointer select-none ${
               activeTab === 'parts'
                 ? 'text-white font-bold'
                 : 'text-neutral-400 hover:text-white hover:bg-white/5'
@@ -344,18 +325,18 @@ export function AssemblyModal({
             {activeTab === 'parts' && (
               <motion.div
                 layoutId="assembly-modal-active-tab"
-                className="absolute inset-0 rounded-lg bg-white/10 border border-white/15"
+                className="absolute inset-0 rounded-lg bg-white/10 border border-[#26262b]"
                 transition={{ type: 'spring', stiffness: 500, damping: 35 }}
               />
             )}
-            <Box size={14} className={`relative z-10 ${activeTab === 'parts' ? 'text-cyan-400' : 'text-neutral-500'}`} />
-            <span className="relative z-10">Печатные детали ({parts.length})</span>
+            <Box size={14} className={`hidden sm:block relative z-10 ${activeTab === 'parts' ? 'text-cyan-400' : 'text-neutral-500'}`} />
+            <span className="relative z-10">Детали ({parts.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('hardware')}
-            className={`relative flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono text-xs cursor-pointer select-none transition-colors ${
+            className={`relative flex min-w-0 items-center justify-center gap-1 px-1 sm:px-3 py-2 rounded-lg font-mono text-[11px] sm:text-xs cursor-pointer select-none ${
               activeTab === 'hardware'
                 ? 'text-white font-bold'
                 : 'text-neutral-400 hover:text-white hover:bg-white/5'
@@ -364,18 +345,18 @@ export function AssemblyModal({
             {activeTab === 'hardware' && (
               <motion.div
                 layoutId="assembly-modal-active-tab"
-                className="absolute inset-0 rounded-lg bg-white/10 border border-white/15"
+                className="absolute inset-0 rounded-lg bg-white/10 border border-[#26262b]"
                 transition={{ type: 'spring', stiffness: 500, damping: 35 }}
               />
             )}
-            <Wrench size={14} className={`relative z-10 ${activeTab === 'hardware' ? 'text-amber-400' : 'text-neutral-500'}`} />
+            <Wrench size={14} className={`hidden sm:block relative z-10 ${activeTab === 'hardware' ? 'text-amber-400' : 'text-neutral-500'}`} />
             <span className="relative z-10">Крепёж ({hardware.length})</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('electronics')}
-            className={`relative flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono text-xs cursor-pointer select-none transition-colors ${
+            className={`relative flex min-w-0 items-center justify-center gap-1 px-1 sm:px-3 py-2 rounded-lg font-mono text-[11px] sm:text-xs cursor-pointer select-none ${
               activeTab === 'electronics'
                 ? 'text-white font-bold'
                 : 'text-neutral-400 hover:text-white hover:bg-white/5'
@@ -384,11 +365,11 @@ export function AssemblyModal({
             {activeTab === 'electronics' && (
               <motion.div
                 layoutId="assembly-modal-active-tab"
-                className="absolute inset-0 rounded-lg bg-white/10 border border-white/15"
+                className="absolute inset-0 rounded-lg bg-white/10 border border-[#26262b]"
                 transition={{ type: 'spring', stiffness: 500, damping: 35 }}
               />
             )}
-            <Cpu size={14} className={`relative z-10 ${activeTab === 'electronics' ? 'text-cyan-400' : 'text-neutral-500'}`} />
+            <Cpu size={14} className={`hidden sm:block relative z-10 ${activeTab === 'electronics' ? 'text-cyan-400' : 'text-neutral-500'}`} />
             <span className="relative z-10">Электроника ({electronics.length})</span>
           </button>
         </div>
@@ -402,14 +383,10 @@ export function AssemblyModal({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.15 }}
-              className="bg-neutral-900 border border-white/10 rounded-xl overflow-hidden"
+              className="overflow-hidden"
             >
-              <div className="p-3 bg-neutral-950 border-b border-white/10 flex items-center justify-between gap-2 flex-wrap">
+              <div className="pb-3 border-b border-[#26262b] flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
-                  <Box size={14} className="text-cyan-400" />
-                  <span className="font-bold text-neutral-300 uppercase tracking-wider text-xs font-mono">
-                    3D-Печатные детали ({parts.length})
-                  </span>
                   <span className="px-2 py-0.5 rounded bg-white/10 text-neutral-300 text-[10px] font-mono">
                     {totals.totalWeight} г • {totals.totalHours}ч {totals.totalMins}м
                   </span>
@@ -424,16 +401,16 @@ export function AssemblyModal({
                 </CockpitButton>
               </div>
 
-              <div className="p-3 space-y-2">
+              <div className="py-3 space-y-3">
                 {/* Поисковая строка */}
                 <div className="relative">
                   <Search className="w-3.5 h-3.5 text-neutral-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
-                    placeholder="Фильтр деталей из каталога..."
+                    placeholder="Найти деталь в каталоге"
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)}
-                    className="w-full bg-neutral-950 border border-white/10 focus:border-cyan-400 rounded-lg pl-8 pr-7 py-1.5 text-xs text-white placeholder-neutral-600 focus:outline-none font-mono"
+                    className="w-full bg-[#141416]/90 border border-[#26262b] focus-within:border-white/40 rounded-lg pl-8 pr-7 py-1.5 text-xs text-white placeholder-neutral-600 focus:outline-none font-mono"
                   />
                   {productSearch && (
                     <button
@@ -449,7 +426,7 @@ export function AssemblyModal({
                 {/* Список деталей каталога */}
                 <div className="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
                   {filteredSingleProducts.length === 0 ? (
-                    <p className="text-center text-xs text-neutral-500 py-3 bg-neutral-950 rounded-lg">
+                    <p className="text-center text-xs text-neutral-500 py-3 bg-[#141416]/90 rounded-lg">
                       [ Детали не найдены ]
                     </p>
                   ) : (
@@ -462,10 +439,10 @@ export function AssemblyModal({
                         <div
                           key={prod.id}
                           onClick={() => handleToggleCatalogProduct(prod)}
-                          className={`flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer select-none ${
+                          className={`flex flex-col items-stretch gap-2 sm:flex-row sm:items-center justify-between py-3 sm:p-2 rounded-lg border text-xs cursor-pointer select-none ${
                             isChecked
                               ? 'bg-white/10 border-white/20 text-white font-medium'
-                              : 'bg-neutral-950 border-white/5 text-neutral-400 hover:text-white hover:bg-white/5'
+                              : 'bg-[#141416]/90 border-white/5 text-neutral-400 hover:text-white hover:bg-white/5'
                           }`}
                         >
                           <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -473,7 +450,7 @@ export function AssemblyModal({
                               <Checkbox
                                 checked={isChecked}
                                 onChange={() => handleToggleCatalogProduct(prod)}
-                                variant="primary"
+                                variant="neutral"
                                 size="sm"
                               />
                             </div>
@@ -502,7 +479,7 @@ export function AssemblyModal({
                           <div className="flex items-center gap-2 shrink-0 ml-2">
                             {isChecked && (
                               <div
-                                className="flex items-center bg-neutral-900 border border-white/10 rounded p-0.5"
+                                className="flex items-center bg-[#121214]/90 border border-[#26262b] rounded p-0.5"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <button
@@ -537,16 +514,16 @@ export function AssemblyModal({
 
                 {/* Ручные кастомные детали */}
                 {customManualParts.length > 0 && (
-                  <div className="pt-2 border-t border-white/10 space-y-1">
+                  <div className="pt-2 border-t border-[#26262b] space-y-1">
                     <span className="text-[10px] font-mono text-neutral-500 uppercase tracking-wider block">
-                      Нестандартные детали ({customManualParts.length}):
+                      Добавленные вручную
                     </span>
                     {customManualParts.map((part, index) => {
                       const actualIndex = parts.findIndex((p) => p.id === part.id);
                       return (
                         <div
                           key={part.id || index}
-                          className="flex items-center justify-between bg-neutral-950 p-2 rounded-lg border border-white/10 text-xs gap-2"
+                          className="flex flex-wrap items-center justify-between bg-[#141416]/90 p-2 rounded-lg border border-[#26262b] text-xs gap-2"
                         >
                           <input
                             type="text"
@@ -556,7 +533,7 @@ export function AssemblyModal({
                                 prev.map((p, i) => (i === actualIndex ? { ...p, name: e.target.value } : p))
                               )
                             }
-                            className="bg-transparent border-b border-neutral-700 focus:border-cyan-400 text-white font-mono outline-none text-xs flex-1 min-w-[120px]"
+                            className="bg-transparent border-b border-neutral-700 focus-within:border-white/40 text-white font-mono outline-none text-xs w-full sm:w-auto sm:flex-1 min-w-0"
                           />
 
                           <div className="flex items-center gap-2 font-mono text-neutral-300 text-[10px]">
@@ -591,9 +568,9 @@ export function AssemblyModal({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.15 }}
-              className="bg-neutral-900 border border-white/10 rounded-xl overflow-hidden"
+              className="overflow-hidden"
             >
-              <div className="p-3 bg-neutral-950 border-b border-white/10 flex items-center justify-between gap-2 flex-wrap">
+              <div className="pb-3 border-b border-[#26262b] flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
                   <Wrench size={14} className="text-amber-400" />
                   <span className="font-bold text-neutral-300 uppercase tracking-wider text-xs font-mono">
@@ -616,7 +593,7 @@ export function AssemblyModal({
               <div className="p-3">
                 <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
                   {hardware.length === 0 ? (
-                    <p className="text-xs text-neutral-500 italic p-3 bg-neutral-950 rounded-lg text-center font-mono">
+                    <p className="text-xs text-neutral-500 italic p-3 bg-[#141416]/90 rounded-lg text-center font-mono">
                       [ Фурнитура и покупные крепежи не добавлены ]
                     </p>
                   ) : (
@@ -625,7 +602,7 @@ export function AssemblyModal({
                       return (
                         <div
                           key={hw.id || index}
-                          className="flex items-center justify-between bg-neutral-950 p-2 rounded-lg border border-white/10 text-xs gap-2"
+                          className="flex items-center justify-between bg-[#141416]/90 p-2 rounded-lg border border-[#26262b] text-xs gap-2"
                         >
                           <div className="flex-1 min-w-[120px]">
                             <input
@@ -637,12 +614,12 @@ export function AssemblyModal({
                                   prev.map((item, i) => (i === index ? { ...item, name: e.target.value } : item))
                                 )
                               }
-                              className="bg-neutral-900 border border-white/10 focus:border-cyan-400 rounded px-2 py-1 text-white font-mono text-xs w-full focus:outline-none"
+                              className="bg-[#121214]/90 border border-[#26262b] focus-within:border-white/40 rounded px-2 py-1 text-white font-mono text-xs w-full focus:outline-none"
                             />
                           </div>
 
                           <div className="flex items-center gap-2 shrink-0">
-                            <div className="flex items-center bg-neutral-900 border border-white/10 rounded p-0.5">
+                            <div className="flex items-center bg-[#121214]/90 border border-[#26262b] rounded p-0.5">
                               <button
                                 type="button"
                                 onClick={() => handleUpdateHwQty(index, -1)}
@@ -675,7 +652,7 @@ export function AssemblyModal({
                                     )
                                   )
                                 }
-                                className="w-12 bg-neutral-900 border border-white/10 focus:border-cyan-400 rounded px-1 py-0.5 text-center text-white font-mono text-xs focus:outline-none"
+                                className="w-12 bg-[#121214]/90 border border-[#26262b] focus-within:border-white/40 rounded px-1 py-0.5 text-center text-white font-mono text-xs focus:outline-none"
                               />
                             </div>
 
@@ -710,9 +687,9 @@ export function AssemblyModal({
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.15 }}
-              className="bg-neutral-900 border border-white/10 rounded-xl overflow-hidden"
+              className="overflow-hidden"
             >
-              <div className="p-3 bg-neutral-950 border-b border-white/10 flex items-center justify-between gap-2 flex-wrap">
+              <div className="pb-3 border-b border-[#26262b] flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
                   <Cpu size={14} className="text-cyan-400" />
                   <span className="font-bold text-neutral-300 uppercase tracking-wider text-xs font-mono">
@@ -736,7 +713,7 @@ export function AssemblyModal({
               <div className="p-3">
                 <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
                   {electronics.length === 0 ? (
-                    <p className="text-xs text-neutral-500 italic p-3 bg-neutral-950 rounded-lg text-center font-mono">
+                    <p className="text-xs text-neutral-500 italic p-3 bg-[#141416]/90 rounded-lg text-center font-mono">
                       [ Электронные модули и компоненты не добавлены ]
                     </p>
                   ) : (
@@ -745,7 +722,7 @@ export function AssemblyModal({
                       return (
                         <div
                           key={el.id || index}
-                          className="flex items-center justify-between bg-neutral-950 p-2 rounded-lg border border-white/10 text-xs gap-2"
+                          className="flex items-center justify-between bg-[#141416]/90 p-2 rounded-lg border border-[#26262b] text-xs gap-2"
                         >
                           <div className="flex-1 min-w-[120px]">
                             <input
@@ -757,12 +734,12 @@ export function AssemblyModal({
                                   prev.map((item, i) => (i === index ? { ...item, name: e.target.value } : item))
                                 )
                               }
-                              className="bg-neutral-900 border border-white/10 focus:border-cyan-400 rounded px-2 py-1 text-white font-mono text-xs w-full focus:outline-none"
+                              className="bg-[#121214]/90 border border-[#26262b] focus-within:border-white/40 rounded px-2 py-1 text-white font-mono text-xs w-full focus:outline-none"
                             />
                           </div>
 
                           <div className="flex items-center gap-2 shrink-0">
-                            <div className="flex items-center bg-neutral-900 border border-white/10 rounded p-0.5">
+                            <div className="flex items-center bg-[#121214]/90 border border-[#26262b] rounded p-0.5">
                               <button
                                 type="button"
                                 onClick={() => handleUpdateElectronicsQty(index, -1)}
@@ -795,7 +772,7 @@ export function AssemblyModal({
                                     )
                                   )
                                 }
-                                className="w-14 bg-neutral-900 border border-white/10 focus:border-cyan-400 rounded px-1 py-0.5 text-center text-white font-mono text-xs focus:outline-none"
+                                className="w-14 bg-[#121214]/90 border border-[#26262b] focus-within:border-white/40 rounded px-1 py-0.5 text-center text-white font-mono text-xs focus:outline-none"
                               />
                             </div>
 
@@ -812,7 +789,7 @@ export function AssemblyModal({
                                     )
                                   )
                                 }
-                                className="w-14 bg-neutral-900 border border-white/10 focus:border-cyan-400 rounded px-1 py-0.5 text-center text-white font-mono text-xs focus:outline-none"
+                                className="w-14 bg-[#121214]/90 border border-[#26262b] focus-within:border-white/40 rounded px-1 py-0.5 text-center text-white font-mono text-xs focus:outline-none"
                               />
                             </div>
 
@@ -841,7 +818,7 @@ export function AssemblyModal({
         </AnimatePresence>
 
         {/* 3. СЕКЦИЯ: Ручная сборка */}
-        <div className="bg-neutral-900 border border-white/10 rounded-xl p-3 space-y-2">
+        <ModalDetails title="Работа по сборке" summary={laborMinutes + " мин"}>
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-2">
               <div className="p-1.5 rounded-lg bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
@@ -849,7 +826,7 @@ export function AssemblyModal({
               </div>
               <div>
                 <span className="text-xs font-bold text-neutral-200 uppercase tracking-wider block font-mono">
-                  Ручная сборка и подгонка
+                  Время на сборку
                 </span>
                 <span className="text-[10px] text-neutral-400 font-sans">
                   Время мастера на соединение деталей и тестирование
@@ -858,7 +835,7 @@ export function AssemblyModal({
             </div>
 
             <div className="flex items-center gap-3 font-mono">
-              <div className="flex items-center gap-1.5 bg-neutral-950 border border-white/10 rounded-lg px-2 py-1">
+              <div className="flex items-center gap-1.5 bg-[#141416]/90 border border-[#26262b] rounded-lg px-2 py-1">
                 <Clock size={12} className="text-cyan-400" />
                 <input
                   type="number"
@@ -886,7 +863,7 @@ export function AssemblyModal({
             className={`p-2.5 rounded-lg border flex items-center justify-between cursor-pointer select-none ${
               isOwnerLabor
                 ? 'bg-emerald-950/30 border-emerald-500/40 text-emerald-300'
-                : 'bg-neutral-950 border-white/5 text-neutral-400 hover:text-white'
+                : 'bg-[#141416]/90 border-white/5 text-neutral-400 hover:text-white'
             }`}
           >
             <div className="flex items-center gap-2 text-xs min-w-0 flex-1">
@@ -894,16 +871,16 @@ export function AssemblyModal({
                 <Checkbox
                   checked={isOwnerLabor}
                   onChange={() => setIsOwnerLabor(!isOwnerLabor)}
-                  variant="emerald"
+                  variant="neutral"
                   size="sm"
                 />
               </div>
               <div className="min-w-0 flex-1 font-sans text-xs">
-                <span>Личный труд владельца (оплата сборки переходит в чистую прибыль)</span>
+                <span>Собираю сам — стоимость работы учитывать как прибыль</span>
               </div>
             </div>
           </div>
-        </div>
+        </ModalDetails>
       </form>
     </Modal>
   );

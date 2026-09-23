@@ -16,6 +16,9 @@ Module._load = function loadTestFontModule(request, parent, isMain) {
       JetBrains_Mono: () => ({ variable: '--test-mono' }),
     };
   }
+  if (request === 'next/font/local') {
+    return ({ variable }) => ({ variable });
+  }
   if (request === '@/app/auth/actions') {
     return {};
   }

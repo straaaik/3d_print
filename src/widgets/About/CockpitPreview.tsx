@@ -31,7 +31,7 @@ export function CockpitPreview() {
               <span className="w-3 h-3 rounded-full bg-emerald-500/80 border border-emerald-400/40 inline-block" />
             </div>
             <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-white/10">
-              <span className="font-mono text-xs text-neutral-400">3dlabs · control-node-01</span>
+              <span className="font-mono text-xs text-neutral-400">kumocrm · control-node-01</span>
               <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-950/80 text-emerald-400 border border-emerald-700/50">
                 LIVE
               </span>
@@ -92,7 +92,7 @@ export function CockpitPreview() {
                 {/* Карточки KPI заказов */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <motion.div
-                    whileHover={{ transform: 'translateY(-2px)' }}
+                    whileHover={{ y: -2 }}
                     className="border border-white/10 bg-white/[0.02] hover:border-white/20 p-3.5 rounded-xl"
                   >
                     <span className="font-mono text-[11px] text-neutral-400 uppercase">Выручка за месяц</span>
@@ -107,7 +107,7 @@ export function CockpitPreview() {
                   </motion.div>
 
                   <motion.div
-                    whileHover={{ transform: 'translateY(-2px)' }}
+                    whileHover={{ y: -2 }}
                     className="border border-white/10 bg-white/[0.02] hover:border-white/20 p-3.5 rounded-xl"
                   >
                     <span className="font-mono text-[11px] text-neutral-400 uppercase">Чистая прибыль</span>
@@ -119,7 +119,7 @@ export function CockpitPreview() {
                   </motion.div>
 
                   <motion.div
-                    whileHover={{ transform: 'translateY(-2px)' }}
+                    whileHover={{ y: -2 }}
                     className="border border-white/10 bg-white/[0.02] hover:border-white/20 p-3.5 rounded-xl"
                   >
                     <span className="font-mono text-[11px] text-neutral-400 uppercase">Заказов в работе</span>
@@ -131,7 +131,7 @@ export function CockpitPreview() {
                   </motion.div>
 
                   <motion.div
-                    whileHover={{ transform: 'translateY(-2px)' }}
+                    whileHover={{ y: -2 }}
                     className="border border-white/10 bg-white/[0.02] hover:border-white/20 p-3.5 rounded-xl"
                   >
                     <span className="font-mono text-[11px] text-neutral-400 uppercase">Сроки и дедлайны</span>

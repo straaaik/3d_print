@@ -178,7 +178,7 @@ export function StatsDashboard() {
                 <span className="h-3 w-3 rounded-full border border-emerald-400/40 bg-emerald-500/80" />
               </div>
               <div className="flex min-w-0 flex-wrap items-center gap-2 border-l border-white/10 pl-3 font-mono text-xs">
-                <strong className="text-white">3D-LABS</strong><span className="text-neutral-600">{'//'}</span><span className="text-neutral-400">СТАТИСТИКА</span>
+                <strong className="text-white">KUMO-CRM</strong><span className="text-neutral-600">{'//'}</span><span className="text-neutral-400">СТАТИСТИКА</span>
                 <span className={`flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] ${isOnline ? 'border-emerald-800/40 bg-emerald-950/60 text-emerald-400' : 'border-white/10 bg-white/5 text-neutral-400'}`}><i className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-neutral-500'}`} />{isOnline ? 'Online' : 'Offline'}</span>
               </div>
             </div>

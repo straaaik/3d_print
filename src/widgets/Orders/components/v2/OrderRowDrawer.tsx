@@ -312,7 +312,7 @@ function StatusDropdownPortal({
 
       <div className="px-3 py-1 bg-neutral-950 border-t border-white/5 text-[9px] font-mono text-neutral-500 uppercase tracking-wider flex items-center justify-between shrink-0">
         <span>{ALL_STATUSES.length} ОПЦИЙ</span>
-        <span className="text-neutral-600">3DLABS</span>
+        <span className="text-neutral-600">KUMO CRM</span>
       </div>
     </motion.div>,
     document.body

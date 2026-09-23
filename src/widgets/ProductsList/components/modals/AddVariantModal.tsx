@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { ProductCollection, SavedCalculation, Filament, Printer } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
-import { CockpitDropdown } from '../../../../shared/ui/CockpitDropdown';
+import { ModalDropdown } from '../../../../shared/ui/ModalDropdown';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
-import {  Layers, Copy, Sparkles } from 'lucide-react';
+import { Input } from '../../../../shared/ui/Input';
 
 interface AddVariantModalProps {
   collection: ProductCollection | null;
@@ -72,114 +72,50 @@ function AddVariantModalForm({
     <Modal
       isOpen={Boolean(collection)}
       onClose={onClose}
-      title="Добавление модификации"
+      title="Новый вариант"
       subtitle={collection.name}
       maxWidth="lg"
       footer={
-        <div className="flex items-center justify-between gap-3 select-none w-full font-mono text-xs">
-          <button
-            type="button"
-            onClick={onNavigateToCalculator}
-            className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1.5 cursor-pointer font-mono font-semibold"
-          >
-            <Sparkles size={13} />
-            <span>[ Рассчитать в калькуляторе ]</span>
-          </button>
-
-          <div className="flex items-center gap-2">
-            <CockpitButton type="button" onClick={onClose} disabled={isSubmitting}>
-              Закрыть
-            </CockpitButton>
-            <CockpitButton
-              type="button"
-              onClick={handleSubmit}
-              disabled={isSubmitting || !variantName.trim()}
-              isActive={true}
-              className="border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold"
-            >
-              {isSubmitting ? 'Создание...' : 'Добавить вариант'}
-            </CockpitButton>
-          </div>
+        <div className="flex w-full flex-wrap items-center justify-between gap-3">
+          <CockpitButton onClick={onNavigateToCalculator}>В калькулятор</CockpitButton>
+          <CockpitButton type="submit" form="add-variant-form" disabled={isSubmitting || !variantName.trim()}>
+            {isSubmitting ? 'Создание...' : 'Добавить вариант'}
+          </CockpitButton>
         </div>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-3 pt-1 select-none font-mono text-xs">
-        {/* Базовый вариант (источник) */}
+      <form id="add-variant-form" onSubmit={handleSubmit} className="space-y-5">
         {childsInCol.length > 0 && (
-          <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
-            <label className="block text-xs font-bold text-neutral-300 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <Copy size={13} className="text-cyan-400" />
-              Взять за основу существующий вариант
-            </label>
-            <CockpitDropdown
-              options={childsInCol.map((c) => ({
-                value: c.id,
-                label: `${c.name} (${c.filament_name || 'Пластик'}, ${c.weight_g}г)`,
-              }))}
-              value={sourceId}
-              onChange={(val: string) => {
-                setSourceId(val);
-                const src = savedCalculations.find((c) => c.id === val);
-                if (src) {
-                  setVariantName(`${src.name} (копия)`);
-                  setFilamentId(src.filament_id || filaments[0]?.id || '');
-                  setWeight(src.weight_g?.toString() || '50');
-                }
-              }}
-              usePortal={true}
-            />
-          </div>
-        )}
-
-        {/* Название варианта */}
-        <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
-          <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5">
-            Название нового варианта *
-          </label>
-          <input
-            type="text"
-            placeholder="например: Дракон 200% Красный Silk или Размер L (PETG)"
-            value={variantName}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVariantName(e.target.value)}
-            required
-            autoFocus
-            className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-600 focus:outline-none font-mono"
+          <ModalDropdown
+            label="На основе"
+            ariaLabel="На основе"
+            options={childsInCol.map((c) => ({ value: c.id, label: c.name }))}
+            value={sourceId}
+            onChange={(val) => {
+              setSourceId(val);
+              const src = savedCalculations.find((c) => c.id === val);
+              if (src) {
+                setVariantName(src.name + ' (копия)');
+                setFilamentId(src.filament_id || filaments[0]?.id || '');
+                setWeight(src.weight_g?.toString() || '50');
+              }
+            }}
+            usePortal
           />
+        )}
+        <Input label="Название" aria-label="Название варианта" placeholder="Например, корпус — размер L" value={variantName} onChange={(e) => setVariantName(e.target.value)} required autoFocus />
+        <div className="grid gap-4 sm:grid-cols-[1fr_130px]">
+          <ModalDropdown
+            label="Материал"
+            ariaLabel="Материал варианта"
+            options={filaments.map((f) => ({ value: f.id, label: f.name, color: f.color }))}
+            value={filamentId}
+            onChange={setFilamentId}
+            usePortal
+          />
+          <Input label="Вес, г" aria-label="Вес варианта, г" type="number" min="1" value={weight} onChange={(e) => setWeight(e.target.value)} required />
         </div>
-
-        {/* Материал и Вес */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
-            <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-              <Layers size={13} className="text-cyan-400" />
-              Материал / Филамент
-            </label>
-            <CockpitDropdown
-              options={filaments.map((f) => ({
-                value: f.id,
-                label: `${f.name} (${f.color || ''})`,
-                color: f.color,
-              }))}
-              value={filamentId}
-              onChange={(val: string) => setFilamentId(val)}
-              usePortal={true}
-            />
-          </div>
-
-          <div className="bg-neutral-900 p-3 rounded-xl border border-white/10">
-            <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider mb-1.5">
-              Масса детали (грамм)
-            </label>
-            <input
-              type="number"
-              min="1"
-              placeholder="Масса в граммах"
-              value={weight}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setWeight(e.target.value)}
-              className="w-full bg-neutral-950 border border-white/15 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white font-mono placeholder-neutral-600 focus:outline-none "
-            />
-          </div>
-        </div>
+        <p className="text-[11px] leading-relaxed text-neutral-500">Параметры печати будут скопированы из исходного варианта. Для нового расчёта откройте калькулятор.</p>
       </form>
     </Modal>
   );

@@ -49,7 +49,7 @@ import { EditStlModal } from './components/modals/EditStlModal';
 import { CategoryModal } from './components/modals/CategoryModal';
 import { DeleteProductModal } from './components/modals/DeleteProductModal';
 import { ClearCatalogModal } from './components/modals/ClearCatalogModal';
-import { QuickEditProductModal } from './components/modals/QuickEditProductModal';
+import { RoundDeleteModal } from '../../shared/ui/RoundDeleteModal';
 
 export interface ProductsListProps {
   isExpanded?: boolean;
@@ -354,8 +354,8 @@ export function ProductsList({
   const [editingCategoryItem, setEditingCategoryItem] = useState<SavedCalculation | null>(null);
   const [deletingProductItem, setDeletingProductItem] = useState<{ id: string; name: string; type?: string } | null>(null);
   const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+  const [isBatchDeleteModalOpen, setIsBatchDeleteModalOpen] = useState(false);
 
-  const [quickEditProductItem, setQuickEditProductItem] = useState<SavedCalculation | null>(null);
 
   // 15. Множественный выбор строк (Multi-selection)
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -382,14 +382,19 @@ export function ProductsList({
     setIsBatchMoveOpen(true);
   };
 
-  const handleBatchDeleteSelected = async () => {
+  const handleBatchDeleteSelected = () => {
+    if (selectedIds.length === 0) return;
+    setIsBatchDeleteModalOpen(true);
+  };
+
+  const handleConfirmBatchDelete = async () => {
     if (selectedIds.length === 0) return;
     const count = selectedIds.length;
-    if (!window.confirm(`Вы уверены, что хотите удалить ${count} выбранных позиций?`)) return;
     pushHistory();
     const remaining = savedCalculations.filter((c) => !selectedIds.includes(c.id));
     await restoreAllSavedCalculations(remaining);
     setSelectedIds([]);
+    setIsBatchDeleteModalOpen(false);
     showSuccess(`Удалено ${count} товаров`, 'Удаление');
   };
 
@@ -681,11 +686,6 @@ export function ProductsList({
     showSuccess('Каталог товаров очищен. Нажмите Ctrl+Z для отмены.', 'Каталог очищен');
   };
 
-  const handleSaveQuickEdit = async (updated: SavedCalculation) => {
-    pushHistory();
-    await updateSavedCalculation(updated);
-    showSuccess(`Товар «${updated.name}» успешно обновлен!`, 'Успешно');
-  };
 
   // 16. Преобразование данных в строки таблицы (CatalogTableRow)
   const tableData = useMemo<CatalogTableRow[]>(() => {
@@ -1015,13 +1015,9 @@ export function ProductsList({
         onInlineUpdateCollection={handleInlineUpdateCollection}
         onSetStock={handleSetStock}
         onOpenCategoryModal={(item) => setEditingCategoryItem(item)}
-        onOpenQuickEditModal={(item) => {
-          if (item.type === 'assembly') {
-            setEditingAssembly(item);
-            setIsAssemblyModalOpen(true);
-          } else {
-            setQuickEditProductItem(item);
-          }
+        onOpenEditAssembly={(item) => {
+          setEditingAssembly(item);
+          setIsAssemblyModalOpen(true);
         }}
         onCreateOrder={handleCreateOrder}
         onLoadIntoCalculator={handleLoadIntoCalculator}
@@ -1169,6 +1165,8 @@ export function ProductsList({
         />
       )}
 
+
+
       {deletingProductItem && (
         <DeleteProductModal
           item={deletingProductItem}
@@ -1185,16 +1183,18 @@ export function ProductsList({
         />
       )}
 
-      {quickEditProductItem && (
-        <QuickEditProductModal
-          item={quickEditProductItem}
-          filaments={filaments}
-          printers={printers}
-          categoryOptions={categoryFilterOptions}
-          onClose={() => setQuickEditProductItem(null)}
-          onSave={handleSaveQuickEdit}
+      {isBatchDeleteModalOpen && (
+        <RoundDeleteModal
+          isOpen={isBatchDeleteModalOpen}
+          onClose={() => setIsBatchDeleteModalOpen(false)}
+          onConfirm={handleConfirmBatchDelete}
+          title="Пакетное удаление"
+          itemName={`${selectedIds.length} позиций`}
+          itemDetails="Выбранные товары каталога"
+          description="Вы уверены, что хотите удалить выбранные позиции из каталога? Действие необратимо."
         />
       )}
+
     </div>
   );
 }

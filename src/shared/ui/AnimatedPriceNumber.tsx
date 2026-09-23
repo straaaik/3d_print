@@ -54,10 +54,10 @@ export function AnimatedPriceNumber({
               scale: [1, 1.05, 1],
               filter: ['brightness(1)', 'brightness(1.35)', 'brightness(1)'],
             }
-          : { scale: 1, filter: 'brightness(1)' }
+          : { scale: 1, filter: 'none' }
       }
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className={`inline-flex items-baseline gap-0.5 tabular-nums font-mono ${className}`}
+      className={`inline-flex items-baseline gap-0.5 tabular-nums font-mono leading-none ${className}`}
     >
       {showPositiveSign && roundedValue > 0 && (
         <span className="select-none mr-0.5">+</span>

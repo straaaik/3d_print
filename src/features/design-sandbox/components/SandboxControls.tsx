@@ -31,7 +31,7 @@ interface Props {
 
 type TabType = 'geometry' | 'colors' | 'palette' | 'badges' | 'finance' | 'inputs';
 
-// Фирменные цвета 3D Labs Cockpit для быстрой подстановки в инпуты
+// Фирменные цвета Kumo CRM Cockpit для быстрой подстановки в инпуты
 const quickColors = [
   { name: 'Cockpit Sand', hex: '#D2CCBB' },
   { name: 'Primary Cyan', hex: '#0CB4E0' },
@@ -641,13 +641,13 @@ export function SandboxControls({
           </div>
         )}
 
-        {/* ТАБ: ФИРМЕННАЯ ПАЛИТРА 3D LABS */}
+        {/* ТАБ: ФИРМЕННАЯ ПАЛИТРА KUMO CRM */}
         {activeTab === 'palette' && (
           <div className="space-y-4">
             <div className="p-2 rounded-lg bg-white/[0.03] border border-white/10 text-[11px] text-neutral-300 leading-relaxed">
               <div className="flex items-center gap-1.5 font-bold text-amber-400 mb-1">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Официальная палитра 3D Labs Cockpit</span>
+                <span>Официальная палитра Kumo CRM Cockpit</span>
               </div>
               Кликните <span className="text-cyan-400 font-semibold">HEX</span> чтобы скопировать цвет в буфер, либо нажмите кнопки быстрого применения к блокам.
             </div>
@@ -1098,7 +1098,7 @@ export function SandboxControls({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}

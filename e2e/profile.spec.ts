@@ -7,7 +7,7 @@ test('профиль открывается из хаба и рабочих ра
     await expect(page).toHaveURL('/settings?section=profile');
     const badge = page.getByRole('article', { name: 'Бейдж профиля' });
     await expect(badge.getByText('Kumo', { exact: true })).toBeVisible();
-    await expect(badge.getByText('dev@3dlabs.pro', { exact: true })).toBeVisible();
+    await expect(badge.getByText('dev@kumocrm.pro', { exact: true })).toBeVisible();
     await expect(badge.getByText('Администратор', { exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Открыть профиль' })).toHaveAttribute('aria-current', 'page');
     await expect(page.getByRole('link', { name: /Заказы/ })).not.toHaveAttribute('aria-current', 'page');

@@ -69,7 +69,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
           </main>
           <footer className="w-full select-none border-t border-white/10 bg-neutral-950/80 py-6 font-mono text-[11px] text-neutral-500 backdrop-blur-md">
             <div className="mx-auto flex max-w-[1500px] flex-col items-center justify-between gap-2 px-4 sm:flex-row">
-              <span>3D LABS · SETTINGS RUNTIME v2.4</span>
+              <span>KUMO CRM · SETTINGS RUNTIME v2.4</span>
               <span>CONFIG: SECURE SYNCED RUNTIME</span>
             </div>
           </footer>

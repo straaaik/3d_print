@@ -219,13 +219,13 @@ export const MonthSelector = React.memo(function MonthSelector({
           disabled={disabled}
           aria-label={`Выбрать месяц: ${currentDisplayText}`}
           title={`Выбрать месяц: ${currentDisplayText}`}
-          className={`min-w-0 flex-1 h-full mx-0.5 flex items-center justify-center gap-1.5 px-1.5 rounded-lg text-xs font-mono cursor-pointer overflow-hidden ${
+          className={`group min-w-0 flex-1 h-full mx-0.5 flex items-center justify-center gap-1.5 px-1.5 rounded-lg text-xs font-mono cursor-pointer overflow-hidden ${
             isSelectedOrOpen
               ? 'bg-neutral-800 border border-white/15 text-white shadow-sm font-semibold'
               : 'bg-transparent border border-transparent text-neutral-400 hover:text-white hover:bg-white/5'
           } disabled:cursor-not-allowed disabled:opacity-40`}
         >
-          <Calendar className={`w-3.5 h-3.5 shrink-0 ${isSelectedOrOpen ? 'text-cyan-400' : 'text-neutral-400'}`} />
+          <Calendar className={`w-3.5 h-3.5 shrink-0 transition-colors ${isSelectedOrOpen ? 'text-white' : 'text-neutral-400 group-hover:text-white'}`} />
           <span className="truncate font-medium text-[11px] select-none text-center">
             {currentDisplayText}
           </span>
@@ -274,7 +274,7 @@ export const MonthSelector = React.memo(function MonthSelector({
                     }`}
                   >
                     {isSelected && (
-                      <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-cyan-400" />
+                      <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-white" />
                     )}
 
                     <span className="truncate text-xs font-mono pl-0.5">
@@ -293,7 +293,7 @@ export const MonthSelector = React.memo(function MonthSelector({
 
             <div className="px-3 py-1.5 bg-neutral-950 border-t border-white/5 text-[9px] font-mono text-neutral-500 uppercase tracking-wider flex items-center justify-between shrink-0">
               <span>{dropdownOptions.length} ОПЦИЙ</span>
-              <span className="text-neutral-600">3DLABS</span>
+              <span className="text-neutral-600">KUMO CRM</span>
             </div>
           </motion.div>
         )}

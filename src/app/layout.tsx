@@ -1,23 +1,29 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { AppBackground } from "../shared/ui/AppBackground";
 import { AppMotionProvider } from "../shared/ui/AppMotionProvider";
 import { PageTransitionProvider } from "../shared/ui/page-transition/PageTransitionProvider";
 
-const inter = Inter({
+const inter = localFont({
+  src: "./fonts/Inter-Variable.ttf",
   variable: "--font-inter",
-  subsets: ["latin", "cyrillic"],
+  weight: "100 900",
+  style: "normal",
+  display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const jetbrainsMono = localFont({
+  src: "./fonts/JetBrainsMono-Variable.ttf",
   variable: "--font-jetbrains-mono",
-  subsets: ["latin", "cyrillic"],
+  weight: "100 800",
+  style: "normal",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "3D Labs • Калькулятор и учет 3D-печати",
+  title: "Kumo CRM • Калькулятор и учет 3D-печати",
   description: "Система учета заказов, калькулятор себестоимости 3D-печати и склад материалов",
 };
 

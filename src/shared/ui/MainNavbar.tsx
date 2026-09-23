@@ -155,7 +155,7 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
                 {/* Шапка меню */}
                 <div className="px-3 py-2 border-b border-white/10 mb-1">
                   <div className="font-bold text-white text-sm font-sans">{userName}</div>
-                  <div className="text-[11px] text-neutral-400 truncate">{currentUser?.email || 'user@3dlabs.local'}</div>
+                  <div className="text-[11px] text-neutral-400 truncate">{currentUser?.email || 'user@kumocrm.local'}</div>
                 </div>
 
                 {/* Пункт: Главный хаб */}
@@ -197,7 +197,7 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
                   className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-neutral-300 hover:text-white hover:bg-white/10 "
                 >
                   <Info className="w-4 h-4 text-cyan-400" />
-                  <span className="font-sans font-medium text-xs">О системе 3D Labs</span>
+                  <span className="font-sans font-medium text-xs">О системе Kumo CRM</span>
                 </Link>
 
                 {/* Разделитель */}

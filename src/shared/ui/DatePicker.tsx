@@ -247,12 +247,12 @@ export function DatePicker({
           ref={buttonRef}
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-full h-9 min-h-[36px] flex items-center justify-between bg-neutral-900 border border-white/15 hover:border-white/25 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 focus:outline-none rounded-xl px-3 text-white text-xs font-mono cursor-pointer select-none ${
+          className={`group w-full h-9 min-h-[36px] flex items-center justify-between bg-neutral-900 border border-white/15 hover:border-white/25 focus:border-white/30 focus:ring-1 focus:ring-white/20 focus:outline-none rounded-xl px-3 text-white text-xs font-mono cursor-pointer select-none ${
             error ? '!border-rose-500' : ''
           } ${buttonClassName}`}
         >
           <div className="flex items-center gap-2 min-w-0">
-            <CalendarIcon className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+            <CalendarIcon className="w-3.5 h-3.5 text-neutral-400 group-hover:text-white shrink-0 transition-colors" />
             <span className={`truncate font-mono ${value ? 'text-white font-medium' : 'text-neutral-500'}`}>
               {displayValue || placeholder}
             </span>
@@ -325,7 +325,7 @@ export function DatePicker({
                           selected
                             ? 'bg-white text-neutral-950 font-bold shadow-md'
                             : todayFlag
-                            ? 'bg-cyan-950/60 text-cyan-300 border border-cyan-500/40 font-bold'
+                            ? 'bg-white/15 text-white border border-white/40 font-bold'
                             : item.isCurrentMonth
                             ? 'text-neutral-200 hover:bg-white/10 hover:text-white'
                             : 'text-neutral-600 hover:bg-white/5'
@@ -342,7 +342,7 @@ export function DatePicker({
                   <button
                     type="button"
                     onClick={handleSelectToday}
-                    className="text-cyan-400 hover:underline font-semibold cursor-pointer"
+                    className="text-neutral-300 hover:text-white hover:underline font-semibold cursor-pointer"
                   >
                     Сегодня ({formatDateString(new Date(), format)})
                   </button>

@@ -44,7 +44,7 @@ export default function AboutPage() {
               {/* Верхний бейдж */}
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-neutral-300 font-mono text-xs">
                 <MotionPulse className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                <span>3D-LABS OS · ВСЕМОГУЩИЙ УЧЕТ 3D-ПЕЧАТИ</span>
+                <span>KUMO CRM OS · ВСЕМОГУЩИЙ УЧЕТ 3D-ПЕЧАТИ</span>
               </div>
 
               {/* Главный заголовок с акцентным курсивом (Meridian style) */}
@@ -65,7 +65,7 @@ export default function AboutPage() {
                   className="inline-flex items-center justify-center rounded-xl font-bold tracking-tight text-sm h-12 px-7 bg-white text-neutral-950 hover:bg-neutral-200 shadow-[0_0_25px_-5px_rgba(255,255,255,0.4)] cursor-pointer"
                 >
                   <span className="flex items-center gap-2">
-                    {isAuthenticated ? 'Открыть панель управления' : 'Начать работу с 3D Labs'}
+                    {isAuthenticated ? 'Открыть панель управления' : 'Начать работу с Kumo CRM'}
                     <ArrowRight className="w-4 h-4" />
                   </span>
                 </Link>
@@ -120,13 +120,13 @@ export default function AboutPage() {
                   СПЕЦИФИКАЦИЯ СИСТЕМЫ · 6 МОДУЛЕЙ
                 </span>
                 <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-[1.05]">
-                  3D Labs, <em className="text-neutral-400 font-normal italic">в деталях.</em>
+                  Kumo CRM, <em className="text-neutral-400 font-normal italic">в деталях.</em>
                 </h2>
               </div>
 
               <div className="md:col-span-4 border border-white/15 bg-white/[0.02] p-3.5 rounded-xl font-mono text-xs text-neutral-400 hidden md:block">
                 <div className="flex justify-between border-b border-white/10 pb-1.5 mb-1.5 text-white">
-                  <span>3D-LABS / 02</span>
+                  <span>KUMO CRM / 02</span>
                   <span>Rev 2.4</span>
                 </div>
                 <div className="flex justify-between">
@@ -151,7 +151,7 @@ export default function AboutPage() {
         <DynamicIslandPreview />
 
 
-        {/* СЕКЦИЯ СРАВНЕНИЯ (3D LABS VS EXCEL) */}
+        {/* СЕКЦИЯ СРАВНЕНИЯ (KUMO CRM VS EXCEL) */}
         <ComparisonSection />
 
 

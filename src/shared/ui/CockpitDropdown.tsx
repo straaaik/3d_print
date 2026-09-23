@@ -39,6 +39,7 @@ export interface CockpitDropdownProps {
   icon?: React.ComponentType<{ className?: string }>;
   showChevron?: boolean;
   usePortal?: boolean;
+  portalZIndex?: number;
 }
 
 export function CockpitDropdown({
@@ -65,6 +66,7 @@ export function CockpitDropdown({
   icon: LeadingIcon,
   showChevron = true,
   usePortal = false,
+  portalZIndex,
 }: CockpitDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -452,7 +454,7 @@ export function CockpitDropdown({
                         top: Math.max(12, portalTop),
                         left: portalLeft,
                         width: portalWidth || targetRect.width,
-                        zIndex: 99999,
+                        zIndex: portalZIndex ?? 99999,
                       }
                     : { width: dropdownWidth || undefined }
                 }
@@ -607,7 +609,7 @@ export function CockpitDropdown({
                   ) : (
                     <span>{footerText || `${options.length} ОПЦИЙ`}</span>
                   )}
-                  <span className="text-neutral-600">3DLABS</span>
+                  <span className="text-neutral-600">KUMO CRM</span>
                 </div>
               </motion.div>
             )}

@@ -234,7 +234,7 @@ export function CockpitWorkspace({ initialTab }: CockpitWorkspaceProps) {
         {!isExpanded && (
           <footer className="w-full text-center py-6 border-t border-white/10 select-none bg-neutral-950/80 backdrop-blur-md font-mono text-xs text-neutral-500">
             <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-              <span>3D LABS · COCKPIT WORKSPACE v2.4</span>
+              <span>KUMO CRM · COCKPIT WORKSPACE v2.4</span>
               <span>АВТОМАТИЧЕСКОЕ СОХРАНЕНИЕ И СИНХРОНИЗАЦИЯ</span>
             </div>
           </footer>

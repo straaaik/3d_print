@@ -25,7 +25,6 @@ interface CollectionExpandedRowProps {
   onOpenAddVariantModal: (col: ProductCollection) => void;
   onOpenEditCollection: (col: ProductCollection) => void;
   onSelectProduct?: (item: SavedCalculation) => void;
-  onOpenQuickEditModal?: (item: SavedCalculation) => void;
   onCreateOrder?: (item: SavedCalculation) => void;
   onLoadIntoCalculator?: (item: SavedCalculation) => void;
   onSetStock?: (item: SavedCalculation, newStock: number) => void;
@@ -38,7 +37,6 @@ export function CollectionExpandedRow({
   onOpenAddVariantModal,
   onOpenEditCollection,
   onSelectProduct,
-  onOpenQuickEditModal,
   onCreateOrder,
   onLoadIntoCalculator,
   onSetStock,
@@ -274,21 +272,6 @@ export function CollectionExpandedRow({
                           className="p-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white transition-colors cursor-pointer"
                         >
                           <Calculator size={12} />
-                        </button>
-                      </Tooltip>
-                    )}
-
-                    {onOpenQuickEditModal && (
-                      <Tooltip content="Редактировать параметры позиции">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOpenQuickEditModal(item);
-                          }}
-                          className="p-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white transition-colors cursor-pointer"
-                        >
-                          <Edit2 size={12} />
                         </button>
                       </Tooltip>
                     )}

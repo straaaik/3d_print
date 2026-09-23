@@ -56,7 +56,7 @@ import {
   type PrinterSort,
 } from '../InventoryCockpit/model';
 
-const is3DRoomEnabled = process.env.NODE_ENV !== 'production';
+const is3DRoomEnabled = true;
 
 const VIEW_MODE_OPTIONS: ReadonlyArray<SegmentedFilterOption<InventoryViewMode>> =
   getPrinterViewModeOptions(Table, LayoutGrid, Box, is3DRoomEnabled);
@@ -71,6 +71,7 @@ const PrinterRoom3D = is3DRoomEnabled
   ? dynamic(
       () => import('../../features/printers-room').then((m) => m.PrinterRoom3D),
       {
+        ssr: false,
         loading: PrinterRoom3DSkeleton,
       },
     )

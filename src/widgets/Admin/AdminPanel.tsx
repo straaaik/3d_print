@@ -23,6 +23,7 @@ import type { RegistrationKey, User, UserRole } from '../../shared/types';
 import { CockpitButton } from '../../shared/ui/CockpitButton';
 import { CockpitDropdown } from '../../shared/ui/CockpitDropdown';
 import { CockpitModal } from '../../shared/ui/CockpitModal';
+import { RoundDeleteModal } from '../../shared/ui/RoundDeleteModal';
 import { Input } from '../../shared/ui/Input';
 import { Tooltip } from '../../shared/ui/Tooltip';
 import { CockpitTiltCard } from '../../shared/ui/CockpitTiltCard';
@@ -127,7 +128,7 @@ export function AdminPanel() {
     const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
     const link = document.createElement('a');
     link.href = url;
-    link.download = `3dlabs_active_keys_${new Date().toISOString().slice(0, 10)}.txt`;
+    link.download = `kumocrm_active_keys_${new Date().toISOString().slice(0, 10)}.txt`;
     link.click();
     URL.revokeObjectURL(url);
     showSuccess(`Экспортировано ключей: ${activeKeys.length}`);
@@ -332,44 +333,27 @@ export function AdminPanel() {
 
       <GenerateKeyModal isOpen={isGenerateModalOpen} onClose={() => setIsGenerateModalOpen(false)} />
 
-      <CockpitModal
+      <RoundDeleteModal
         isOpen={Boolean(keyToDelete)}
         onClose={() => !isDeleting && setKeyToDelete(null)}
+        onConfirm={confirmDeleteKey}
+        isDeleting={isDeleting}
         title="Удаление ключа"
-        subtitle="Регистрационный доступ"
-        maxWidth="md"
-        footer={(
-          <div className="flex w-full justify-end gap-2">
-            <CockpitButton onClick={() => setKeyToDelete(null)} disabled={isDeleting}>Закрыть</CockpitButton>
-            <CockpitButton onClick={confirmDeleteKey} icon={Trash2} disabled={isDeleting} className="border-rose-800/40 bg-rose-950/60 text-rose-300">
-              {isDeleting ? 'Удаление...' : 'Удалить ключ'}
-            </CockpitButton>
-          </div>
-        )}
-      >
-        <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.04] p-4 font-mono text-sm font-bold tracking-wider text-amber-300">{keyToDelete?.key}</div>
-      </CockpitModal>
+        itemName={keyToDelete?.key}
+        itemDetails="Регистрационный доступ"
+        description="Удалить этот ключ доступа? Действие необратимо."
+      />
 
-      <CockpitModal
+      <RoundDeleteModal
         isOpen={Boolean(userToDelete)}
         onClose={() => !isDeleting && setUserToDelete(null)}
+        onConfirm={confirmDeleteUser}
+        isDeleting={isDeleting}
         title="Удаление пользователя"
-        subtitle={userToDelete?.name || 'Аккаунт'}
-        maxWidth="md"
-        footer={(
-          <div className="flex w-full justify-end gap-2">
-            <CockpitButton onClick={() => setUserToDelete(null)} disabled={isDeleting}>Закрыть</CockpitButton>
-            <CockpitButton onClick={confirmDeleteUser} icon={Trash2} disabled={isDeleting} className="border-rose-800/40 bg-rose-950/60 text-rose-300">
-              {isDeleting ? 'Удаление...' : 'Удалить аккаунт'}
-            </CockpitButton>
-          </div>
-        )}
-      >
-        <div className="rounded-xl border border-rose-500/20 bg-rose-500/[0.04] p-4">
-          <p className="font-sans text-sm font-bold text-white">{userToDelete?.name}</p>
-          <p className="mt-1 font-mono text-[11px] text-neutral-400">{userToDelete?.email}</p>
-        </div>
-      </CockpitModal>
+        itemName={userToDelete?.name}
+        itemDetails={userToDelete?.email}
+        description="Удалить этот аккаунт пользователя? Действие необратимо."
+      />
     </InventoryCockpitShell>
   );
 }

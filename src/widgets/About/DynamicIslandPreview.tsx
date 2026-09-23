@@ -102,7 +102,7 @@ export function DynamicIslandPreview() {
             <em className="text-neutral-400 font-normal italic">в реальном времени.</em>
           </h2>
           <p className="mt-4 text-sm sm:text-base text-neutral-400 leading-relaxed">
-            Будьте в курсе каждого напечатанного слоя, остывания стола, оплаты счета и расхода пластика. Консоль 3D Labs адаптирована для экранов любых смартфонов, планшетов и рабочих станций.
+            Будьте в курсе каждого напечатанного слоя, остывания стола, оплаты счета и расхода пластика. Консоль Kumo CRM адаптирована для экранов любых смартфонов, планшетов и рабочих станций.
           </p>
         </div>
 
@@ -181,7 +181,7 @@ export function DynamicIslandPreview() {
                       <span className="px-2 py-0.5 rounded bg-white/10 text-white font-bold">
                         {current.phoneCard.badge}
                       </span>
-                      <span className="text-neutral-400">3D Labs OS</span>
+                      <span className="text-neutral-400">Kumo CRM OS</span>
                     </div>
 
                     <div>

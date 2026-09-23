@@ -47,7 +47,7 @@ export function TelemetrySection() {
           {/* Левая часть: ключевые бенчмарки в стиле Meridian */}
           <div className="lg:col-span-5 space-y-6">
             <div className="font-mono text-xs text-cyan-400 uppercase tracking-widest">
-              БЕНЧМАРКИ ЭФФЕКТИВНОСТИ · 3D LABS
+              БЕНЧМАРКИ ЭФФЕКТИВНОСТИ · KUMO CRM
             </div>
 
             <h2 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-[1.05]">
@@ -56,7 +56,7 @@ export function TelemetrySection() {
             </h2>
 
             <p className="text-sm sm:text-base text-neutral-400 leading-relaxed">
-              Владельцы ферм и студий 3D-печати ежедневно теряют до 20% выручки из-за неучтенного брака, электричества, забытых катушек и неточных расчетов на глаз. 3D Labs превращает студию в точный конвейер.
+              Владельцы ферм и студий 3D-печати ежедневно теряют до 20% выручки из-за неучтенного брака, электричества, забытых катушек и неточных расчетов на глаз. Kumo CRM превращает студию в точный конвейер.
             </p>
 
             {/* Карточки сравнения ДО и ПОСЛЕ */}
@@ -68,7 +68,7 @@ export function TelemetrySection() {
                 </div>
                 <div className="text-right">
                   <div className="font-mono text-2xl font-bold text-cyan-400">12 секунд</div>
-                  <div className="text-xs text-cyan-300/80 font-mono">В 3D Labs с учетом всех издержек</div>
+                  <div className="text-xs text-cyan-300/80 font-mono">В Kumo CRM с учетом всех издержек</div>
                 </div>
               </div>
 
@@ -79,7 +79,7 @@ export function TelemetrySection() {
                 </div>
                 <div className="text-right">
                   <div className="font-mono text-2xl font-bold text-emerald-400">68.7%</div>
-                  <div className="text-xs text-emerald-300/80 font-mono">Фактическая маржа по формулам 3D Labs</div>
+                  <div className="text-xs text-emerald-300/80 font-mono">Фактическая маржа по формулам Kumo CRM</div>
                 </div>
               </div>
 

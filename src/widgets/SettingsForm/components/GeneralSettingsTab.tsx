@@ -24,6 +24,10 @@ interface GeneralSettingsTabProps {
   minOrderPrice: string;
   setMinOrderPrice: (val: string) => void;
   isMinOrderPriceChanged: boolean;
+
+  defaultGoal?: string;
+  setDefaultGoal?: (val: string) => void;
+  isDefaultGoalChanged?: boolean;
 }
 
 const POPULAR_CURRENCIES = [
@@ -55,6 +59,9 @@ export function GeneralSettingsTab({
   minOrderPrice,
   setMinOrderPrice,
   isMinOrderPriceChanged,
+  defaultGoal,
+  setDefaultGoal,
+  isDefaultGoalChanged,
 }: GeneralSettingsTabProps) {
   const defaultPrinterOptions = [
     { value: '', label: 'Не выбран (ручной выбор в калькуляторе)' },
@@ -256,6 +263,44 @@ export function GeneralSettingsTab({
           </div>
         </div>
       </Card>
+
+      {/* 5. Финансовая цель по умолчанию */}
+      {defaultGoal !== undefined && setDefaultGoal && (
+        <Card
+          title="Финансовая цель по умолчанию (План прибыли)"
+          stepNumber="CFG 05"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+            <div className="md:col-span-7 flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-white font-mono uppercase">Целевая чистая прибыль для всех месяцев</span>
+                {isDefaultGoalChanged && (
+                  <span className="text-[10px] text-amber-400 font-bold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/40 font-mono">
+                    изменено
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-neutral-400 font-sans leading-relaxed">
+                Базовая планка чистой прибыли для всех месяцев. Если в журнале заказов для выбранного месяца не установлена индивидуальная цель, система рассчитывает прогресс по этой сумме.
+              </p>
+            </div>
+
+            <div className="md:col-span-5 bg-neutral-900 p-4 rounded-xl border border-white/10 flex flex-col gap-3">
+              <QuickStepper
+                label={`Целевая прибыль в месяц, ${currency}`}
+                value={parseFloat(defaultGoal) || 0}
+                onChange={(val) => setDefaultGoal(val.toString())}
+                min={0}
+                max={2000000}
+                step={5000}
+                presets={[0, 50000, 100000, 150000, 200000, 300000]}
+                suffix={` ${currency}`}
+                isModified={isDefaultGoalChanged}
+              />
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

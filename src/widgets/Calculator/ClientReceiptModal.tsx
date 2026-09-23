@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Copy, Download, Printer, Check, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence, type Variants } from 'motion/react';
+import { Copy, Download, Printer, Check, X, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
 import { formatCurrency } from '../../shared/lib/format';
 import { usePersistentState } from '../../shared/lib/usePersistentState';
+import { useReceiptTemplate } from '../../shared/lib/receiptTemplate';
 import { Tooltip } from '../../shared/ui/Tooltip';
 import { useToast } from '../../entities/model/ToastProvider';
 
@@ -67,7 +68,7 @@ export interface ReceiptActionDependencies {
   createClipboardItem?: (items: ReceiptClipboardPayload) => ClipboardItem;
   downloadPng: (dataUrl: string) => void;
   openPrintWindow: () => ReceiptPrintWindow | null;
-  onCopied: () => void;
+  onCopied?: () => void;
   setIsExporting: (isExporting: boolean) => void;
   reportError: (message: string) => void;
   printTimeoutMs?: number;
@@ -100,7 +101,7 @@ function getReceiptPrintMarkup(imageUrl: string, orderNumber: string): string {
     <!DOCTYPE html>
     <html>
       <head>
-        <title>Товарный чек ${orderNumber} - 3D Labs</title>
+        <title>Товарный чек ${orderNumber} - Kumo CRM</title>
         <style>
           @page { margin: 10mm; size: auto; }
           body {
@@ -196,7 +197,7 @@ export function createReceiptExportOperations(dependencies: ReceiptActionDepende
       const blob = await renderer.toBlob(dependencies.receiptNode, renderOptions);
       if (blob && dependencies.clipboard && dependencies.createClipboardItem) {
         await dependencies.clipboard.write([dependencies.createClipboardItem({ 'image/png': blob })]);
-        dependencies.onCopied();
+        dependencies.onCopied?.();
         return;
       }
       dependencies.downloadPng(await renderer.toPng(dependencies.receiptNode, renderOptions));
@@ -245,6 +246,86 @@ export async function performReceiptAction(action: ReceiptAction, dependencies: 
   });
 }
 
+export interface ReceiptSpecRow {
+  id: string;
+  name: string;
+  amount: number;
+  amountStr?: string;
+  isInformational?: boolean;
+  isHidden?: boolean;
+}
+
+function ReceiptCloseButton({
+  onClose,
+}: {
+  onClose: () => void;
+}) {
+  return (
+    <motion.button
+      type="button"
+      data-export-hide="true"
+      onClick={onClose}
+      aria-label="Закрыть чек"
+      className="absolute top-2.5 right-2.5 z-30 w-6 h-6 rounded-full flex items-center justify-center bg-black/6 hover:bg-rose-500/15 text-[#525252] hover:text-rose-600 transition-colors border border-black/10 hover:border-rose-500/30 cursor-pointer outline-none select-none"
+      whileHover={{ scale: 1.15 }}
+      whileTap={{ scale: 0.88 }}
+      transition={{ type: 'spring', stiffness: 450, damping: 20 }}
+    >
+      <X className="w-3.5 h-3.5" strokeWidth={2.5} />
+    </motion.button>
+  );
+}
+
+const stickerVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    scale: 0.88,
+    y: 28,
+    rotate: -1.2,
+  },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    rotate: 0,
+    transition: {
+      type: 'spring',
+      damping: 24,
+      stiffness: 300,
+    },
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.88,
+    y: 24,
+    rotate: 1.5,
+    transition: {
+      duration: 0.18,
+      ease: [0.4, 0, 1, 1],
+    },
+  },
+};
+
+const receiptVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.04,
+      delayChildren: 0.08,
+    },
+  },
+};
+
+const lineVariants: Variants = {
+  hidden: { opacity: 0, y: 3 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.15, ease: 'easeOut' },
+  },
+};
+
 export function ClientReceiptModal({
   isOpen,
   onClose,
@@ -256,50 +337,128 @@ export function ClientReceiptModal({
   result,
 }: ClientReceiptModalProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const [copiedImage, setCopiedImage] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const { showError } = useToast();
+  const { template } = useReceiptTemplate();
+
+  // Неизменяемые реквизиты шапки (управляются строго через Настройки -> Шаблон чека)
+  const companyParts: string[] = [];
+  if (template.showCompanyName) {
+    companyParts.push(template.companyName || 'KUMO CRM');
+  }
+  if (template.showCompanySubtitle && template.companySubtitle) {
+    companyParts.push(template.companySubtitle);
+  }
+  const storeName = companyParts.join(' · ');
+  const receiptType = template.receiptType;
+  const showOrderNumber = template.showOrderNumber;
+  const showReceiptType = template.showReceiptType;
+  const showOrderDate = template.showOrderDate;
+  const hasAnyHeaderContent = Boolean(storeName || showOrderNumber || showReceiptType || showOrderDate);
+
+  // Редактируемые в модальном окне поля
   const [orderNumber, setOrderNumber] = useState('');
   const [orderDate, setOrderDate] = useState('');
   const [customItemName, setCustomItemName] = usePersistentState('3d_calc_receipt_item_name', '');
-  const [copiedImage, setCopiedImage] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
-  const { showError } = useToast();
+  const [productTitle, setProductTitle] = useState('');
+  const [printerAndFilament, setPrinterAndFilament] = useState('');
+  const [weightText, setWeightText] = useState('');
+  const [thanksText, setThanksText] = useState(() => template.thanksText);
+  const [paymentDetails, setPaymentDetails] = useState(() => template.paymentDetails);
+  const [showPaymentDetails, setShowPaymentDetails] = useState(() => template.showPaymentDetails);
+  const [showBarcode, setShowBarcode] = useState(() => template.showBarcode);
+  const [showPrinterAndFilament, setShowPrinterAndFilament] = useState(() => template.showPrinterAndFilament);
+  const [showWeight, setShowWeight] = useState(() => template.showWeight);
+  const [showUnitPrice, setShowUnitPrice] = useState(() => template.showUnitPrice);
 
-  // Изначально все доп. услуги выключены
+  // Строки спецификации
+  const [specRows, setSpecRows] = useState<ReceiptSpecRow[]>([]);
+  const [editingRowAmountId, setEditingRowAmountId] = useState<string | null>(null);
+
+  // Инициализация при открытии модального окна
   useEffect(() => {
-    if (isOpen) {
-      const nextOrderNumber = `3DL-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-      const nextOrderDate = new Date().toLocaleString('ru-RU', {
-        timeZone: 'Europe/Moscow',
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
+    if (!isOpen) return;
+
+    const randomSuffix =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID().slice(0, 8).toUpperCase()
+        : Math.random().toString(36).substring(2, 10).toUpperCase();
+    const nextOrderNumber = `№ 3DL-${randomSuffix}`;
+
+    const nextOrderDate = new Date().toLocaleString('ru-RU', {
+      timeZone: 'Europe/Moscow',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const qtyNum = Math.max(1, parseInt(quantity, 10) || 1);
+    const clientTotal = result.totalFinalPrice;
+
+    const initialTitle =
+      customItemName.trim() || (qtyNum > 1 ? `Партия деталей (${quantity} шт.)` : '3D-печать детали');
+    const initialSubtitle = `${printerName || 'Bambu Lab X1-Carbon'} · ${filamentName || 'PETG Carbon Black'}`;
+    const initialWeight = weightG && Number(weightG) > 0 ? `Вес детали: ~${weightG} г` : '';
+
+    // Формирование начальных строк спецификации
+    const customCostsTotal = result.customCostsBreakdown.reduce((sum, c) => sum + c.totalAmount, 0);
+    const baseProductionCost = Math.max(
+      0,
+      clientTotal - customCostsTotal + (result.discountTotal > 0 ? result.discountTotal : 0)
+    );
+
+    const initialRows: ReceiptSpecRow[] = [];
+
+    // 1. Изготовление детали (основная строка, нельзя скрыть или удалить)
+    initialRows.push({
+      id: 'production',
+      name: `• Изготовление (${quantity} шт.)`,
+      amount: baseProductionCost,
+    });
+
+    // 2. Выбранные дополнительные услуги из калькулятора (только ' (за штуку)' если услуга за шт., иначе без суффикса)
+    result.customCostsBreakdown.forEach((service) => {
+      const suffix = service.isPerUnit ? ' (за штуку)' : '';
+      initialRows.push({
+        id: service.id,
+        name: `• ${service.name}${suffix}`,
+        amount: service.totalAmount,
+        isHidden: template.defaultHideSpecification,
       });
-      queueMicrotask(() => {
-        setSelectedServiceIds([]);
-        setOrderNumber(nextOrderNumber);
-        setOrderDate(nextOrderDate);
+    });
+
+    // 3. Скидка на заказ
+    if (result.discountTotal > 0) {
+      initialRows.push({
+        id: 'discount',
+        name: '• Скидка на заказ',
+        amount: -result.discountTotal,
+        isHidden: template.defaultHideSpecification,
       });
-      requestAnimationFrame(() => closeButtonRef.current?.focus());
     }
-  }, [isOpen]);
 
-  const [currentTimeStr, setCurrentTimeStr] = useState('');
+    queueMicrotask(() => {
+      setThanksText(template.thanksText);
+      setPaymentDetails(template.paymentDetails);
+      setShowPaymentDetails(template.showPaymentDetails);
+      setShowBarcode(template.showBarcode);
+      setShowPrinterAndFilament(template.showPrinterAndFilament);
+      setShowWeight(template.showWeight);
+      setShowUnitPrice(template.showUnitPrice);
+      setOrderNumber(nextOrderNumber);
+      setOrderDate(nextOrderDate);
+      setProductTitle(initialTitle);
+      setPrinterAndFilament(initialSubtitle);
+      setWeightText(initialWeight);
+      setSpecRows(initialRows);
+      setEditingRowAmountId(null);
+    });
+  }, [isOpen, quantity, weightG, printerName, filamentName, result, customItemName, template]);
 
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setCurrentTimeStr(
-        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} MSK`
-      );
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
+  // Закрытие по Escape
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -309,37 +468,110 @@ export function ClientReceiptModal({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Фильтрация выбранных пользователем доп. услуг для отображения в чеке
-  const activeCustomServices = useMemo(() => {
-    return result.customCostsBreakdown.filter((s: CustomCostItemBreakdown) => selectedServiceIds.includes(s.id));
-  }, [result.customCostsBreakdown, selectedServiceIds]);
+  // Блокировка прокрутки фона при открытой модалке
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
 
-  const activeServicesTotal = useMemo(() => {
-    return activeCustomServices.reduce((sum: number, s: CustomCostItemBreakdown) => sum + s.totalAmount, 0);
-  }, [activeCustomServices]);
+  // Сумма всех скрытых услуг (не информационных и не изготовления), которая переходит в изготовление
+  const hiddenAbsorptionSum = useMemo(() => {
+    return specRows
+      .filter((r) => r.id !== 'production' && r.isHidden && !r.isInformational)
+      .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  }, [specRows]);
 
-  // Общая стоимость чека СТРОГО равна расчету из калькулятора
-  const clientTotalFinalPrice = result.totalFinalPrice;
+  // Автоматический подсчет итога по строкам спецификации (исключая информационные)
+  const autoCalculatedTotal = useMemo(() => {
+    return specRows.reduce((sum, row) => {
+      if (row.isInformational) return sum;
+      return sum + (Number(row.amount) || 0);
+    }, 0);
+  }, [specRows]);
+
+  const effectiveTotal = autoCalculatedTotal;
   const qtyNum = Math.max(1, parseInt(quantity, 10) || 1);
-  const pricePerPiece = clientTotalFinalPrice / qtyNum;
 
-  // Стоимость изготовления вычисляется как разница между общим итогом и выделенными в чек услугами
-  const printAndLaborFinalPrice = Math.max(
-    0,
-    clientTotalFinalPrice - activeServicesTotal + (result.discountTotal > 0 ? result.discountTotal : 0)
-  );
+  // Управление строками спецификации
+  const handleUpdateRowName = (id: string, name: string) => {
+    setSpecRows((prev) => prev.map((r) => (r.id === id ? { ...r, name } : r)));
+  };
 
-  const displayTitle = customItemName.trim() || (qtyNum > 1 ? `Партия деталей (${quantity} шт.)` : '3D-печать детали');
-
-  const toggleService = (id: string) => {
-    setSelectedServiceIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+  const handleUpdateRowAmount = (id: string, val: string) => {
+    const cleanVal = val.replace(/\s+/g, '').replace(',', '.');
+    const num = parseFloat(cleanVal);
+    const parsedNum = isNaN(num) ? 0 : num;
+    setSpecRows((prev) =>
+      prev.map((r) => {
+        if (r.id !== id) return r;
+        const baseAmount = r.id === 'production' ? parsedNum - hiddenAbsorptionSum : parsedNum;
+        return {
+          ...r,
+          amount: baseAmount,
+          amountStr: val,
+        };
+      })
     );
   };
 
-  // Копирование картинки в буфер обмена
+  const handleBlurRowAmount = (id: string) => {
+    setEditingRowAmountId(null);
+    setSpecRows((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, amountStr: undefined } : r))
+    );
+  };
+
+  const handleRemoveRow = (id: string) => {
+    if (id === 'production') return;
+    setSpecRows((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  // Переключение видимости отдельной строки (изготовление скрыть нельзя)
+  const handleToggleRowVisibility = (id: string) => {
+    if (id === 'production') return;
+    setSpecRows((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, isHidden: !r.isHidden } : r))
+    );
+  };
+
+  // Строки, которые можно скрывать (все кроме изготовления)
+  const hideableRows = useMemo(() => specRows.filter((r) => r.id !== 'production'), [specRows]);
+  const areAllRowsHidden = hideableRows.length > 0 && hideableRows.every((r) => r.isHidden);
+
+  // Переключение видимости всех строк спецификации кроме изготовления
+  const handleToggleAllRows = () => {
+    const nextHiddenState = !areAllRowsHidden;
+    setSpecRows((prev) =>
+      prev.map((r) => (r.id === 'production' ? r : { ...r, isHidden: nextHiddenState }))
+    );
+  };
+
+  const handleAddRow = () => {
+    const newId =
+      typeof crypto !== 'undefined' && crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).substring(2, 9);
+    setSpecRows((prev) => [
+      ...prev,
+      {
+        id: newId,
+        name: '• Дополнительная услуга',
+        amount: 0,
+      },
+    ]);
+  };
+
+  // Экспорт чека
   const handleCopyImage = async () => {
     if (!receiptRef.current) return;
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     await performReceiptAction('copy', {
       receiptNode: receiptRef.current,
       orderNumber,
@@ -357,460 +589,451 @@ export function ClientReceiptModal({
     });
   };
 
-  // Скачивание PNG
   const handleDownloadPng = async () => {
     if (!receiptRef.current) return;
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     await performReceiptAction('download', {
       receiptNode: receiptRef.current,
       orderNumber,
       loadRenderer: () => import('html-to-image'),
       downloadPng: (dataUrl) => downloadReceiptPng(dataUrl, orderNumber),
       openPrintWindow: () => window.open('', '_blank') as unknown as ReceiptPrintWindow | null,
-      onCopied: () => undefined,
       setIsExporting,
       reportError: showError,
     });
   };
 
-  // Печать / Сохранить в PDF
   const handlePrint = async () => {
     if (!receiptRef.current) return;
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     await performReceiptAction('print', {
       receiptNode: receiptRef.current,
       orderNumber,
       loadRenderer: () => import('html-to-image'),
       downloadPng: (dataUrl) => downloadReceiptPng(dataUrl, orderNumber),
       openPrintWindow: () => window.open('', '_blank') as unknown as ReceiptPrintWindow | null,
-      onCopied: () => undefined,
       setIsExporting,
       reportError: showError,
     });
   };
 
-  if (!isOpen) return null;
-
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 lg:p-6 overflow-y-auto">
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          className="fixed inset-0 bg-black/85 backdrop-blur-md"
-        />
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          {/* Полупрозрачный оверлей */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+          />
 
-        {/* Главное окно модалки в точном стиле консоли калькулятора */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 15 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.96, y: 15 }}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="client-receipt-title"
-          className="relative w-full max-w-6xl rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl overflow-hidden z-10 my-auto flex flex-col max-h-[94vh]"
-        >
-          {/* 1. Верхняя панель (Cockpit Topbar: Red LED + Title + Live time) */}
-          <div className="flex items-center justify-between border-b border-white/10 px-5 py-2.5 bg-neutral-900/60 shrink-0 gap-3">
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="flex items-center gap-2 shrink-0">
-                <Tooltip content="Закрыть окно">
-                  <button
-                    ref={closeButtonRef}
-                    type="button"
-                    onClick={onClose}
-                    title="Закрыть окно"
-                    aria-label="Закрыть чек"
-                    className="w-3 h-3 rounded-full bg-[#36363c] hover:bg-[#f87171] cursor-pointer border-none outline-none shrink-0"
+          <motion.div
+            variants={stickerVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="client-receipt-title"
+            className="relative z-10 my-auto flex flex-col items-center gap-3 select-none"
+            style={{ transformOrigin: 'top center' }}
+          >
+            {/* САМ БЛАНК ЧЕКА (ЗОНА ЭКСПОРТА) */}
+            <motion.div
+              ref={receiptRef}
+              id="client-receipt-printable"
+              style={{
+                backgroundColor: 'var(--cockpit-accent-color, #CAC4B0)',
+                color: '#0a0a0a',
+                width: '340px',
+                maxWidth: 'calc(100vw - 24px)',
+                position: 'relative',
+                userSelect: 'text',
+              }}
+              className="p-5 sm:p-6 flex flex-col gap-3 font-mono shadow-[0_25px_60px_-10px_rgba(0,0,0,0.75)] rounded-xs"
+            >
+              {/* Кнопка закрытия бланка чека (скрывается при экспорте) */}
+              <ReceiptCloseButton onClose={onClose} />
+
+              <motion.div variants={receiptVariants} initial="hidden" animate="visible" className="flex flex-col gap-3">
+                {/* 1. Шапка чека: Название студии, Номер, Тип и Дата */}
+                {hasAnyHeaderContent && (
+                  <motion.div variants={lineVariants} className="pr-8">
+                    {(Boolean(storeName) || showOrderNumber) && (
+                      <div className="flex justify-between items-center text-[10.5px] font-semibold tracking-[0.05em]">
+                        {storeName ? (
+                          <span className="font-bold text-[#0a0a0a] px-0.5 select-none truncate max-w-[170px]" title={storeName}>
+                            {storeName}
+                          </span>
+                        ) : (
+                          <span />
+                        )}
+                        {showOrderNumber && (
+                          <span className="text-right text-[#262626] font-mono px-0.5 select-none">
+                            {orderNumber}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {(showReceiptType || showOrderDate) && (
+                      <div className="flex justify-between items-center text-[9px] text-[#525252] pt-0.5 font-mono">
+                        {showReceiptType ? (
+                          <span className="text-[#525252] px-0.5 select-none">
+                            {receiptType}
+                          </span>
+                        ) : (
+                          <span />
+                        )}
+                        {showOrderDate && (
+                          <input
+                            type="text"
+                            value={orderDate}
+                            onChange={(e) => setOrderDate(e.target.value)}
+                            aria-label="Дата и время чека"
+                            className="text-right text-[#525252] bg-transparent border-b border-transparent hover:border-black/25 focus:border-black/70 focus:bg-black/5 outline-none w-[130px] px-0.5 rounded-xs transition-colors font-mono"
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    {/* Пунктирный разделитель */}
+                    <div className="border-b border-dashed border-[#737373] mt-2" />
+                  </motion.div>
+                )}
+
+                {/* 2. Название изделия и метаданные */}
+                <motion.div variants={lineVariants} className="space-y-1">
+                  <input
+                    type="text"
+                    value={productTitle}
+                    onChange={(e) => {
+                      setProductTitle(e.target.value);
+                      setCustomItemName(e.target.value);
+                    }}
+                    placeholder="Название детали"
+                    aria-label="Название детали"
+                    className="w-full font-bold text-[16px] leading-tight text-[#0a0a0a] bg-transparent border-b border-transparent hover:border-black/25 focus:border-black/70 focus:bg-black/5 outline-none px-0.5 rounded-xs font-sans transition-colors"
                   />
-                </Tooltip>
-              </div>
 
-              <div className="flex items-center gap-2 font-mono text-xs text-neutral-300 min-w-0">
-                <span id="client-receipt-title" className="text-neutral-300 font-normal truncate">
-                  Чек для клиента
-                </span>
-                <span className="text-[#52525b] shrink-0">·</span>
-                <span className="text-[#71717a] hidden sm:inline truncate">
-                  Клиентский вид
-                </span>
-              </div>
-            </div>
+                  {showPrinterAndFilament && (
+                    <input
+                      type="text"
+                      value={printerAndFilament}
+                      onChange={(e) => setPrinterAndFilament(e.target.value)}
+                      placeholder="Принтер · Материал"
+                      aria-label="Принтер и материал"
+                      className="w-full font-mono text-[10px] text-[#404040] bg-transparent border-b border-transparent hover:border-black/25 focus:border-black/70 focus:bg-black/5 outline-none px-0.5 rounded-xs transition-colors"
+                    />
+                  )}
 
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="font-mono text-xs text-[#71717a] tabular-nums">
-                {currentTimeStr}
-              </div>
-            </div>
-          </div>
+                  {showWeight && (
+                    <input
+                      type="text"
+                      value={weightText}
+                      onChange={(e) => setWeightText(e.target.value)}
+                      placeholder="Вес детали (напр. Вес детали: ~250 г)"
+                      aria-label="Вес детали"
+                      className="w-full font-mono text-[9px] text-[#525252] bg-transparent border-b border-transparent hover:border-black/25 focus:border-black/70 focus:bg-black/5 outline-none px-0.5 rounded-xs transition-colors"
+                    />
+                  )}
+                </motion.div>
 
-          {/* 2. ОСНОВНОЕ ТЕЛО МОДАЛКИ (ДВЕ КОЛОНКИ: СЛЕВА НАСТРОЙКИ И ДАННЫЕ, СПРАВА ЧЕК) */}
-          <div className="p-4 sm:p-6 overflow-y-auto flex-1">
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-stretch">
-
-              {/* ЛЕВАЯ КОЛОНКА: ИНФОРМАЦИЯ И ПАРАМЕТРЫ ЧЕКА (РАСТЯГИВАЕТСЯ НА ВСЮ ВЫСОТУ) */}
-              <div className="flex flex-col justify-between h-full space-y-4">
-
-                {/* Верхняя группа карточек */}
-                <div className="space-y-4">
-                  {/* Карточка 1: Название изделия для чека */}
-                  <div className="p-4 rounded-xl bg-neutral-900/60 border border-white/10 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                        <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                        <span>Название товара в чеке</span>
-                      </label>
-                      {customItemName && (
+                {/* 3. Спецификация заказа с инлайн-редактированием строк и цен */}
+                <motion.div variants={lineVariants} className="flex flex-col gap-1.5 pt-0.5">
+                  <div className="flex justify-between items-center text-[#525252] text-[9px] font-semibold tracking-[0.05em] pb-1 border-b border-black/10">
+                    <div className="flex items-center gap-2">
+                      <span>СПЕЦИФИКАЦИЯ</span>
+                      {hideableRows.length > 0 && (
                         <button
                           type="button"
-                          onClick={() => setCustomItemName('')}
-                          className="text-[11px] font-mono text-neutral-400 hover:text-white cursor-pointer"
+                          data-export-hide="true"
+                          onClick={handleToggleAllRows}
+                          title={
+                            areAllRowsHidden
+                              ? 'Показать все строки в чеке'
+                              : 'Скрыть все строки кроме изготовления (суммы прибавятся к изготовлению)'
+                          }
+                          className="flex items-center gap-1 text-[8px] font-mono text-[#525252] hover:text-[#0a0a0a] px-1.5 py-0.5 rounded border border-black/10 hover:border-black/30 hover:bg-black/5 cursor-pointer transition-all"
                         >
-                          [ Очистить ]
+                          {areAllRowsHidden ? <Eye className="w-2.5 h-2.5" /> : <EyeOff className="w-2.5 h-2.5" />}
+                          <span>{areAllRowsHidden ? 'показать все' : 'скрыть все'}</span>
                         </button>
                       )}
                     </div>
+                    <span className="text-right font-mono">СУММА</span>
+                  </div>
 
-                    <input
-                      aria-label="Название товара в чеке"
-                      type="text"
-                      placeholder="напр. Корпус прибора / Шестерня редуктора / Кронштейн"
-                      value={customItemName}
-                      onChange={(e) => setCustomItemName(e.target.value)}
-                      className="w-full h-10 bg-neutral-950 border border-white/15 rounded-lg px-3.5 text-xs font-medium text-white focus:outline-none focus:border-cyan-400 shadow-inner"
-                    />
+                  <div className="flex flex-col gap-1.5">
+                    {specRows.map((row) => {
+                      const isProduction = row.id === 'production';
+                      const effectiveAmount = isProduction ? row.amount + hiddenAbsorptionSum : row.amount;
+                      const isAmountEditing = editingRowAmountId === row.id;
+                      const displayAmountValue = isAmountEditing
+                        ? row.amountStr ?? String(effectiveAmount)
+                        : formatCurrency(effectiveAmount, currencySymbol);
 
-                    {/* Быстрые теги */}
-                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                      <span className="text-[10px] font-mono text-neutral-500">Быстрый выбор:</span>
-                      {['Корпус прибора', 'Шестерня', 'Кронштейн', 'Прототип детали', 'Партия изделий'].map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          onClick={() => setCustomItemName(preset)}
-                          className={`px-2.5 py-1 rounded-md text-[11px] font-mono cursor-pointer ${
-                            customItemName === preset
-                              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-semibold'
-                              : 'bg-white/5 hover:bg-white/10 text-neutral-400 hover:text-white border border-white/5'
+                      return (
+                        <div
+                          key={row.id}
+                          data-export-hide={row.isHidden ? 'true' : undefined}
+                          className={`flex items-center justify-between gap-1 group/row min-h-[22px] ${
+                            row.isHidden ? 'opacity-40 line-through' : ''
                           }`}
                         >
-                          {preset}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                          <div className="flex-1 min-w-0 flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={row.name}
+                              onChange={(e) => handleUpdateRowName(row.id, e.target.value)}
+                              aria-label={`Название строки ${row.name}`}
+                              className="w-full text-[10.5px] text-[#262626] bg-transparent border-b border-transparent hover:border-black/25 focus:border-black/70 focus:bg-black/5 outline-none px-0.5 rounded-xs font-mono transition-colors"
+                            />
+                          </div>
 
-                  {/* Карточка 2: Сводные данные заказа для клиента */}
-                  <div className="p-4 rounded-xl bg-neutral-900/60 border border-white/10 space-y-3">
-                    <div className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center justify-between">
-                      <span>Спецификация изделия</span>
-                      <span className="text-[11px] text-cyan-300 font-mono">
-                        {formatCurrency(pricePerPiece, currencySymbol)} / шт.
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                      <div className="p-2.5 rounded-lg bg-neutral-950/70 border border-white/5">
-                        <span className="text-[10px] font-mono text-neutral-500 block">Тираж:</span>
-                        <span className="text-xs font-mono font-bold text-white">{quantity} шт.</span>
-                      </div>
-
-                      <div className="p-2.5 rounded-lg bg-neutral-950/70 border border-white/5">
-                        <span className="text-[10px] font-mono text-neutral-500 block">Цена за шт.:</span>
-                        <span className="text-xs font-mono font-bold text-cyan-300 truncate block">
-                          {formatCurrency(pricePerPiece, currencySymbol)}
-                        </span>
-                      </div>
-
-                      <div className="p-2.5 rounded-lg bg-neutral-950/70 border border-white/5">
-                        <span className="text-[10px] font-mono text-neutral-500 block">Материал:</span>
-                        <span className="text-xs font-mono font-bold text-neutral-200 truncate block">
-                          {filamentName || 'Пластик'}
-                        </span>
-                      </div>
-
-                      <div className="p-2.5 rounded-lg bg-neutral-950/70 border border-white/5">
-                        <span className="text-[10px] font-mono text-neutral-500 block">Вес партии:</span>
-                        <span className="text-xs font-mono font-bold text-white">
-                          {weightG && Number(weightG) > 0 ? `~${Number(weightG) * qtyNum} г` : '—'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Карточка 3: Выбор дополнительных услуг в чек */}
-                  {result.customCostsBreakdown.length > 0 && (
-                    <div className="p-4 rounded-xl bg-neutral-900/60 border border-white/10 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-                          Дополнительные услуги в чеке
-                        </span>
-                        <span className="text-[11px] font-mono text-neutral-400">
-                          Выбрано: {activeCustomServices.length} из {result.customCostsBreakdown.length}
-                        </span>
-                      </div>
-
-                      <p className="text-[11px] text-neutral-400">
-                        Отметьте услуги, которые должны быть явно прописаны отдельными строками в чеке для покупателя.
-                      </p>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                        {result.customCostsBreakdown.map((item) => {
-                          const isSelected = selectedServiceIds.includes(item.id);
-                          return (
-                            <button
-                              key={item.id}
-                              type="button"
-                              onClick={() => toggleService(item.id)}
-                              className={`p-3 rounded-lg text-xs font-mono flex items-center justify-between cursor-pointer border text-left ${
-                                isSelected
-                                  ? 'bg-cyan-950/40 border-cyan-500/50 text-white shadow-xs'
-                                  : 'bg-neutral-950/70 border-white/5 text-neutral-400 hover:text-white'
-                              }`}
-                            >
-                              <span className="truncate pr-2 font-medium">• {item.name}</span>
-                              <div className="flex items-center gap-2 shrink-0">
-                                <span className="font-bold text-[11px] text-cyan-300">
-                                  +{formatCurrency(item.totalAmount, currencySymbol)}
-                                </span>
-                                <div
-                                  className={`w-4 h-4 rounded flex items-center justify-center border text-[10px] ${
-                                    isSelected
-                                      ? 'bg-cyan-500 border-cyan-400 text-neutral-950 font-bold'
-                                      : 'border-white/20 text-transparent'
+                          <div className="flex items-center gap-0.5 shrink-0" data-export-hide="true">
+                            {!isProduction ? (
+                              <>
+                                {/* Переключение видимости отдельной строки */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleRowVisibility(row.id)}
+                                  title={
+                                    row.isHidden
+                                      ? 'Показать строку в чеке'
+                                      : 'Скрыть строку из чека для клиента (сумма прибавится к изготовлению)'
+                                  }
+                                  aria-label={row.isHidden ? 'Показать строку' : 'Скрыть строку'}
+                                  className={`p-0.5 cursor-pointer border-none bg-transparent transition-colors ${
+                                    row.isHidden
+                                      ? 'text-amber-800 opacity-100'
+                                      : 'opacity-0 group-hover/row:opacity-100 text-neutral-400 hover:text-neutral-900'
                                   }`}
                                 >
-                                  ✓
-                                </div>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                                  {row.isHidden ? <EyeOff className="w-2.5 h-2.5" /> : <Eye className="w-2.5 h-2.5" />}
+                                </button>
 
-                {/* Карточка 4: Конфиденциальность (всегда прижата к самому низу колонки) */}
-                <div className="mt-auto p-3.5 rounded-xl bg-neutral-900/40 border border-white/5 flex items-start gap-2.5">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 mt-1.5 shrink-0" />
-                  <p className="text-xs text-neutral-400 leading-relaxed">
-                    <strong className="text-neutral-200">Конфиденциальность:</strong> В клиентском чеке скрыты себестоимость пластика, электричество, амортизация принтера, процент брака, стоимость часа и маржинальная прибыль.
-                  </p>
-                </div>
+                                {/* Удаление строки */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveRow(row.id)}
+                                  title="Удалить строку"
+                                  aria-label="Удалить строку"
+                                  className="opacity-0 group-hover/row:opacity-100 hover:text-rose-600 text-neutral-400 p-0.5 transition-opacity cursor-pointer border-none bg-transparent"
+                                >
+                                  <Trash2 className="w-2.5 h-2.5" />
+                                </button>
+                              </>
+                            ) : (
+                              hiddenAbsorptionSum > 0 && (
+                                <span
+                                  data-export-hide="true"
+                                  title={`В изготовление включено ${formatCurrency(hiddenAbsorptionSum, currencySymbol)} от скрытых услуг`}
+                                  className="text-[7.5px] text-amber-900 bg-amber-500/20 px-1 py-0.2 rounded font-mono select-none"
+                                >
+                                  +{formatCurrency(hiddenAbsorptionSum, '')}
+                                </span>
+                              )
+                            )}
+                          </div>
 
-              </div>
-
-              {/* ПРАВАЯ КОЛОНКА: САМ ТЕПЛОВОЙ ЧЕК И КНОПКИ ЭКСПОРТА */}
-              <div className="flex flex-col items-center space-y-4">
-
-                {/* Сам бланк чека */}
-                <div
-                  ref={receiptRef}
-                  style={{
-                    backgroundColor: 'var(--cockpit-accent-color, #D2CCBB)',
-                    color: '#0a0a0a',
-                    width: '300px',
-                    padding: '24px 18px',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '16px',
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
-                    userSelect: 'none',
-                  }}
-                >
-                  {/* 1. Верхняя шапка чека */}
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: '#262626', fontWeight: 600, letterSpacing: '0.05em', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
-                      <span style={{ fontWeight: 'bold', color: '#0a0a0a' }}>3D LABS · PRODUCTION</span>
-                      <span>№ {orderNumber}</span>
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#525252', paddingTop: '3px', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
-                      <span>ТОВАРНЫЙ ЧЕК</span>
-                      <span>{orderDate}</span>
-                    </div>
-
-                    {/* Пунктирный разделитель */}
-                    <div style={{ borderBottom: '1px dashed #737373', margin: '8px 0' }} />
+                          {/* Сумма строки */}
+                          <div className="shrink-0">
+                            <input
+                              type="text"
+                              value={displayAmountValue}
+                              onFocus={() => setEditingRowAmountId(row.id)}
+                              onChange={(e) => handleUpdateRowAmount(row.id, e.target.value)}
+                              onBlur={() => handleBlurRowAmount(row.id)}
+                              aria-label={`Сумма строки ${row.name}`}
+                              className={`w-24 text-right text-[10.5px] font-bold text-[#0a0a0a] bg-transparent border-b border-transparent hover:border-black/25 focus:border-black/70 focus:bg-black/5 outline-none pr-0 pl-1 rounded-xs font-mono transition-colors ${
+                                effectiveAmount < 0 ? 'text-emerald-700' : ''
+                              }`}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
-                  {/* 2. Название изделия и метаданные */}
-                  <div>
-                    <h3 style={{ fontSize: '15px', fontWeight: 'bold', lineHeight: '1.25', margin: 0, color: '#0a0a0a', fontFamily: 'var(--font-inter), sans-serif' }}>
-                      {displayTitle}
-                    </h3>
-                    <p style={{ fontSize: '10px', color: '#404040', margin: '3px 0 0 0', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
-                      {printerName || '3D-печать'} · {filamentName || 'Пластик'}
-                    </p>
-                    {weightG && Number(weightG) > 0 && (
-                      <p style={{ fontSize: '9px', color: '#525252', margin: '2px 0 0 0', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
-                        Вес детали: ~{weightG} г
-                      </p>
-                    )}
+                  {/* Кнопка добавления строки спецификации */}
+                  <button
+                    type="button"
+                    data-export-hide="true"
+                    onClick={handleAddRow}
+                    className="self-start text-[9.5px] font-mono text-[#525252] hover:text-[#0a0a0a] flex items-center gap-1 mt-1 cursor-pointer transition-colors opacity-70 hover:opacity-100 border-none bg-transparent p-0"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>добавить строку</span>
+                  </button>
+                </motion.div>
+
+                {/* 4. Перфорация */}
+                <motion.div variants={lineVariants}>
+                  <div className="relative my-0.5 -mx-5 sm:-mx-6 h-4 flex items-center">
+                    <div className="absolute -left-2 w-4 h-4 rounded-full bg-[#0a0a0a]" />
+                    <div className="w-full border-b border-dashed border-[#737373]" />
+                    <div className="absolute -right-2 w-4 h-4 rounded-full bg-[#0a0a0a]" />
                   </div>
+                </motion.div>
 
-                  {/* 3. Спецификация для клиента */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontFamily: 'var(--font-jetbrains-mono), monospace', fontSize: '10.5px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#525252', fontSize: '9px', fontWeight: 600, letterSpacing: '0.05em' }}>
-                      <span>СПЕЦИФИКАЦИЯ</span>
-                      <span>СУММА</span>
-                    </div>
-
-                    {/* Изготовление детали */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ color: '#262626' }}>• Изготовление ({quantity} шт.)</span>
-                      <span style={{ fontWeight: 'bold', color: '#0a0a0a' }}>
-                        {formatCurrency(printAndLaborFinalPrice, currencySymbol)}
-                      </span>
-                    </div>
-
-                    {/* Цена за штуку */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#333333' }}>
-                      <span style={{ color: '#333333' }}>• Стоимость за 1 шт.</span>
-                      <span style={{ fontWeight: 'bold', color: '#0a0a0a' }}>
-                        {formatCurrency(pricePerPiece, currencySymbol)}
-                      </span>
-                    </div>
-
-                    {/* Выбранные доп. услуги */}
-                    {activeCustomServices.map((service) => (
-                      <div key={service.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ color: '#262626' }}>• {service.name}</span>
-                        <span style={{ fontWeight: 'bold', color: '#0a0a0a' }}>
-                          +{formatCurrency(service.totalAmount, currencySymbol)}
-                        </span>
-                      </div>
-                    ))}
-
-                    {/* Скидка */}
-                    {result.discountTotal > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#065f46' }}>
-                        <span>• Скидка на заказ</span>
-                        <span style={{ fontWeight: 'bold' }}>
-                          -{formatCurrency(result.discountTotal, currencySymbol)}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 4. Перфорация (разделитель с круглыми вырезами) */}
-                  <div style={{ position: 'relative', margin: '4px -18px', height: '14px', display: 'flex', alignItems: 'center' }}>
-                    {/* Левый круглый вырез */}
-                    <div style={{ position: 'absolute', left: '-7px', width: '14px', height: '14px', borderRadius: '50%', backgroundColor: '#0a0a0a' }} />
-                    {/* Линия перфорации */}
-                    <div style={{ width: '100%', borderBottom: '1px dashed #737373' }} />
-                    {/* Правый круглый вырез */}
-                    <div style={{ position: 'absolute', right: '-7px', width: '14px', height: '14px', borderRadius: '50%', backgroundColor: '#0a0a0a' }} />
-                  </div>
-
-                  {/* 5. Итоговая стоимость для клиента */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
-                    <div>
-                      <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#404040', letterSpacing: '0.05em', display: 'block' }}>
+                {/* 5. Итоговая стоимость для клиента (СТРОГО автоматический расчет) */}
+                <motion.div variants={lineVariants}>
+                  <div className="flex justify-between items-start font-mono">
+                    <div className="flex-1 pr-2 pt-1">
+                      <span className="text-[10px] font-bold text-[#262626] tracking-[0.05em] block uppercase select-none">
                         ИТОГО К ОПЛАТЕ
                       </span>
-                      <span style={{ fontSize: '9px', color: '#525252' }}>
-                        {qtyNum > 1 ? `${quantity} шт. × ${formatCurrency(pricePerPiece, currencySymbol)}` : 'за 1 шт.'}
+                    </div>
+
+                    <div className="flex flex-col items-end shrink-0">
+                      <span className="text-right text-[20px] sm:text-[22px] font-bold text-[#0a0a0a] tracking-tight pr-0 font-mono select-none">
+                        {formatCurrency(effectiveTotal, currencySymbol)}
                       </span>
-                    </div>
-                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#0a0a0a', letterSpacing: '-0.02em', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
-                      {formatCurrency(clientTotalFinalPrice, currencySymbol)}
-                    </span>
-                  </div>
 
-                  {/* 6. Подвал клиентского чека: Штрихкод и контакты */}
-                  <div style={{ marginTop: '4px' }}>
-                    <div style={{ borderBottom: '1px dashed #737373', margin: '10px 0' }} />
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', textAlign: 'center', fontFamily: 'var(--font-jetbrains-mono), monospace' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#525252', fontWeight: 500 }}>
-                        <span>AUTH · 3DLABS-VERIFIED</span>
-                        <span>STATUS · READY</span>
-                      </div>
-
-                      {/* Штрихкод */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', height: '26px', padding: '3px 0' }}>
-                        {[2, 1, 3, 1, 2, 4, 1, 2, 1, 3, 2, 1, 4, 2, 1, 3, 1, 2, 3, 1, 2, 4, 1, 3, 2, 1, 2, 1, 3, 2, 1, 4, 1, 2, 3, 1, 2].map((w, i) => (
-                          <div key={i} style={{ backgroundColor: '#0a0a0a', width: `${w}px`, height: '100%', borderRadius: '0.5px' }} />
-                        ))}
-                      </div>
-
-                      <p style={{ fontSize: '10px', fontWeight: 'bold', color: '#171717', margin: '4px 0 0 0' }}>
-                        СПАСИБО ЗА ВАШ ЗАКАЗ!
-                      </p>
+                      {/* Расчёт цены за штуку под суммой */}
+                      {showUnitPrice && qtyNum > 1 && (
+                        <span className="text-right text-[9px] sm:text-[9.5px] text-[#525252] font-mono pr-0 select-none mt-0.5">
+                          {formatCurrency(effectiveTotal / qtyNum, currencySymbol)} / шт. (за {qtyNum} шт.)
+                        </span>
+                      )}
                     </div>
                   </div>
+                </motion.div>
 
-                </div>
+                {/* 6. Подвал чека: реквизиты оплаты, штрихкод и благодарность */}
+                <motion.div variants={lineVariants} className="mt-1 space-y-2">
+                  <div className="border-b border-dashed border-[#737373]" />
 
-                {/* Кнопки действий под чеком */}
-                <div className="w-[300px] space-y-2 font-mono">
-                  {/* 1. Скопировать картинку */}
-                  <Tooltip content="Скопировать картинку для вставки (Ctrl+V) в Telegram или WhatsApp">
-                    <button
-                      type="button"
-                      onClick={handleCopyImage}
-                      disabled={isExporting}
-                      className={`w-full py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer ${
-                        copiedImage
-                          ? 'bg-emerald-500 text-neutral-950 shadow-md'
-                          : 'bg-white text-neutral-950 hover:bg-neutral-200 shadow-sm'
-                      }`}
+                  {/* Реквизиты для оплаты — заметный контрастный блок */}
+                  {showPaymentDetails ? (
+                    <div
+                      data-export-hide={!paymentDetails.trim() ? 'true' : undefined}
+                      className="p-2.5 rounded-lg bg-black/[0.07] border border-black/25 space-y-1 font-mono text-left shadow-xs"
                     >
-                      {copiedImage ? <Check className="w-4 h-4 text-neutral-950" /> : <Copy className="w-4 h-4" />}
-                      <span>{copiedImage ? 'Скопировано в буфер!' : 'Копировать фото'}</span>
-                    </button>
-                  </Tooltip>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    {/* 2. Скачать PNG */}
-                    <Tooltip content="Сохранить чек как изображение PNG">
+                      <div className="flex items-center justify-between text-[8.5px] font-bold text-[#0a0a0a] uppercase tracking-wider select-none">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a]" />
+                          <span>РЕКВИЗИТЫ ДЛЯ ОПЛАТЫ:</span>
+                        </span>
+                        <button
+                          type="button"
+                          data-export-hide="true"
+                          onClick={() => setShowPaymentDetails(false)}
+                          title="Скрыть реквизиты"
+                          aria-label="Скрыть реквизиты"
+                          className="text-[#525252] hover:text-[#0a0a0a] cursor-pointer p-0.5 border-none bg-transparent transition-colors"
+                        >
+                          <EyeOff className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <textarea
+                        value={paymentDetails}
+                        onChange={(e) => setPaymentDetails(e.target.value)}
+                        placeholder="Впишите реквизиты (СБП, банк, карта, получатель)..."
+                        rows={Math.min(4, Math.max(2, paymentDetails.split('\n').length))}
+                        aria-label="Реквизиты для оплаты"
+                        className="w-full text-[9.5px] font-semibold text-[#0a0a0a] bg-transparent border-b border-transparent hover:border-black/30 focus:border-black/70 focus:bg-black/5 outline-none px-0.5 py-0.5 rounded-xs transition-colors resize-none leading-relaxed font-mono placeholder:text-neutral-500"
+                      />
+                    </div>
+                  ) : (
+                    <div data-export-hide="true" className="pt-0.5 flex justify-start">
                       <button
                         type="button"
-                        onClick={handleDownloadPng}
-                        disabled={isExporting}
-                        className="py-2.5 px-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-medium text-xs flex items-center justify-center gap-1.5 cursor-pointer "
+                        onClick={() => setShowPaymentDetails(true)}
+                        className="text-[8.5px] font-mono text-[#525252] hover:text-[#0a0a0a] flex items-center gap-1 cursor-pointer transition-colors opacity-75 hover:opacity-100 border-none bg-transparent p-0"
                       >
-                        <Download className="w-3.5 h-3.5 text-neutral-400" />
-                        <span>Скачать PNG</span>
+                        <Plus className="w-3 h-3" />
+                        <span>реквизиты оплаты</span>
                       </button>
-                    </Tooltip>
+                    </div>
+                  )}
 
-                    {/* 3. Печать / PDF */}
-                    <Tooltip content="Распечатать или сохранить в PDF">
-                      <button
-                        type="button"
-                        onClick={handlePrint}
-                        disabled={isExporting}
-                        className="py-2.5 px-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white font-medium text-xs flex items-center justify-center gap-1.5 cursor-pointer "
-                      >
-                        <Printer className="w-3.5 h-3.5 text-neutral-400" />
-                        <span>Печать / PDF</span>
-                      </button>
-                    </Tooltip>
+                  {/* Штрихкод */}
+                  {showBarcode && (
+                    <div className="flex items-center justify-center gap-[2px] h-[26px] py-[2px]">
+                      {[2, 1, 3, 1, 2, 4, 1, 2, 1, 3, 2, 1, 4, 2, 1, 3, 1, 2, 3, 1, 2, 4, 1, 3, 2, 1, 2, 1, 3, 2, 1, 4, 1, 2, 3, 1, 2].map((w, i) => (
+                        <div key={i} style={{ backgroundColor: '#0a0a0a', width: `${w}px`, height: '100%', borderRadius: '0.5px' }} />
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Текст благодарности */}
+                  <div className="text-center">
+                    <input
+                      type="text"
+                      value={thanksText}
+                      onChange={(e) => setThanksText(e.target.value)}
+                      aria-label="Благодарность за заказ"
+                      className="text-center font-bold text-[10px] sm:text-[10.5px] text-[#171717] bg-transparent border-b border-transparent hover:border-black/25 focus:border-black/70 focus:bg-black/5 outline-none w-full px-0.5 rounded-xs font-mono transition-colors"
+                    />
                   </div>
-                </div>
+                </motion.div>
+              </motion.div>
+            </motion.div>
 
+            {/* ПАНЕЛЬ ДЕЙСТВИЙ (ПОД ЧЕКОМ, ВНЕ ЗОНЫ СКРИНШОТА) */}
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1, transition: { delay: 0.12, duration: 0.22, ease: [0.16, 1, 0.3, 1] as const } }}
+              exit={{ opacity: 0, y: 12, scale: 0.96, transition: { duration: 0.18, ease: 'easeIn' as const } }}
+              className="w-[340px] max-w-[calc(100vw-24px)] flex flex-col gap-2 font-mono"
+            >
+              {/* Кнопка: Копировать фото в буфер */}
+              <Tooltip content="Скопировать чек в буфер обмена для вставки (Ctrl+V) в Telegram или WhatsApp">
+                <button
+                  type="button"
+                  onClick={handleCopyImage}
+                  disabled={isExporting}
+                  className={`w-full h-10 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition-all ${
+                    copiedImage
+                      ? 'bg-emerald-500 text-neutral-950 shadow-md'
+                      : 'bg-white text-neutral-950 hover:bg-neutral-200 shadow-sm'
+                  }`}
+                >
+                  {copiedImage ? <Check className="w-4 h-4 text-neutral-950" /> : <Copy className="w-4 h-4" />}
+                  <span>{copiedImage ? 'Скопировано в буфер!' : 'Копировать фото'}</span>
+                </button>
+              </Tooltip>
+
+              <div className="grid grid-cols-2 gap-2">
+                {/* Кнопка: Скачать PNG */}
+                <Tooltip content="Сохранить чек как изображение PNG">
+                  <button
+                    type="button"
+                    onClick={handleDownloadPng}
+                    disabled={isExporting}
+                    className="w-full h-10 px-3 rounded-xl bg-neutral-900/90 hover:bg-neutral-800 border border-white/15 text-white font-medium text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5 text-neutral-400" />
+                    <span>Скачать PNG</span>
+                  </button>
+                </Tooltip>
+
+                {/* Кнопка: Печать / PDF */}
+                <Tooltip content="Распечатать или сохранить в PDF">
+                  <button
+                    type="button"
+                    onClick={handlePrint}
+                    disabled={isExporting}
+                    className="w-full h-10 px-3 rounded-xl bg-neutral-900/90 hover:bg-neutral-800 border border-white/15 text-white font-medium text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-neutral-400" />
+                    <span>Печать / PDF</span>
+                  </button>
+                </Tooltip>
               </div>
-
-            </div>
-          </div>
-
-          {/* 3. ПОДВАЛ ОКНА МОДАЛКИ (КАК В КАЛЬКУЛЯТОРЕ) */}
-          <div className="border-t border-white/10 px-4 sm:px-6 py-2.5 bg-neutral-950 flex items-center justify-between text-[11px] font-mono text-neutral-500 shrink-0">
-            <div className="flex items-center gap-3">
-              <span>EXPORT: LOCAL DEVICE</span>
-              <span className="hidden sm:inline">•</span>
-              <span className="hidden sm:inline">FORMAT: PNG / PRINT</span>
-            </div>
-            <div>{isExporting ? 'STATUS: EXPORTING' : 'STATUS: READY'}</div>
-          </div>
-
-        </motion.div>
-      </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      )}
     </AnimatePresence>
   );
 }

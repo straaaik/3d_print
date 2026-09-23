@@ -23,6 +23,7 @@ import {
 } from '../helpers';
 import { DEFAULT_COST_CATEGORIES } from '../../../shared/lib/costCategories';
 import { useData } from '../../../entities/model/DataProvider';
+import { CockpitButton } from '../../../shared/ui/CockpitButton';
 import { calculateCost } from '../../../features/calculate-cost/model/calculate';
 import { CustomCostItem, ContactType } from '../../../shared/types';
 import {
@@ -1098,7 +1099,7 @@ export function OrderFormModal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
             onClick={handleAttemptClose}
-            className="fixed inset-0 bg-black/80 backdrop-blur-xl"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm"
           />
 
           {/* Главное окно консоли в стиле Meridian Cockpit с эффектом взлета */}
@@ -1420,7 +1421,7 @@ export function OrderFormModal({
                 {/* Нижняя системная плашка телеметрии: Название и шкала заполнения */}
                 <div className="pt-3 border-t border-[#222226] space-y-1.5 shrink-0">
                   <div className="flex items-center justify-between text-[10px] font-mono text-[#71717a] uppercase tracking-wider px-1 font-semibold">
-                    <span>3D LABS</span>
+                    <span>KUMO CRM</span>
                     <span className="text-[#a1a1aa] font-medium text-[9px]">
                       {completedTabsCount}/{tabsList.length} РАЗД.
                     </span>
@@ -3333,25 +3334,18 @@ export function OrderFormModal({
                 )}
 
                 {/* Нижние кнопки сохранения */}
-                <div className="pt-3 border-t border-[#222226] space-y-2 shrink-0">
-                  <button
+                <div className="pt-3 border-t border-[#222226] shrink-0">
+                  <CockpitButton
                     type="button"
                     onClick={handleSubmit}
                     disabled={isSubmitting}
-                    className="w-full py-2 rounded-lg bg-white hover:bg-[#e4e4e7] text-black font-semibold text-xs font-mono cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-wait"
+                    fullWidth
+                    size="sm"
                   >
                     {isSubmitting ? 'Сохранение…' : order.id
                       ? (isIncome ? 'Сохранить изменения' : 'Сохранить расход')
                       : (isIncome ? 'Создать заказ' : 'Записать расход')}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleAttemptClose}
-                    className="w-full py-1.5 rounded-lg bg-transparent hover:bg-white/5 border border-white/10 text-[#71717a] hover:text-white text-xs font-mono cursor-pointer"
-                  >
-                    Закрыть [Esc]
-                  </button>
+                  </CockpitButton>
                 </div>
 
               </div>
@@ -3367,7 +3361,7 @@ export function OrderFormModal({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, pointerEvents: 'none' }}
                 transition={{ duration: 0.15, ease: 'easeOut' }}
-                className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md"
+                className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm"
               >
                 <motion.div
                   initial={{ scale: 0.95, opacity: 0, y: 10 }}

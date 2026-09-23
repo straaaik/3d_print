@@ -124,7 +124,7 @@ interface ProductsV2ViewProps {
   onInlineUpdateCollection?: (collectionId: string, updates: Partial<ProductCollection>) => void;
   onSetStock: (item: SavedCalculation, newStock: number) => void;
   onOpenCategoryModal: (item: SavedCalculation) => void;
-  onOpenQuickEditModal: (item: SavedCalculation) => void;
+  onOpenEditAssembly?: (item: SavedCalculation) => void;
   onCreateOrder: (item: SavedCalculation) => void;
   onLoadIntoCalculator: (item: SavedCalculation) => void;
   onStageForAssembly: (item: SavedCalculation) => void;
@@ -218,7 +218,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
   onInlineUpdateCollection,
   onSetStock,
   onOpenCategoryModal,
-  onOpenQuickEditModal,
+  onOpenEditAssembly,
   onCreateOrder,
   onLoadIntoCalculator,
   onStageForAssembly,
@@ -506,7 +506,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
             </div>
 
             <div className="flex items-center gap-2 pl-3 border-l border-white/10 font-mono text-xs text-neutral-300">
-              <span className="text-white font-bold">3D-LABS</span>
+              <span className="text-white font-bold">KUMO-CRM</span>
               <span className="text-neutral-600">{'//'}</span>
               <span className="text-neutral-400 hidden sm:inline">ТОВАРЫ</span>
 
@@ -730,7 +730,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
               onInlineUpdateCollection={onInlineUpdateCollection}
               onSetStock={onSetStock}
               onOpenCategoryModal={onOpenCategoryModal}
-              onOpenQuickEditModal={onOpenQuickEditModal}
+              onOpenEditAssembly={onOpenEditAssembly}
               onCreateOrder={onCreateOrder}
               onLoadIntoCalculator={onLoadIntoCalculator}
               onStageForAssembly={onStageForAssembly}

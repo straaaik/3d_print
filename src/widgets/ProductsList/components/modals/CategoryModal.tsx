@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { SavedCalculation } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
 import { Input } from '../../../../shared/ui/Input';
-import { Select, SelectOption } from '../../../../shared/ui/Select';
+import { SelectOption } from '../../../../shared/ui/Select';
+import { ModalDropdown } from '../../../../shared/ui/ModalDropdown';
 import { CockpitButton } from '../../../../shared/ui/CockpitButton';
-import { Folder, Tag, Plus } from 'lucide-react';
 
 interface CategoryModalProps {
   item: SavedCalculation | null;
@@ -77,75 +77,34 @@ function CategoryModalForm({
       maxWidth="md"
       footer={
         <div className="flex justify-end gap-2 w-full font-mono text-xs">
-          <CockpitButton type="button" onClick={onClose} disabled={isSaving}>
-            Закрыть
-          </CockpitButton>
           <CockpitButton
             type="submit"
             disabled={isSaving}
-            isActive={true}
-            onClick={handleSubmit}
-            className="border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold"
+            form="category-form"
           >
             {isSaving ? 'Сохранение...' : 'Сохранить'}
           </CockpitButton>
         </div>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-3 pt-1 font-mono text-xs">
-        <div className="bg-neutral-900 p-3 rounded-xl border border-white/10 space-y-2">
-          <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider flex items-center justify-between">
-            <span className="flex items-center gap-1.5">
-              <Folder size={13} className="text-cyan-400" />
-              Категория товара
-            </span>
-            <button
-              type="button"
-              onClick={() => setIsCreatingNew(!isCreatingNew)}
-              className="text-cyan-400 hover:text-cyan-300 text-[10px] flex items-center gap-1 cursor-pointer font-mono"
-            >
-              <Plus size={11} /> {isCreatingNew ? '[ Выбрать из списка ]' : '[ Создать новую ]'}
-            </button>
-          </label>
-
+      <form id="category-form" onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs text-neutral-400">Категория</span>
+            <CockpitButton onClick={() => setIsCreatingNew(!isCreatingNew)}>
+              {isCreatingNew ? 'Выбрать из списка' : 'Создать категорию'}
+            </CockpitButton>
+          </div>
           {isCreatingNew ? (
             <div className="flex items-center gap-2">
-              <Input
-                placeholder="Название новой категории"
-                value={newCatName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewCatName(e.target.value)}
-                autoFocus
-              />
-              <CockpitButton
-                type="button"
-                onClick={handleCreateNewCategory}
-                disabled={!newCatName.trim()}
-                isActive={true}
-                className="shrink-0 border-white/20 bg-white text-neutral-950 hover:bg-neutral-200 font-bold"
-              >
-                Создать
-              </CockpitButton>
+              <Input aria-label="Название новой категории" placeholder="Название категории" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} autoFocus />
+              <CockpitButton onClick={handleCreateNewCategory} disabled={!newCatName.trim()} className="shrink-0">Создать</CockpitButton>
             </div>
           ) : (
-            <Select
-              options={categoryOptions}
-              value={category}
-              onChange={handleSelectCategory}
-            />
+            <ModalDropdown ariaLabel="Категория товара" options={categoryOptions} value={category} onChange={handleSelectCategory} usePortal />
           )}
         </div>
-
-        <div className="bg-neutral-900 p-3 rounded-xl border border-white/10 space-y-2">
-          <label className="block text-[11px] font-bold text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Tag size={13} className="text-amber-400" />
-            Теги (через запятую)
-          </label>
-          <Input
-            placeholder="например: PLA, Срочно, Популярное, Авито"
-            value={tagsInput}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTagsInput(e.target.value)}
-          />
-        </div>
+        <Input label="Метки" aria-label="Метки товара" placeholder="Например, декор, подарок" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} hint="Необязательно. Разделяйте метки запятыми." />
       </form>
     </Modal>
   );

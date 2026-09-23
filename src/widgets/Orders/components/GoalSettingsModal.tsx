@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Check, RotateCcw } from 'lucide-react';
 import { formatMoney } from '../helpers';
 import { Tooltip } from '../../../shared/ui/Tooltip';
+import { AnimatedPriceNumber } from '../../../shared/ui/AnimatedPriceNumber';
+import { CockpitButton } from '../../../shared/ui/CockpitButton';
 
 interface GoalSettingsModalProps {
   isOpen: boolean;
@@ -17,6 +19,55 @@ interface GoalSettingsModalProps {
 }
 
 const PRESET_AMOUNTS = [30000, 50000, 100000, 150000, 200000, 300000, 500000];
+
+function WaveFill({ percent }: { percent: number }) {
+  const clampedPercent = Math.min(100, Math.max(0, percent));
+
+  return (
+    <motion.div
+      className="absolute top-0 bottom-0 left-0 overflow-hidden pointer-events-none z-0"
+      initial={false}
+      animate={{ width: `${clampedPercent}%` }}
+      transition={{ type: 'spring', stiffness: 140, damping: 22 }}
+    >
+      {/* Сплошной неброский серовато-зеленый фон без градиента */}
+      <div className="absolute inset-0 bg-[#23332b]" />
+
+      {/* Волна 1 (плавное горизонтальное движение) */}
+      <motion.div
+        className="absolute inset-y-0 left-0 w-[200%] flex opacity-30 pointer-events-none"
+        animate={{ x: ['0%', '-50%'] }}
+        transition={{ repeat: Infinity, duration: 7, ease: 'linear' }}
+      >
+        <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 800 60">
+          <path
+            d="M 0 30 Q 100 12 200 30 T 400 30 T 600 30 T 800 30 L 800 60 L 0 60 Z"
+            fill="#33463b"
+          />
+        </svg>
+      </motion.div>
+
+      {/* Волна 2 (встречное мягкое смещение для эффекта естественного колыхания) */}
+      <motion.div
+        className="absolute inset-y-0 left-0 w-[200%] flex opacity-20 pointer-events-none"
+        animate={{ x: ['-50%', '0%'] }}
+        transition={{ repeat: Infinity, duration: 5, ease: 'linear' }}
+      >
+        <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 800 60">
+          <path
+            d="M 0 35 Q 100 48 200 35 T 400 35 T 600 35 T 800 35 L 800 60 L 0 60 Z"
+            fill="#3d5447"
+          />
+        </svg>
+      </motion.div>
+
+      {/* Тонкая разделительная кромка на фронте заполнения */}
+      {clampedPercent > 0 && clampedPercent < 100 && (
+        <div className="absolute right-0 top-0 bottom-0 w-[1.5px] bg-[#4a6354]/60" />
+      )}
+    </motion.div>
+  );
+}
 
 function HandDrawnUnderline({
   isSelected,
@@ -82,9 +133,6 @@ function GoalSettingsModalContent({
   const [goalAmount, setGoalAmount] = useState<string>(
     currentGoal > 0 ? String(currentGoal) : ''
   );
-  const [applyToAllMonths, setApplyToAllMonths] = useState<boolean>(
-    selectedMonthKey === 'all'
-  );
   const [currentTimeStr, setCurrentTimeStr] = useState('');
 
   // Живые часы в шапке
@@ -118,7 +166,7 @@ function GoalSettingsModalContent({
 
   const handleSave = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    onSave(numericGoal, applyToAllMonths || selectedMonthKey === 'all');
+    onSave(numericGoal, selectedMonthKey === 'all');
     onClose();
   };
 
@@ -136,7 +184,7 @@ function GoalSettingsModalContent({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/85 backdrop-blur-md"
+            className="fixed inset-0 bg-black/85 backdrop-blur-sm"
           />
 
           {/* Главное окно консоли в стиле Meridian Cockpit */}
@@ -199,7 +247,10 @@ function GoalSettingsModalContent({
                   )}
                 </div>
 
-                <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#141416]/90 border border-[#26262b] focus-within:border-white/40 ">
+                <div className="relative overflow-hidden flex items-center justify-between p-3.5 rounded-xl bg-[#141416]/90 border border-[#26262b] focus-within:border-white/40">
+                  {/* Волновой серовато-зеленый слой заполнения */}
+                  <WaveFill percent={progressPercent} />
+
                   <input
                     type="text"
                     inputMode="numeric"
@@ -210,170 +261,135 @@ function GoalSettingsModalContent({
                     }}
                     placeholder="0"
                     autoFocus
-                    className="bg-transparent border-none focus:outline-none p-0 text-2xl sm:text-3xl font-light font-mono text-white placeholder-[#52525b] w-full tracking-tight"
+                    className="relative z-10 bg-transparent border-none focus:outline-none p-0 text-2xl sm:text-3xl font-light font-mono text-white placeholder-[#52525b] w-full tracking-tight"
                   />
-                  <div className="text-xl sm:text-2xl font-light text-[#71717a] font-mono select-none pl-3">
+
+                  {(numericGoal > 0 || currentGoal > 0) && (
+                    <button
+                      type="button"
+                      onClick={() => setGoalAmount('0')}
+                      title="Сбросить цель"
+                      className="relative z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/[0.04] hover:bg-rose-500/10 border border-white/10 hover:border-rose-500/30 text-xs font-mono text-[#71717a] hover:text-rose-400 cursor-pointer select-none transition-colors shrink-0 mr-2"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span className="hidden sm:inline">Сбросить цель</span>
+                      <span className="sm:hidden">Сбросить</span>
+                    </button>
+                  )}
+
+                  <div className="relative z-10 text-xl sm:text-2xl font-light text-[#71717a] font-mono select-none pl-1">
                     ₽
                   </div>
                 </div>
               </div>
 
-              {/* Быстрые пресеты планки */}
-              <div className="space-y-2 select-none">
-                <div className="text-[11px] text-[#71717a] uppercase tracking-wider font-semibold">
-                  БЫСТРЫЙ ВЫБОР ПЛАНКИ
-                </div>
-                <div className="flex items-center gap-3 sm:gap-4 flex-wrap pt-0.5">
-                  {PRESET_AMOUNTS.map((amt) => {
-                    const isSelected = numericGoal === amt;
-                    return (
-                      <button
-                        key={amt}
-                        type="button"
-                        onClick={() => setGoalAmount(String(amt))}
-                        className={`py-0.5 text-xs font-mono cursor-pointer ${
-                          isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
-                        }`}
-                      >
-                        <span className="relative inline-block">
-                          <span>{(amt / 1000).toLocaleString('ru-RU')}k ₽</span>
-                          <HandDrawnUnderline isSelected={isSelected} />
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+              {/* Быстрые пресеты планки без текстового заголовка */}
+              <div className="flex items-center gap-3 sm:gap-4 flex-wrap select-none pt-0.5">
+                {PRESET_AMOUNTS.map((amt) => {
+                  const isSelected = numericGoal === amt;
+                  return (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setGoalAmount(String(amt))}
+                      className={`py-0.5 text-xs font-mono cursor-pointer ${
+                        isSelected ? 'text-white font-bold' : 'text-[#71717a] hover:text-white'
+                      }`}
+                    >
+                      <span className="relative inline-block">
+                        <span>{(amt / 1000).toLocaleString('ru-RU')}k ₽</span>
+                        <HandDrawnUnderline isSelected={isSelected} />
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Опция: сделать целью по умолчанию для всех месяцев */}
-              {selectedMonthKey !== 'all' && (
-                <div className="pt-2 border-t border-[#26262b]">
-                  <label className="flex items-center gap-2.5 cursor-pointer select-none group">
-                    <input
-                      type="checkbox"
-                      checked={applyToAllMonths}
-                      onChange={(e) => setApplyToAllMonths(e.target.checked)}
-                      className="w-4 h-4 rounded bg-[#121214] border-white/20 text-cyan-500 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                    />
-                    <span className="text-xs text-[#a1a1aa] group-hover:text-white ">
-                      Сделать эту сумму целью по умолчанию для всех месяцев
-                    </span>
-                  </label>
-                </div>
-              )}
-
-              {/* 4 Нижних тайла телеметрии (в стиле OrderFormModal) */}
-              <div className="space-y-2 pt-2 border-t border-[#26262b]">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {/* 2 Нижних тайла телеметрии (Текущая прибыль с прогрессом и Осталось) */}
+              <div className="pt-2 border-t border-[#26262b]">
+                <div className="grid grid-cols-2 gap-2">
                   {/* Тайл 1: Текущая прибыль */}
                   <div className="border border-[#2a2a30] bg-[#121214]/90 rounded-md p-2.5 font-mono">
-                    <div className="text-[9px] sm:text-[10px] text-[#71717a] uppercase font-semibold">
-                      ТЕКУЩАЯ ПРИБЫЛЬ
+                    <div className="flex items-center justify-between">
+                      <div className="text-[9px] sm:text-[10px] text-[#71717a] uppercase font-semibold">
+                        ТЕКУЩАЯ ПРИБЫЛЬ
+                      </div>
+                      {numericGoal > 0 && (
+                        <div className="text-xs font-mono text-neutral-400 font-normal">
+                          {Math.round(progressPercent)}%
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-baseline gap-1 mt-1">
-                      <span className="text-base sm:text-lg font-light text-emerald-400">
-                        {currentProfit >= 0 ? `+${formatMoney(currentProfit)}` : formatMoney(currentProfit)}
-                      </span>
+
+                    <div className="flex items-baseline gap-2 mt-1">
+                      <AnimatedPriceNumber
+                        value={currentProfit}
+                        showPositiveSign={currentProfit > 0}
+                        className="text-base sm:text-lg font-light text-emerald-400"
+                        currencyClassName="text-emerald-400/80 font-normal ml-0.5"
+                      />
                     </div>
                   </div>
 
-                  {/* Тайл 2: Целевая планка */}
-                  <div className="border border-[#2a2a30] bg-[#121214]/90 rounded-md p-2.5 font-mono">
-                    <div className="text-[9px] sm:text-[10px] text-[#71717a] uppercase font-semibold">
-                      ЦЕЛЬ ПЕРИОДА
-                    </div>
-                    <div className="flex items-baseline gap-1 mt-1">
-                      <span className="text-base sm:text-lg font-light text-white">
-                        {numericGoal > 0 ? formatMoney(numericGoal) : '0 ₽'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Тайл 3: Прогресс выполнения */}
-                  <div className="border border-[#2a2a30] bg-[#121214]/90 rounded-md p-2.5 font-mono">
-                    <div className="text-[9px] sm:text-[10px] text-[#71717a] uppercase font-semibold">
-                      ВЫПОЛНЕНИЕ
-                    </div>
-                    <div className="flex items-baseline gap-1 mt-1">
-                      <span className={`text-base sm:text-lg font-light ${
-                        isGoalReached ? 'text-emerald-400 font-normal' : numericGoal > 0 ? 'text-cyan-300' : 'text-[#71717a]'
-                      }`}>
-                        {numericGoal > 0 ? `${progressPercent.toFixed(0)}%` : '0%'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Тайл 4: Осталось */}
+                  {/* Тайл 2: Осталось */}
                   <div className="border border-[#2a2a30] bg-[#121214]/90 rounded-md p-2.5 font-mono">
                     <div className="text-[9px] sm:text-[10px] text-[#71717a] uppercase font-semibold">
                       ОСТАЛОСЬ
                     </div>
-                    <div className="flex items-baseline gap-1 mt-1">
-                      <span className={`text-xs sm:text-sm font-light truncate ${
-                        isGoalReached ? 'text-emerald-400 font-semibold' : 'text-neutral-300'
-                      }`}>
-                        {numericGoal === 0
-                          ? '—'
-                          : isGoalReached
-                          ? 'Достигнута 🎉'
-                          : formatMoney(goalRemaining)}
-                      </span>
+                    <div className="flex items-baseline gap-1 mt-1 min-h-[28px]">
+                      <AnimatePresence mode="wait">
+                        {numericGoal === 0 ? (
+                          <motion.span
+                            key="empty"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="text-base sm:text-lg font-light text-[#71717a]"
+                          >
+                            —
+                          </motion.span>
+                        ) : isGoalReached ? (
+                          <motion.span
+                            key="reached"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.2 }}
+                            className="text-base sm:text-lg font-light text-emerald-400 truncate"
+                          >
+                            Достигнута
+                          </motion.span>
+                        ) : (
+                          <motion.div
+                            key="remaining"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                          >
+                            <AnimatedPriceNumber
+                              value={goalRemaining}
+                              className="text-base sm:text-lg font-light text-white truncate"
+                              currencyClassName="text-neutral-400 font-normal ml-0.5"
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </div>
-                </div>
-
-                {/* Полоса прогресса к цели */}
-                <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden relative">
-                  <div
-                    className={`h-full rounded-full ${
-                      isGoalReached
-                        ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]'
-                        : numericGoal > 0
-                        ? 'bg-gradient-to-r from-teal-500 to-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]'
-                        : 'bg-white/10'
-                    }`}
-                    style={{ width: `${numericGoal > 0 ? Math.max(progressPercent, 2) : 0}%` }}
-                  />
                 </div>
               </div>
 
             </form>
 
-            {/* 3. Нижняя панель телеметрии и кнопки */}
-            <div className="flex items-center justify-between border-t border-white/10 px-5 py-3 bg-neutral-900/60 font-mono text-xs shrink-0">
-              <div className="flex items-center gap-2">
-                {currentGoal > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => setGoalAmount('0')}
-                    className="text-xs font-mono text-[#71717a] hover:text-rose-400 flex items-center gap-1.5 cursor-pointer select-none"
-                  >
-                    <RotateCcw className="w-3 h-3" />
-                    <span>[ Сбросить цель ]</span>
-                  </button>
-                ) : (
-                  <div />
-                )}
-              </div>
-
-              <div className="flex items-center gap-2.5 ml-auto">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-3.5 py-1.5 rounded-lg border border-white/10 bg-white/[0.03] text-[#a1a1aa] hover:text-white hover:bg-white/[0.08] hover:border-white/20 cursor-pointer text-xs font-mono select-none"
-                >
-                  [ Закрыть ]
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleSave()}
-                  className="px-4 py-1.5 rounded-lg bg-white text-black font-bold hover:bg-neutral-200 cursor-pointer text-xs font-mono select-none shadow-md flex items-center gap-1.5"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  <span>[ Сохранить цель ]</span>
-                </button>
-              </div>
+            {/* 3. Нижняя панель действий */}
+            <div className="flex items-center justify-end border-t border-white/10 px-5 py-3 bg-neutral-900/60 font-mono text-xs shrink-0">
+              <CockpitButton
+                type="button"
+                onClick={() => handleSave()}
+                icon={Check}
+              >
+                Сохранить цель
+              </CockpitButton>
             </div>
 
           </motion.div>

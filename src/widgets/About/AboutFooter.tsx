@@ -36,7 +36,7 @@ export function AboutFooter() {
               className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl font-bold tracking-tight text-sm h-12 px-8 bg-white text-neutral-950 hover:bg-neutral-200 shadow-[0_0_30px_-5px_rgba(255,255,255,0.5)] cursor-pointer"
             >
               <span className="flex items-center gap-2">
-                {isAuthenticated ? 'Перейти в консоль управления' : 'Начать работу с 3D Labs'}
+                {isAuthenticated ? 'Перейти в консоль управления' : 'Начать работу с Kumo CRM'}
                 <ArrowRight className="w-4 h-4" />
               </span>
             </Link>
@@ -61,7 +61,7 @@ export function AboutFooter() {
             <div className="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
               <Box className="w-4 h-4" />
             </div>
-            <span className="text-lg font-bold text-white tracking-tight">3D Labs OS</span>
+            <span className="text-lg font-bold text-white tracking-tight">Kumo CRM OS</span>
           </div>
 
           <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed max-w-sm">
@@ -117,7 +117,7 @@ export function AboutFooter() {
       <div className="border-t border-white/10 px-4 sm:px-6 py-6 bg-neutral-950">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px] text-neutral-500">
           <div>
-            © 2026 3D LABS. ВСЕ ПРАВА ЗАЩИЩЕНЫ · PRECISION 3D PRINTING SOFTWARE
+            © 2026 KUMO CRM. ВСЕ ПРАВА ЗАЩИЩЕНЫ · PRECISION 3D PRINTING SOFTWARE
           </div>
           <div className="flex items-center gap-2">
             <span>СДЕЛАНО ДЛЯ МАСТЕРОВ 3D-ПЕЧАТИ</span>

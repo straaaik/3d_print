@@ -376,7 +376,7 @@ export const OrdersV2View = React.memo(function OrdersV2View({
             </div>
 
             <div className="flex items-center gap-2 pl-3 border-l border-white/10 font-mono text-xs text-neutral-300">
-              <span className="text-white font-bold">3D-LABS</span>
+              <span className="text-white font-bold">KUMO-CRM</span>
               <span className="text-neutral-600">{'//'}</span>
               <span className="text-neutral-400 hidden sm:inline">ЗАКАЗЫ</span>
 

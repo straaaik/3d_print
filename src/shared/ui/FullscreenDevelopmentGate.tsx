@@ -59,7 +59,7 @@ export function FullscreenDevelopmentGate({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/80 p-4 backdrop-blur-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/80 p-4 backdrop-blur-sm">
       <section
         ref={dialogRef}
         role="dialog"
@@ -77,7 +77,7 @@ export function FullscreenDevelopmentGate({
               <span className="h-3 w-3 rounded-full border border-emerald-400/20 bg-emerald-500/40" />
             </div>
             <span className="truncate text-xs font-bold tracking-wider text-neutral-300">
-              3D-LABS // FULLSCREEN RUNTIME
+              KUMO-CRM // FULLSCREEN RUNTIME
             </span>
           </div>
           <span className="inline-flex shrink-0 items-center gap-1 rounded border border-amber-800/40 bg-amber-950/60 px-2 py-0.5 text-[10px] font-bold text-amber-400">

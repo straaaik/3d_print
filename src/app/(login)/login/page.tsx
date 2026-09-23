@@ -127,7 +127,7 @@ export default function LoginPage() {
       });
 
       if (res.success) {
-        showSuccess('Регистрация прошла успешно!', 'Добро пожаловать в 3D Labs');
+        showSuccess('Регистрация прошла успешно!', 'Добро пожаловать в Kumo CRM');
         router.refresh();
         router.replace('/orders');
       } else {
@@ -147,7 +147,7 @@ export default function LoginPage() {
         <div className="flex flex-col items-center gap-4 select-none">
           <MotionSpinner className="w-9 h-9 rounded-full border-2 border-white/10 border-t-white" />
           <p className="text-neutral-400 text-xs font-mono font-semibold">
-            Инициализация шлюза авторизации 3D Labs...
+            Инициализация шлюза авторизации Kumo CRM...
           </p>
         </div>
       </div>
@@ -167,7 +167,7 @@ export default function LoginPage() {
             <Layers className="w-3.5 h-3.5 text-cyan-400" />
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="font-bold text-white tracking-tight">3D LABS</span>
+            <span className="font-bold text-white tracking-tight">KUMO CRM</span>
             <span className="text-neutral-600">{'//'}</span>
             <span className="text-neutral-400 hidden sm:inline">OS v2.4</span>
           </div>
@@ -198,7 +198,7 @@ export default function LoginPage() {
 
               {/* Штамп раздела */}
               <div className="flex items-center gap-2 pl-3 border-l border-white/10 font-mono text-xs text-neutral-300">
-                <span className="text-white font-bold">3D-LABS</span>
+                <span className="text-white font-bold">KUMO CRM</span>
                 <span className="text-neutral-600">{'//'}</span>
                 <span className="text-neutral-400 text-[11px]">ACCESS_GATEWAY</span>
               </div>
@@ -225,7 +225,7 @@ export default function LoginPage() {
                 </span>
               </div>
               <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                {activeTab === 'login' ? 'Вход в систему 3D Labs' : 'Создание профиля студии'}
+                {activeTab === 'login' ? 'Вход в систему Kumo CRM' : 'Создание профиля студии'}
               </h1>
               <p className="text-xs text-neutral-400 leading-relaxed">
                 {activeTab === 'login'
@@ -312,7 +312,7 @@ export default function LoginPage() {
                         required={!isDev}
                         value={loginEmail}
                         onChange={(e) => setLoginEmail(e.target.value)}
-                        placeholder="master@3dlabs.pro"
+                        placeholder="master@kumocrm.pro"
                         className="w-full bg-transparent font-mono text-xs sm:text-sm text-white placeholder-neutral-600 focus:outline-none"
                       />
                     </div>
@@ -419,7 +419,7 @@ export default function LoginPage() {
                         required
                         value={regEmail}
                         onChange={(e) => setRegEmail(e.target.value)}
-                        placeholder="studio@3dlabs.pro"
+                        placeholder="studio@kumocrm.pro"
                         className="w-full bg-transparent font-mono text-xs sm:text-sm text-white placeholder-neutral-600 focus:outline-none"
                       />
                     </div>
@@ -547,7 +547,7 @@ export default function LoginPage() {
       {/* 3. Глобальный подвал страницы */}
       <footer className="w-full text-center py-6 border-t border-white/10 select-none bg-neutral-950/80 backdrop-blur-md font-mono text-xs text-neutral-500">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>3D LABS · ENGINE v2.4 · ACCESS RUNTIME</span>
+          <span>KUMO CRM · ENGINE v2.4 · ACCESS RUNTIME</span>
           <span>АВТОМАТИЧЕСКОЕ СОХРАНЕНИЕ И СИНХРОНИЗАЦИЯ</span>
         </div>
       </footer>

@@ -61,7 +61,7 @@ export function ComparisonSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end mb-10 sm:mb-14">
           <div>
-            <div className="font-mono text-xs text-cyan-400 uppercase tracking-widest">3D LABS OS</div>
+            <div className="font-mono text-xs text-cyan-400 uppercase tracking-widest">KUMO CRM OS</div>
             <h2 className="text-4xl sm:text-6xl font-bold tracking-tight text-white mt-1">
               Профессиональная система.
             </h2>
@@ -85,7 +85,7 @@ export function ComparisonSection() {
                 <span className="font-bold text-white font-sans">{row.category}</span>
               </div>
 
-              {/* Колонка 3D Labs */}
+              {/* Колонка Kumo CRM */}
               <div className="py-6 px-6 border-r border-white/10 bg-cyan-950/[0.08] flex items-start gap-3 text-neutral-200 leading-relaxed font-sans">
                 <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
                 <span>{row.labs}</span>

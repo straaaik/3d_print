@@ -320,7 +320,7 @@ test('assembly expanded row renders all three sections with headers, tree connec
       mode="expanded"
       onCreateOrder={() => {}}
       onLoadIntoCalculator={() => {}}
-      onOpenQuickEditModal={() => {}}
+      onOpenEditAssembly={() => {}}
     />
   );
 
@@ -381,7 +381,7 @@ test('assembly expanded row renders correctly in compact mode with combined pric
       mode="compact"
       onCreateOrder={() => {}}
       onLoadIntoCalculator={() => {}}
-      onOpenQuickEditModal={() => {}}
+      onOpenEditAssembly={() => {}}
     />
   );
 
@@ -418,7 +418,7 @@ test('assembly expanded row renders mobile card layout in cards mode', () => {
       mode="cards"
       onCreateOrder={() => {}}
       onLoadIntoCalculator={() => {}}
-      onOpenQuickEditModal={() => {}}
+      onOpenEditAssembly={() => {}}
     />
   );
 
@@ -463,7 +463,7 @@ test('assembly expanded row summary and row action buttons trigger callbacks wit
     mode: 'expanded',
     onCreateOrder: (item) => { tableState.createdOrder = item; },
     onLoadIntoCalculator: (item) => { tableState.loadedCalc = item; },
-    onOpenQuickEditModal: (item) => { tableState.openedModal = item; },
+    onOpenEditAssembly: (item) => { tableState.openedModal = item; },
   });
 
   const tableClickable = findElementsByPredicate(tableVdom, (el) => typeof el?.props?.onClick === 'function');
@@ -484,7 +484,7 @@ test('assembly expanded row summary and row action buttons trigger callbacks wit
   const editBtn = tableClickable.find((el) => el.props?.children === 'Редактировать состав');
   assert.ok(editBtn, 'Кнопка "Редактировать состав" обязана существовать в табличном режиме');
   editBtn.props.onClick();
-  assert.equal(tableState.openedModal?.id, sampleFullAssembly.id, 'onOpenQuickEditModal обязан вызываться с целевой сборкой');
+  assert.equal(tableState.openedModal?.id, sampleFullAssembly.id, 'onOpenEditAssembly обязан вызываться с целевой сборкой');
 
   // Кнопки в строках компонентов
   const rowButtons = tableClickable.filter((el) => el.props?.title === 'Редактировать спецификацию сборки');
@@ -504,7 +504,7 @@ test('assembly expanded row summary and row action buttons trigger callbacks wit
     mode: 'cards',
     onCreateOrder: (item) => { cardsState.createdOrder = item; },
     onLoadIntoCalculator: (item) => { cardsState.loadedCalc = item; },
-    onOpenQuickEditModal: (item) => { cardsState.openedModal = item; },
+    onOpenEditAssembly: (item) => { cardsState.openedModal = item; },
   });
 
   const cardsClickable = findElementsByPredicate(cardsVdom, (el) => typeof el?.props?.onClick === 'function');
@@ -553,7 +553,7 @@ test('assembly expanded row handles empty assembly specification and single cate
   const htmlEmpty = renderToStaticMarkup(
     <AssemblyExpandedRow
       assembly={emptyAssembly}
-      onOpenQuickEditModal={() => {}}
+      onOpenEditAssembly={() => {}}
     />
   );
   assert.match(htmlEmpty, /В спецификации сборки пока нет компонентов/);
@@ -569,7 +569,7 @@ test('assembly expanded row handles empty assembly specification and single cate
     <AssemblyExpandedRow
       assembly={emptyAssembly}
       mode="cards"
-      onOpenQuickEditModal={() => {}}
+      onOpenEditAssembly={() => {}}
     />
   );
   assert.match(htmlEmptyCards, /В спецификации сборки пока нет компонентов/);
