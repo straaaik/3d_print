@@ -1016,5 +1016,62 @@ export function calculateZoomTarget(
   };
 }
 
+export const WORKSHOP_HISTORY_MAX_DEPTH = 40;
+
+export interface WorkshopHistoryState {
+  undoStack: Workshop[];
+  redoStack: Workshop[];
+}
+
+export function createWorkshopHistory(): WorkshopHistoryState {
+  return {
+    undoStack: [],
+    redoStack: [],
+  };
+}
+
+export function pushWorkshopHistory(
+  history: WorkshopHistoryState,
+  layout: Workshop,
+  maxDepth: number = WORKSHOP_HISTORY_MAX_DEPTH
+): void {
+  const cloned = JSON.parse(JSON.stringify(layout)) as Workshop;
+  history.undoStack.push(cloned);
+  if (history.undoStack.length > maxDepth) {
+    history.undoStack.splice(0, history.undoStack.length - maxDepth);
+  }
+  history.redoStack.length = 0;
+}
+
+export function undoWorkshopHistory(
+  history: WorkshopHistoryState,
+  current: Workshop,
+  maxDepth: number = WORKSHOP_HISTORY_MAX_DEPTH
+): Workshop | null {
+  const prev = history.undoStack.pop();
+  if (!prev) return null;
+  const currentCloned = JSON.parse(JSON.stringify(current)) as Workshop;
+  history.redoStack.push(currentCloned);
+  if (history.redoStack.length > maxDepth) {
+    history.redoStack.splice(0, history.redoStack.length - maxDepth);
+  }
+  return prev;
+}
+
+export function redoWorkshopHistory(
+  history: WorkshopHistoryState,
+  current: Workshop,
+  maxDepth: number = WORKSHOP_HISTORY_MAX_DEPTH
+): Workshop | null {
+  const next = history.redoStack.pop();
+  if (!next) return null;
+  const currentCloned = JSON.parse(JSON.stringify(current)) as Workshop;
+  history.undoStack.push(currentCloned);
+  if (history.undoStack.length > maxDepth) {
+    history.undoStack.splice(0, history.undoStack.length - maxDepth);
+  }
+  return next;
+}
+
 
 

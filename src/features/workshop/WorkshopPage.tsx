@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { Edit3 } from 'lucide-react';
+import { Edit3, RotateCcw, RotateCw } from 'lucide-react';
 import { usePersistentState } from '../../shared/lib/usePersistentState';
 import { MainNavbar } from '../../shared/ui/MainNavbar';
 import { CockpitButton } from '../../shared/ui/CockpitButton';
@@ -27,6 +27,9 @@ import {
   syncWorkshopPlacements,
   uid,
   updateFurniture,
+  pushWorkshopHistory,
+  undoWorkshopHistory,
+  redoWorkshopHistory,
   type FurnitureKind,
   type ModelKey,
   type Room,
@@ -52,6 +55,12 @@ function Workspace({ userId }: { userId: string }) {
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
   const [focusToken, setFocusToken] = useState(0);
   const cameraViews = useRef(new Map<string, NonNullable<Room['camera']>>());
+  const undoStack = useRef<Workshop[]>([]);
+  const redoStack = useRef<Workshop[]>([]);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
 
   const hasUnsavedChanges = useMemo(() => {
     if (!edit || !baselineLayout.current || !layout) return false;
@@ -138,11 +147,74 @@ function Workspace({ userId }: { userId: string }) {
   const room = layout.rooms.find((r) => r.id === activeRoom) ?? layout.rooms[0];
 
   function commit(next: Workshop) {
+    if (layout) {
+      pushWorkshopHistory({ undoStack: undoStack.current, redoStack: redoStack.current }, layout);
+      setCanUndo(true);
+      setCanRedo(false);
+    }
     change({
       ...next,
       rooms: next.rooms.map((r) => (cameraViews.current.has(r.id) ? { ...r, camera: cameraViews.current.get(r.id) } : r)),
     });
   }
+
+  function handleUndo() {
+    const cur = layoutRef.current;
+    if (!cur || undoStack.current.length === 0) return;
+    const prev = undoWorkshopHistory({ undoStack: undoStack.current, redoStack: redoStack.current }, cur);
+    if (prev) {
+      change(prev);
+      setCanUndo(undoStack.current.length > 0);
+      setCanRedo(true);
+    }
+  }
+
+  function handleRedo() {
+    const cur = layoutRef.current;
+    if (!cur || redoStack.current.length === 0) return;
+    const next = redoWorkshopHistory({ undoStack: undoStack.current, redoStack: redoStack.current }, cur);
+    if (next) {
+      change(next);
+      setCanUndo(true);
+      setCanRedo(redoStack.current.length > 0);
+    }
+  }
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      const isInput =
+        (typeof HTMLInputElement !== 'undefined' && target instanceof HTMLInputElement) ||
+        (typeof HTMLTextAreaElement !== 'undefined' && target instanceof HTMLTextAreaElement) ||
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        Boolean(target?.isContentEditable);
+      if (isInput) return;
+
+      const isMod = e.ctrlKey || e.metaKey;
+      if (!isMod) return;
+
+      const key = e.key.toLowerCase();
+      const code = e.code;
+      const isZ = key === 'z' || key === 'я' || code === 'KeyZ';
+      const isY = key === 'y' || key === 'н' || code === 'KeyY';
+
+      if (isZ && !e.shiftKey) {
+        if (undoStack.current.length > 0) {
+          if (e.cancelable) e.preventDefault();
+          handleUndo();
+        }
+      } else if ((isZ && e.shiftKey) || isY) {
+        if (redoStack.current.length > 0) {
+          if (e.cancelable) e.preventDefault();
+          handleRedo();
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   function attempt(action: () => void) {
     try {
@@ -178,6 +250,10 @@ function Workspace({ userId }: { userId: string }) {
         setEdit(false);
         setSelection(null);
         setSelectedLabel(null);
+        undoStack.current = [];
+        redoStack.current = [];
+        setCanUndo(false);
+        setCanRedo(false);
       }
     } else {
       baselineLayout.current = JSON.parse(JSON.stringify(layout));
@@ -192,18 +268,30 @@ function Workspace({ userId }: { userId: string }) {
       setEdit(false);
       setSelection(null);
       setSelectedLabel(null);
+      undoStack.current = [];
+      redoStack.current = [];
+      setCanUndo(false);
+      setCanRedo(false);
     }
   }
 
   function handleSaveAndExit() {
     if (!layout) return;
-    commit(layout);
+    const withCameras: Workshop = {
+      ...layout,
+      rooms: layout.rooms.map((r) => (cameraViews.current.has(r.id) ? { ...r, camera: cameraViews.current.get(r.id) } : r)),
+    };
+    change(withCameras);
     void save();
-    baselineLayout.current = JSON.parse(JSON.stringify(layout));
+    baselineLayout.current = JSON.parse(JSON.stringify(withCameras));
     setShowUnsavedModal(false);
     setEdit(false);
     setSelection(null);
     setSelectedLabel(null);
+    undoStack.current = [];
+    redoStack.current = [];
+    setCanUndo(false);
+    setCanRedo(false);
   }
 
   function handleDiscardAndExit() {
@@ -214,6 +302,10 @@ function Workspace({ userId }: { userId: string }) {
     setEdit(false);
     setSelection(null);
     setSelectedLabel(null);
+    undoStack.current = [];
+    redoStack.current = [];
+    setCanUndo(false);
+    setCanRedo(false);
   }
 
   function handleRotate(id: string, rotation: number) {
@@ -511,6 +603,24 @@ function Workspace({ userId }: { userId: string }) {
             </div>
 
             <div className="flex items-center gap-2">
+              <CockpitButton
+                icon={RotateCcw}
+                disabled={!canUndo}
+                onClick={handleUndo}
+                title="Отменить действие (Ctrl+Z)"
+                tooltipShortcut="Ctrl+Z"
+              >
+                Отменить
+              </CockpitButton>
+              <CockpitButton
+                icon={RotateCw}
+                disabled={!canRedo}
+                onClick={handleRedo}
+                title="Повторить действие (Ctrl+Y)"
+                tooltipShortcut="Ctrl+Y"
+              >
+                Повторить
+              </CockpitButton>
               <CockpitButton
                 isActive={edit}
                 icon={Edit3}

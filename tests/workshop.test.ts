@@ -4,7 +4,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as THREE from 'three';
 import type { WorkshopCanvasProps } from '../src/features/workshop/WorkshopCanvas';
-import { createWorkshop, createFurniture, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, updateFurniture, placeEntity, removeRoom, slotWorld, parseWorkshop, pickWorkshopTarget, syncWorkshopPlacements, calculatePanDelta, calculateOrbitAngles, fillEnclosedTiles, existingRoomsTileBounds, roomOrigin, type Room } from '../src/features/workshop/model';
+import { createWorkshop, createFurniture, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, updateFurniture, placeEntity, removeRoom, slotWorld, parseWorkshop, pickWorkshopTarget, syncWorkshopPlacements, calculatePanDelta, calculateOrbitAngles, fillEnclosedTiles, existingRoomsTileBounds, roomOrigin, type Room, createWorkshopHistory, pushWorkshopHistory, undoWorkshopHistory, redoWorkshopHistory, WORKSHOP_HISTORY_MAX_DEPTH } from '../src/features/workshop/model';
 import { instanceTemplate, disposeInstances } from '../src/features/workshop/instances';
 import { getWorkshopShadowConfig, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget, handleWorkshopKeyDown, type WorkshopHotkeyContext } from '../src/features/workshop/WorkshopScene';
 import { getOrCreateHudButtonTexture, hudButtonTextureCache, clearHudButtonTextureCache, SpatialAuthoring } from '../src/features/workshop/spatialAuthoring';
@@ -1464,6 +1464,95 @@ test('Shift key or right click in Cell-Grid room builder behaves as instant eras
   authoring.cancelDraft();
   assert.equal(authoring.isGridRoomBuilderActive(), false);
   assert.equal(authoring.getDraftTiles().length, 0);
+});
+
+test('workshop history: records layout states, restores via undo, populates redo, restores via redo, clears redo on new commit, and respects max depth', () => {
+  const history = createWorkshopHistory();
+  const state0 = createWorkshop();
+
+  // 1. Verify undo stack records layout states
+  const state1 = { ...state0, rooms: [{ ...state0.rooms[0], name: 'Room Edit 1' }] };
+  pushWorkshopHistory(history, state0);
+  assert.equal(history.undoStack.length, 1);
+  assert.equal(history.undoStack[0].rooms[0].name, state0.rooms[0].name);
+  assert.equal(history.redoStack.length, 0);
+
+  const state2 = { ...state1, rooms: [{ ...state1.rooms[0], name: 'Room Edit 2' }] };
+  pushWorkshopHistory(history, state1);
+  assert.equal(history.undoStack.length, 2);
+  assert.equal(history.undoStack[1].rooms[0].name, 'Room Edit 1');
+
+  // 2. Verify undo restores previous state and populates redo stack
+  const restored1 = undoWorkshopHistory(history, state2);
+  assert.ok(restored1);
+  assert.equal(restored1.rooms[0].name, 'Room Edit 1');
+  assert.equal(history.undoStack.length, 1);
+  assert.equal(history.redoStack.length, 1);
+  assert.equal(history.redoStack[0].rooms[0].name, 'Room Edit 2');
+
+  const restored0 = undoWorkshopHistory(history, restored1);
+  assert.ok(restored0);
+  assert.equal(restored0.rooms[0].name, state0.rooms[0].name);
+  assert.equal(history.undoStack.length, 0);
+  assert.equal(history.redoStack.length, 2);
+
+  // Undo when empty returns null
+  assert.equal(undoWorkshopHistory(history, restored0), null);
+
+  // 3. Verify redo restores the state
+  const redone1 = redoWorkshopHistory(history, restored0);
+  assert.ok(redone1);
+  assert.equal(redone1.rooms[0].name, 'Room Edit 1');
+  assert.equal(history.undoStack.length, 1);
+  assert.equal(history.redoStack.length, 1);
+
+  const redone2 = redoWorkshopHistory(history, redone1);
+  assert.ok(redone2);
+  assert.equal(redone2.rooms[0].name, 'Room Edit 2');
+  assert.equal(history.undoStack.length, 2);
+  assert.equal(history.redoStack.length, 0);
+
+  // Redo when empty returns null
+  assert.equal(redoWorkshopHistory(history, redone2), null);
+
+  // 4. Verify new commit clears redo stack
+  // First undo once so redo stack has an item:
+  const backTo1 = undoWorkshopHistory(history, redone2);
+  assert.equal(history.redoStack.length, 1);
+  assert.equal(backTo1?.rooms[0].name, 'Room Edit 1');
+
+  // Now push a new commit (branching history):
+  const state3 = { ...backTo1!, rooms: [{ ...backTo1!.rooms[0], name: 'Room Edit 3' }] };
+  pushWorkshopHistory(history, backTo1!);
+  assert.equal(history.redoStack.length, 0, 'New commit must clear redo stack');
+  assert.equal(history.undoStack.length, 2);
+  assert.equal(history.undoStack[1].rooms[0].name, 'Room Edit 1');
+
+  // 5. Verify max history depth limit (WORKSHOP_HISTORY_MAX_DEPTH = 40)
+  assert.equal(WORKSHOP_HISTORY_MAX_DEPTH, 40);
+  const depthHistory = createWorkshopHistory();
+  for (let i = 0; i < 50; i++) {
+    const s = { ...state0, rooms: [{ ...state0.rooms[0], name: `Step ${i}` }] };
+    pushWorkshopHistory(depthHistory, s, 40);
+  }
+  assert.equal(depthHistory.undoStack.length, 40, 'Undo stack must be capped at 40');
+  // First item in stack should be Step 10 (earliest 10 dropped)
+  assert.equal(depthHistory.undoStack[0].rooms[0].name, 'Step 10');
+  assert.equal(depthHistory.undoStack[39].rooms[0].name, 'Step 49');
+});
+
+test('workshop history: creates deep-cloned copies to prevent mutation leaks', () => {
+  const history = createWorkshopHistory();
+  const state = createWorkshop();
+  pushWorkshopHistory(history, state);
+  state.rooms[0].name = 'Mutated In Place';
+  assert.notEqual(history.undoStack[0].rooms[0].name, 'Mutated In Place');
+
+  // Test redo stack deep cloning
+  const prev = undoWorkshopHistory(history, state);
+  assert.ok(prev);
+  state.rooms[0].name = 'Mutated Again';
+  assert.notEqual(history.redoStack[0].rooms[0].name, 'Mutated Again');
 });
 
 
