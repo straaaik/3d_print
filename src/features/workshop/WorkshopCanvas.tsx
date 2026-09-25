@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { RotateCcw, RotateCw, ArrowLeft, ArrowUp, ArrowDown, ArrowRight, X, Save, Eye, ZoomIn, ZoomOut, Type, MousePointer2, Plus, Paintbrush, Eraser, Check, Pencil, Trash2 } from 'lucide-react';
+import { RotateCcw, RotateCw, X, Save, Eye, ZoomIn, ZoomOut, Type, MousePointer2, Plus, Paintbrush, Eraser, Check, Pencil, Trash2 } from 'lucide-react';
 import type { WorkshopScene, HoverPlacementInfo } from './WorkshopScene';
 import type { FurnitureKind, ModelKey, Room, RoomLabel, Workshop } from './model';
 import type { Filament, Printer } from '../../shared/types';
@@ -11,7 +11,7 @@ import { WorkshopInspectionMenu } from './WorkshopInspectionMenu';
 import { WorkshopAddCatalog } from './WorkshopAddCatalog';
 import { SpatialProperties } from './SpatialProperties';
 
-interface Props {
+export interface WorkshopCanvasProps {
   layout: Workshop;
   room: Room;
   filaments: Filament[];
@@ -38,7 +38,6 @@ interface Props {
   onDeleteRoomLabel?: (roomId:string,labelId:string) => void;
   onPlaceLabel: (roomId:string,surface:RoomLabel['surface'],u:number,v:number,text?:string,color?:string) => void;
   selectedLabel?: RoomLabel;
-  roomEditorOpen?: boolean;
   onSaveRoom: (room:Room) => void;
   onSaveLabel: (label:RoomLabel) => void;
   onDeleteLabel: () => void;
@@ -55,7 +54,9 @@ interface Props {
   onToggleActivePrinter?: (printerId: string) => void;
 }
 
-export function WorkshopCanvas(props: Props) {
+export type Props = WorkshopCanvasProps;
+
+export function WorkshopCanvas(props: WorkshopCanvasProps) {
   const container = useRef<HTMLDivElement>(null),
     canvas = useRef<HTMLCanvasElement>(null),
     scene = useRef<WorkshopScene | null>(null),
@@ -193,7 +194,6 @@ export function WorkshopCanvas(props: Props) {
     scene.current?.setSelectedLabel(props.selectedLabel?.id ?? null);
   }, [props.selectedLabel]);
 
-  const selectedFurniture = props.layout.furniture.find((f) => f.id === props.selected);
   const selectedPlacement = props.layout.placements.find((p) => p.id === props.selected);
   const selectedEntity = selectedPlacement
     ? (selectedPlacement.kind === 'printer' ? props.printers : props.filaments).find(
@@ -206,25 +206,6 @@ export function WorkshopCanvas(props: Props) {
   const placementFurniture = selectedSlot
     ? props.layout.furniture.find((f) => f.id === selectedSlot.furnitureId)
     : undefined;
-
-  const stepMove = (dx: number, dz: number) => {
-    if (!selectedFurniture) return;
-    props.onMove(selectedFurniture.id, selectedFurniture.x + dx, selectedFurniture.z + dz);
-  };
-
-  const handleRotate = () => {
-    if (!selectedFurniture) return;
-    const nextRot = (selectedFurniture.rotation + 90) % 360;
-    props.onRotate?.(selectedFurniture.id, nextRot);
-  };
-
-  const stepMovePlacement = (axis: 'x' | 'z', dir: number) => {
-    if (!selectedPlacement || !scene.current) return;
-    const nextSlot = scene.current.findAdjacentSlot(selectedPlacement.id, axis, dir);
-    if (nextSlot) {
-      props.onMovePlacement?.(selectedPlacement.id, nextSlot.id);
-    }
-  };
 
   return (
     <div
@@ -332,7 +313,7 @@ export function WorkshopCanvas(props: Props) {
       )}
 
       {/* Top info badges */}
-      <div className={`absolute left-4 ${props.edit ? 'top-20' : 'top-4'} z-20 flex flex-col gap-2 font-mono pointer-events-none`}>
+      <div className={`absolute left-4 ${props.edit ? 'top-20' : 'top-4'} z-20 flex flex-col max-h-[calc(100vh-140px)] overflow-y-auto space-y-2.5 font-mono pointer-events-none`}>
         {/* Row 1: Metrics */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="rounded-lg border border-white/10 bg-neutral-950/80 px-3 py-2 shadow-lg backdrop-blur-md">
@@ -598,183 +579,7 @@ export function WorkshopCanvas(props: Props) {
         )}
       </AnimatePresence>
 
-      {/* IN-SCENE EDIT CONTROLS: Floating quick action bar when furniture is selected in edit mode */}
-      {props.edit && selectedFurniture && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex flex-wrap items-center gap-2 rounded-xl border border-white/20 bg-neutral-950/95 px-4 py-2.5 text-xs font-mono text-white shadow-2xl backdrop-blur-md">
-          <div className="flex items-center gap-2 border-r border-white/15 pr-3">
-            <span className="font-semibold text-cyan-400">{selectedFurniture.name}</span>
-            <span className="text-[10px] text-neutral-400">
-              {selectedFurniture.width} × {selectedFurniture.depth} м
-            </span>
-          </div>
 
-          {/* D-Pad Arrow buttons */}
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              title="Сдвинуть влево (-X)"
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-white/5 hover:bg-white/15 active:scale-95 text-neutral-300 hover:text-white"
-              onClick={() => stepMove(-props.grid, 0)}
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              title="Сдвинуть назад (-Z)"
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-white/5 hover:bg-white/15 active:scale-95 text-neutral-300 hover:text-white"
-              onClick={() => stepMove(0, -props.grid)}
-            >
-              <ArrowUp className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              title="Сдвинуть вперёд (+Z)"
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-white/5 hover:bg-white/15 active:scale-95 text-neutral-300 hover:text-white"
-              onClick={() => stepMove(0, props.grid)}
-            >
-              <ArrowDown className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              title="Сдвинуть вправо (+X)"
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-white/5 hover:bg-white/15 active:scale-95 text-neutral-300 hover:text-white"
-              onClick={() => stepMove(props.grid, 0)}
-            >
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
-
-          <div className="h-4 w-px bg-white/15" />
-
-          {/* Rotate button */}
-          <button
-            type="button"
-            title="Повернуть на 90° (клавиша R)"
-            className="flex items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-500/15 px-3 py-1.5 text-indigo-300 hover:bg-indigo-500/25 active:scale-95"
-            onClick={handleRotate}
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            <span>{selectedFurniture.rotation}°</span>
-            <span className="text-[10px] text-indigo-400/80">[R]</span>
-          </button>
-
-          <div className="h-4 w-px bg-white/15" />
-
-          {/* Delete button */}
-          <button
-            type="button"
-            title="Удалить объект из сцены (клавиша Del)"
-            className="flex items-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/15 px-3 py-1.5 text-rose-300 hover:bg-rose-500/25 active:scale-95"
-            onClick={() => props.onDelete?.(selectedFurniture.id, 'furniture')}
-          >
-            <span>Удалить</span>
-            <span className="text-[10px] text-rose-400/80">[Del]</span>
-          </button>
-
-          {/* Deselect */}
-          <button
-            type="button"
-            title="Снять выделение"
-            className="ml-1 rounded-lg p-1 text-neutral-400 hover:bg-white/10 hover:text-white"
-            onClick={() => props.onSelect('', 'furniture')}
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )}
-
-      {/* IN-SCENE EDIT CONTROLS: Floating quick action bar when placement (printer/filament) is selected in edit mode */}
-      {props.edit && selectedPlacement && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex flex-wrap items-center gap-2 rounded-xl border border-cyan-500/40 bg-neutral-950/95 px-4 py-2.5 text-xs font-mono text-white shadow-2xl backdrop-blur-md">
-          <div className="flex items-center gap-2 border-r border-white/15 pr-3">
-            <span className="font-semibold text-cyan-400">
-              {selectedEntity?.name ?? (selectedPlacement.kind === 'printer' ? '3D-Принтер' : 'Филамент')}
-            </span>
-            <span className="text-[10px] text-neutral-400">
-              {placementFurniture ? placementFurniture.name : 'Слот'} {selectedSlot ? `· Слот #${selectedSlot.index + 1}` : ''}
-            </span>
-          </div>
-
-          {/* D-Pad Arrow buttons for moving printer between slots */}
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              title="Переместить влево (-X)"
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-white/5 hover:bg-white/15 active:scale-95 text-neutral-300 hover:text-white"
-              onClick={() => stepMovePlacement('x', -1)}
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              title="Переместить назад (-Z)"
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-white/5 hover:bg-white/15 active:scale-95 text-neutral-300 hover:text-white"
-              onClick={() => stepMovePlacement('z', -1)}
-            >
-              <ArrowUp className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              title="Переместить вперёд (+Z)"
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-white/5 hover:bg-white/15 active:scale-95 text-neutral-300 hover:text-white"
-              onClick={() => stepMovePlacement('z', 1)}
-            >
-              <ArrowDown className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              title="Переместить вправо (+X)"
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/15 bg-white/5 hover:bg-white/15 active:scale-95 text-neutral-300 hover:text-white"
-              onClick={() => stepMovePlacement('x', 1)}
-            >
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
-
-          {selectedPlacement.kind === 'printer' && (
-            <>
-              <div className="h-4 w-px bg-white/15" />
-              {/* Model toggle button: A1 (Open) vs P1 (Enclosed) */}
-              <button
-                type="button"
-                title="Переключить корпус 3D-модели (клавиша R)"
-                className="flex items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-500/15 px-3 py-1.5 text-indigo-300 hover:bg-indigo-500/25 active:scale-95"
-                onClick={() => {
-                  const nextModel: ModelKey = selectedPlacement.model === 'a1' ? 'p1' : 'a1';
-                  props.onModelChange?.(selectedPlacement.id, nextModel);
-                }}
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                <span>{selectedPlacement.model === 'a1' ? 'A1 (Открытый)' : 'P1 (Закрытый)'}</span>
-                <span className="text-[10px] text-indigo-400/80">[R]</span>
-              </button>
-            </>
-          )}
-
-          <div className="h-4 w-px bg-white/15" />
-
-          {/* Delete / unplace button */}
-          <button
-            type="button"
-            title="Убрать со стола в инвентарь (клавиша Del)"
-            className="flex items-center gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/15 px-3 py-1.5 text-rose-300 hover:bg-rose-500/25 active:scale-95"
-            onClick={() => props.onDelete?.(selectedPlacement.id, 'placement')}
-          >
-            <span>Убрать со стола</span>
-            <span className="text-[10px] text-rose-400/80">[Del]</span>
-          </button>
-
-          {/* Deselect */}
-          <button
-            type="button"
-            title="Снять выделение"
-            className="ml-1 rounded-lg p-1 text-neutral-400 hover:bg-white/10 hover:text-white"
-            onClick={() => props.onSelect('', 'furniture')}
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )}
 
       {/* EQUIPMENT & MATERIAL INSPECTION MENU: Full-featured cockpit panel (View mode only) */}
       <AnimatePresence>

@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import * as THREE from 'three';
+import type { WorkshopCanvasProps } from '../src/features/workshop/WorkshopCanvas';
 import { createWorkshop, createFurniture, validFurniture, updateFurniture, placeEntity, removeRoom, slotWorld, parseWorkshop, pickWorkshopTarget, syncWorkshopPlacements, calculatePanDelta, calculateOrbitAngles, fillEnclosedTiles, existingRoomsTileBounds, roomOrigin, type Room } from '../src/features/workshop/model';
 import { instanceTemplate, disposeInstances } from '../src/features/workshop/instances';
 import { getWorkshopShadowConfig, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget } from '../src/features/workshop/WorkshopScene';
@@ -1026,6 +1029,39 @@ test('zoom target stability helper and math keeps target stable and shifts clamp
   assert.equal(clampedTarget.x, bounds.max.x + 5);
   assert.equal(clampedTarget.z, bounds.min.z - 5);
 });
+
+test('WorkshopCanvasProps is clean, does not contain roomEditorOpen, and UI layout constraints are enforced', () => {
+  // 1. Static type verification: roomEditorOpen is not a key of WorkshopCanvasProps
+  type HasRoomEditorOpen = 'roomEditorOpen' extends keyof WorkshopCanvasProps ? true : false;
+  const hasRoomEditorOpen: HasRoomEditorOpen = false;
+  assert.equal(hasRoomEditorOpen, false, 'WorkshopCanvasProps must not include roomEditorOpen');
+
+  // 2. Source file integrity checks
+  const canvasPath = path.resolve(process.cwd(), 'src/features/workshop/WorkshopCanvas.tsx');
+  const canvasSource = fs.readFileSync(canvasPath, 'utf-8');
+  assert.equal(canvasSource.includes('roomEditorOpen'), false, 'WorkshopCanvas.tsx must not contain dead roomEditorOpen prop');
+
+  const pagePath = path.resolve(process.cwd(), 'src/features/workshop/WorkshopPage.tsx');
+  const pageSource = fs.readFileSync(pagePath, 'utf-8');
+  assert.equal(pageSource.includes('roomEditorOpen'), false, 'WorkshopPage.tsx must not contain dead roomEditorOpen reference');
+
+  // 3. 2D floating D-pad edit toolbars are removed
+  assert.equal(
+    canvasSource.includes('IN-SCENE EDIT CONTROLS: Floating quick action bar'),
+    false,
+    '2D floating D-pad edit toolbars must be removed from scene'
+  );
+  assert.equal(canvasSource.includes('stepMovePlacement'), false, 'stepMovePlacement helper must be removed');
+
+  // 4. Top-left overlay stack responsiveness
+  assert.ok(
+    canvasSource.includes('max-h-[calc(100vh-140px)]') &&
+    canvasSource.includes('overflow-y-auto') &&
+    canvasSource.includes('space-y-2.5'),
+    'Top-left overlay stack must wrap in a flex container with max-h-[calc(100vh-140px)] overflow-y-auto space-y-2.5'
+  );
+});
+
 
 
 
