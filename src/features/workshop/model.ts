@@ -176,6 +176,66 @@ export function slotWorld(f: Furniture, s: Slot): [number,number,number] {
   const angle = f.rotation * Math.PI / 180;
   return [f.x + s.x * Math.cos(angle) + s.z * Math.sin(angle), s.y, f.z - s.x * Math.sin(angle) + s.z * Math.cos(angle)];
 }
+export interface GroupMoveResult {
+  valid: boolean;
+  reason?: string;
+  moved: Array<{ id: string; x: number; z: number; roomId: string }>;
+}
+export function calculateGroupMove(
+  state: Workshop,
+  furnitureIds: string[] | Set<string>,
+  dx: number,
+  dz: number,
+  grid = 0.25
+): GroupMoveResult {
+  const ids = furnitureIds instanceof Set ? furnitureIds : new Set(furnitureIds);
+  const group = state.furniture.filter((f) => ids.has(f.id));
+  if (group.length === 0) {
+    return { valid: false, reason: 'Нет выбранных объектов', moved: [] };
+  }
+  const moved = group.map((f) => {
+    const nextX = snap(f.x + dx, grid);
+    const nextZ = snap(f.z + dz, grid);
+    return { ...f, x: nextX, z: nextZ };
+  });
+  const tempState: Workshop = {
+    ...state,
+    furniture: state.furniture.map((f) => {
+      const updated = moved.find((m) => m.id === f.id);
+      return updated ?? f;
+    }),
+  };
+  for (const item of moved) {
+    if (!validFurniture(tempState, item)) {
+      const reason = getFurnitureCollisionReason(tempState, item) ?? 'Недопустимое положение объекта';
+      return {
+        valid: false,
+        reason,
+        moved: moved.map((m) => ({ id: m.id, x: m.x, z: m.z, roomId: m.roomId })),
+      };
+    }
+  }
+  return {
+    valid: true,
+    moved: moved.map((m) => ({ id: m.id, x: m.x, z: m.z, roomId: m.roomId })),
+  };
+}
+export function resolvePlacementPosition(
+  state: Workshop | null,
+  placementId: string
+): { x: number; y: number; z: number } | null {
+  if (!state) return null;
+  const placement = state.placements.find((p) => p.id === placementId);
+  if (!placement) return null;
+  const slot = state.slots.find((s) => s.id === placement.slotId);
+  if (!slot) return null;
+  const furniture = state.furniture.find((f) => f.id === slot.furnitureId);
+  if (!furniture) return null;
+  const origin = roomOrigin(state, furniture.roomId);
+  const [lx, ly, lz] = slotWorld(furniture, slot);
+  return { x: origin.x + lx, y: ly, z: origin.z + lz };
+}
+
 export function updateFurniture(state: Workshop, f: Furniture): Workshop {
   if (!validFurniture(state,f)) throw new Error('Проверьте размеры, интервалы между слотами, границы комнаты и пересечения мебели.');
   const slots = slotsFor(f, state.slots.filter(s => s.furnitureId === f.id));

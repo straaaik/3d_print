@@ -4,7 +4,7 @@ import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { ScenePresentation } from './scenePresentation';
 import { animate, type AnimationPlaybackControls } from 'motion';
 import { acquireAssets, releaseAssets, type Assets, type SceneBuild } from './sceneGeometry';
-import { roomOrigin, findRoomAt, type FurnitureKind, snap, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, pickWorkshopTarget, footprint, slotWorld, calculatePanDelta, calculateOrbitAngles, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget, type Furniture, type Room, type Workshop, type Slot, type ModelKey, type Placement } from './model';
+import { roomOrigin, findRoomAt, type FurnitureKind, snap, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, pickWorkshopTarget, footprint, slotWorld, calculatePanDelta, calculateOrbitAngles, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget, calculateGroupMove, resolvePlacementPosition, type Furniture, type Room, type Workshop, type Slot, type ModelKey, type Placement } from './model';
 import { buildSpatialWorkshop, workshopBounds } from './spatialScene';
 import { SpatialAuthoring, type SpatialCallbacks } from './spatialAuthoring';
 import type { Filament, Printer } from '../../shared/types';
@@ -72,6 +72,7 @@ export interface WorkshopHotkeyContext {
   top: boolean;
   edit: boolean;
   selected: string | null;
+  selectedFurnitureIds?: Set<string>;
   data: Workshop | null;
   options: Options;
   authoring: {
@@ -116,6 +117,7 @@ export function handleWorkshopKeyDown(ctx: WorkshopHotkeyContext, e: KeyboardEve
     ctx.onCancel?.();
     ctx.options.onSelect('', 'furniture');
     ctx.select(null);
+    ctx.selectedFurnitureIds?.clear();
     ctx.authoring.cancelDraft();
     return true;
   }
@@ -212,6 +214,14 @@ export function handleWorkshopKeyDown(ctx: WorkshopHotkeyContext, e: KeyboardEve
         }
       }
     }
+    if (ctx.selectedFurnitureIds && ctx.selectedFurnitureIds.size > 1) {
+      for (const id of ctx.selectedFurnitureIds) {
+        ctx.options.onDelete?.(id, 'furniture');
+      }
+      ctx.selectedFurnitureIds.clear();
+      ctx.select(null);
+      return true;
+    }
     if (ctx.selected) {
       const placement = ctx.data?.placements.find((p) => p.id === ctx.selected);
       if (placement) {
@@ -246,6 +256,31 @@ export function handleWorkshopKeyDown(ctx: WorkshopHotkeyContext, e: KeyboardEve
     if (f && ctx.data) {
       const grid = ctx.grid ?? 0.25;
       const step = grid * dir;
+      const dx = axis === 'x' ? step : 0;
+      const dz = axis === 'z' ? step : 0;
+
+      // Multi-selection group movement
+      if (ctx.selectedFurnitureIds && ctx.selectedFurnitureIds.size > 1 && ctx.selectedFurnitureIds.has(f.id)) {
+        const result = calculateGroupMove(ctx.data, ctx.selectedFurnitureIds, dx, dz, grid);
+        if (result.valid) {
+          for (const item of result.moved) {
+            ctx.options.onMove(item.id, item.x, item.z, item.roomId);
+            ctx.build?.setFurnitureBorderColor?.(item.id, '#38bdf8');
+          }
+        } else {
+          for (const gid of ctx.selectedFurnitureIds) {
+            ctx.build?.setFurnitureBorderColor?.(gid, '#e87668');
+          }
+          ctx.options.onCollisionFeedback?.(result.reason ?? 'Недопустимое положение объекта');
+          setTimeout(() => {
+            for (const gid of ctx.selectedFurnitureIds!) {
+              ctx.build?.setFurnitureBorderColor?.(gid, '#38bdf8');
+            }
+          }, 500);
+        }
+        return true;
+      }
+
       const nextX = axis === 'x' ? snap(f.x + step, grid) : f.x;
       const nextZ = axis === 'z' ? snap(f.z + step, grid) : f.z;
       const next = { ...f, x: nextX, z: nextZ };
@@ -304,6 +339,7 @@ export class WorkshopScene {
   private pointer = new THREE.Vector2();
   private floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   private selected: string | null = null;
+  public selectedFurnitureIds = new Set<string>();
   private highlightedFurnitureId: string | null = null;
   private down: {
     button?: number;
@@ -331,6 +367,14 @@ export class WorkshopScene {
   private key: THREE.DirectionalLight;
   private saveCameraTimer: ReturnType<typeof setTimeout> | null = null;
   private lastSceneSignature = '';
+
+  // 3D Search highlight beacon (pulsing floor beacon for found printer)
+  public searchBeaconGroup = new THREE.Group();
+  private beaconRingMesh!: THREE.Mesh;
+  private beaconMaterial!: THREE.MeshBasicMaterial;
+  private beaconRaf: number | null = null;
+  private beaconTimer: ReturnType<typeof setTimeout> | null = null;
+
 
   // Placement hover interactive system (smooth lift and scale on 3D printer and filament models)
   private hoveredPlacementId: string | null = null;
@@ -530,6 +574,22 @@ export class WorkshopScene {
     this.inspectionRig.visible = false;
     this.scene.add(this.inspectionRig);
 
+    // Setup 3D Search Highlight Beacon (pulsing floor ring)
+    const beaconGeom = new THREE.RingGeometry(0.35, 0.58, 36);
+    beaconGeom.rotateX(-Math.PI / 2);
+    this.beaconMaterial = new THREE.MeshBasicMaterial({
+      color: '#38bdf8',
+      transparent: true,
+      opacity: 0.8,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    this.beaconRingMesh = new THREE.Mesh(beaconGeom, this.beaconMaterial);
+    this.beaconRingMesh.renderOrder = 998;
+    this.searchBeaconGroup.add(this.beaconRingMesh);
+    this.searchBeaconGroup.visible = false;
+    this.scene.add(this.searchBeaconGroup);
+
     void acquireAssets()
       .then((assets) => {
         if (this.disposed) return;
@@ -548,6 +608,81 @@ export class WorkshopScene {
   onKeyDown = (e: KeyboardEvent) => {
     handleWorkshopKeyDown(this as unknown as WorkshopHotkeyContext, e);
   };
+
+  public triggerSearchBeacon(placementId: string) {
+    if (!placementId) return;
+
+    let pos: THREE.Vector3 | null =
+      this.build?.placements.get(placementId)?.pos?.clone() ??
+      this.build?.positions.get(placementId)?.clone() ??
+      null;
+
+    if (!pos && this.data) {
+      const resolved = resolvePlacementPosition(this.data, placementId);
+      if (resolved) {
+        pos = new THREE.Vector3(resolved.x, resolved.y, resolved.z);
+      }
+    }
+
+    if (!pos) return;
+
+    this.searchBeaconGroup.position.set(pos.x, 0.02, pos.z);
+    this.searchBeaconGroup.scale.set(1, 1, 1);
+    this.beaconMaterial.opacity = 0.8;
+    this.searchBeaconGroup.visible = true;
+
+    const target = new THREE.Vector3(pos.x, pos.y ? pos.y + 0.32 : 0.7, pos.z);
+    const span = this.top ? 2.2 : 1.5;
+    const placementMeta = this.build?.placements.get(placementId);
+    const azimuth = placementMeta ? this.getSafeInspectionAzimuth(target, placementMeta.f.rotation) : this.azimuth;
+    this.moveCamera(target, span, azimuth, 20, false);
+
+    if (this.beaconRaf !== null) {
+      if (typeof cancelAnimationFrame !== 'undefined') cancelAnimationFrame(this.beaconRaf);
+      this.beaconRaf = null;
+    }
+    if (this.beaconTimer !== null) {
+      clearTimeout(this.beaconTimer);
+      this.beaconTimer = null;
+    }
+
+    const duration = 3500;
+    const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+
+    const tick = () => {
+      if (this.disposed) return;
+      const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / duration);
+
+      const pulse = 1 + 0.22 * Math.sin(progress * Math.PI * 6);
+      this.searchBeaconGroup.scale.set(pulse, 1, pulse);
+
+      this.beaconMaterial.opacity = Math.max(0, 0.8 * (1 - progress));
+      this.invalidate();
+
+      if (progress < 1) {
+        if (typeof requestAnimationFrame !== 'undefined') {
+          this.beaconRaf = requestAnimationFrame(tick);
+        } else {
+          this.beaconTimer = setTimeout(tick, 16);
+        }
+      } else {
+        this.searchBeaconGroup.visible = false;
+        this.beaconRaf = null;
+        this.beaconTimer = null;
+        this.invalidate();
+      }
+    };
+
+    if (typeof requestAnimationFrame !== 'undefined') {
+      this.beaconRaf = requestAnimationFrame(tick);
+    } else {
+      this.beaconTimer = setTimeout(tick, 16);
+    }
+
+    this.invalidate();
+  }
 
   public findAdjacentSlot(placementId: string, axis: 'x' | 'z', dir: number): Slot | null {
     if (!this.data) return null;
@@ -820,6 +955,7 @@ export class WorkshopScene {
 
     if (roomChanged) {
       this.selected = null;
+      this.selectedFurnitureIds.clear();
       this.highlightedFurnitureId = null;
       this.hideGizmo();
       this.customView = false;
@@ -846,6 +982,9 @@ export class WorkshopScene {
       }
       if (this.highlightedFurnitureId) {
         this.build?.setFurnitureBorderColor(this.highlightedFurnitureId, '#38bdf8');
+      }
+      for (const fid of this.selectedFurnitureIds) {
+        this.build?.setFurnitureBorderColor(fid, '#38bdf8');
       }
       if (this.edit && this.selected) {
         const f = data.furniture.find((item) => item.id === this.selected);
@@ -1002,6 +1141,18 @@ export class WorkshopScene {
       this.highlightedFurnitureId = null;
     }
 
+    if (!id) {
+      for (const fid of this.selectedFurnitureIds) {
+        this.build?.setFurnitureBorderColor(fid, '#d6d6cd');
+      }
+      this.selectedFurnitureIds.clear();
+    } else if (!this.selectedFurnitureIds.has(id)) {
+      for (const fid of this.selectedFurnitureIds) {
+        this.build?.setFurnitureBorderColor(fid, '#d6d6cd');
+      }
+      this.selectedFurnitureIds = new Set([id]);
+    }
+
     // Reset hover animation on the selected placement so it sits firmly on its base
     if (id && this.hoverStates.has(id)) {
       const s = this.hoverStates.get(id)!;
@@ -1071,6 +1222,9 @@ export class WorkshopScene {
       if (this.edit) {
         this.highlightedFurnitureId = furniture.id;
         this.build?.setFurnitureBorderColor(furniture.id, '#38bdf8');
+        for (const fid of this.selectedFurnitureIds) {
+          this.build?.setFurnitureBorderColor(fid, '#38bdf8');
+        }
         this.updateGizmo(furniture);
       } else {
         this.hideGizmo();
@@ -1094,6 +1248,10 @@ export class WorkshopScene {
       this.build?.setFurnitureBorderColor(this.highlightedFurnitureId, '#d6d6cd');
       this.highlightedFurnitureId = null;
     }
+    for (const fid of this.selectedFurnitureIds) {
+      this.build?.setFurnitureBorderColor(fid, '#d6d6cd');
+    }
+    this.selectedFurnitureIds.clear();
     this.selected = null;
     this.hideGizmo();
     this.hidePrinterInspectionLight();
@@ -1221,6 +1379,9 @@ export class WorkshopScene {
     this.build = buildSpatialWorkshop(this.data,this.assets,this.filaments,this.printers,this.activePrinterIds,this.room.id);
     this.scene.add(this.build.root);
     this.authoring?.update(this.data,this.edit,this.selected,this.room.id);
+    for (const fid of this.selectedFurnitureIds) {
+      this.build?.setFurnitureBorderColor(fid, '#38bdf8');
+    }
     const bounds=workshopBounds(this.data),size=bounds.getSize(new THREE.Vector3()),center=this.workshopCenter();
     this.key.position.set(center.x-3,12,center.z+7);this.key.target.position.copy(center);this.scene.add(this.key.target);
     const shadowExtent = Math.hypot(size.x, size.z) * .56 + 2;
@@ -1707,25 +1868,39 @@ export class WorkshopScene {
         if (d.gizmoAxis !== 'z' && snapped.snappedX) localX = snapped.x;
         if (d.gizmoAxis !== 'x' && snapped.snappedZ) localZ = snapped.z;
 
-        worldX = targetOrigin.x + localX;
-        worldZ = targetOrigin.z + localZ;
-        const previewX = worldX - fOrigin.x;
-        const previewZ = worldZ - fOrigin.z;
-        this.build?.previewFurniture(f.id, previewX, previewZ);
+        if (this.selectedFurnitureIds.size > 1 && this.selectedFurnitureIds.has(f.id)) {
+          const dx = localX - f.x;
+          const dz = localZ - f.z;
+          const groupResult = calculateGroupMove(this.data, this.selectedFurnitureIds, dx, dz, this.grid);
+          isValid = groupResult.valid;
+          for (const gid of this.selectedFurnitureIds) {
+            const gf = this.data.furniture.find((item) => item.id === gid);
+            if (gf) {
+              this.build?.previewFurniture(gf.id, gf.x + dx, gf.z + dz);
+              this.build?.setFurnitureBorderColor(gf.id, isValid ? '#38bdf8' : '#e87668');
+            }
+          }
+          this.updateGizmo({ ...f, roomId: targetRoom.id, x: localX, z: localZ });
+        } else {
+          worldX = targetOrigin.x + localX;
+          worldZ = targetOrigin.z + localZ;
+          const previewX = worldX - fOrigin.x;
+          const previewZ = worldZ - fOrigin.z;
+          this.build?.previewFurniture(f.id, previewX, previewZ);
 
-        isValid = validFurniture(this.data, { ...f, roomId: targetRoom.id, x: localX, z: localZ });
-        this.updateGizmo({ ...f, roomId: targetRoom.id, x: localX, z: localZ });
+          isValid = validFurniture(this.data, { ...f, roomId: targetRoom.id, x: localX, z: localZ });
+          this.updateGizmo({ ...f, roomId: targetRoom.id, x: localX, z: localZ });
+          this.build?.setFurnitureBorderColor(f.id, isValid ? '#38bdf8' : '#e87668');
+        }
       } else {
         const previewX = worldX - fOrigin.x;
         const previewZ = worldZ - fOrigin.z;
         this.build?.previewFurniture(f.id, previewX, previewZ);
         this.updateGizmo({ ...f, x: previewX, z: previewZ });
+        this.build?.setFurnitureBorderColor(f.id, '#e87668');
       }
 
       this.renderer.shadowMap.needsUpdate = true;
-      // The white floor border moves with furniture and turns cyan (valid) or red (collision)
-      this.build?.setFurnitureBorderColor(f.id, isValid ? '#38bdf8' : '#e87668');
-
       this.options.canvas.style.cursor = 'grabbing';
       this.invalidate();
       return;
@@ -1913,18 +2088,45 @@ export class WorkshopScene {
           if (d.gizmoAxis !== 'z' && snapped.snappedX) localX = snapped.x;
           if (d.gizmoAxis !== 'x' && snapped.snappedZ) localZ = snapped.z;
 
-          const testF = { ...f, roomId: targetRoom.id, x: localX, z: localZ };
-          if (validFurniture(this.data, testF)) {
-            this.options.onMove(f.id, localX, localZ, targetRoom.id);
+          // Multi-selection group movement
+          if (this.selectedFurnitureIds.size > 1 && this.selectedFurnitureIds.has(f.id)) {
+            const dx = localX - f.x;
+            const dz = localZ - f.z;
+            if (dx !== 0 || dz !== 0) {
+              const result = calculateGroupMove(this.data, this.selectedFurnitureIds, dx, dz, this.grid);
+              if (result.valid) {
+                for (const item of result.moved) {
+                  this.options.onMove(item.id, item.x, item.z, item.roomId);
+                  this.build?.setFurnitureBorderColor(item.id, '#38bdf8');
+                }
+              } else {
+                for (const gid of this.selectedFurnitureIds) {
+                  const gf = this.data.furniture.find((item) => item.id === gid);
+                  if (gf) this.build?.previewFurniture(gf.id, gf.x, gf.z);
+                  this.build?.setFurnitureBorderColor(gid, '#e87668');
+                }
+                this.options.onCollisionFeedback?.(result.reason ?? 'Недопустимое положение объекта');
+                setTimeout(() => {
+                  for (const gid of this.selectedFurnitureIds) {
+                    this.build?.setFurnitureBorderColor(gid, '#38bdf8');
+                  }
+                }, 600);
+              }
+            }
           } else {
-            const reason = getFurnitureCollisionReason(this.data, testF);
-            this.options.onCollisionFeedback?.(reason ?? 'Недопустимое положение объекта');
-            this.build?.previewFurniture(f.id, f.x, f.z);
-            this.updateGizmo(f);
-            this.build?.setFurnitureBorderColor(f.id, '#e87668');
-            setTimeout(() => {
-              if (this.selected === f.id) this.build?.setFurnitureBorderColor(f.id, '#38bdf8');
-            }, 600);
+            const testF = { ...f, roomId: targetRoom.id, x: localX, z: localZ };
+            if (validFurniture(this.data, testF)) {
+              this.options.onMove(f.id, localX, localZ, targetRoom.id);
+            } else {
+              const reason = getFurnitureCollisionReason(this.data, testF);
+              this.options.onCollisionFeedback?.(reason ?? 'Недопустимое положение объекта');
+              this.build?.previewFurniture(f.id, f.x, f.z);
+              this.updateGizmo(f);
+              this.build?.setFurnitureBorderColor(f.id, '#e87668');
+              setTimeout(() => {
+                if (this.selected === f.id) this.build?.setFurnitureBorderColor(f.id, '#38bdf8');
+              }, 600);
+            }
           }
         } else {
           this.options.onCollisionFeedback?.('Комната не найдена');
@@ -1935,25 +2137,47 @@ export class WorkshopScene {
     } else if (!this.dragged && d?.furnitureId && d?.gizmoAxis) {
       const f = this.data?.furniture.find((item) => item.id === d.furnitureId);
       if (f && this.data) {
-        const fOrigin = roomOrigin(this.data, f.roomId);
         const step = this.grid * (d.gizmoDir ?? 1);
-        let worldX = fOrigin.x + (d.gizmoAxis === 'x' ? snap(f.x + step, this.grid) : f.x);
-        let worldZ = fOrigin.z + (d.gizmoAxis === 'z' ? snap(f.z + step, this.grid) : f.z);
-        const targetRoom = findRoomAt(this.data, worldX, worldZ) ?? this.data.rooms.find((r) => r.id === f.roomId);
-        if (targetRoom) {
-          const targetOrigin = roomOrigin(this.data, targetRoom.id);
-          const localX = snap(worldX - targetOrigin.x, this.grid);
-          const localZ = snap(worldZ - targetOrigin.z, this.grid);
-          const next = { ...f, roomId: targetRoom.id, x: localX, z: localZ };
-          if (validFurniture(this.data, next)) {
-            this.options.onMove(f.id, next.x, next.z, targetRoom.id);
+        const dx = d.gizmoAxis === 'x' ? snap(step, this.grid) : 0;
+        const dz = d.gizmoAxis === 'z' ? snap(step, this.grid) : 0;
+        if (this.selectedFurnitureIds.size > 1 && this.selectedFurnitureIds.has(f.id)) {
+          const result = calculateGroupMove(this.data, this.selectedFurnitureIds, dx, dz, this.grid);
+          if (result.valid) {
+            for (const item of result.moved) {
+              this.options.onMove(item.id, item.x, item.z, item.roomId);
+              this.build?.setFurnitureBorderColor(item.id, '#38bdf8');
+            }
           } else {
-            const reason = getFurnitureCollisionReason(this.data, next);
-            this.options.onCollisionFeedback?.(reason ?? 'Недопустимое положение объекта');
-            this.build?.setFurnitureBorderColor(f.id, '#e87668');
+            for (const gid of this.selectedFurnitureIds) {
+              this.build?.setFurnitureBorderColor(gid, '#e87668');
+            }
+            this.options.onCollisionFeedback?.(result.reason ?? 'Недопустимое положение объекта');
             setTimeout(() => {
-              if (this.selected === f.id) this.build?.setFurnitureBorderColor(f.id, '#38bdf8');
+              for (const gid of this.selectedFurnitureIds) {
+                this.build?.setFurnitureBorderColor(gid, '#38bdf8');
+              }
             }, 500);
+          }
+        } else {
+          const fOrigin = roomOrigin(this.data, f.roomId);
+          let worldX = fOrigin.x + (d.gizmoAxis === 'x' ? snap(f.x + step, this.grid) : f.x);
+          let worldZ = fOrigin.z + (d.gizmoAxis === 'z' ? snap(f.z + step, this.grid) : f.z);
+          const targetRoom = findRoomAt(this.data, worldX, worldZ) ?? this.data.rooms.find((r) => r.id === f.roomId);
+          if (targetRoom) {
+            const targetOrigin = roomOrigin(this.data, targetRoom.id);
+            const localX = snap(worldX - targetOrigin.x, this.grid);
+            const localZ = snap(worldZ - targetOrigin.z, this.grid);
+            const next = { ...f, roomId: targetRoom.id, x: localX, z: localZ };
+            if (validFurniture(this.data, next)) {
+              this.options.onMove(f.id, next.x, next.z, targetRoom.id);
+            } else {
+              const reason = getFurnitureCollisionReason(this.data, next);
+              this.options.onCollisionFeedback?.(reason ?? 'Недопустимое положение объекта');
+              this.build?.setFurnitureBorderColor(f.id, '#e87668');
+              setTimeout(() => {
+                if (this.selected === f.id) this.build?.setFurnitureBorderColor(f.id, '#38bdf8');
+              }, 500);
+            }
           }
         }
       }
@@ -1962,8 +2186,12 @@ export class WorkshopScene {
     } else if (!this.dragged) {
       const hit = this.pick(e);
       const placementId = (hit?.userData.placementId as string | undefined) ?? d.downHitPlacementId;
-      const furnitureId = (hit?.userData.furnitureId as string | undefined) ?? d.downHitFurnitureId;
+      const furnitureId = (hit?.userData.furnitureId as string | undefined) ?? d.downHitFurnitureId ?? d.furnitureId;
       if (placementId) {
+        for (const prevId of this.selectedFurnitureIds) {
+          this.build?.setFurnitureBorderColor(prevId, '#d6d6cd');
+        }
+        this.selectedFurnitureIds.clear();
         if (this.selected === placementId) {
           this.options.onSelect('', 'furniture');
           this.select(null);
@@ -1972,13 +2200,59 @@ export class WorkshopScene {
           this.select(placementId);
         }
       } else if (furnitureId) {
-        if (this.selected === furnitureId) {
-          this.options.onSelect('', 'furniture');
-          this.select(null);
-        } else if (this.edit) {
-          this.options.onSelect(furnitureId, 'furniture');
-          this.select(furnitureId);
+        if (this.edit) {
+          if (e.shiftKey) {
+            // Shift+click multi-selection in edit mode:
+            if (this.selectedFurnitureIds.has(furnitureId)) {
+              this.selectedFurnitureIds.delete(furnitureId);
+              this.build?.setFurnitureBorderColor(furnitureId, '#d6d6cd');
+              if (this.selectedFurnitureIds.size === 0) {
+                this.selected = null;
+                this.options.onSelect('', 'furniture');
+                this.hideGizmo();
+              } else {
+                const nextPrimary = Array.from(this.selectedFurnitureIds)[0];
+                this.selected = nextPrimary;
+                this.options.onSelect(nextPrimary, 'furniture');
+                const pf = this.data?.furniture.find((item) => item.id === nextPrimary);
+                if (pf) this.updateGizmo(pf);
+              }
+            } else {
+              this.selectedFurnitureIds.add(furnitureId);
+              this.selected = furnitureId;
+              this.options.onSelect(furnitureId, 'furniture');
+              const pf = this.data?.furniture.find((item) => item.id === furnitureId);
+              if (pf) this.updateGizmo(pf);
+            }
+            // Update borders: all items in selectedFurnitureIds get #38bdf8 border color
+            for (const id of this.selectedFurnitureIds) {
+              this.build?.setFurnitureBorderColor(id, '#38bdf8');
+            }
+            this.invalidate();
+          } else {
+            // Click without shiftKey:
+            if (this.selected === furnitureId && this.selectedFurnitureIds.size === 1) {
+              this.build?.setFurnitureBorderColor(furnitureId, '#d6d6cd');
+              this.selectedFurnitureIds.clear();
+              this.options.onSelect('', 'furniture');
+              this.select(null);
+            } else {
+              for (const prevId of this.selectedFurnitureIds) {
+                if (prevId !== furnitureId) {
+                  this.build?.setFurnitureBorderColor(prevId, '#d6d6cd');
+                }
+              }
+              this.selectedFurnitureIds = new Set([furnitureId]);
+              this.options.onSelect(furnitureId, 'furniture');
+              this.select(furnitureId);
+              this.build?.setFurnitureBorderColor(furnitureId, '#38bdf8');
+            }
+          }
         } else {
+          for (const prevId of this.selectedFurnitureIds) {
+            this.build?.setFurnitureBorderColor(prevId, '#d6d6cd');
+          }
+          this.selectedFurnitureIds.clear();
           const f = this.data?.furniture.find((item) => item.id === furnitureId);
           if (f?.kind === 'filament_rack') {
             this.options.onSelect(furnitureId, 'furniture');
@@ -1989,8 +2263,16 @@ export class WorkshopScene {
           }
         }
       } else if (this.edit) {
+        for (const prevId of this.selectedFurnitureIds) {
+          this.build?.setFurnitureBorderColor(prevId, '#d6d6cd');
+        }
+        this.selectedFurnitureIds.clear();
         this.authoring.selectRoomAt(e);
       } else if (!this.edit) {
+        for (const prevId of this.selectedFurnitureIds) {
+          this.build?.setFurnitureBorderColor(prevId, '#d6d6cd');
+        }
+        this.selectedFurnitureIds.clear();
         const hitRoom = this.authoring.selectRoomAt(e);
         if (!hitRoom) {
           this.options.onSelect('', 'furniture');
@@ -2013,12 +2295,22 @@ export class WorkshopScene {
     }
     const f = this.data?.furniture.find((f) => f.id === this.down?.furnitureId);
     if (f) {
-      this.build?.previewFurniture(f.id, f.x, f.z);
-      this.updateGizmo(f);
-      this.renderer.shadowMap.needsUpdate = true;
-      if (this.highlightedFurnitureId !== f.id) {
-        this.build?.setFurnitureBorderColor(f.id, '#d6d6cd');
+      if (this.selectedFurnitureIds.size > 1 && this.selectedFurnitureIds.has(f.id)) {
+        for (const gid of this.selectedFurnitureIds) {
+          const gf = this.data?.furniture.find((item) => item.id === gid);
+          if (gf) {
+            this.build?.previewFurniture(gf.id, gf.x, gf.z);
+            this.build?.setFurnitureBorderColor(gf.id, '#38bdf8');
+          }
+        }
+      } else {
+        this.build?.previewFurniture(f.id, f.x, f.z);
+        this.updateGizmo(f);
+        if (this.highlightedFurnitureId !== f.id) {
+          this.build?.setFurnitureBorderColor(f.id, '#d6d6cd');
+        }
       }
+      this.renderer.shadowMap.needsUpdate = true;
     }
     this.down = null;
     this.setHoveredPlacement(null);
@@ -2258,6 +2550,17 @@ export class WorkshopScene {
     }
     if (this.frame !== null) cancelAnimationFrame(this.frame);
     if (this.hoverRaf !== null) cancelAnimationFrame(this.hoverRaf);
+    if (this.beaconRaf !== null) {
+      if (typeof cancelAnimationFrame !== 'undefined') cancelAnimationFrame(this.beaconRaf);
+      this.beaconRaf = null;
+    }
+    if (this.beaconTimer !== null) {
+      clearTimeout(this.beaconTimer);
+      this.beaconTimer = null;
+    }
+    this.searchBeaconGroup.removeFromParent();
+    this.beaconRingMesh?.geometry.dispose();
+    this.beaconMaterial?.dispose();
     this.observer.disconnect();
     window.removeEventListener('keydown', this.onKeyDown);
     this.gizmoGroup.removeFromParent();

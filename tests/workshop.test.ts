@@ -4,9 +4,9 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as THREE from 'three';
 import type { WorkshopCanvasProps } from '../src/features/workshop/WorkshopCanvas';
-import { createWorkshop, createFurniture, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, updateFurniture, placeEntity, removeRoom, slotWorld, parseWorkshop, pickWorkshopTarget, syncWorkshopPlacements, calculatePanDelta, calculateOrbitAngles, fillEnclosedTiles, existingRoomsTileBounds, roomOrigin, type Room, createWorkshopHistory, pushWorkshopHistory, undoWorkshopHistory, redoWorkshopHistory, WORKSHOP_HISTORY_MAX_DEPTH } from '../src/features/workshop/model';
+import { createWorkshop, createFurniture, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, snap, updateFurniture, placeEntity, removeRoom, slotWorld, parseWorkshop, pickWorkshopTarget, syncWorkshopPlacements, calculatePanDelta, calculateOrbitAngles, fillEnclosedTiles, existingRoomsTileBounds, roomOrigin, type Room, createWorkshopHistory, pushWorkshopHistory, undoWorkshopHistory, redoWorkshopHistory, WORKSHOP_HISTORY_MAX_DEPTH, calculateGroupMove, resolvePlacementPosition } from '../src/features/workshop/model';
 import { instanceTemplate, disposeInstances } from '../src/features/workshop/instances';
-import { getWorkshopShadowConfig, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget, handleWorkshopKeyDown, type WorkshopHotkeyContext } from '../src/features/workshop/WorkshopScene';
+import { getWorkshopShadowConfig, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget, handleWorkshopKeyDown, type WorkshopHotkeyContext, WorkshopScene } from '../src/features/workshop/WorkshopScene';
 import { getOrCreateHudButtonTexture, hudButtonTextureCache, clearHudButtonTextureCache, SpatialAuthoring } from '../src/features/workshop/spatialAuthoring';
 
 test('default layout has non-overlapping furnishings including movable decor and no invented inventory', () => {
@@ -1554,6 +1554,200 @@ test('workshop history: creates deep-cloned copies to prevent mutation leaks', (
   state.rooms[0].name = 'Mutated Again';
   assert.notEqual(history.redoStack[0].rooms[0].name, 'Mutated Again');
 });
+
+test('resolvePlacementPosition accurately resolves floor coordinates from workshop layout and handles missing placements', () => {
+  const state = createWorkshop();
+  const placed = placeEntity(state, 'printer', 'printer-pos-test', state.slots[0].id, 'a1');
+  const p = placed.placements[0];
+  const pos = resolvePlacementPosition(placed, p.id);
+  assert.ok(pos, 'Position must be resolved for existing placed printer');
+
+  const slot = placed.slots.find((s) => s.id === p.slotId)!;
+  const furn = placed.furniture.find((f) => f.id === slot.furnitureId)!;
+  const origin = roomOrigin(placed, furn.roomId);
+  const [expectedX, expectedY, expectedZ] = slotWorld(furn, slot);
+
+  assert.equal(pos.x, origin.x + expectedX);
+  assert.equal(pos.y, expectedY);
+  assert.equal(pos.z, origin.z + expectedZ);
+
+  // Missing placement or null state returns null
+  assert.equal(resolvePlacementPosition(placed, 'non-existent-id'), null);
+  assert.equal(resolvePlacementPosition(null, 'any-id'), null);
+});
+
+test('search beacon trigger: sets position, enables visibility, sets cyan emissive style, animates fade-out, and focuses camera', () => {
+  const state = createWorkshop();
+  const placed = placeEntity(state, 'printer', 'p-beacon', state.slots[0].id, 'a1');
+  const placementId = placed.placements[0].id;
+  const expectedPos = resolvePlacementPosition(placed, placementId)!;
+
+  let movedCameraTarget: THREE.Vector3 | null = null;
+  let movedCameraSpan: number | null = null;
+  let invalidatedCount = 0;
+
+  const mockScene: any = {
+    data: placed,
+    build: {
+      placements: new Map([
+        [placementId, { pos: new THREE.Vector3(expectedPos.x, expectedPos.y, expectedPos.z), f: { rotation: 0 } }],
+      ]),
+      positions: new Map([[placementId, new THREE.Vector3(expectedPos.x, expectedPos.y, expectedPos.z)]]),
+    },
+    top: false,
+    azimuth: Math.PI / 4,
+    elevation: 20,
+    searchBeaconGroup: new THREE.Group(),
+    beaconMaterial: new THREE.MeshBasicMaterial({ color: '#38bdf8', transparent: true, opacity: 0 }),
+    beaconRaf: null,
+    beaconTimer: null,
+    disposed: false,
+    getSafeInspectionAzimuth: () => Math.PI / 4,
+    moveCamera: (target: THREE.Vector3, span: number) => {
+      movedCameraTarget = target.clone();
+      movedCameraSpan = span;
+    },
+    invalidate: () => {
+      invalidatedCount++;
+    },
+  };
+  mockScene.searchBeaconGroup.visible = false;
+
+  // Trigger search beacon
+  WorkshopScene.prototype.triggerSearchBeacon.call(mockScene, placementId);
+
+  // 1. Group is visible and positioned on the floor (y = 0.02)
+  assert.equal(mockScene.searchBeaconGroup.visible, true);
+  assert.equal(mockScene.searchBeaconGroup.position.x, expectedPos.x);
+  assert.equal(mockScene.searchBeaconGroup.position.y, 0.02);
+  assert.equal(mockScene.searchBeaconGroup.position.z, expectedPos.z);
+
+  // 2. Cyan styling and initial opacity 0.8
+  assert.equal(mockScene.beaconMaterial.opacity, 0.8);
+  assert.equal(mockScene.beaconMaterial.color.getHexString(), '38bdf8');
+
+  // 3. Camera focused smoothly
+  assert.ok(movedCameraTarget);
+  const camTarget = movedCameraTarget as THREE.Vector3;
+  assert.equal(camTarget.x, expectedPos.x);
+  assert.equal(camTarget.z, expectedPos.z);
+  assert.equal(movedCameraSpan, 1.5);
+  assert.ok(invalidatedCount >= 1);
+});
+
+test('multi-selection group delta calculations: calculateGroupMove moves multiple furniture together without self-collision', () => {
+  const state = createWorkshop();
+  const f0 = state.furniture[0];
+  const f1 = state.furniture[1];
+
+  // Moving both items by dx = 0.5, dz = 0.25 on a 0.25 grid
+  const result = calculateGroupMove(state, [f0.id, f1.id], 0.5, 0.25, 0.25);
+  assert.equal(result.valid, true, 'Moving group together must be valid and not self-collide');
+  assert.equal(result.moved.length, 2);
+
+  const m0 = result.moved.find((m) => m.id === f0.id)!;
+  const m1 = result.moved.find((m) => m.id === f1.id)!;
+  assert.equal(m0.x, snap(f0.x + 0.5, 0.25));
+  assert.equal(m0.z, snap(f0.z + 0.25, 0.25));
+  assert.equal(m1.x, snap(f1.x + 0.5, 0.25));
+  assert.equal(m1.z, snap(f1.z + 0.25, 0.25));
+});
+
+test('multi-selection group collision detection: detects wall collisions and obstacle collisions and reports reason', () => {
+  const state = createWorkshop();
+  const f0 = state.furniture[0];
+  const f1 = state.furniture[1];
+
+  // 1. Moving group beyond wall bounds
+  const wallResult = calculateGroupMove(state, [f0.id, f1.id], 15, 0, 0.25);
+  assert.equal(wallResult.valid, false);
+  assert.equal(wallResult.reason, 'Выход за пределы комнаты');
+
+  // 2. Moving group into another unselected obstacle
+  const obstacle = state.furniture[2];
+  const deltaX = obstacle.x - f0.x;
+  const deltaZ = obstacle.z - f0.z;
+  const obsResult = calculateGroupMove(state, [f0.id, f1.id], deltaX, deltaZ, 0.25);
+  assert.equal(obsResult.valid, false);
+  assert.ok(obsResult.reason?.includes('Пересечение с'));
+
+  // 3. Empty group
+  const emptyResult = calculateGroupMove(state, [], 1, 1, 0.25);
+  assert.equal(emptyResult.valid, false);
+  assert.equal(emptyResult.reason, 'Нет выбранных объектов');
+});
+
+test('multi-selection hotkeys: Arrow keys move all selected furniture in group and report collision feedback on error', () => {
+  const state = createWorkshop();
+  const f0 = state.furniture[0];
+  const f1 = state.furniture[1];
+  const movedCalls: Array<{ id: string; x: number; z: number }> = [];
+  let collisionReason: string | null = null;
+  const setBorders: Array<{ id: string; color: string }> = [];
+
+  const mockContext: WorkshopHotkeyContext = {
+    top: false,
+    edit: true,
+    selected: f0.id,
+    selectedFurnitureIds: new Set([f0.id, f1.id]),
+    data: state,
+    grid: 0.25,
+    options: {
+      canvas: { style: {} } as any,
+      container: {} as any,
+      onSelect: () => {},
+      onMove: (id, x, z) => {
+        movedCalls.push({ id, x, z });
+      },
+      onCollisionFeedback: (reason) => {
+        collisionReason = reason;
+      },
+      onCamera: () => {},
+      onReady: () => {},
+      onError: () => {},
+    },
+    authoring: {
+      cancelDraft: () => {},
+      getSelectedLabelId: () => null,
+      setSelectedLabel: () => {},
+    },
+    select: () => {},
+    workshopCenter: () => new THREE.Vector3(),
+    overviewSpan: () => 10,
+    moveCamera: () => {},
+    build: {
+      setFurnitureBorderColor: (id, color) => {
+        setBorders.push({ id, color });
+      },
+    },
+  };
+
+  // 1. ArrowRight nudges both items in group by +0.25
+  const arrowRight = { key: 'ArrowRight', cancelable: true, preventDefault: () => {} } as unknown as KeyboardEvent;
+  const handled = handleWorkshopKeyDown(mockContext, arrowRight);
+  assert.equal(handled, true);
+  assert.equal(movedCalls.length, 2);
+  assert.equal(movedCalls.find((m) => m.id === f0.id)?.x, snap(f0.x + 0.25, 0.25));
+  assert.equal(movedCalls.find((m) => m.id === f1.id)?.x, snap(f1.x + 0.25, 0.25));
+  assert.ok(setBorders.some((b) => b.id === f0.id && b.color === '#38bdf8'));
+  assert.ok(setBorders.some((b) => b.id === f1.id && b.color === '#38bdf8'));
+
+  // 2. Collision feedback when group move hits wall
+  const edgeState = {
+    ...state,
+    furniture: state.furniture.map((f) => (f.id === f0.id ? { ...f, x: state.rooms[0].width / 2 - f.width / 2 - 0.2 } : f)),
+  };
+  mockContext.data = edgeState;
+  movedCalls.length = 0;
+  collisionReason = null;
+  setBorders.length = 0;
+  const handledEdge = handleWorkshopKeyDown(mockContext, arrowRight);
+  assert.equal(handledEdge, true);
+  assert.equal(movedCalls.length, 0); // move rejected
+  assert.ok(collisionReason);
+  assert.ok(setBorders.some((b) => b.color === '#e87668'));
+});
+
 
 
 

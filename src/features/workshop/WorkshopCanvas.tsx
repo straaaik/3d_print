@@ -19,6 +19,7 @@ export interface WorkshopCanvasProps {
   edit: boolean;
   grid: number;
   selected: string | null;
+  selectedId?: string | null;
   focusToken: number;
   onSelect: (id: string, kind: 'furniture' | 'placement') => void;
   onMove: (id: string, x: number, z: number, roomId?: string) => void;
@@ -212,6 +213,18 @@ export function WorkshopCanvas(props: WorkshopCanvasProps) {
   useEffect(() => {
     scene.current?.select(props.selected);
   }, [props.selected, props.focusToken]);
+  const prevFocusToken = useRef(props.focusToken);
+  useEffect(() => {
+    const isTokenChange = prevFocusToken.current !== props.focusToken;
+    prevFocusToken.current = props.focusToken;
+    const targetPlacementId = props.selectedId ?? props.selected;
+    if (isTokenChange && props.focusToken > 0 && targetPlacementId) {
+      const isPlacement = props.layout.placements.some((p) => p.id === targetPlacementId);
+      if (isPlacement) {
+        scene.current?.triggerSearchBeacon(targetPlacementId);
+      }
+    }
+  }, [props.focusToken, props.selected, props.selectedId, props.layout.placements]);
   useEffect(() => {
     scene.current?.setSelectedLabel(props.selectedLabel?.id ?? null);
   }, [props.selectedLabel]);
