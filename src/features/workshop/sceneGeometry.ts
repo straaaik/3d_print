@@ -186,7 +186,7 @@ export function buildWorkshop(
         : '#0CB4E0';
 
       // Калибровочный кубик рядом с каждым принтером, привязан к группе мебели для синхронного движения
-      const cubeSize = 0.07;
+      const cubeSize = 0.06;
       const colorCube = new THREE.Mesh(
         new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize),
         new THREE.MeshStandardMaterial({
@@ -195,7 +195,7 @@ export function buildWorkshop(
           metalness: 0.15,
         })
       );
-      colorCube.position.set(s.x + 0.30, s.y + cubeSize / 2, s.z + 0.19);
+      colorCube.position.set(s.x + 0.35, s.y + cubeSize / 2, s.z + 0.21);
       colorCube.rotation.y = 0.25;
       colorCube.castShadow = true;
       colorCube.receiveShadow = true;

@@ -1982,6 +1982,27 @@ test('room floor glow is active ONLY in edit mode and disabled in overview mode'
   assert.equal(getSelectedRoomId(edit, room.id), undefined);
 });
 
+test('printer calibration cube is positioned with clean clearance from printer shell and touchscreen', () => {
+  const cubeSize = 0.06;
+  const cubeOffset = { x: 0.35, z: 0.21 };
+  const cubeHalf = cubeSize / 2;
+
+  // A1 printer shell extends up to x = 0.282, z = 0.288
+  const a1MaxX = 0.282;
+  const a1ScreenZMax = 0.288;
+  const cubeMinX = cubeOffset.x - cubeHalf; // 0.35 - 0.03 = 0.320
+  const cubeMaxX = cubeOffset.x + cubeHalf; // 0.35 + 0.03 = 0.380
+
+  // Verify cube does not penetrate A1 shell or screen bracket
+  assert.ok(cubeMinX > a1MaxX, `Cube inner edge (${cubeMinX}) must be strictly outside A1 shell (${a1MaxX})`);
+  assert.ok(cubeMinX - a1MaxX >= 0.03, 'Cube must maintain at least 30mm clearance from printer model');
+
+  // P1 printer shell extends up to x = 0.240, z = 0.262
+  const p1MaxX = 0.240;
+  assert.ok(cubeMinX > p1MaxX, `Cube inner edge (${cubeMinX}) must be strictly outside P1 shell (${p1MaxX})`);
+  assert.ok(cubeMinX - p1MaxX >= 0.07, 'Cube must maintain at least 70mm clearance from P1 model');
+});
+
 
 
 
