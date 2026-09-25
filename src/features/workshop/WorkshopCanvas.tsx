@@ -351,53 +351,32 @@ export function WorkshopCanvas(props: WorkshopCanvasProps) {
       <div className={`absolute left-4 ${props.edit ? 'top-20' : 'top-4'} z-20 flex flex-col max-h-[calc(100vh-140px)] overflow-y-auto space-y-2.5 font-mono pointer-events-none`}>
         {/* Row 1: Metrics */}
         <div className="flex flex-wrap items-center gap-2">
-          {props.edit ? (
-            <>
-              <div className="rounded-lg border border-white/10 bg-neutral-950/80 px-3 py-2 shadow-lg backdrop-blur-md">
-                <strong className="text-xl font-bold text-white">
-                  {
-                    props.layout.placements.filter(
-                      (p) =>
-                        p.kind === 'printer' &&
-                        props.layout.slots.some(
-                          (s) => s.id === p.slotId && props.layout.furniture.some((f) => f.id === s.furnitureId && f.roomId === props.room.id)
-                        )
-                    ).length
-                  }
-                </strong>
-                <p className="text-[10px] text-neutral-400 uppercase tracking-wider">ПРИНТЕРОВ В КОМНАТЕ</p>
-              </div>
-              <div className="rounded-lg border border-white/10 bg-neutral-950/80 px-3 py-2 shadow-lg backdrop-blur-md">
-                <strong className="text-xl font-bold text-white">
-                  {props.room.width} × {props.room.depth}
-                </strong>
-                <p className="text-[10px] text-neutral-400 uppercase tracking-wider">
-                  МЕТРАЖ ({props.room.tiles && props.room.tiles.length > 0 ? props.room.tiles.length : props.room.width * props.room.depth} М²)
-                </p>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="rounded-lg border border-white/10 bg-neutral-950/80 px-3 py-2 shadow-lg backdrop-blur-md">
-                <strong className="text-xl font-bold text-white">
-                  {props.layout.placements.filter((p) => p.kind === 'printer').length}
-                </strong>
-                <p className="text-[10px] text-neutral-400 uppercase tracking-wider">ПРИНТЕРОВ В МАСТЕРСКОЙ</p>
-              </div>
-              <div className="rounded-lg border border-white/10 bg-neutral-950/80 px-3 py-2 shadow-lg backdrop-blur-md">
-                <strong className="text-xl font-bold text-white">
-                  {props.layout.rooms.length}
-                </strong>
-                <p className="text-[10px] text-neutral-400 uppercase tracking-wider">
-                  {props.layout.rooms.length === 1 ? 'ПОМЕЩЕНИЕ' : props.layout.rooms.length < 5 ? 'ПОМЕЩЕНИЯ' : 'ПОМЕЩЕНИЙ'}
-                </p>
-              </div>
-            </>
-          )}
+          <div className="rounded-lg border border-white/10 bg-neutral-950/80 px-3 py-2 shadow-lg backdrop-blur-md">
+            <strong className="text-xl font-bold text-white">
+              {
+                props.layout.placements.filter(
+                  (p) =>
+                    p.kind === 'printer' &&
+                    props.layout.slots.some(
+                      (s) => s.id === p.slotId && props.layout.furniture.some((f) => f.id === s.furnitureId && f.roomId === props.room.id)
+                    )
+                ).length
+              }
+            </strong>
+            <p className="text-[10px] text-neutral-400 uppercase tracking-wider">ПРИНТЕРОВ В КОМНАТЕ</p>
+          </div>
+          <div className="rounded-lg border border-white/10 bg-neutral-950/80 px-3 py-2 shadow-lg backdrop-blur-md">
+            <strong className="text-xl font-bold text-white">
+              {props.room.width} × {props.room.depth}
+            </strong>
+            <p className="text-[10px] text-neutral-400 uppercase tracking-wider">
+              МЕТРАЖ ({props.room.tiles && props.room.tiles.length > 0 ? props.room.tiles.length : props.room.width * props.room.depth} М²)
+            </p>
+          </div>
         </div>
 
-        {/* Row 2: Room name (editable) & Delete room button (Edit mode only) */}
-        {props.edit && (
+        {/* Row 2: Room name (editable in edit mode, read-only badge in overview) */}
+        {props.edit ? (
           <div className="flex flex-wrap items-center gap-2">
             <div className="pointer-events-auto flex flex-col justify-between rounded-lg border border-white/10 bg-neutral-950/80 px-3 py-1.5 shadow-lg backdrop-blur-md transition-colors focus-within:border-cyan-400/60 focus-within:bg-neutral-950/95 min-w-[200px] max-w-[280px]">
               <div className="flex items-center gap-1.5">
@@ -439,6 +418,17 @@ export function WorkshopCanvas(props: WorkshopCanvasProps) {
                 </p>
               </button>
             )}
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-col justify-between rounded-lg border border-white/10 bg-neutral-950/80 px-3 py-1.5 shadow-lg backdrop-blur-md min-w-[180px]">
+              <strong className="font-mono text-sm font-bold text-white truncate max-w-[260px]">
+                {props.room.name}
+              </strong>
+              <p className="text-[10px] text-neutral-400 font-mono uppercase tracking-wider">
+                ВЫБРАННАЯ КОМНАТА
+              </p>
+            </div>
           </div>
         )}
       </div>

@@ -559,10 +559,10 @@ export class WorkshopScene {
     this.scene.add(this.gizmoGroup);
 
     // Setup inspection lighting rig for printer examination (illuminates only the printer)
-    this.inspectionChamberLight = new THREE.PointLight('#ffffff', 3.2, 1.4, 2);
+    this.inspectionChamberLight = new THREE.PointLight('#ffffff', 0, 1.4, 2);
     this.inspectionChamberLight.castShadow = false;
 
-    this.inspectionSpotlight = new THREE.SpotLight('#f4f8ff', 2.8, 3.2, Math.PI / 7, 0.5, 1.8);
+    this.inspectionSpotlight = new THREE.SpotLight('#f4f8ff', 0, 3.2, Math.PI / 7, 0.5, 1.8);
     this.inspectionSpotlight.castShadow = false;
     this.inspectionSpotlight.target = this.inspectionSpotTarget;
 
@@ -571,7 +571,7 @@ export class WorkshopScene {
       this.inspectionSpotlight,
       this.inspectionSpotTarget
     );
-    this.inspectionRig.visible = false;
+    this.inspectionRig.visible = true;
     this.scene.add(this.inspectionRig);
 
     // Setup 3D Search Highlight Beacon (pulsing floor ring)
@@ -596,6 +596,9 @@ export class WorkshopScene {
         this.assets = assets;
         this.authoring.setAssets(assets);
         this.rebuild();
+        try {
+          this.renderer.compile(this.scene, this.camera);
+        } catch {}
         options.onReady();
       })
       .catch((error: unknown) => {
@@ -909,7 +912,8 @@ export class WorkshopScene {
     const aSig = Array.from(activePrinterIds).sort().join(',');
     const filSig = filaments.map(f => `${f.id}:${f.color}`).join('|');
     const prSig = printers.map(p => `${p.id}:${p.model_3d ?? ''}`).join('|');
-    return `${activeRoomId ?? ''}#${rSig}#${fSig}#${pSig}#${aSig}#${filSig}#${prSig}`;
+    const effectiveSelectedRoomId = this.edit ? (activeRoomId ?? '') : '';
+    return `${effectiveSelectedRoomId}#${this.edit ? 'edit' : 'view'}#${rSig}#${fSig}#${pSig}#${aSig}#${filSig}#${prSig}`;
   }
 
   private saveCameraDebounced(delay = 500) {
@@ -962,7 +966,9 @@ export class WorkshopScene {
         if (room) {
           const focus = calculateRoomCameraFocus(this.data, room);
           const targetAzimuth = room.camera?.azimuth ?? this.azimuth;
-          this.top = focus.top;
+          if (room.camera?.top !== undefined) {
+            this.top = room.camera.top;
+          }
           this.moveCamera(
             new THREE.Vector3(focus.target.x, focus.target.y, focus.target.z),
             focus.span,
@@ -1086,6 +1092,7 @@ export class WorkshopScene {
 
     // 1. Position chamber LED light inside build volume (illuminates print bed, toolhead & interior)
     this.inspectionChamberLight.position.set(pos.x, pos.y + 0.36, pos.z);
+    this.inspectionChamberLight.intensity = 3.2;
 
     // 2. Position focused studio spotlight shining directly at the printer
     const spotDist = 0.65;
@@ -1095,23 +1102,32 @@ export class WorkshopScene {
       pos.z + spotDist * Math.cos(safeAngle)
     );
     this.inspectionSpotTarget.position.set(pos.x, pos.y + 0.32, pos.z);
+    this.inspectionSpotlight.intensity = 2.8;
 
-    this.inspectionRig.visible = true;
     this.invalidate();
   }
 
   private hidePrinterInspectionLight() {
-    if (this.inspectionRig.visible) {
-      this.inspectionRig.visible = false;
+    if (this.inspectionChamberLight.intensity > 0 || this.inspectionSpotlight.intensity > 0) {
+      this.inspectionChamberLight.intensity = 0;
+      this.inspectionSpotlight.intensity = 0;
       this.invalidate();
     }
   }
 
   setEdit(edit: boolean, grid: number) {
+    const editChanged = this.edit !== edit;
     this.edit = edit;
-    if(this.data)this.authoring.update(this.data,edit,this.selected,this.room?.id??null);
+    if (this.data) this.authoring.update(this.data, edit, this.selected, this.room?.id ?? null);
     this.grid = grid;
     this.hidePrinterInspectionLight();
+    if (editChanged && this.data && this.room) {
+      const sig = this.getSceneSignature(this.data, this.filaments, this.printers, this.activePrinterIds, this.room.id);
+      if (sig !== this.lastSceneSignature) {
+        this.lastSceneSignature = sig;
+        this.rebuild();
+      }
+    }
     if (edit) {
       this.setHoveredPlacement(null);
       if (this.selected) {
@@ -1137,6 +1153,8 @@ export class WorkshopScene {
       return;
     }
 
+    const wasSelected = Boolean(this.selected);
+
     // Reset previous highlighted floor border back to white
     if (this.highlightedFurnitureId) {
       this.build?.setFurnitureBorderColor(this.highlightedFurnitureId, '#d6d6cd');
@@ -1156,12 +1174,9 @@ export class WorkshopScene {
     }
 
     // Reset hover animation on the selected placement so it sits firmly on its base
-    if (id && this.hoverStates.has(id)) {
-      const s = this.hoverStates.get(id)!;
-      s.target = 0;
-      s.current = 0;
+    if (id) {
+      this.hoverStates.set(id, { current: 0, target: 0 });
       this.build?.setPlacementHover(id, 0);
-      this.hoverStates.delete(id);
     }
     if (id && this.hoveredPlacementId === id) {
       this.updateHoverPlacementBadge();
@@ -1173,6 +1188,21 @@ export class WorkshopScene {
     if (!id || !this.data) {
       this.hideGizmo();
       this.hidePrinterInspectionLight();
+      if (wasSelected && !this.edit) {
+        if (this.room) {
+          const focus = calculateRoomCameraFocus(this.data, this.room);
+          const targetAzimuth = this.room.camera?.azimuth ?? this.azimuth;
+          this.moveCamera(
+            new THREE.Vector3(focus.target.x, focus.target.y, focus.target.z),
+            focus.span,
+            targetAzimuth,
+            focus.elevation,
+            false
+          );
+        } else {
+          this.overview();
+        }
+      }
       return;
     }
 
@@ -1439,8 +1469,8 @@ export class WorkshopScene {
     }
 
     this.transition = animate(0, 1, {
-      duration: 0.7,
-      ease: [0.22, 1, 0.36, 1],
+      duration: 0.8,
+      ease: [0.25, 0.1, 0.25, 1],
       onUpdate: (v) => {
         this.target.lerpVectors(startTarget, target, v);
         this.span = THREE.MathUtils.lerp(fromSpan, span, v);
@@ -1459,7 +1489,7 @@ export class WorkshopScene {
   private setHoveredPlacement(id: string | null) {
     if (this.hoveredPlacementId === id) return;
     if (this.hoveredPlacementId) {
-      const old = this.hoverStates.get(this.hoveredPlacementId) ?? { current: 1, target: 0 };
+      const old = this.hoverStates.get(this.hoveredPlacementId) ?? { current: 0, target: 0 };
       old.target = 0;
       this.hoverStates.set(this.hoveredPlacementId, old);
     }
@@ -1552,6 +1582,13 @@ export class WorkshopScene {
     const tick = () => {
       let active = false;
       for (const [placementId, state] of this.hoverStates) {
+        if (placementId === this.selected) {
+          state.current = 0;
+          state.target = 0;
+          this.build?.setPlacementHover(placementId, 0);
+          this.hoverStates.delete(placementId);
+          continue;
+        }
         state.current = THREE.MathUtils.lerp(state.current, state.target, 0.22);
         if (Math.abs(state.current - state.target) < 0.005) {
           state.current = state.target;
@@ -2276,9 +2313,12 @@ export class WorkshopScene {
           this.build?.setFurnitureBorderColor(prevId, '#d6d6cd');
         }
         this.selectedFurnitureIds.clear();
-        this.options.onSelect('', 'furniture');
-        this.select(null);
-        this.overview();
+        const roomClicked = this.authoring.selectRoomAt(e);
+        if (!roomClicked) {
+          this.options.onSelect('', 'furniture');
+          this.select(null);
+          this.overview();
+        }
       }
     }
     this.onCancel();

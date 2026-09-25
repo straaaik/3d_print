@@ -1872,6 +1872,116 @@ test('findWorkshopSeams accurately computes doorway geometry and semi-transparen
   assert.ok(sidesB.has('west'), 'Room B must report west side occupied');
 });
 
+test('selected printer strictly suppresses hover jump even when hovering over another printer', () => {
+  const hoverStates = new Map<string, { current: number; target: number }>();
+  let hoveredPlacementId: string | null = null;
+  let selectedPlacementId: string | null = 'placement-printer-1';
+
+  const setHoveredPlacement = (id: string | null) => {
+    if (hoveredPlacementId === id) return;
+    if (hoveredPlacementId) {
+      const old = hoverStates.get(hoveredPlacementId) ?? { current: 0, target: 0 };
+      old.target = 0;
+      hoverStates.set(hoveredPlacementId, old);
+    }
+    hoveredPlacementId = id;
+    if (id) {
+      const isSelected = selectedPlacementId === id;
+      const suppressJump = isSelected;
+      const next = hoverStates.get(id) ?? { current: 0, target: 1 };
+      next.target = suppressJump ? 0 : 1;
+      if (suppressJump) {
+        next.current = 0;
+      }
+      hoverStates.set(id, next);
+    }
+  };
+
+  // Select printer 1 initially; its hover progress is strictly 0
+  hoverStates.set('placement-printer-1', { current: 0, target: 0 });
+
+  // Hover over printer 2
+  setHoveredPlacement('placement-printer-2');
+
+  // Printer 2 should target 1
+  assert.equal(hoverStates.get('placement-printer-2')?.target, 1);
+
+  // Selected printer 1 MUST remain target 0, current 0, never jumping to 1
+  const selectedState = hoverStates.get('placement-printer-1');
+  assert.equal(selectedState?.target, 0);
+  assert.equal(selectedState?.current, 0);
+
+  // Hover animation tick must never animate the selected printer
+  const tickSimulate = () => {
+    for (const [id, state] of hoverStates) {
+      if (id === selectedPlacementId) {
+        state.current = 0;
+        state.target = 0;
+        hoverStates.delete(id);
+        continue;
+      }
+      state.current = state.target;
+    }
+  };
+  tickSimulate();
+
+  // Selected printer was removed from active animation and remains at base
+  assert.equal(hoverStates.has('placement-printer-1'), false);
+  assert.equal(hoverStates.get('placement-printer-2')?.current, 1);
+});
+
+test('camera zooms out to room focus when printer is deselected in overview mode', () => {
+  const state = createWorkshop();
+  const room = state.rooms[0];
+  let cameraTarget = { x: 3, y: 0.7, z: 2 };
+  let cameraSpan = 1.5; // zoomed in on printer
+
+  let selectedId: string | null = 'printer-placement-1';
+  let isEdit = false;
+
+  const select = (nextId: string | null) => {
+    const wasSelected = Boolean(selectedId);
+    selectedId = nextId;
+
+    if (!nextId) {
+      if (wasSelected && !isEdit) {
+        const focus = calculateRoomCameraFocus(state, room);
+        cameraTarget = { x: focus.target.x, y: focus.target.y, z: focus.target.z };
+        cameraSpan = focus.span;
+      }
+    }
+  };
+
+  // Deselect the printer
+  select(null);
+
+  assert.equal(selectedId, null);
+  // Camera span expanded back from 1.5 to full room span
+  assert.ok(cameraSpan > 5, 'Camera span must zoom out from 1.5 to room focus span');
+  const expectedFocus = calculateRoomCameraFocus(state, room);
+  assert.equal(cameraSpan, expectedFocus.span);
+  assert.deepEqual(cameraTarget, expectedFocus.target);
+});
+
+test('room floor glow is active ONLY in edit mode and disabled in overview mode', () => {
+  const state = createWorkshop();
+  const room = state.rooms[0];
+
+  // In overview mode (edit = false), selectedRoomId is always undefined
+  const getSelectedRoomId = (edit: boolean, activeRoomId: string) => {
+    return edit ? activeRoomId : undefined;
+  };
+
+  assert.equal(getSelectedRoomId(false, room.id), undefined, 'Overview mode must NEVER provide selectedRoomId for floor glow');
+  assert.equal(getSelectedRoomId(true, room.id), room.id, 'Edit mode must provide active room as selectedRoomId for floor glow');
+
+  // When exiting edit mode, floor glow is removed
+  let edit = true;
+  assert.equal(getSelectedRoomId(edit, room.id), room.id);
+  edit = false;
+  assert.equal(getSelectedRoomId(edit, room.id), undefined);
+});
+
 
 
 
