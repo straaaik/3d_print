@@ -650,6 +650,139 @@ export function existingRoomsTileBounds(state: Workshop): { minX: number; maxX: 
   return Number.isFinite(minX) ? { minX, maxX, minZ, maxZ } : null;
 }
 
+export interface WorkshopSeam {
+  roomA: Room;
+  roomB: Room;
+  alongX: boolean;
+  coord: number;
+  min: number;
+  max: number;
+  length: number;
+}
+
+export function getRoomOccupiedTiles(state: Workshop, room: Room): Array<[number, number]> {
+  if (room.tiles && room.tiles.length > 0) {
+    return room.tiles;
+  }
+  const o = roomOrigin(state, room.id);
+  const minX = Math.round(o.x - room.width / 2);
+  const maxX = Math.round(o.x + room.width / 2);
+  const minZ = Math.round(o.z - room.depth / 2);
+  const maxZ = Math.round(o.z + room.depth / 2);
+  const result: Array<[number, number]> = [];
+  for (let x = minX; x < maxX; x++) {
+    for (let z = minZ; z < maxZ; z++) {
+      result.push([x, z]);
+    }
+  }
+  return result;
+}
+
+export function findWorkshopSeams(state: Workshop): WorkshopSeam[] {
+  if (!state.rooms || state.rooms.length < 2) return [];
+
+  const tileMap = new Map<string, Room>();
+  for (const room of state.rooms) {
+    const tiles = getRoomOccupiedTiles(state, room);
+    for (const [x, z] of tiles) {
+      tileMap.set(`${x},${z}`, room);
+    }
+  }
+
+  const horizontalMap = new Map<string, { roomA: Room; roomB: Room; z: number; xs: number[] }>();
+  const verticalMap = new Map<string, { roomA: Room; roomB: Room; x: number; zs: number[] }>();
+
+  for (const [key, room] of tileMap.entries()) {
+    const comma = key.indexOf(',');
+    const x = Number(key.slice(0, comma));
+    const z = Number(key.slice(comma + 1));
+
+    // North boundary: tile above (x, z - 1)
+    const northRoom = tileMap.get(`${x},${z - 1}`);
+    if (northRoom && northRoom.id !== room.id) {
+      const [rA, rB] = room.id < northRoom.id ? [room, northRoom] : [northRoom, room];
+      const groupKey = `${rA.id}:${rB.id}:${z}`;
+      let group = horizontalMap.get(groupKey);
+      if (!group) {
+        group = { roomA: rA, roomB: rB, z, xs: [] };
+        horizontalMap.set(groupKey, group);
+      }
+      group.xs.push(x);
+    }
+
+    // West boundary: tile to the left (x - 1, z)
+    const westRoom = tileMap.get(`${x - 1},${z}`);
+    if (westRoom && westRoom.id !== room.id) {
+      const [rA, rB] = room.id < westRoom.id ? [room, westRoom] : [westRoom, room];
+      const groupKey = `${rA.id}:${rB.id}:${x}`;
+      let group = verticalMap.get(groupKey);
+      if (!group) {
+        group = { roomA: rA, roomB: rB, x, zs: [] };
+        verticalMap.set(groupKey, group);
+      }
+      group.zs.push(z);
+    }
+  }
+
+  const seams: WorkshopSeam[] = [];
+
+  for (const group of horizontalMap.values()) {
+    const xs = Array.from(new Set(group.xs)).sort((a, b) => a - b);
+    if (xs.length === 0) continue;
+    let startX = xs[0];
+    let prevX = xs[0];
+    for (let i = 1; i < xs.length; i++) {
+      if (xs[i] === prevX + 1) {
+        prevX = xs[i];
+      } else {
+        const min = startX;
+        const max = prevX + 1;
+        const length = max - min;
+        if (length >= 0.6) {
+          seams.push({ roomA: group.roomA, roomB: group.roomB, alongX: true, coord: group.z, min, max, length });
+        }
+        startX = xs[i];
+        prevX = xs[i];
+      }
+    }
+    const min = startX;
+    const max = prevX + 1;
+    const length = max - min;
+    if (length >= 0.6) {
+      seams.push({ roomA: group.roomA, roomB: group.roomB, alongX: true, coord: group.z, min, max, length });
+    }
+  }
+
+  for (const group of verticalMap.values()) {
+    const zs = Array.from(new Set(group.zs)).sort((a, b) => a - b);
+    if (zs.length === 0) continue;
+    let startZ = zs[0];
+    let prevZ = zs[0];
+    for (let i = 1; i < zs.length; i++) {
+      if (zs[i] === prevZ + 1) {
+        prevZ = zs[i];
+      } else {
+        const min = startZ;
+        const max = prevZ + 1;
+        const length = max - min;
+        if (length >= 0.6) {
+          seams.push({ roomA: group.roomA, roomB: group.roomB, alongX: false, coord: group.x, min, max, length });
+        }
+        startZ = zs[i];
+        prevZ = zs[i];
+      }
+    }
+    const min = startZ;
+    const max = prevZ + 1;
+    const length = max - min;
+    if (length >= 0.6) {
+      seams.push({ roomA: group.roomA, roomB: group.roomB, alongX: false, coord: group.x, min, max, length });
+    }
+  }
+
+  return seams;
+}
+
 /**
  * Automatically detects closed loops / contours formed by draft tiles and
  * fills all interior tiles that are fully enclosed by the contour (or enclosed

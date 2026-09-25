@@ -210,49 +210,45 @@ export class ReferenceSceneParts {
         return segments;
       };
 
-      if (!openSides.has('north')) {
-        for (const seg of groupHorizontal(northEdges)) {
-          const span = seg.maxX - seg.minX + 1;
-          const segStartX = seg.minX - origin.x;
-          const wallLz = seg.z - origin.z;
-          const bays = Math.max(1, Math.round(span / 2.8));
-          const bw = span / bays;
-          for (let i = 0; i < bays; i++) {
-            const bayCenterX = segStartX + (i + 0.5) * bw;
-            this.part(parent, 'room', 'Panel_Back_Core', [bw - .06, 2.57, .07], [bayCenterX, 1.31, wallLz]);
-            this.part(parent, 'room', 'Panel_Back_Face', [bw - .13, 2.26, .025], [bayCenterX, 1.36, wallLz + .052]).material = wall;
-            this.part(parent, 'room', 'Skirting_Back', [bw - .12, .18, .055], [bayCenterX, .14, wallLz + .067]);
-            this.part(parent, 'room', 'Panel_Back_TopRail', [bw, .065, .11], [bayCenterX, 2.61, wallLz]);
-            for (const s of [-1, 1]) for (const y of [.3, 2.43]) {
-              this.part(parent, 'room', 'Panel_Back_Fastener-1_0.281_Head', [.025, .025, .005], [bayCenterX + s * (bw / 2 - .15), y, wallLz + .068]);
-            }
-            if (bw >= 1.5) {
-              this.copy(parent, 'room', 'Lamp', new THREE.Vector3(bayCenterX - .11, 2.27 - 1.393, wallLz + .88));
-            }
+      for (const seg of groupHorizontal(northEdges)) {
+        const span = seg.maxX - seg.minX + 1;
+        const segStartX = seg.minX - origin.x;
+        const wallLz = seg.z - origin.z;
+        const bays = Math.max(1, Math.round(span / 2.8));
+        const bw = span / bays;
+        for (let i = 0; i < bays; i++) {
+          const bayCenterX = segStartX + (i + 0.5) * bw;
+          this.part(parent, 'room', 'Panel_Back_Core', [bw - .06, 2.57, .07], [bayCenterX, 1.31, wallLz]);
+          this.part(parent, 'room', 'Panel_Back_Face', [bw - .13, 2.26, .025], [bayCenterX, 1.36, wallLz + .052]).material = wall;
+          this.part(parent, 'room', 'Skirting_Back', [bw - .12, .18, .055], [bayCenterX, .14, wallLz + .067]);
+          this.part(parent, 'room', 'Panel_Back_TopRail', [bw, .065, .11], [bayCenterX, 2.61, wallLz]);
+          for (const s of [-1, 1]) for (const y of [.3, 2.43]) {
+            this.part(parent, 'room', 'Panel_Back_Fastener-1_0.281_Head', [.025, .025, .005], [bayCenterX + s * (bw / 2 - .15), y, wallLz + .068]);
           }
-          for (let i = 0; i <= bays; i++) {
-            this.part(parent, 'room', 'Pylon_Corner', [.21, 2.69, .24], [segStartX + i * bw, 1.345, wallLz + .03]).material = trim;
+          if (bw >= 1.5) {
+            this.copy(parent, 'room', 'Lamp', new THREE.Vector3(bayCenterX - .11, 2.27 - 1.393, wallLz + .88));
           }
+        }
+        for (let i = 0; i <= bays; i++) {
+          this.part(parent, 'room', 'Pylon_Corner', [.21, 2.69, .24], [segStartX + i * bw, 1.345, wallLz + .03]).material = trim;
         }
       }
 
-      if (!openSides.has('west')) {
-        for (const seg of groupVertical(westEdges)) {
-          const span = seg.maxZ - seg.minZ + 1;
-          const segStartZ = seg.minZ - origin.z;
-          const wallLx = seg.x - origin.x;
-          const bays = Math.max(1, Math.round(span / 2.8));
-          const lw = span / bays;
-          for (let i = 0; i < bays; i++) {
-            const bayCenterZ = segStartZ + (i + 0.5) * lw;
-            this.part(parent, 'room', 'Panel_Left_Core', [.07, 2.57, lw - .06], [wallLx, 1.31, bayCenterZ]);
-            this.part(parent, 'room', 'Panel_Left_Face', [.025, 2.26, lw - .13], [wallLx + .052, 1.36, bayCenterZ]).material = wall;
-            this.part(parent, 'room', 'Skirting_Left', [.055, .18, lw - .12], [wallLx + .067, .14, bayCenterZ]);
-            this.part(parent, 'room', 'Panel_Left_TopRail', [.11, .065, lw], [wallLx, 2.61, bayCenterZ]);
-          }
-          for (let i = 0; i <= bays; i++) {
-            this.part(parent, 'room', 'Pylon_Corner', [.24, 2.69, .21], [wallLx + .03, 1.345, segStartZ + i * lw]).material = trim;
-          }
+      for (const seg of groupVertical(westEdges)) {
+        const span = seg.maxZ - seg.minZ + 1;
+        const segStartZ = seg.minZ - origin.z;
+        const wallLx = seg.x - origin.x;
+        const bays = Math.max(1, Math.round(span / 2.8));
+        const lw = span / bays;
+        for (let i = 0; i < bays; i++) {
+          const bayCenterZ = segStartZ + (i + 0.5) * lw;
+          this.part(parent, 'room', 'Panel_Left_Core', [.07, 2.57, lw - .06], [wallLx, 1.31, bayCenterZ]);
+          this.part(parent, 'room', 'Panel_Left_Face', [.025, 2.26, lw - .13], [wallLx + .052, 1.36, bayCenterZ]).material = wall;
+          this.part(parent, 'room', 'Skirting_Left', [.055, .18, lw - .12], [wallLx + .067, .14, bayCenterZ]);
+          this.part(parent, 'room', 'Panel_Left_TopRail', [.11, .065, lw], [wallLx, 2.61, bayCenterZ]);
+        }
+        for (let i = 0; i <= bays; i++) {
+          this.part(parent, 'room', 'Pylon_Corner', [.24, 2.69, .21], [wallLx + .03, 1.345, segStartZ + i * lw]).material = trim;
         }
       }
 

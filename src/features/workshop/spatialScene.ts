@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { buildWorkshop, type Assets, type SceneBuild } from './sceneGeometry';
-import { roomOrigin, type Workshop, type Room, type RoomSide } from './model';
+import { roomOrigin, findWorkshopSeams, type Workshop, type Room, type RoomSide, type WorkshopSeam } from './model';
 import type { Filament, Printer } from '../../shared/types';
 
 export function workshopBounds(state: Workshop) {
@@ -18,6 +18,18 @@ export function occupiedSides(state: Workshop, room: Room): Set<RoomSide> {
   const sides = new Set<RoomSide>();
   if (room.attachment) sides.add(oppositeSide[room.attachment.side]);
   for (const child of state.rooms) if (child.attachment?.roomId === room.id) sides.add(child.attachment.side);
+  const seams = findWorkshopSeams(state);
+  const ro = roomOrigin(state, room.id);
+  for (const seam of seams) {
+    if (seam.roomA.id !== room.id && seam.roomB.id !== room.id) continue;
+    if (seam.alongX) {
+      if (seam.coord <= ro.z) sides.add('north');
+      else sides.add('south');
+    } else {
+      if (seam.coord <= ro.x) sides.add('west');
+      else sides.add('east');
+    }
+  }
   return sides;
 }
 
@@ -42,9 +54,24 @@ export function buildSpatialWorkshop(
   const partitions = new THREE.Group();
   root.add(partitions);
   const wallMaterial = new THREE.MeshStandardMaterial({ color: '#273142', roughness: 0.84, metalness: 0.05 });
+  const partitionWallMaterial = new THREE.MeshStandardMaterial({
+    color: '#34455a',
+    roughness: 0.35,
+    metalness: 0.12,
+    transparent: true,
+    opacity: 0.42,
+    depthWrite: false,
+  });
   const trimMaterial = new THREE.MeshStandardMaterial({ color: '#7e8795', roughness: 0.45, metalness: 0.25 });
   const skirtingMaterial = new THREE.MeshStandardMaterial({ color: '#1d232e', roughness: 0.82, metalness: 0.05 });
-  const doorLeafMaterial = new THREE.MeshStandardMaterial({ color: '#1e2530', roughness: 0.65, metalness: 0.15 });
+  const doorLeafMaterial = new THREE.MeshStandardMaterial({
+    color: '#222d3d',
+    roughness: 0.4,
+    metalness: 0.15,
+    transparent: true,
+    opacity: 0.58,
+    depthWrite: false,
+  });
   const geometry = new THREE.BoxGeometry(1, 1, 1);
 
   const makeBox = (x: number, y: number, z: number, w: number, h: number, d: number, mat: THREE.Material) => {
@@ -52,83 +79,77 @@ export function buildSpatialWorkshop(
     const mesh = new THREE.Mesh(geometry, mat);
     mesh.position.set(x, y, z);
     mesh.scale.set(w, h, d);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
+    if ((mat as THREE.Material & { transparent?: boolean }).transparent) {
+      mesh.castShadow = false;
+      mesh.receiveShadow = false;
+      mesh.renderOrder = 2;
+    } else {
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+    }
     partitions.add(mesh);
   };
+
+  const seams = findWorkshopSeams(state);
+
+  const coveredRoomPairs = new Set<string>();
+  for (const s of seams) {
+    const pair = s.roomA.id < s.roomB.id ? `${s.roomA.id}:${s.roomB.id}` : `${s.roomB.id}:${s.roomA.id}`;
+    coveredRoomPairs.add(pair);
+  }
 
   for (const room of state.rooms) {
     if (!room.attachment) continue;
     const parent = state.rooms.find((r) => r.id === room.attachment!.roomId);
     if (!parent) continue;
+    const pair = room.id < parent.id ? `${room.id}:${parent.id}` : `${parent.id}:${room.id}`;
+    if (coveredRoomPairs.has(pair)) continue;
 
     const po = roomOrigin(state, parent.id);
     const ro = roomOrigin(state, room.id);
     const side = room.attachment.side;
     const alongX = side === 'north' || side === 'south';
 
-    let seamX = 0;
-    let seamZ = 0;
-    let pMin = 0;
-    let pMax = 0;
-    let cMin = 0;
-    let cMax = 0;
-
+    let seamX = 0, seamZ = 0, pMin = 0, pMax = 0, cMin = 0, cMax = 0;
     if (alongX) {
       seamZ = side === 'north' ? po.z - parent.depth / 2 : po.z + parent.depth / 2;
       pMin = po.x - parent.width / 2;
       pMax = po.x + parent.width / 2;
       cMin = ro.x - room.width / 2;
       cMax = ro.x + room.width / 2;
-
-      if (room.tiles && room.tiles.length > 0) {
-        const cTargetZ = side === 'north' ? Math.round(seamZ - 1) : Math.round(seamZ);
-        const cTiles = room.tiles.filter(t => t[1] === cTargetZ);
-        if (cTiles.length > 0) {
-          cMin = Math.min(...cTiles.map(t => t[0]));
-          cMax = Math.max(...cTiles.map(t => t[0])) + 1;
-        }
-      }
-      if (parent.tiles && parent.tiles.length > 0) {
-        const pTargetZ = side === 'north' ? Math.round(seamZ) : Math.round(seamZ - 1);
-        const pTiles = parent.tiles.filter(t => t[1] === pTargetZ);
-        if (pTiles.length > 0) {
-          pMin = Math.min(...pTiles.map(t => t[0]));
-          pMax = Math.max(...pTiles.map(t => t[0])) + 1;
-        }
-      }
     } else {
       seamX = side === 'west' ? po.x - parent.width / 2 : po.x + parent.width / 2;
       pMin = po.z - parent.depth / 2;
       pMax = po.z + parent.depth / 2;
       cMin = ro.z - room.depth / 2;
       cMax = ro.z + room.depth / 2;
-
-      if (room.tiles && room.tiles.length > 0) {
-        const cTargetX = side === 'west' ? Math.round(seamX - 1) : Math.round(seamX);
-        const cTiles = room.tiles.filter(t => t[0] === cTargetX);
-        if (cTiles.length > 0) {
-          cMin = Math.min(...cTiles.map(t => t[1]));
-          cMax = Math.max(...cTiles.map(t => t[1])) + 1;
-        }
-      }
-      if (parent.tiles && parent.tiles.length > 0) {
-        const pTargetX = side === 'west' ? Math.round(seamX) : Math.round(seamX - 1);
-        const pTiles = parent.tiles.filter(t => t[0] === pTargetX);
-        if (pTiles.length > 0) {
-          pMin = Math.min(...pTiles.map(t => t[1]));
-          pMax = Math.max(...pTiles.map(t => t[1])) + 1;
-        }
-      }
     }
 
     const overlapMin = Math.max(pMin, cMin);
     const overlapMax = Math.min(pMax, cMax);
-
     const overlapLength = overlapMax - overlapMin;
+    if (overlapLength >= 0.6) {
+      seams.push({
+        roomA: room,
+        roomB: parent,
+        alongX,
+        coord: alongX ? seamZ : seamX,
+        min: overlapMin,
+        max: overlapMax,
+        length: overlapLength,
+      });
+      coveredRoomPairs.add(pair);
+    }
+  }
+
+  for (const seam of seams) {
+    const overlapLength = seam.length;
     if (overlapLength < 0.6) continue;
 
-    const seamCenter = (overlapMin + overlapMax) / 2;
+    const seamCenter = (seam.min + seam.max) / 2;
+    const alongX = seam.alongX;
+    const seamX = alongX ? seamCenter : seam.coord;
+    const seamZ = alongX ? seam.coord : seamCenter;
 
     // Minimum corner margin to ensure doorway never touches corner pylons
     const minMargin = 0.45;
@@ -154,7 +175,7 @@ export function buildSpatialWorkshop(
       trimMaterial
     );
 
-    // 2. Wings on both sides of the doorway: full-height wall panels and skirting
+    // 2. Wings on both sides of the doorway: semi-transparent wall panels and skirting
     for (const sign of [-1, 1]) {
       const wingLen = wing;
       if (wingLen > 0.02) {
@@ -162,7 +183,7 @@ export function buildSpatialWorkshop(
         const wx = alongX ? seamCenter + offset : seamX;
         const wz = alongX ? seamZ : seamCenter + offset;
 
-        // Wall panel: height 2.57m at y = 1.31m
+        // Semi-transparent wall panel: height 2.57m at y = 1.31m
         makeBox(
           wx,
           1.31,
@@ -170,7 +191,7 @@ export function buildSpatialWorkshop(
           alongX ? wingLen : 0.08,
           2.57,
           alongX ? 0.08 : wingLen,
-          wallMaterial
+          partitionWallMaterial
         );
 
         // Skirting board at base: height 0.18m at y = 0.14m
@@ -187,7 +208,6 @@ export function buildSpatialWorkshop(
     }
 
     // 3. Doorway Opening:
-    // Left and right frame jambs: height 2.18m at y = 1.09m
     const postThick = 0.08;
     const postDepth = 0.14;
     makeBox(
@@ -228,7 +248,7 @@ export function buildSpatialWorkshop(
       alongX ? doorway : 0.08,
       0.36,
       alongX ? 0.08 : doorway,
-      wallMaterial
+      partitionWallMaterial
     );
 
     // Floor threshold strip (height 0.015m at y = 0.015m)
@@ -243,20 +263,19 @@ export function buildSpatialWorkshop(
     );
 
     // 4. Door leaf:
-    // If the wall wing is wide enough (>= 0.6m), place a door leaf swung open flat against the wall
     const leafWidth = doorway - 0.08;
     if (wing >= leafWidth * 0.7) {
       const hinge = new THREE.Group();
       hinge.position.set(doorStartX, 0.03, doorStartZ);
-      // Swung open nearly flat against the wall: 82 degrees
       const swingAngle = Math.PI * 0.45;
       hinge.rotation.y = alongX ? swingAngle : -Math.PI / 2 + swingAngle;
 
       const leaf = new THREE.Mesh(geometry, doorLeafMaterial);
       leaf.scale.set(leafWidth, 2.10, 0.04);
       leaf.position.set(leafWidth / 2, 1.05, 0);
-      leaf.castShadow = true;
-      leaf.receiveShadow = true;
+      leaf.castShadow = false;
+      leaf.receiveShadow = false;
+      leaf.renderOrder = 2;
       hinge.add(leaf);
 
       const handle = new THREE.Mesh(geometry, trimMaterial);
@@ -266,9 +285,38 @@ export function buildSpatialWorkshop(
 
       partitions.add(hinge);
     }
+  }
 
-    // 5. Residual exterior walls:
-    // If either parent or child room extends beyond the overlap interval, build exterior walls
+  // 5. Residual exterior walls:
+  // If either parent or child room extends beyond the overlap interval, build exterior walls
+  for (const room of state.rooms) {
+    if (!room.attachment || (room.tiles && room.tiles.length > 0)) continue;
+    const parent = state.rooms.find((r) => r.id === room.attachment!.roomId);
+    if (!parent || (parent.tiles && parent.tiles.length > 0)) continue;
+
+    const po = roomOrigin(state, parent.id);
+    const ro = roomOrigin(state, room.id);
+    const side = room.attachment.side;
+    const alongX = side === 'north' || side === 'south';
+
+    let seamX = 0, seamZ = 0, pMin = 0, pMax = 0, cMin = 0, cMax = 0;
+    if (alongX) {
+      seamZ = side === 'north' ? po.z - parent.depth / 2 : po.z + parent.depth / 2;
+      pMin = po.x - parent.width / 2;
+      pMax = po.x + parent.width / 2;
+      cMin = ro.x - room.width / 2;
+      cMax = ro.x + room.width / 2;
+    } else {
+      seamX = side === 'west' ? po.x - parent.width / 2 : po.x + parent.width / 2;
+      pMin = po.z - parent.depth / 2;
+      pMax = po.z + parent.depth / 2;
+      cMin = ro.z - room.depth / 2;
+      cMax = ro.z + room.depth / 2;
+    }
+
+    const overlapMin = Math.max(pMin, cMin);
+    const overlapMax = Math.min(pMax, cMax);
+
     for (const roomItem of [parent, room]) {
       const isParent = roomItem.id === parent.id;
       const roomEdge: RoomSide = isParent ? side : oppositeSide[side];
@@ -300,6 +348,7 @@ export function buildSpatialWorkshop(
       }
     }
   }
+
   const positions:SceneBuild['positions']=new Map(),placements:SceneBuild['placements']=new Map();
   const sync=()=>{
     for(const {build,origin} of pieces){
@@ -319,6 +368,6 @@ export function buildSpatialWorkshop(
     setPlacementHover(id,progress){owner(id)?.build.setPlacementHover(id,progress);},
     setPrinterHover(id,progress){owner(id)?.build.setPrinterHover(id,progress);},
     setFurnitureBorderColor(id,color){owner(id)?.build.setFurnitureBorderColor(id,color);},
-    dispose(){pieces.forEach(p=>p.build.dispose());geometry.dispose();wallMaterial.dispose();trimMaterial.dispose();skirtingMaterial.dispose();doorLeafMaterial.dispose();root.removeFromParent();},
+    dispose(){pieces.forEach(p=>p.build.dispose());geometry.dispose();wallMaterial.dispose();partitionWallMaterial.dispose();trimMaterial.dispose();skirtingMaterial.dispose();doorLeafMaterial.dispose();root.removeFromParent();},
   };
 }

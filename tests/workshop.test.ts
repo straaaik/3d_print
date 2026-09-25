@@ -4,10 +4,11 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as THREE from 'three';
 import type { WorkshopCanvasProps } from '../src/features/workshop/WorkshopCanvas';
-import { createWorkshop, createFurniture, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, snap, updateFurniture, placeEntity, removeRoom, slotWorld, parseWorkshop, pickWorkshopTarget, syncWorkshopPlacements, calculatePanDelta, calculateOrbitAngles, fillEnclosedTiles, existingRoomsTileBounds, roomOrigin, type Room, createWorkshopHistory, pushWorkshopHistory, undoWorkshopHistory, redoWorkshopHistory, WORKSHOP_HISTORY_MAX_DEPTH, calculateGroupMove, resolvePlacementPosition } from '../src/features/workshop/model';
+import { createWorkshop, createFurniture, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, snap, updateFurniture, placeEntity, removeRoom, slotWorld, parseWorkshop, pickWorkshopTarget, syncWorkshopPlacements, calculatePanDelta, calculateOrbitAngles, fillEnclosedTiles, existingRoomsTileBounds, roomOrigin, type Room, createWorkshopHistory, pushWorkshopHistory, undoWorkshopHistory, redoWorkshopHistory, WORKSHOP_HISTORY_MAX_DEPTH, calculateGroupMove, resolvePlacementPosition, findWorkshopSeams, getRoomOccupiedTiles } from '../src/features/workshop/model';
 import { instanceTemplate, disposeInstances } from '../src/features/workshop/instances';
 import { getWorkshopShadowConfig, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget, handleWorkshopKeyDown, type WorkshopHotkeyContext, WorkshopScene } from '../src/features/workshop/WorkshopScene';
 import { getOrCreateHudButtonTexture, hudButtonTextureCache, clearHudButtonTextureCache, SpatialAuthoring } from '../src/features/workshop/spatialAuthoring';
+import { occupiedSides } from '../src/features/workshop/spatialScene';
 
 test('default layout has non-overlapping furnishings including movable decor and no invented inventory', () => {
   const state = createWorkshop();
@@ -1747,6 +1748,130 @@ test('multi-selection hotkeys: Arrow keys move all selected furniture in group a
   assert.ok(collisionReason);
   assert.ok(setBorders.some((b) => b.color === '#e87668'));
 });
+
+test('findWorkshopSeams identifies all shared boundaries between multiple adjacent rooms and custom tile rooms', () => {
+  const state = createWorkshop();
+  const roomA = state.rooms[0]; // width 14, depth 10, origin (0, 0), covers [-7, 7], [-5, 5]
+
+  // Room B attached east: width 6, depth 10 -> origin (10, 0), covers [7, 13], [-5, 5]
+  const roomB: Room = {
+    id: 'room-east',
+    name: 'Восточная комната',
+    width: 6,
+    depth: 10,
+    attachment: { roomId: roomA.id, side: 'east' },
+  };
+
+  // Room C created from tiles on south: x in [2, 6], z in [5, 9] (5x5) -> touches roomA on north (Z = 5)
+  const tilesC: Array<[number, number]> = [];
+  for (let x = 2; x <= 6; x++) {
+    for (let z = 5; z <= 9; z++) {
+      tilesC.push([x, z]);
+    }
+  }
+  const roomC: Room = {
+    id: 'room-south',
+    name: 'Южная комната',
+    width: 5,
+    depth: 5,
+    tiles: tilesC,
+    attachment: { roomId: roomA.id, side: 'south' },
+  };
+
+  // Room D created from tiles touching BOTH roomC on west (X = 7) and roomB on north (Z = 5)
+  const tilesD: Array<[number, number]> = [];
+  for (let x = 7; x <= 10; x++) {
+    for (let z = 5; z <= 9; z++) {
+      tilesD.push([x, z]);
+    }
+  }
+  const roomD: Room = {
+    id: 'room-corner',
+    name: 'Угловая комната',
+    width: 4,
+    depth: 5,
+    tiles: tilesD,
+    attachment: { roomId: roomB.id, side: 'south' },
+  };
+
+  const multiState = { ...state, rooms: [roomA, roomB, roomC, roomD] };
+  const seams = findWorkshopSeams(multiState);
+
+  // 1. Seam between Room A and Room B (vertical at X = 7, spanning Z from -5 to 5)
+  const seamAB = seams.find(s => (s.roomA.id === roomA.id && s.roomB.id === roomB.id) || (s.roomA.id === roomB.id && s.roomB.id === roomA.id));
+  assert.ok(seamAB, 'Seam between Room A and Room B must be detected');
+  assert.equal(seamAB.alongX, false);
+  assert.equal(seamAB.coord, 7);
+  assert.equal(seamAB.length, 10);
+
+  // 2. Seam between Room A and Room C (horizontal at Z = 5, spanning X from 2 to 7)
+  const seamAC = seams.find(s => (s.roomA.id === roomA.id && s.roomB.id === roomC.id) || (s.roomA.id === roomC.id && s.roomB.id === roomA.id));
+  assert.ok(seamAC, 'Seam between Room A and Room C must be detected');
+  assert.equal(seamAC.alongX, true);
+  assert.equal(seamAC.coord, 5);
+  assert.equal(seamAC.min, 2);
+  assert.equal(seamAC.max, 7);
+  assert.equal(seamAC.length, 5);
+
+  // 3. Seam between Room B and Room D (horizontal at Z = 5, spanning X from 7 to 11)
+  const seamBD = seams.find(s => (s.roomA.id === roomB.id && s.roomB.id === roomD.id) || (s.roomA.id === roomD.id && s.roomB.id === roomB.id));
+  assert.ok(seamBD, 'Seam between Room B and Room D must be detected');
+  assert.equal(seamBD.alongX, true);
+  assert.equal(seamBD.coord, 5);
+  assert.equal(seamBD.length, 4);
+
+  // 4. Seam between Room C and Room D (vertical at X = 7, spanning Z from 5 to 10)
+  // This is the multi-room intersection that previously was missed because Room D only attached to Room B!
+  const seamCD = seams.find(s => (s.roomA.id === roomC.id && s.roomB.id === roomD.id) || (s.roomA.id === roomD.id && s.roomB.id === roomC.id));
+  assert.ok(seamCD, 'Seam between Room C and Room D must be detected even without direct attachment');
+  assert.equal(seamCD.alongX, false);
+  assert.equal(seamCD.coord, 7);
+  assert.equal(seamCD.min, 5);
+  assert.equal(seamCD.max, 10);
+  assert.equal(seamCD.length, 5);
+
+  // 5. Verify occupiedSides reports all occupied directions
+  const sidesC = occupiedSides(multiState, roomC);
+  assert.ok(sidesC.has('north'), 'Room C must detect northern seam to Room A');
+  assert.ok(sidesC.has('east'), 'Room C must detect eastern seam to Room D');
+});
+
+test('findWorkshopSeams accurately computes doorway geometry and semi-transparent partition dimensions', () => {
+  const state = createWorkshop();
+  const roomA = state.rooms[0]; // width 14, depth 10
+  const roomB: Room = {
+    id: 'room-east',
+    name: 'Восточная комната',
+    width: 6,
+    depth: 10,
+    attachment: { roomId: roomA.id, side: 'east' },
+  };
+  const twoRoomState = { ...state, rooms: [roomA, roomB] };
+  const seams = findWorkshopSeams(twoRoomState);
+  assert.equal(seams.length, 1);
+  const seam = seams[0];
+  assert.equal(seam.alongX, false);
+  assert.equal(seam.coord, 7);
+  assert.equal(seam.length, 10);
+
+  // Verify doorway math on seam
+  const overlapLength = seam.length;
+  const minMargin = 0.45;
+  const available = overlapLength - 2 * minMargin;
+  const doorway = available >= 0.8 ? Math.min(1.2, available) : Math.max(0.7, overlapLength - 0.2);
+  const wing = (overlapLength - doorway) / 2;
+
+  assert.equal(doorway, 1.2, 'Standard doorway width should be 1.2m');
+  assert.equal(wing, 4.4, 'Wings on both sides should be 4.4m each');
+  assert.ok(wing >= (doorway - 0.08) * 0.7, 'Wing must be wide enough to accommodate open door leaf');
+
+  // Verify occupiedSides integration
+  const sidesA = occupiedSides(twoRoomState, roomA);
+  assert.ok(sidesA.has('east'), 'Room A must report east side occupied');
+  const sidesB = occupiedSides(twoRoomState, roomB);
+  assert.ok(sidesB.has('west'), 'Room B must report west side occupied');
+});
+
 
 
 
