@@ -1,26 +1,27 @@
 /**
  * ============================================================================
- * ЕДИНАЯ СИСТЕМА ФОРМУЛ И РАСЧЕТОВ 3D-ПЕЧАТИ (3D LABS FORMULAS ENGINE)
+ * ЕДИНАЯ СИСТЕМА ФОРМУЛ И РАСЧЕТОВ 3D-ПЕЧАТИ (KUMO CRM FORMULAS ENGINE)
  * ============================================================================
- * 
+ *
  * Данный модуль содержит все математические, производственные, складские
  * и финансовые формулы приложения. Все формулы централизованы, протестированы
  * и снабжены подробными комментариями и JSDoc.
  */
 
-import { 
-  Filament, 
-  Printer, 
-  Settings, 
-  SavedCalculation, 
-  CustomCostItem, 
-  AssemblyPrintedPart, 
-  AssemblyHardwareItem, 
-  Order, 
-  OrderStatus 
+import type {
+  Filament,
+  Printer,
+  Settings,
+  SavedCalculation,
+  CustomCostItem,
+  AssemblyPrintedPart,
+  AssemblyHardwareItem,
+  AssemblyElectronicsItem,
+  Order
 } from '../types';
 import { timeToHours } from './format';
-import { detectMaterialDifficulty, MaterialDifficultyConfig } from './materialDifficulty';
+import { detectMaterialDifficulty } from './materialDifficulty';
+import type { MaterialDifficultyConfig } from './materialDifficulty';
 
 // ============================================================================
 // 1. БАЗОВЫЕ УТИЛИТЫ ОКРУГЛЕНИЯ
@@ -30,8 +31,9 @@ import { detectMaterialDifficulty, MaterialDifficultyConfig } from './materialDi
  * Округление числа до 2 знаков после запятой (копейки)
  */
 export function round2(num: number | undefined | null): number {
-  if (num === undefined || num === null || isNaN(num)) return 0;
-  return Math.round(num * 100) / 100;
+  if (num === undefined || num === null || !Number.isFinite(num)) return 0;
+  const sign = Math.sign(num) || 1;
+  return sign * Math.round((Math.abs(num) + Number.EPSILON) * 100) / 100;
 }
 
 /**
@@ -78,8 +80,8 @@ export function calcMaterialCost(weightG: number, filament: Filament | null): nu
  * Формула: Время_печати(ч) * (Мощность_принтера(Вт) / 1000) * Тариф_за_кВтч(₽)
  */
 export function calcElectricityCost(
-  printHours: number, 
-  printer: Printer | null, 
+  printHours: number,
+  printer: Printer | null,
   electricityRate: number = 4.89
 ): number {
   if (!printer || !printer.power_w) return 0;
@@ -101,8 +103,8 @@ export function calcDepreciationCost(printHours: number, printer: Printer | null
  * Формула: Материал + Электроэнергия + Амортизация
  */
 export function calcPrintDirectCost(
-  materialCost: number, 
-  electricityCost: number, 
+  materialCost: number,
+  electricityCost: number,
   depreciationCost: number
 ): number {
   return round2(materialCost + electricityCost + depreciationCost);
@@ -131,8 +133,8 @@ export function calcLaborCost(laborMinutes: number, laborRatePerHour: number = 6
  * Формула: (Базовая_цена * (Процент_срочности / 100)) + Фиксированная_сумма_срочности
  */
 export function calcUrgencyFee(
-  basePrice: number, 
-  urgencyPercent: number = 0, 
+  basePrice: number,
+  urgencyPercent: number = 0,
   urgencyAmount: number = 0
 ): number {
   const percentFee = urgencyPercent > 0 ? (basePrice * urgencyPercent) / 100 : 0;
@@ -144,8 +146,8 @@ export function calcUrgencyFee(
  * Формула: (Цена_со_срочностью * (Процент_скидки / 100)) + Фиксированная_скидка
  */
 export function calcDiscountTotal(
-  price: number, 
-  discountPercent: number = 0, 
+  price: number,
+  discountPercent: number = 0,
   discountAmount: number = 0
 ): number {
   const percentDisc = discountPercent > 0 ? (price * discountPercent) / 100 : 0;
@@ -173,7 +175,7 @@ export interface DetailedCalculationResult {
   defectCost: number;
   customCostsTotal: number;
   customCostsBreakdown: CustomCostBreakdownItem[];
-  
+
   printDirectCost: number;
   printBaseSubtotal: number;
   printFinalPrice: number;
@@ -202,13 +204,14 @@ export interface DetailedCalculationResult {
 
   totalBaseCost: number;
   totalFinalPrice: number;
-  
+
   baseCostPerUnit: number;
   finalPricePerUnit: number;
 
   profitTotal: number;
   profitPerUnit: number;
   marginPercent: number;
+  markupPercent: number;
 }
 
 export interface CalculateCostParams {
@@ -236,46 +239,46 @@ export interface CalculateCostParams {
  * Главная функция расчета себестоимости и розничной цены единичного 3D-изделия или тиража
  */
 export function calculatePrintCost(params: CalculateCostParams): DetailedCalculationResult {
-  const { 
-    weightG, 
-    hours, 
-    minutes, 
-    laborMinutes, 
+  const {
+    weightG,
+    hours,
+    minutes,
+    laborMinutes,
     laborRatePerHour,
     isOwnerLabor: customIsOwnerLabor,
     isLaborPerUnit: customIsLaborPerUnit,
     markupPercent: customMarkupPercent,
     defectPercent: customDefectPercent,
     customCostItems = [],
-    quantity, 
+    quantity,
     discountPercent = 0,
     discountAmount = 0,
     urgencyPercent = 0,
     urgencyAmount = 0,
-    filament, 
-    printer, 
-    settings 
+    filament,
+    printer,
+    settings
   } = params;
-  
+
   const safeQuantity = Math.max(1, quantity || 1);
   const printTimeHours = timeToHours(hours, minutes);
   const electricityRate = settings?.electricity_rate ?? 4.89;
-  
+
   // 1. Материал
   const materialCost = calcMaterialCost(weightG, filament);
-  
+
   // 2. Электричество
   const electricityCost = calcElectricityCost(printTimeHours, printer, electricityRate);
-  
+
   // 3. Амортизация принтера
   const depreciationCost = calcDepreciationCost(printTimeHours, printer);
 
   // 4. Прямые производственные затраты печати (нить + ток + амортизация)
   const printDirectCost = calcPrintDirectCost(materialCost, electricityCost, depreciationCost);
-  
+
   // 5. Брак
-  const effectiveDefectPercent = customDefectPercent !== undefined 
-    ? customDefectPercent 
+  const effectiveDefectPercent = customDefectPercent !== undefined
+    ? customDefectPercent
     : (settings?.default_defect_percent ?? 5);
   const defectCost = calcDefectCost(printDirectCost, effectiveDefectPercent);
 
@@ -284,24 +287,24 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
 
   // 6. Определение сложности материала и наценки
   const materialDifficulty = filament ? detectMaterialDifficulty(filament.name) : null;
-  
+
   let effectiveMarkupPercent: number;
   if (customMarkupPercent !== undefined) {
     effectiveMarkupPercent = customMarkupPercent;
   } else if (settings?.enable_material_difficulty !== false && materialDifficulty) {
     const configuredMarkup = settings?.material_multipliers?.[materialDifficulty.id];
-    effectiveMarkupPercent = configuredMarkup !== undefined 
-      ? configuredMarkup 
+    effectiveMarkupPercent = configuredMarkup !== undefined
+      ? configuredMarkup
       : materialDifficulty.defaultMarkup;
   } else {
     effectiveMarkupPercent = settings?.default_markup_percent ?? 100;
   }
 
   const printFinalPrice = round2(printBaseSubtotal * (1 + effectiveMarkupPercent / 100));
-  
+
   // 7. Труд мастера
-  const isLaborPerUnit = customIsLaborPerUnit !== undefined 
-    ? customIsLaborPerUnit 
+  const isLaborPerUnit = customIsLaborPerUnit !== undefined
+    ? customIsLaborPerUnit
     : (settings?.is_labor_per_unit_default ?? false);
   const effectiveLaborMinutes = isLaborPerUnit ? laborMinutes * safeQuantity : laborMinutes;
 
@@ -309,11 +312,11 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
   const laborCost = calcLaborCost(effectiveLaborMinutes, effectiveLaborRate);
 
   // Личный труд владельца (идет в чистую прибыль, а не в расходную себестоимость)
-  const isOwnerLabor = customIsOwnerLabor !== undefined 
-    ? customIsOwnerLabor 
+  const isOwnerLabor = customIsOwnerLabor !== undefined
+    ? customIsOwnerLabor
     : (settings?.is_owner_labor_default ?? false);
   const laborInCost = isOwnerLabor ? 0 : laborCost;
-  
+
   // 8. Дополнительные расходы и услуги
   const customCostsBreakdown: CustomCostBreakdownItem[] = [];
   let customCostsTotal = 0;
@@ -323,7 +326,7 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
     const itemAmount = item.amount || 0;
     const isPerUnit = Boolean(item.isPerUnit);
     const itemTotal = isPerUnit ? itemAmount * safeQuantity : itemAmount;
-    
+
     customCostsBreakdown.push({
       id: item.id,
       name: item.name,
@@ -337,7 +340,7 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
 
   // 9. Итого себестоимость (Печать + Брак + Наемный труд + Доп. расходы)
   const totalBaseCost = round2(printBaseSubtotal + laborInCost + customCostsTotal);
-  
+
   // 10. Базовая розничная цена (до срочности и скидок)
   const baseRetailPrice = round2(printFinalPrice + laborCost + customCostsTotal);
 
@@ -358,18 +361,19 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
   const minOrderPrice = settings?.min_order_price ?? 0;
   const isMinOrderApplied = minOrderPrice > 0 && calculatedFinalPrice < minOrderPrice && (baseRetailPrice > 0 || calculatedFinalPrice > 0);
   const totalFinalPrice = isMinOrderApplied ? minOrderPrice : calculatedFinalPrice;
-  
+
   // 14. Поштучные показатели
   const baseCostPerUnit = round2(totalBaseCost / safeQuantity);
   const finalPricePerUnit = round2(totalFinalPrice / safeQuantity);
 
   // 15. Прибыль и маржинальность
   const profitTotal = round2(totalFinalPrice - totalBaseCost);
-  const profitPerUnit = safeQuantity > 1 
-    ? round2(finalPricePerUnit - baseCostPerUnit) 
+  const profitPerUnit = safeQuantity > 1
+    ? round2(finalPricePerUnit - baseCostPerUnit)
     : profitTotal;
   const marginPercent = calcMarginPercent(profitTotal, totalFinalPrice);
-  
+  const markupPercent = calcMarkupPercent(profitTotal, totalBaseCost);
+
   return {
     materialCost,
     electricityCost,
@@ -406,6 +410,7 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
     profitTotal,
     profitPerUnit,
     marginPercent,
+    markupPercent,
   };
 }
 
@@ -423,23 +428,28 @@ export interface AssemblyTotalsResult {
   hwBaseCost: number;
   hwFinalPrice: number;
   totalHwPieces: number;
+  electronicsBaseCost: number;
+  electronicsFinalPrice: number;
+  totalElectronicsPieces: number;
   laborCost: number;
   effectiveLaborBaseCost: number;
   grandBaseCost: number;
   grandFinalPrice: number;
   profit: number;
   marginPercent: number;
+  markupPercent: number;
 }
 
 /**
- * Расчет сводных параметров и стоимости сборного изделия (3D детали + крепеж + сборка)
+ * Расчет сводных параметров и стоимости сборного изделия (3D детали + крепеж + электроника + сборка)
  */
 export function calculateAssemblyTotals(
   parts: AssemblyPrintedPart[],
   hardware: AssemblyHardwareItem[],
   assemblyLaborMinutes: number | string,
   laborRate: number = 600,
-  isOwnerLabor: boolean = false
+  isOwnerLabor: boolean = false,
+  electronics: AssemblyElectronicsItem[] = []
 ): AssemblyTotalsResult {
   let totalWeight = 0;
   let totalMinutesTotal = 0;
@@ -465,8 +475,19 @@ export function calculateAssemblyTotals(
     hwFinalPrice += (h.price_per_unit || 0) * qty;
   });
 
-  const laborMins = typeof assemblyLaborMinutes === 'string' 
-    ? parseInt(assemblyLaborMinutes, 10) || 0 
+  let electronicsBaseCost = 0;
+  let electronicsFinalPrice = 0;
+  let totalElectronicsPieces = 0;
+
+  electronics.forEach((el) => {
+    const qty = el.quantity || 1;
+    totalElectronicsPieces += qty;
+    electronicsBaseCost += (el.cost_per_unit || 0) * qty;
+    electronicsFinalPrice += (el.price_per_unit || 0) * qty;
+  });
+
+  const laborMins = typeof assemblyLaborMinutes === 'string'
+    ? parseInt(assemblyLaborMinutes, 10) || 0
     : assemblyLaborMinutes || 0;
   const laborCost = calcLaborCost(laborMins, laborRate);
 
@@ -477,10 +498,11 @@ export function calculateAssemblyTotals(
   // а целиком переходит в чистую прибыль
   const effectiveLaborBaseCost = isOwnerLabor ? 0 : laborCost;
 
-  const grandBaseCost = round2(partsBaseCost + hwBaseCost + effectiveLaborBaseCost);
-  const grandFinalPrice = round2(partsFinalPrice + hwFinalPrice + laborCost);
+  const grandBaseCost = round2(partsBaseCost + hwBaseCost + electronicsBaseCost + effectiveLaborBaseCost);
+  const grandFinalPrice = round2(partsFinalPrice + hwFinalPrice + electronicsFinalPrice + laborCost);
   const profit = round2(grandFinalPrice - grandBaseCost);
   const marginPercent = calcMarginPercent(profit, grandFinalPrice);
+  const markupPercent = calcMarkupPercent(profit, grandBaseCost);
 
   return {
     totalWeight: round2(totalWeight),
@@ -491,12 +513,16 @@ export function calculateAssemblyTotals(
     hwBaseCost: round2(hwBaseCost),
     hwFinalPrice: round2(hwFinalPrice),
     totalHwPieces,
+    electronicsBaseCost: round2(electronicsBaseCost),
+    electronicsFinalPrice: round2(electronicsFinalPrice),
+    totalElectronicsPieces,
     laborCost,
     effectiveLaborBaseCost,
     grandBaseCost,
     grandFinalPrice,
     profit,
     marginPercent,
+    markupPercent,
   };
 }
 
@@ -700,7 +726,7 @@ export function calculateOrdersSummaryKPI(orders: Order[]): OrdersSummaryKPIResu
  * Формула: (Мощность(Вт) / 1000 * Тариф_кВтч) + (Цена_принтера / Ресурс_ч)
  */
 export function calculatePrinterHourlyCost(
-  printer: Printer | null, 
+  printer: Printer | null,
   electricityRate: number = 4.89
 ): number {
   if (!printer) return 0;

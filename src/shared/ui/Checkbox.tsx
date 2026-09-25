@@ -1,9 +1,9 @@
 'use client';
 
 import React, { forwardRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
-export type CheckboxVariant = 'primary' | 'amber' | 'orange' | 'emerald' | 'purple' | 'rose';
+export type CheckboxVariant = 'primary' | 'neutral' | 'cyan' | 'amber' | 'orange' | 'emerald' | 'purple' | 'rose';
 export type CheckboxSize = 'sm' | 'md' | 'lg';
 
 export interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'onChange'> {
@@ -32,6 +32,14 @@ const variantStyles: Record<
     iconColor: string;
   }
 > = {
+  neutral: {
+    checked: 'bg-white/10 border-white/30 text-white',
+    indeterminate: 'bg-white/5 border-white/20 text-neutral-300',
+    focus: 'focus-visible:ring-white/30',
+    glow: '',
+    hoverBorder: 'hover:border-white/30',
+    iconColor: 'currentColor',
+  },
   primary: {
     checked: 'bg-gradient-to-br from-[#0CB4E0] to-[#0996ba] border-[#29d0fb] text-[#0d0e12]',
     indeterminate: 'bg-[#0CB4E0]/20 border-[#0CB4E0] text-[#0CB4E0]',
@@ -39,6 +47,14 @@ const variantStyles: Record<
     glow: 'shadow-[0_0_12px_rgba(12,180,224,0.35)]',
     hoverBorder: 'hover:border-[#0CB4E0]/60',
     iconColor: '#0d0e12',
+  },
+  cyan: {
+    checked: 'bg-gradient-to-br from-cyan-400 to-cyan-600 border-cyan-300 text-black',
+    indeterminate: 'bg-cyan-500/20 border-cyan-400 text-cyan-300',
+    focus: 'focus-visible:ring-cyan-400/40',
+    glow: 'shadow-[0_0_12px_rgba(34,211,238,0.4)]',
+    hoverBorder: 'hover:border-cyan-400/60',
+    iconColor: '#000000',
   },
   amber: {
     checked: 'bg-gradient-to-br from-amber-400 to-amber-500 border-amber-300 text-black',
@@ -99,7 +115,7 @@ const sizeStyles: Record<
     strokeWidth: 3.2,
     text: 'text-xs',
     gap: 'gap-2',
-    radius: 'rounded-[5px]',
+    radius: 'rounded',
   },
   md: {
     box: 'w-5 h-5 min-w-[20px] min-h-[20px]',
@@ -107,7 +123,7 @@ const sizeStyles: Record<
     strokeWidth: 3,
     text: 'text-sm',
     gap: 'gap-2.5',
-    radius: 'rounded-[6px]',
+    radius: 'rounded',
   },
   lg: {
     box: 'w-6 h-6 min-w-[24px] min-h-[24px]',
@@ -115,7 +131,7 @@ const sizeStyles: Record<
     strokeWidth: 2.8,
     text: 'text-base',
     gap: 'gap-3',
-    radius: 'rounded-[7px]',
+    radius: 'rounded',
   },
 };
 
@@ -195,7 +211,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
               duration: 0.2,
               ease: 'easeOut',
             }}
-            className={`relative flex items-center justify-center border transition-all duration-200 shrink-0 ${
+            className={`relative flex items-center justify-center border shrink-0 ${
               currentSize.box
             } ${currentSize.radius} ${
               isActive
@@ -272,7 +288,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
             <div className="flex flex-col select-none pt-0.5">
               {label && (
                 <span
-                  className={`font-medium ${currentSize.text} leading-none transition-colors ${
+                  className={`font-medium ${currentSize.text} leading-none ${
                     disabled
                       ? 'text-gray-500'
                       : isChecked

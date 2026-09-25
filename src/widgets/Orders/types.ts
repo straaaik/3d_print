@@ -1,21 +1,22 @@
 import React from 'react';
-import { 
-  Order, 
-  OrderStatus, 
-  ContactItem, 
-  ContactType, 
-  CostItem, 
-  SavedCalculation 
+import {
+  Order,
+  OrderStatus,
+  ContactItem,
+  ContactType,
+  CostItem,
+  PaymentItem,
+  SavedCalculation
 } from '../../shared/types';
-import { 
-  AlertCircle, 
-  Cpu, 
-  Clock, 
-  Printer, 
-  Palette, 
-  Brush, 
-  Package, 
-  Truck, 
+import {
+  AlertCircle,
+  Cpu,
+  Clock,
+  Printer,
+  Palette,
+  Brush,
+  Package,
+  Truck,
   CheckCircle2,
   ShoppingBag,
   Send,
@@ -26,13 +27,19 @@ import {
   Globe,
   Phone,
   MessageCircle,
-  Mail
+  Mail,
+  ThumbsUp,
+  MoreHorizontal,
+  Compass,
+  User
 } from 'lucide-react';
 
-export type { Order, OrderStatus, ContactItem, ContactType, CostItem, SavedCalculation };
+export type { Order, OrderStatus, ContactItem, ContactType, CostItem, PaymentItem, SavedCalculation };
 
-export type SortField = keyof Order | 'net_profit';
+export type SortField = keyof Order | 'net_profit' | 'debt' | 'payment_status';
 export type SortOrder = 'asc' | 'desc';
+export type OrderTypeFilter = 'all' | 'in_progress' | 'completed' | 'income' | 'expense';
+export type PaymentFilter = 'all' | 'paid' | 'unpaid' | 'partial';
 
 export interface StatusBadgeConfig {
   value: OrderStatus;
@@ -130,6 +137,9 @@ export const ALL_STATUSES: OrderStatus[] = [
   'Готово',
 ];
 
+export const DEFAULT_CLIENT_BADGE_STYLE = 'bg-white/5 text-neutral-300 border-white/10 shadow-sm';
+export const DEFAULT_CLIENT_COLOR = '#a3a3a3';
+
 export interface ClientBadgeConfig {
   value: string;
   label: string;
@@ -143,130 +153,196 @@ export const CLIENT_CONFIG: Record<string, ClientBadgeConfig> = {
     value: 'Авито',
     label: 'Авито',
     icon: ShoppingBag,
-    color: '#f59e0b',
-    badgeStyle: 'bg-amber-500/15 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-950/30',
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
   },
   'Telegram': {
     value: 'Telegram',
     label: 'Telegram',
     icon: Send,
-    color: '#38bdf8',
-    badgeStyle: 'bg-sky-500/15 text-sky-300 border border-sky-500/40 shadow-sm shadow-sky-950/30',
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
   },
-  'YouTube': {
-    value: 'YouTube',
-    label: 'YouTube',
-    icon: Play,
-    color: '#ef4444',
-    badgeStyle: 'bg-red-500/15 text-red-300 border border-red-500/40 shadow-sm shadow-red-950/30',
+  'WhatsApp': {
+    value: 'WhatsApp',
+    label: 'WhatsApp',
+    icon: MessageCircle,
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
   },
-  'TikTok': {
-    value: 'TikTok',
-    label: 'TikTok',
-    icon: Music,
-    color: '#c084fc',
-    badgeStyle: 'bg-purple-500/15 text-purple-300 border border-purple-500/40 shadow-sm shadow-purple-950/30',
-  },
-  'Instagram': {
-    value: 'Instagram',
-    label: 'Instagram',
-    icon: Camera,
-    color: '#f472b6',
-    badgeStyle: 'bg-pink-500/15 text-pink-300 border border-pink-500/40 shadow-sm shadow-pink-950/30',
+  'VK': {
+    value: 'VK',
+    label: 'VK',
+    icon: Share2,
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
   },
   'ВКонтакте': {
     value: 'ВКонтакте',
     label: 'ВКонтакте',
     icon: Share2,
-    color: '#818cf8',
-    badgeStyle: 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/40 shadow-sm shadow-indigo-950/30',
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
+  },
+  'Сайт': {
+    value: 'Сайт',
+    label: 'Сайт',
+    icon: Globe,
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
+  },
+  'Рекомендация': {
+    value: 'Рекомендация',
+    label: 'Рекомендация',
+    icon: ThumbsUp,
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
   },
   'Другое': {
     value: 'Другое',
     label: 'Другое',
-    icon: Globe,
-    color: '#9ca3af',
-    badgeStyle: 'bg-gray-500/15 text-gray-300 border border-gray-500/40 shadow-sm',
+    icon: MoreHorizontal,
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
+  },
+  'YouTube': {
+    value: 'YouTube',
+    label: 'YouTube',
+    icon: Play,
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
+  },
+  'TikTok': {
+    value: 'TikTok',
+    label: 'TikTok',
+    icon: Music,
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
+  },
+  'Instagram': {
+    value: 'Instagram',
+    label: 'Instagram',
+    icon: Camera,
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
+  },
+  'Яндекс': {
+    value: 'Яндекс',
+    label: 'Яндекс',
+    icon: Compass,
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
+  },
+  'Ozon': {
+    value: 'Ozon',
+    label: 'Ozon',
+    icon: Package,
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
+  },
+  'WB': {
+    value: 'WB',
+    label: 'WB',
+    icon: ShoppingBag,
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
+  },
+  'Лично': {
+    value: 'Лично',
+    label: 'Лично',
+    icon: User,
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
   },
   'Телеграмм': {
     value: 'Telegram',
     label: 'Telegram',
     icon: Send,
-    color: '#38bdf8',
-    badgeStyle: 'bg-sky-500/15 text-sky-300 border border-sky-500/40 shadow-sm shadow-sky-950/30',
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
   },
   'Инстаграмм': {
     value: 'Instagram',
     label: 'Instagram',
     icon: Camera,
-    color: '#f472b6',
-    badgeStyle: 'bg-pink-500/15 text-pink-300 border border-pink-500/40 shadow-sm shadow-pink-950/30',
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
   },
   'Ютуб': {
     value: 'YouTube',
     label: 'YouTube',
     icon: Play,
-    color: '#ef4444',
-    badgeStyle: 'bg-red-500/15 text-red-300 border border-red-500/40 shadow-sm shadow-red-950/30',
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
   },
   'Тикток': {
     value: 'TikTok',
     label: 'TikTok',
     icon: Music,
-    color: '#c084fc',
-    badgeStyle: 'bg-purple-500/15 text-purple-300 border border-purple-500/40 shadow-sm shadow-purple-950/30',
+    color: DEFAULT_CLIENT_COLOR,
+    badgeStyle: DEFAULT_CLIENT_BADGE_STYLE,
   },
 };
 
 export const ALL_CLIENTS = ['Авито', 'Telegram', 'YouTube', 'TikTok', 'Instagram', 'ВКонтакте', 'Другое'];
+
+export const ORDER_CHANNELS = [
+  'Авито',
+  'Telegram',
+  'WhatsApp',
+  'VK',
+  'Сайт',
+  'Рекомендация',
+  'Другое',
+] as const;
 
 export const CONTACT_TYPES_CONFIG: Record<ContactType, { label: string; icon: React.ComponentType<{ className?: string }>; placeholder: string; badgeStyle: string }> = {
   phone: {
     label: 'Телефон',
     icon: Phone,
     placeholder: '+7 900 000-00-00',
-    badgeStyle: 'bg-blue-950/80 text-blue-300 border-blue-500/40',
+    badgeStyle: 'bg-neutral-900 text-neutral-300 border-white/20',
   },
   telegram: {
     label: 'Telegram',
     icon: Send,
     placeholder: '@username или t.me/...',
-    badgeStyle: 'bg-sky-950/80 text-sky-300 border-sky-500/40',
+    badgeStyle: 'bg-neutral-900 text-neutral-300 border-white/20',
   },
   whatsapp: {
     label: 'WhatsApp',
     icon: MessageCircle,
     placeholder: '+7 900 000-00-00',
-    badgeStyle: 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40',
+    badgeStyle: 'bg-neutral-900 text-neutral-300 border-white/20',
   },
   avito: {
     label: 'Авито профиль',
     icon: ShoppingBag,
     placeholder: 'Ссылка на профиль Авито',
-    badgeStyle: 'bg-amber-950/80 text-amber-300 border-amber-500/40',
+    badgeStyle: 'bg-neutral-900 text-neutral-300 border-white/20',
   },
   vk: {
-    label: 'ВКонтакте',
+    label: 'VK профиль',
     icon: Share2,
-    placeholder: 'vk.com/id...',
-    badgeStyle: 'bg-indigo-950/80 text-indigo-300 border-indigo-500/40',
+    placeholder: 'Ссылка на страницу или ID',
+    badgeStyle: 'bg-neutral-900 text-neutral-300 border-white/20',
   },
   instagram: {
     label: 'Instagram',
     icon: Camera,
     placeholder: '@username или ссылка',
-    badgeStyle: 'bg-purple-950/80 text-purple-300 border-purple-500/40',
+    badgeStyle: 'bg-neutral-900 text-neutral-300 border-white/20',
   },
   email: {
     label: 'Email',
     icon: Mail,
     placeholder: 'example@mail.ru',
-    badgeStyle: 'bg-teal-950/80 text-teal-300 border-teal-500/40',
+    badgeStyle: 'bg-neutral-900 text-neutral-300 border-white/20',
   },
   other: {
     label: 'Другой контакт / Ссылка',
     icon: Globe,
     placeholder: 'Любой контакт или комментарий',
-    badgeStyle: 'bg-gray-800 text-gray-200 border-gray-700',
+    badgeStyle: 'bg-neutral-900 text-neutral-300 border-white/20',
   },
 };

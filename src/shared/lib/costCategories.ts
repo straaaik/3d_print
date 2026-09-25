@@ -1,15 +1,15 @@
 import React from 'react';
-import { 
-  Printer, 
-  Package, 
-  Wrench, 
-  Palette, 
-  Truck, 
-  AlertTriangle, 
-  Tag, 
-  Cpu, 
-  Sparkles, 
-  Layers, 
+import {
+  Printer,
+  Package,
+  Wrench,
+  Palette,
+  Truck,
+  AlertTriangle,
+  Tag,
+  Cpu,
+  Sparkles,
+  Layers,
   Receipt
 } from 'lucide-react';
 

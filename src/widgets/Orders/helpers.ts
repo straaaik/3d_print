@@ -1,10 +1,10 @@
 import { Order, OrderStatus, ContactType } from './types';
-import { 
-  round2 as roundTo2, 
-  calculateOrderFinancials, 
-  calculateOrdersSummaryKPI, 
-  OrderFinancialsResult, 
-  OrdersSummaryKPIResult 
+import {
+  round2 as roundTo2,
+  calculateOrderFinancials,
+  calculateOrdersSummaryKPI,
+  OrderFinancialsResult,
+  OrdersSummaryKPIResult
 } from '../../shared/lib/formulas';
 
 export { roundTo2, calculateOrderFinancials, calculateOrdersSummaryKPI };
@@ -70,9 +70,10 @@ export function getDeadlineInfo(deadlineStr: string | undefined | null, orderSta
   const daysDiff = Math.round(diffMs / (1000 * 60 * 60 * 24));
 
   if (daysDiff < 0) {
+    const absDays = Math.abs(daysDiff);
     return {
       daysDiff,
-      label: `Просрочен (${formatPluralDays(daysDiff)})`,
+      label: `–${absDays} дн`,
       badgeStyle: 'bg-rose-500/15 text-rose-300 border-rose-500/40 font-bold',
       isOverdue: true,
       isNear: false,
@@ -99,16 +100,16 @@ export function getDeadlineInfo(deadlineStr: string | undefined | null, orderSta
   if (daysDiff <= 3) {
     return {
       daysDiff,
-      label: `Осталось ${formatPluralDays(daysDiff)}`,
-      badgeStyle: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/30',
+      label: `${daysDiff} дн`,
+      badgeStyle: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/30 font-medium',
       isOverdue: false,
       isNear: true,
     };
   }
   return {
     daysDiff,
-    label: `${formatPluralDays(daysDiff)}`,
-    badgeStyle: 'bg-gray-800 text-gray-300 border-gray-700/60',
+    label: `${daysDiff} дн`,
+    badgeStyle: 'bg-neutral-800/80 text-neutral-400 border-neutral-700/60',
     isOverdue: false,
     isNear: false,
   };

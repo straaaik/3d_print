@@ -1,5 +1,6 @@
 import { User, RegistrationKey, UserRole } from '../types';
 import { createClient } from '@/lib/supabase/client';
+/* eslint-disable @typescript-eslint/no-explicit-any -- Supabase schema types are not generated in this project yet. */
 
 // Генератор криптографически стойких ключей вида 3DLAB-XXXX-XXXX-XXXX
 export function generateKeyString(prefix = '3DLAB'): string {
@@ -26,7 +27,7 @@ export function generateKeyString(prefix = '3DLAB'): string {
 
 // Палитра аватарок
 const AVATAR_COLORS = [
-  '#FF6B00', '#00E676', '#0CB4E0', '#8B5CF6', 
+  '#FF6B00', '#00E676', '#0CB4E0', '#8B5CF6',
   '#EC4899', '#F59E0B', '#3B82F6', '#10B981'
 ];
 
@@ -66,10 +67,11 @@ export async function getProfiles(): Promise<User[]> {
 export async function updateProfileRole(userId: string, role: UserRole): Promise<boolean> {
   const supabase = createClient();
   try {
-    const { error } = await (supabase as any)
-      .from('profiles')
-      .update({ role })
-      .eq('id', userId);
+    const { error } = await supabase.rpc('admin_update_profile', {
+      target_user_id: userId,
+      new_role: role,
+      new_is_active: null,
+    });
 
     return !error;
   } catch (err) {
@@ -84,10 +86,11 @@ export async function updateProfileRole(userId: string, role: UserRole): Promise
 export async function toggleProfileStatus(userId: string, currentActiveStatus: boolean): Promise<boolean> {
   const supabase = createClient();
   try {
-    const { error } = await (supabase as any)
-      .from('profiles')
-      .update({ is_active: !currentActiveStatus })
-      .eq('id', userId);
+    const { error } = await supabase.rpc('admin_update_profile', {
+      target_user_id: userId,
+      new_role: null,
+      new_is_active: !currentActiveStatus,
+    });
 
     return !error;
   } catch (err) {
@@ -212,36 +215,13 @@ export async function validateRegistrationKey(
 
   const supabase = createClient();
   try {
-    const { data, error } = await (supabase as any)
-      .from('registration_keys')
-      .select('*')
-      .eq('key', cleanKey)
-      .single();
+    const { data, error } = await supabase.rpc('validate_registration_key', { p_key: cleanKey });
 
     if (error || !data) {
       return { valid: false, error: 'Ключ доступа не найден или введён с ошибкой' };
     }
 
-    if (data.is_used) {
-      return {
-        valid: false,
-        error: `Этот ключ уже был использован (${data.used_by_email || 'другим пользователем'})`,
-        keyObj: data as RegistrationKey,
-      };
-    }
-
-    if (data.expires_at) {
-      const expiry = new Date(data.expires_at);
-      if (expiry < new Date()) {
-        return {
-          valid: false,
-          error: 'Срок действия данного ключа доступа истёк',
-          keyObj: data as RegistrationKey,
-        };
-      }
-    }
-
-    return { valid: true, keyObj: data as RegistrationKey };
+    return { valid: true };
   } catch {
     return { valid: false, error: 'Ошибка проверки ключа' };
   }

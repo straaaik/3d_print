@@ -1,7 +1,10 @@
 'use server';
+/* eslint-disable @typescript-eslint/no-explicit-any -- Supabase schema types are not generated in this project yet. */
 
 import { createClient } from '@/lib/supabase/server';
 import { getRandomAvatarColor } from '@/shared/api/authDb';
+import { persistProfileUpdate, type ProfileUpdateResult } from '@/shared/lib/profileUpdate';
+import { cookies } from 'next/headers';
 
 export interface RegisterActionParams {
   name: string;
@@ -15,6 +18,8 @@ export interface UpdateProfileActionParams {
   email: string;
   avatarColor?: string;
 }
+
+export type UpdateProfileActionResult = ProfileUpdateResult;
 
 /**
  * Регистрация нового пользователя по пригласительному ключу
@@ -45,33 +50,17 @@ export async function registerAction({
   try {
     const supabase = await createClient();
 
-    // 1. Валидация ключа в таблице registration_keys
-    const { data: keyRecord, error: keyError } = await (supabase as any)
-      .from('registration_keys')
-      .select('*')
-      .eq('key', cleanKey)
-      .single();
+    // Публичный RPC раскрывает только факт валидности ключа. Сам ключ
+    // атомарно погашается триггером в транзакции создания auth-пользователя.
+    const { data: isKeyValid, error: keyError } = await supabase
+      .rpc('validate_registration_key', { p_key: cleanKey });
 
-    if (keyError || !keyRecord) {
+    if (keyError || !isKeyValid) {
       return { success: false, error: 'Ключ доступа не найден или введён с ошибкой' };
     }
 
-    if (keyRecord.is_used) {
-      return {
-        success: false,
-        error: `Этот ключ уже был использован (${keyRecord.used_by_email || 'другим пользователем'})`,
-      };
-    }
-
-    if (keyRecord.expires_at) {
-      const expiry = new Date(keyRecord.expires_at);
-      if (expiry < new Date()) {
-        return { success: false, error: 'Срок действия данного ключа доступа истёк' };
-      }
-    }
-
-    // 2. Регистрация в Supabase Auth
-    const roleToGrant = keyRecord.role_to_grant || 'user';
+    // Роль никогда не принимается от клиента: безопасный триггер получает её
+    // из погашаемого регистрационного ключа.
     const avatarColor = getRandomAvatarColor();
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -80,7 +69,6 @@ export async function registerAction({
       options: {
         data: {
           name: cleanName,
-          role: roleToGrant,
           avatar_color: avatarColor,
           registration_key_used: cleanKey,
         },
@@ -88,50 +76,23 @@ export async function registerAction({
     });
 
     if (authError) {
-      return { success: false, error: authError.message };
+      const message = /INVALID_REGISTRATION_KEY/i.test(authError.message)
+        ? 'Ключ уже использован, просрочен или недействителен'
+        : authError.message;
+      return { success: false, error: message };
     }
 
     if (!authData.user) {
       return { success: false, error: 'Не удалось создать пользователя в системе' };
     }
 
-    const userId = authData.user.id;
-
-    // 3. Создаем/обновляем запись профиля в таблице profiles
-    const { error: profileError } = await (supabase as any)
-      .from('profiles')
-      .upsert({
-        id: userId,
-        email: cleanEmail,
-        name: cleanName,
-        role: roleToGrant,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        last_login_at: new Date().toISOString(),
-        registration_key_used: cleanKey,
-        avatar_color: avatarColor,
-      });
-
-    if (profileError) {
-      console.error('Ошибка создания профиля:', profileError);
-      // Не прерываем, если auth создан, но логируем
-    }
-
-    // 4. Погашаем регистрационный ключ
-    await (supabase as any)
-      .from('registration_keys')
-      .update({
-        is_used: true,
-        used_by_email: cleanEmail,
-        used_by_user_id: userId,
-        used_at: new Date().toISOString(),
-      })
-      .eq('id', keyRecord.id);
-
     return { success: true };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Ошибка в registerAction:', err);
-    return { success: false, error: err.message || 'Произошла ошибка при регистрации' };
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Произошла ошибка при регистрации',
+    };
   }
 }
 
@@ -142,7 +103,7 @@ export async function updateProfileAction({
   name,
   email,
   avatarColor,
-}: UpdateProfileActionParams): Promise<{ success: boolean; error?: string }> {
+}: UpdateProfileActionParams): Promise<UpdateProfileActionResult> {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -160,34 +121,37 @@ export async function updateProfileAction({
     if (!cleanEmail || !cleanEmail.includes('@')) {
       return { success: false, error: 'Укажите корректный email' };
     }
-
-    // Если изменился email, обновляем в Supabase Auth
-    if (cleanEmail !== user.email?.toLowerCase()) {
-      const { error: emailError } = await supabase.auth.updateUser({
-        email: cleanEmail,
-      });
-      if (emailError) {
-        return { success: false, error: emailError.message };
-      }
+    if (avatarColor && !/^#[0-9a-f]{6}$/i.test(avatarColor)) {
+      return { success: false, error: 'Укажите корректный цвет аватара' };
     }
 
-    // Обновляем метаданные в profiles
-    const { error: profileError } = await (supabase as any)
-      .from('profiles')
-      .update({
+    return await persistProfileUpdate(
+      {
+        currentEmail: user.email,
         name: cleanName,
         email: cleanEmail,
-        avatar_color: avatarColor,
-      })
-      .eq('id', user.id);
-
-    if (profileError) {
-      return { success: false, error: profileError.message };
-    }
-
-    return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Ошибка обновления профиля' };
+        avatarColor,
+      },
+      {
+        updateEmail: async (updatedEmail) => {
+          const { error } = await supabase.auth.updateUser({ email: updatedEmail });
+          return error?.message;
+        },
+        updateProfile: async (profile) => {
+          const { error } = await (supabase as any)
+            .from('profiles')
+            .update({
+              name: profile.name,
+              email: profile.email,
+              avatar_color: profile.avatarColor,
+            })
+            .eq('id', user.id);
+          return error?.message;
+        },
+      }
+    );
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Ошибка обновления профиля' };
   }
 }
 
@@ -234,8 +198,8 @@ export async function changePasswordAction(
     }
 
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Ошибка при изменении пароля' };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Ошибка при изменении пароля' };
   }
 }
 
@@ -243,6 +207,35 @@ export async function changePasswordAction(
  * Выход из системы
  */
 export async function logoutAction(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.delete('3d_dev_session');
   const supabase = await createClient();
   await supabase.auth.signOut();
+}
+
+/** Returns the authoritative development session state from the server cookie. */
+export async function getDevSessionAction(): Promise<{ active: boolean }> {
+  if (process.env.NODE_ENV !== 'development') return { active: false };
+
+  const cookieStore = await cookies();
+  return { active: cookieStore.get('3d_dev_session')?.value === 'true' };
+}
+
+/**
+ * Быстрый вход для режима разработки (Dev Login)
+ */
+export async function devLoginAction(): Promise<{ success: boolean; error?: string }> {
+  if (process.env.NODE_ENV !== 'development') {
+    return { success: false, error: 'Dev-вход отключён вне локальной разработки' };
+  }
+
+  const cookieStore = await cookies();
+  cookieStore.set('3d_dev_session', 'true', {
+    path: '/',
+    httpOnly: true,
+    secure: false,
+    sameSite: 'strict',
+    maxAge: 60 * 60 * 8,
+  });
+  return { success: true };
 }

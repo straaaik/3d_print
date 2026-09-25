@@ -1,0 +1,94 @@
+{
+  "loginStatus": 200,
+  "pageErrors": [],
+  "hasCsp": true,
+  "hasUnsafeEval": false,
+  "xFrameOptions": "DENY",
+  "hsts": "max-age=63072000; includeSubDomains; preload",
+  "scripts": [
+    {
+      "hasNonce": true,
+      "inline": false
+    },
+    {
+      "hasNonce": true,
+      "inline": false
+    },
+    {
+      "hasNonce": true,
+      "inline": false
+    },
+    {
+      "hasNonce": true,
+      "inline": false
+    },
+    {
+      "hasNonce": true,
+      "inline": false
+    },
+    {
+      "hasNonce": true,
+      "inline": false
+    },
+    {
+      "hasNonce": true,
+      "inline": false
+    },
+    {
+      "hasNonce": true,
+      "inline": false
+    },
+    {
+      "hasNonce": true,
+      "inline": false
+    },
+    {
+      "hasNonce": true,
+      "inline": false
+    },
+    {
+      "hasNonce": true,
+      "inline": false
+    },
+    {
+      "hasNonce": true,
+      "inline": false
+    },
+    {
+      "hasNonce": true,
+      "inline": false
+    },
+    {
+      "hasNonce": true,
+      "inline": false
+    },
+    {
+      "hasNonce": true,
+      "inline": false
+    },
+    {
+      "hasNonce": true,
+      "inline": false
+    },
+    {
+      "hasNonce": true,
+      "inline": false
+    },
+    {
+      "hasNonce": true,
+      "inline": true
+    },
+    {
+      "hasNonce": true,
+      "inline": true
+    }
+  ],
+  "guestProtected": {
+    "status": 307,
+    "location": "/login"
+  },
+  "devCookieProtected": {
+    "status": 307,
+    "location": "/login"
+  }
+}

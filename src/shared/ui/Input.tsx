@@ -1,5 +1,5 @@
 import React, { InputHTMLAttributes } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 
 interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'label'> {
   label?: React.ReactNode;
@@ -13,12 +13,12 @@ interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'label'
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, hint, requiredStar, isShaking, isModified, className = '', onFocus, ...props }, ref) => {
     return (
-      <div className="w-full flex flex-col gap-1.5">
+      <div className="w-full flex flex-col gap-1.5 font-mono text-xs">
         {label && (
-          <span className="text-gray-300 text-xs sm:text-sm font-medium flex items-center select-none">
+          <span className="text-neutral-400 text-xs font-mono uppercase tracking-wider flex items-center select-none">
             {label}
             {(requiredStar || props.required) && (
-              <span className="text-red-400 ml-1 font-bold">*</span>
+              <span className="text-rose-400 ml-1 font-bold">*</span>
             )}
           </span>
         )}
@@ -36,16 +36,16 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                 e.target.select();
               }
             }}
-            className={`w-full h-9 min-h-[36px] bg-[#14161d] border border-[#242930] hover:border-secondary focus:border-primary focus:outline-none rounded-xl px-3 text-white text-xs sm:text-sm font-sans transition-colors placeholder-neutral-accent disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-[#101217] disabled:border-[#1e222b] disabled:hover:border-[#1e222b] ${
+            className={`w-full h-9 min-h-[36px] bg-neutral-900 border border-white/15 hover:border-white/25 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 focus:outline-none rounded-xl px-3 text-white text-xs font-mono placeholder-neutral-600 disabled:opacity-40 disabled:cursor-not-allowed ${
               isModified ? '!border-amber-500/70 shadow-[0_0_10px_rgba(245,158,11,0.15)] bg-amber-500/[0.03]' : ''
             } ${
-              error || isShaking ? 'border-red-500/80 focus:border-red-500 shadow-sm shadow-red-500/20' : ''
+              error || isShaking ? '!border-rose-500/80 focus:!border-rose-500 shadow-sm shadow-rose-500/20' : ''
             } ${className}`}
             {...props}
           />
         </motion.div>
-        {error && <span className="text-red-500 text-xs mt-0.5">{error}</span>}
-        {hint && !error && <span className="text-neutral-accent text-xs mt-0.5 leading-relaxed">{hint}</span>}
+        {error && <span className="text-rose-400 text-[11px] font-mono mt-0.5">{error}</span>}
+        {hint && !error && <span className="text-neutral-500 text-[10px] font-mono mt-0.5 leading-relaxed">{hint}</span>}
       </div>
     );
   }

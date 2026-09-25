@@ -1,11 +1,11 @@
-import { Filament, Printer, Settings, SavedCalculation, CustomCostItem } from '../../../shared/types';
-import { 
-  calculatePrintCost, 
+import { Filament, Printer, Settings, SavedCalculation } from '../../../shared/types';
+import {
+  calculatePrintCost,
   calculateAssemblyTotals,
-  CalculateCostParams, 
-  DetailedCalculationResult, 
+  CalculateCostParams,
+  DetailedCalculationResult,
   CustomCostBreakdownItem,
-  round2 
+  round2
 } from '../../../shared/lib/formulas';
 
 // Реэкспорт типов и функций для обратной совместимости
@@ -77,7 +77,7 @@ export function recalculateAllProducts(
   // 2. Затем пересчитываем составные сборки на основе обновленных деталей
   const fullyUpdatedList: SavedCalculation[] = updatedList.map((item) => {
     if (item.type !== 'assembly') return item;
-    
+
     // Проверяем: либо сама сборка в targetIds, либо хотя бы одна входящая деталь обновилась
     const isAssemblyTarget = isTarget(item.id);
     const hasUpdatedChildPart = (item.assembly_parts || []).some((part) => part.product_id && isTarget(part.product_id));

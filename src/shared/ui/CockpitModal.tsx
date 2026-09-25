@@ -1,0 +1,209 @@
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'motion/react';
+
+export interface CockpitModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: React.ReactNode;
+  subtitle?: React.ReactNode;
+  stamp?: string;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' | '5xl';
+}
+
+const maxWidthClasses = {
+  sm: 'max-w-sm',
+  md: 'max-w-md',
+  lg: 'max-w-lg',
+  xl: 'max-w-xl',
+  '2xl': 'max-w-2xl',
+  '3xl': 'max-w-3xl',
+  '4xl': 'max-w-4xl',
+  '5xl': 'max-w-5xl',
+};
+
+export function CockpitModal({
+  isOpen,
+  onClose,
+  title,
+  subtitle,
+  stamp = 'ОКНО',
+  children,
+  footer,
+  maxWidth = 'lg',
+}: CockpitModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const [currentTimeStr, setCurrentTimeStr] = useState('');
+
+  // Stable ref for onClose to avoid re-triggering focus-trap effect
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+  const handleClose = useCallback(() => onCloseRef.current(), []);
+
+  // Системное время для правой части шапки (как в GoalSettingsModal)
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTimeStr(
+        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} MSK`
+      );
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 10000);
+    return () => clearInterval(interval);
+  }, []);
+  // Блокировка прокрутки фона при открытой модалке
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const dialog = dialogRef.current;
+    const focusableSelector = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab' || !dialog) return;
+      const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(focusableSelector))
+        .filter((element) => element.getClientRects().length > 0);
+      if (focusable.length === 0) {
+        e.preventDefault();
+        dialog.focus();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === dialog)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown, true);
+    window.requestAnimationFrame(() => {
+      const firstFocusable = dialog?.querySelector<HTMLElement>(focusableSelector);
+      (firstFocusable ?? dialog)?.focus();
+    });
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown, true);
+      previousFocus?.focus();
+    };
+  }, [isOpen]);
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const sizeClass = maxWidthClasses[maxWidth] || maxWidthClasses.lg;
+
+  const modalContent = (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-5 lg:p-6 overflow-y-auto select-none">
+          {/* Стеклянный темный бэкдроп на весь экран с глубоким размытием */}
+          <motion.div
+            aria-hidden="true"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
+            onClick={handleClose}
+            className="fixed inset-0 bg-black/85 backdrop-blur-sm"
+          />
+
+          {/* Главное окно в стиле Cockpit Console с эффектом кинематографичного подъема */}
+          <motion.div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={title ? titleId : undefined}
+            aria-label={title ? undefined : stamp}
+            data-cockpit-modal="true"
+            tabIndex={-1}
+            initial={{ opacity: 0, scale: 0.94, y: 24 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: 16 }}
+            transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+            className={`cockpit-form-modal relative w-full ${sizeClass} my-auto rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl overflow-hidden z-10 flex flex-col max-h-[92vh] font-mono`}
+          >
+            {/* 1. Верхняя панель (Cockpit Topbar: Red LED + Title + Live time) */}
+            <div className="flex items-center justify-between border-b border-white/10 px-5 py-2.5 bg-neutral-900/60 shrink-0 gap-3">
+              {/* Левая часть: красный кружок закрытия + заголовок */}
+              <div className="flex items-center gap-4 min-w-0">
+                <motion.button
+                  type="button"
+                  onClick={handleClose}
+                  aria-label="Закрыть окно"
+                  initial={false}
+                  whileHover={{ backgroundColor: '#f87171' }}
+                  transition={{ duration: 0.18 }}
+                  className="w-3 h-3 rounded-full bg-[#36363c] cursor-pointer border-none outline-none shrink-0 focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900"
+                />
+
+                <div className="flex items-center gap-2 font-mono text-xs text-neutral-300 min-w-0">
+                  <span id={titleId} className="text-neutral-300 font-normal truncate">
+                    {title || stamp}
+                  </span>
+                  {subtitle && (
+                    <>
+                      <span className="hidden sm:inline text-[#52525b] shrink-0">·</span>
+                      <span className="text-[#71717a] hidden sm:inline truncate">
+                        {subtitle}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Правая часть: системное время */}
+              <div className="hidden sm:flex items-center gap-3 shrink-0">
+                <div className="font-mono text-xs text-[#71717a] tabular-nums">
+                  {currentTimeStr}
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Прокручиваемый рабочий контент */}
+            <div className="p-5 sm:p-6 bg-[#18181c] overflow-y-auto flex-1 custom-scrollbar text-xs text-neutral-200 font-mono">
+              {children}
+            </div>
+
+            {/* 4. Нижний футер (если передан) */}
+            {footer && (
+              <div className="border-t border-white/10 px-5 py-3 bg-neutral-900/60 flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-neutral-500 shrink-0">
+                {footer}
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+
+  if (!mounted || typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(modalContent, document.body);
+}
+

@@ -1,25 +1,22 @@
 'use client';
 
-import React, { useState } from 'react';
-import { 
-  Calendar, 
-  ChevronDown, 
-  ChevronLeft, 
-  ChevronRight, 
-  Check, 
-  Clock, 
-  Filter, 
-  X,
-  Layers,
-  Sparkles
+import React, { useMemo, useState } from 'react';
+import {
+  Calendar,
+  ChevronDown,
+  Check,
+  X
 } from 'lucide-react';
-import { 
-  PeriodPreset, 
-  DateRange, 
-  MONTH_NAMES_SHORT, 
-  formatMonthKeyLabel 
+import {
+  PeriodPreset,
+  DateRange,
+  getOrderMonthKey
 } from '../helpers/statsCalculator';
 import { DatePicker } from '../../../shared/ui/DatePicker';
+import { Tooltip } from '../../../shared/ui/Tooltip';
+import { MonthSelector } from '../../../shared/ui/MonthSelector';
+import { CockpitButton } from '../../../shared/ui/CockpitButton';
+import type { Order } from '../../../shared/types';
 
 interface PeriodFilterBarProps {
   selectedPreset: PeriodPreset;
@@ -29,8 +26,8 @@ interface PeriodFilterBarProps {
   availableMonthKeys: string[];
   customRange: DateRange;
   onChangeCustomRange: (range: DateRange) => void;
-  actualRange: DateRange;
-  ordersCount: number;
+  orders?: Order[];
+  rightSlot?: React.ReactNode;
 }
 
 const SHORTCUT_PRESETS: Array<{ id: PeriodPreset; label: string }> = [
@@ -38,39 +35,6 @@ const SHORTCUT_PRESETS: Array<{ id: PeriodPreset; label: string }> = [
   { id: '7d', label: '7 дней' },
   { id: '30d', label: '30 дней' },
 ];
-
-function formatRangeLabel(range: DateRange, preset: PeriodPreset, selectedMonthKey: string): string {
-  if (preset === 'all') return 'Все заказы за всю историю';
-  if (preset === 'month' && selectedMonthKey) {
-    return formatMonthKeyLabel(selectedMonthKey);
-  }
-  if (!range.startDate && !range.endDate) return 'За всё время';
-
-  const start = range.startDate;
-  const end = range.endDate;
-
-  if (start && end) {
-    if (
-      start.getDate() === end.getDate() &&
-      start.getMonth() === end.getMonth() &&
-      start.getFullYear() === end.getFullYear()
-    ) {
-      return `${start.getDate()} ${MONTH_NAMES_SHORT[start.getMonth()]} ${start.getFullYear()}`;
-    }
-
-    return `${start.getDate()} ${MONTH_NAMES_SHORT[start.getMonth()]} ${start.getFullYear()} — ${end.getDate()} ${MONTH_NAMES_SHORT[end.getMonth()]} ${end.getFullYear()}`;
-  }
-
-  if (start) {
-    return `С ${start.getDate()} ${MONTH_NAMES_SHORT[start.getMonth()]} ${start.getFullYear()}`;
-  }
-
-  if (end) {
-    return `По ${end.getDate()} ${MONTH_NAMES_SHORT[end.getMonth()]} ${end.getFullYear()}`;
-  }
-
-  return 'За всё время';
-}
 
 function formatDateToInput(d: Date | null): string {
   if (!d) return '';
@@ -101,38 +65,30 @@ export function PeriodFilterBar({
   availableMonthKeys,
   customRange,
   onChangeCustomRange,
-  actualRange,
-  ordersCount,
+  orders,
+  rightSlot,
 }: PeriodFilterBarProps) {
   const [isCustomOpen, setIsCustomOpen] = useState(selectedPreset === 'custom');
 
-  const handlePrevMonth = () => {
-    if (availableMonthKeys.length === 0) return;
-    const currentIndex = availableMonthKeys.indexOf(selectedMonthKey);
-    if (currentIndex === -1 || currentIndex === availableMonthKeys.length - 1) {
-      // Переходим к первому или следующему
-      onSelectMonthKey(availableMonthKeys[0]);
-    } else {
-      onSelectMonthKey(availableMonthKeys[currentIndex + 1]);
-    }
-  };
+  const monthOrdersCountMap = useMemo(() => {
+    if (!orders || orders.length === 0) return undefined;
+    const map = new Map<string, number>();
+    orders.forEach((o) => {
+      const key = getOrderMonthKey(o);
+      if (key) {
+        map.set(key, (map.get(key) || 0) + 1);
+      }
+    });
+    return map;
+  }, [orders]);
 
-  const handleNextMonth = () => {
-    if (availableMonthKeys.length === 0) return;
-    const currentIndex = availableMonthKeys.indexOf(selectedMonthKey);
-    if (currentIndex <= 0) {
-      onSelectMonthKey(availableMonthKeys[availableMonthKeys.length - 1]);
-    } else {
-      onSelectMonthKey(availableMonthKeys[currentIndex - 1]);
-    }
-  };
-
-  const handleMonthClick = (mKey: string) => {
+  const handleMonthSelect = (mKey: string) => {
     setIsCustomOpen(false);
     if (mKey === 'all') {
       onSelectPreset('all');
     } else {
       onSelectMonthKey(mKey);
+      onSelectPreset('month');
     }
   };
 
@@ -161,141 +117,84 @@ export function PeriodFilterBar({
   };
 
   return (
-    <div className="bg-[#16181d] border border-[#242930] rounded-2xl p-3 sm:p-4 shadow-lg flex flex-col gap-3">
-      {/* 1-Я СТРОКА: Месяцы с быстрым переключением и кнопками навигации */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+    <div className="bg-white/[0.03] border border-white/10 rounded-xl p-2.5 sm:p-3 shadow-sm flex flex-col gap-2.5 font-mono text-xs select-none">
+      {/* Строка элементов управления: выбор месяца, пресеты, даты и правый слот (режим) */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          {/* Навигатор со стрелками */}
-          <div className="flex items-center gap-1 bg-[#101217] border border-[#242930] p-1 rounded-xl shadow-inner">
+          {/* Капсула выбора месяца из заказов с зафиксированными стрелками */}
+          <MonthSelector
+            selectedMonthKey={selectedPreset === 'month' ? selectedMonthKey : ''}
+            onSelectMonth={handleMonthSelect}
+            availableMonthKeys={availableMonthKeys}
+            monthCounts={monthOrdersCountMap}
+            totalOrdersCount={orders?.length}
+            showAllOption={false}
+            isActive={selectedPreset === 'month'}
+            className="w-[185px] h-10"
+          />
+
+          {/* Сегментированная группа фильтра периода */}
+          <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-neutral-950/80 p-1 shadow-inner">
             <button
               type="button"
-              onClick={handlePrevMonth}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#242930] transition-colors cursor-pointer"
-              title="Предыдущий месяц"
+              onClick={() => {
+                setIsCustomOpen(false);
+                onSelectPreset('all');
+              }}
+              className={`h-8 px-2.5 rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer flex items-center gap-1.5 select-none ${
+                selectedPreset === 'all'
+                  ? 'bg-neutral-800 text-white font-bold shadow-sm'
+                  : 'text-neutral-400 hover:text-white hover:bg-white/5'
+              }`}
             >
-              <ChevronLeft className="w-4 h-4" />
+              {selectedPreset === 'all' && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
+              <span>Вся история</span>
             </button>
 
-            <div className="flex items-center gap-2 px-2.5 py-1 bg-[#16181d] border border-emerald-500/30 rounded-lg text-xs sm:text-sm font-bold text-white shadow-sm">
-              <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="whitespace-nowrap font-mono">
-                {selectedPreset === 'all' 
-                  ? 'Все месяцы' 
-                  : selectedPreset === 'month' 
-                  ? formatMonthKeyLabel(selectedMonthKey) 
-                  : selectedPreset === 'today'
-                  ? 'Сегодня'
-                  : selectedPreset === '7d'
-                  ? '7 дней'
-                  : selectedPreset === '30d'
-                  ? '30 дней'
-                  : 'Период'}
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleNextMonth}
-              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-[#242930] transition-colors cursor-pointer"
-              title="Следующий месяц"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Вкладка «Все время» */}
-          <button
-            type="button"
-            onClick={() => handleMonthClick('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-              selectedPreset === 'all'
-                ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-md shadow-emerald-500/25 border border-emerald-400/40'
-                : 'bg-[#101217] text-gray-400 hover:text-white hover:bg-[#1f232b] border border-[#242930]'
-            }`}
-          >
-            {selectedPreset === 'all' && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
-            <span>Вся история</span>
-          </button>
-
-          {/* Список динамических кнопок месяцев, где есть заказы */}
-          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 max-w-full lg:max-w-xl scrollbar-none">
-            {availableMonthKeys.map((mKey) => {
-              const isSelected = selectedPreset === 'month' && selectedMonthKey === mKey;
+            {SHORTCUT_PRESETS.map((p) => {
+              const isActive = selectedPreset === p.id;
               return (
                 <button
-                  key={mKey}
+                  key={p.id}
                   type="button"
-                  onClick={() => handleMonthClick(mKey)}
-                  className={`px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-                    isSelected
-                      ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-md shadow-emerald-500/25 border border-emerald-400/40'
-                      : 'bg-[#101217] text-gray-300 hover:text-white hover:bg-[#1f232b] border border-[#242930]'
+                  onClick={() => handleShortcutClick(p.id)}
+                  className={`h-8 px-2.5 rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer select-none ${
+                    isActive
+                      ? 'bg-neutral-800 text-white font-bold shadow-sm'
+                      : 'text-neutral-400 hover:text-white hover:bg-white/5'
                   }`}
                 >
-                  {isSelected && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
-                  <span>{formatMonthKeyLabel(mKey)}</span>
+                  {p.label}
                 </button>
               );
             })}
+
+            <button
+              type="button"
+              onClick={handleCustomToggle}
+              className={`h-8 px-2.5 rounded-lg text-xs font-mono font-medium transition-colors cursor-pointer flex items-center gap-1 select-none ${
+                selectedPreset === 'custom' || isCustomOpen
+                  ? 'bg-neutral-800 text-white font-bold shadow-sm'
+                  : 'text-neutral-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5 text-neutral-400" />
+              <span>Даты</span>
+              <ChevronDown className={`w-3 h-3 transition-transform ${isCustomOpen ? 'rotate-180' : ''}`} />
+            </button>
           </div>
         </div>
 
-        {/* Быстрые шорткаты и Календарь */}
-        <div className="flex items-center gap-1.5 flex-wrap self-start lg:self-center">
-          {SHORTCUT_PRESETS.map((p) => {
-            const isActive = selectedPreset === p.id;
-            return (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => handleShortcutClick(p.id)}
-                className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
-                  isActive
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50'
-                    : 'bg-[#101217] text-gray-400 hover:text-gray-200 border border-[#242930]'
-                }`}
-              >
-                {p.label}
-              </button>
-            );
-          })}
-
-          <button
-            type="button"
-            onClick={handleCustomToggle}
-            className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
-              selectedPreset === 'custom'
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50'
-                : 'bg-[#101217] text-gray-400 hover:text-gray-200 border border-[#242930]'
-            }`}
-          >
-            <Calendar className="w-3.5 h-3.5" />
-            <span>Даты</span>
-            <ChevronDown className={`w-3 h-3 transition-transform ${isCustomOpen ? 'rotate-180' : ''}`} />
-          </button>
-        </div>
+        {rightSlot ? (
+          <div className="shrink-0 flex items-center justify-start xl:justify-end">
+            {rightSlot}
+          </div>
+        ) : null}
       </div>
 
-      {/* 2-Я СТРОКА: Информационная плашка активного интервала */}
-      <div className="flex items-center justify-between gap-2 text-xs border-t border-[#242930]/60 pt-2.5">
-        <div className="flex items-center gap-2">
-          <Clock className="w-3.5 h-3.5 text-emerald-400" />
-          <span className="text-gray-400">Активный диапазон:</span>
-          <span className="font-mono text-emerald-300 font-semibold">
-            {formatRangeLabel(actualRange, selectedPreset, selectedMonthKey)}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono font-semibold">
-            {ordersCount} {ordersCount === 1 ? 'заказ' : ordersCount < 5 ? 'заказа' : 'заказов'}
-          </span>
-        </div>
-      </div>
-
-      {/* Выпадающая панель выбора произвольных дат (если включен режим custom) */}
+      {/* Выпадающая панель кастомных дат */}
       {(isCustomOpen || selectedPreset === 'custom') && (
-        <div className="pt-3 border-t border-[#242930]/80 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 items-end animate-in fade-in">
+        <div className="pt-3 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
           <div>
             <DatePicker
               label="Дата начала"
@@ -303,7 +202,6 @@ export function PeriodFilterBar({
               onChange={handleStartDateChange}
               placeholder="Начало периода"
               format="DD.MM.YYYY"
-              buttonClassName="bg-[#101217]"
             />
           </div>
 
@@ -314,37 +212,34 @@ export function PeriodFilterBar({
               onChange={handleEndDateChange}
               placeholder="Конец периода"
               format="DD.MM.YYYY"
-              buttonClassName="bg-[#101217]"
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <CockpitButton
               onClick={() => {
                 const now = new Date();
                 onChangeCustomRange({
                   startDate: new Date(now.getFullYear(), now.getMonth(), 1),
                   endDate: now,
                 });
+                onSelectPreset('custom');
               }}
-              className="flex-1 h-9 px-3 rounded-xl bg-[#101217] hover:bg-[#20242d] border border-[#242930] text-gray-300 hover:text-white text-xs font-medium transition-colors flex items-center justify-center cursor-pointer"
+              className="flex-1 justify-center"
             >
               С 1 числа месяца
-            </button>
-            <button
-              type="button"
+            </CockpitButton>
+            <CockpitButton
+              icon={X}
               onClick={() => {
                 onChangeCustomRange({ startDate: null, endDate: null });
                 onSelectPreset('all');
                 setIsCustomOpen(false);
               }}
-              className="h-9 px-3 rounded-xl bg-[#101217] hover:bg-rose-500/20 text-gray-400 hover:text-rose-400 border border-[#242930] hover:border-rose-500/30 text-xs font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer"
-              title="Сбросить даты"
+              title="Сбросить выбранный диапазон"
             >
-              <X className="w-3.5 h-3.5" />
-              <span>Сброс</span>
-            </button>
+              Сброс
+            </CockpitButton>
           </div>
         </div>
       )}

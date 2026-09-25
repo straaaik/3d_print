@@ -1,0 +1,132 @@
+[
+  {
+    "name": "printer-a1",
+    "triangles": 13932,
+    "bytes": 2026844,
+    "size_z_up": [
+      0.5419999957084656,
+      0.517999991774559,
+      0.7262869458645582
+    ],
+    "materials": 6,
+    "meshes": 6,
+    "reference": 1
+  },
+  {
+    "name": "printer-p1",
+    "triangles": 15310,
+    "bytes": 2061072,
+    "size_z_up": [
+      0.48000001907348633,
+      0.5014999955892563,
+      0.6284999819472432
+    ],
+    "materials": 8,
+    "meshes": 8,
+    "reference": 2
+  },
+  {
+    "name": "filament-spool",
+    "triangles": 27136,
+    "bytes": 1629252,
+    "size_z_up": [
+      0.09200000017881393,
+      0.20999999344348907,
+      0.20999999344348907
+    ],
+    "materials": 3,
+    "meshes": 3,
+    "reference": 3
+  },
+  {
+    "name": "filament-rack",
+    "triangles": 13512,
+    "bytes": 2609448,
+    "size_z_up": [
+      1.412000060081482,
+      0.4619999825954437,
+      1.4500000476837158
+    ],
+    "materials": 6,
+    "meshes": 150,
+    "reference": 4
+  },
+  {
+    "name": "workbench",
+    "triangles": 17546,
+    "bytes": 2479024,
+    "size_z_up": [
+      1.600000023841858,
+      0.75,
+      1.1089999675750732
+    ],
+    "materials": 8,
+    "meshes": 117,
+    "reference": 5
+  },
+  {
+    "name": "printer-rack",
+    "triangles": 9760,
+    "bytes": 2466276,
+    "size_z_up": [
+      2.2120001316070557,
+      0.7619999647140503,
+      1.2000000476837158
+    ],
+    "materials": 6,
+    "meshes": 104,
+    "reference": 6
+  },
+  {
+    "name": "packing-boxes",
+    "triangles": 14716,
+    "bytes": 2143956,
+    "size_z_up": [
+      0.8233499825000763,
+      0.6733499765396118,
+      0.6474000215530396
+    ],
+    "materials": 5,
+    "meshes": 5,
+    "reference": 7
+  },
+  {
+    "name": "plant",
+    "triangles": 6850,
+    "bytes": 1162140,
+    "size_z_up": [
+      0.6729594469070435,
+      0.3339802920818329,
+      1.1973501653410494
+    ],
+    "materials": 5,
+    "meshes": 5,
+    "reference": 8
+  },
+  {
+    "name": "tool-cabinet",
+    "triangles": 29908,
+    "bytes": 2828468,
+    "size_z_up": [
+      0.8860000371932983,
+      0.5569999814033508,
+      1.3509999252855778
+    ],
+    "materials": 6,
+    "meshes": 6,
+    "reference": 9
+  },
+  {
+    "name": "room-module",
+    "triangles": 9204,
+    "bytes": 1354316,
+    "size_z_up": [
+      2.0,
+      2.0,
+      1.7000000476837158
+    ],
+    "materials": 5,
+    "meshes": 75,
+    "reference": 10
+  }
+]

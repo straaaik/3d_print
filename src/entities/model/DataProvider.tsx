@@ -1,8 +1,14 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { Filament, Printer, Settings, SavedCalculation, CustomCostItem, ProductCollection } from '../../shared/types';
+import React, { createContext, useCallback, useContext, useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { Filament, Printer, Settings, SavedCalculation, CustomCostItem, ProductCollection, Order } from '../../shared/types';
 import * as api from '../../shared/api/db';
+import { parseDataBackup, type ParsedDataBackup } from '../../shared/lib/dataBackup';
+import { useToast } from './ToastProvider';
+import { useAuth } from './AuthProvider';
+import { loadInitialData, createInitialDataLoadScope, type InitialLoadSnapshot } from './loadInitialData';
+
+import { usePersistentState } from '../../shared/lib/usePersistentState';
 
 interface DataContextType {
   filaments: Filament[];
@@ -10,9 +16,14 @@ interface DataContextType {
   settings: Settings | null;
   savedCalculations: SavedCalculation[];
   collections: ProductCollection[];
+  orders: Order[];
+  setOrders: React.Dispatch<React.SetStateAction<Order[]>>;
+  monthlyGoals: api.MonthlyGoalsConfig;
+  setMonthlyGoals: React.Dispatch<React.SetStateAction<api.MonthlyGoalsConfig>>;
   isLoading: boolean;
+  initialLoad: InitialLoadSnapshot;
   isOnline: boolean;
-  
+
   // Блокировка переходов при несохраненных настройках
   isSettingsDirty: boolean;
   setIsSettingsDirty: (dirty: boolean) => void;
@@ -54,20 +65,20 @@ interface DataContextType {
   calcCustomCostItems: CustomCostItem[];
   setCalcCustomCostItems: React.Dispatch<React.SetStateAction<CustomCostItem[]>>;
   resetCalculator: () => void;
-  
+
   // Filaments actions
   addFilament: (filament: Omit<Filament, 'id'>) => Promise<Filament>;
   updateFilament: (filament: Filament) => Promise<Filament>;
   deleteFilament: (id: string) => Promise<void>;
-  
+
   // Printers actions
   addPrinter: (printer: Omit<Printer, 'id'>) => Promise<Printer>;
   updatePrinter: (printer: Printer) => Promise<Printer>;
   deletePrinter: (id: string) => Promise<void>;
-  
+
   // Settings actions
   updateSettings: (settings: Settings) => Promise<Settings>;
-  
+
   // Saved Calculations actions
   addSavedCalculation: (calc: Omit<SavedCalculation, 'id' | 'created_at'>) => Promise<SavedCalculation>;
   updateSavedCalculation: (calc: SavedCalculation) => Promise<SavedCalculation>;
@@ -81,97 +92,168 @@ interface DataContextType {
   updateCollection: (collection: ProductCollection) => Promise<ProductCollection>;
   deleteCollection: (id: string, deleteContainedProducts?: boolean) => Promise<void>;
   setCollections: React.Dispatch<React.SetStateAction<ProductCollection[]>>;
-  
+
   // Supabase connection
   refreshConnection: () => Promise<boolean>;
 
   // Data management & Random Seed
   seedRandomData: () => Promise<void>;
   clearAllData: () => Promise<void>;
+  restoreBackup: (snapshot: unknown) => Promise<void>;
   refreshAllData: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
+  const { showSuccess, showWarning } = useToast();
+  const { currentUser, isLoading: isAuthLoading } = useAuth();
   const [filaments, setFilaments] = useState<Filament[]>([]);
   const [printers, setPrinters] = useState<Printer[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [savedCalculations, setSavedCalculations] = useState<SavedCalculation[]>([]);
   const [collections, setCollections] = useState<ProductCollection[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [monthlyGoals, setMonthlyGoals] = useState<api.MonthlyGoalsConfig>(api.DEFAULT_MONTHLY_GOALS_CONFIG);
   const [isLoading, setIsLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState<InitialLoadSnapshot>({ revision: 0, completed: [], status: 'loading' });
+  const [initialLoadUserId, setInitialLoadUserId] = useState<string | null>(null);
+  const loadScope = useRef(createInitialDataLoadScope());
+  const activeUserId = useRef<string | null>(null);
+  const userId = currentUser?.id ?? null;
+
+  // Invalidate before passive effects or pending request callbacks can publish for an old session.
+  useLayoutEffect(() => {
+    const scope = loadScope.current;
+    activeUserId.current = isAuthLoading ? null : userId;
+    scope.invalidate();
+    return () => {
+      activeUserId.current = null;
+      scope.invalidate();
+    };
+  }, [userId, isAuthLoading]);
   const [isOnline, setIsOnline] = useState(false);
   const [isSettingsDirty, setIsSettingsDirty] = useState(false);
   const settingsSaveRef = useRef<(() => Promise<boolean>) | null>(null);
 
-  // Стейты калькулятора для сохранения при смене страниц
-  const [calcWeight, setCalcWeight] = useState('');
-  const [calcHours, setCalcHours] = useState('');
-  const [calcMinutes, setCalcMinutes] = useState('');
-  const [calcQuantity, setCalcQuantity] = useState('1');
-  const [calcFilamentId, setCalcFilamentId] = useState('');
-  const [calcPrinterId, setCalcPrinterId] = useState('');
-  const [calcLaborMinutes, setCalcLaborMinutes] = useState('15');
-  const [calcLaborRate, setCalcLaborRate] = useState('');
-  const [calcMarkup, setCalcMarkup] = useState('');
-  const [calcDefect, setCalcDefect] = useState('');
-  const [calcIsOwnerLabor, setCalcIsOwnerLabor] = useState(false);
-  const [calcIsLaborPerUnit, setCalcIsLaborPerUnit] = useState(false);
-  const [calcDiscountType, setCalcDiscountType] = useState<'percent' | 'fixed'>('percent');
-  const [calcDiscountValue, setCalcDiscountValue] = useState('');
-  const [calcUrgencyType, setCalcUrgencyType] = useState<'percent' | 'fixed'>('percent');
-  const [calcUrgencyValue, setCalcUrgencyValue] = useState('');
-  const [calcCustomCostItems, setCalcCustomCostItems] = useState<CustomCostItem[]>([]);
+  // Стейты калькулятора с персистентным сохранением в localStorage
+  const [calcWeight, setCalcWeight, resetCalcWeight] = usePersistentState('3d_calc_weight', '');
+  const [calcHours, setCalcHours, resetCalcHours] = usePersistentState('3d_calc_hours', '');
+  const [calcMinutes, setCalcMinutes, resetCalcMinutes] = usePersistentState('3d_calc_minutes', '');
+  const [calcQuantity, setCalcQuantity, resetCalcQuantity] = usePersistentState('3d_calc_quantity', '1');
+  const [calcFilamentId, setCalcFilamentId, resetCalcFilamentId] = usePersistentState('3d_calc_filament_id', '');
+  const [calcPrinterId, setCalcPrinterId, resetCalcPrinterId] = usePersistentState('3d_calc_printer_id', '');
+  const [calcLaborMinutes, setCalcLaborMinutes, resetCalcLaborMinutes] = usePersistentState('3d_calc_labor_minutes', '15');
+  const [calcLaborRate, setCalcLaborRate, resetCalcLaborRate] = usePersistentState('3d_calc_labor_rate', '');
+  const [calcMarkup, setCalcMarkup, resetCalcMarkup] = usePersistentState('3d_calc_markup', '');
+  const [calcDefect, setCalcDefect, resetCalcDefect] = usePersistentState('3d_calc_defect', '');
+  const [calcIsOwnerLabor, setCalcIsOwnerLabor, resetCalcIsOwnerLabor] = usePersistentState('3d_calc_is_owner_labor', false);
+  const [calcIsLaborPerUnit, setCalcIsLaborPerUnit, resetCalcIsLaborPerUnit] = usePersistentState('3d_calc_is_labor_per_unit', false);
+  const [calcDiscountType, setCalcDiscountType, resetCalcDiscountType] = usePersistentState<'percent' | 'fixed'>('3d_calc_discount_type', 'percent');
+  const [calcDiscountValue, setCalcDiscountValue, resetCalcDiscountValue] = usePersistentState('3d_calc_discount_value', '');
+  const [calcUrgencyType, setCalcUrgencyType, resetCalcUrgencyType] = usePersistentState<'percent' | 'fixed'>('3d_calc_urgency_type', 'percent');
+  const [calcUrgencyValue, setCalcUrgencyValue, resetCalcUrgencyValue] = usePersistentState('3d_calc_urgency_value', '');
+  const [calcCustomCostItems, setCalcCustomCostItems, resetCalcCustomCostItems] = usePersistentState<CustomCostItem[]>('3d_calc_custom_cost_items', []);
 
   const resetCalculator = () => {
-    setCalcWeight('');
-    setCalcHours('');
-    setCalcMinutes('');
-    setCalcQuantity('1');
-    setCalcLaborMinutes(settings ? settings.labor_time_minutes.toString() : '15');
-    setCalcLaborRate(settings ? settings.labor_rate_per_hour.toString() : '0');
-    setCalcIsOwnerLabor(settings?.is_owner_labor_default ?? false);
-    setCalcIsLaborPerUnit(settings?.is_labor_per_unit_default ?? false);
-    setCalcDiscountType('percent');
-    setCalcDiscountValue('');
-    setCalcUrgencyType('percent');
-    setCalcUrgencyValue('');
-    setCalcMarkup('');
-    setCalcDefect('');
-    setCalcCustomCostItems([]);
+    resetCalcWeight();
+    resetCalcHours();
+    resetCalcMinutes();
+    resetCalcQuantity();
+    resetCalcFilamentId();
+    resetCalcPrinterId();
+    resetCalcLaborMinutes();
+    resetCalcLaborRate();
+    resetCalcMarkup();
+    resetCalcDefect();
+    resetCalcIsOwnerLabor();
+    resetCalcIsLaborPerUnit();
+    resetCalcDiscountType();
+    resetCalcDiscountValue();
+    resetCalcUrgencyType();
+    resetCalcUrgencyValue();
+    resetCalcCustomCostItems();
+
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('3d_calc_stl_url');
+      localStorage.removeItem('3d_calc_stl_file_name');
+      localStorage.removeItem('3d_calc_stl_file_data');
+      localStorage.removeItem('3d_calc_save_modal_state');
+    }
   };
 
   // Инициализация данных
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
+    if (!userId || isAuthLoading || activeUserId.current !== userId) return;
+    const scope = loadScope.current;
+    const load = scope.begin(userId);
     setIsLoading(true);
+    setInitialLoadUserId(userId);
+    setInitialLoad({ revision: load.revision, completed: [], status: 'loading' });
     try {
-      // 1. Проверяем соединение с Supabase
-      const onlineStatus = await api.checkSupabaseConnection();
+      const {
+        onlineStatus,
+        settings: loadedSettings,
+        filaments: loadedFilaments,
+        printers: loadedPrinters,
+        savedCalculations: loadedSavedCalculations,
+        collections: loadedCollections,
+        orders: loadedOrders,
+        monthlyGoals: loadedMonthlyGoals,
+      } = await loadInitialData(api, (task, outcome) => {
+        if (!scope.isCurrent(load)) return;
+        setInitialLoad(previous => {
+          if (!scope.isCurrent(load) || previous.revision !== load.revision) return previous;
+          if (outcome === 'error') return { ...previous, status: 'error' };
+          if (previous.completed.includes(task)) return previous;
+          return { ...previous, completed: [...previous.completed, task] };
+        });
+      });
+
+      if (!scope.isCurrent(load)) return;
+
       setIsOnline(onlineStatus);
-
-      // 2. Параллельно загружаем все данные
-      const [loadedSettings, loadedFilaments, loadedPrinters, loadedSavedCalculations, loadedCollections] = await Promise.all([
-        api.getSettings(),
-        api.getFilaments(),
-        api.getPrinters(),
-        api.getSavedCalculations(),
-        api.getCollections(),
-      ]);
-
       setSettings(loadedSettings);
       setFilaments(loadedFilaments);
       setPrinters(loadedPrinters);
       setSavedCalculations(loadedSavedCalculations);
       setCollections(loadedCollections);
+      setOrders(loadedOrders);
+      setMonthlyGoals(loadedMonthlyGoals);
+      setInitialLoad(previous => scope.isCurrent(load) && previous.revision === load.revision
+        ? { ...previous, status: 'ready' } : previous);
     } catch (error) {
+      if (!scope.isCurrent(load)) return;
+      setInitialLoad(previous => scope.isCurrent(load) && previous.revision === load.revision
+        ? { ...previous, status: 'error' } : previous);
       console.error('Ошибка инициализации данных:', error);
     } finally {
-      setIsLoading(false);
+      if (scope.isCurrent(load)) setIsLoading(false);
     }
-  };
+  }, [userId, isAuthLoading]);
 
   useEffect(() => {
-    loadData();
+    if (isAuthLoading) return;
+    if (!userId) {
+      let cancelled = false;
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setFilaments([]);
+        setPrinters([]);
+        setSettings(null);
+        setSavedCalculations([]);
+        setCollections([]);
+        setOrders([]);
+        setMonthlyGoals(api.DEFAULT_MONTHLY_GOALS_CONFIG);
+        setIsOnline(false);
+        setIsLoading(false);
+        setInitialLoadUserId(null);
+        setInitialLoad(previous => ({ revision: previous.revision + 1, completed: [], status: 'loading' }));
+      });
+      return () => { cancelled = true; };
+    }
+
+    void Promise.resolve().then(loadData);
 
     const handleRefreshCalcs = async () => {
       try {
@@ -186,13 +268,112 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    const handleRefreshOrders = async () => {
+      try {
+        const [nextOrders, calcs, cols] = await Promise.all([
+          api.getOrders(),
+          api.getSavedCalculations(),
+          api.getCollections(),
+        ]);
+        setOrders(nextOrders);
+        setSavedCalculations(calcs);
+        setCollections(cols);
+      } catch (err) {
+        console.error('Ошибка обновления заказов в DataProvider:', err);
+      }
+    };
+
+    const handleRefreshGoals = async () => {
+      try {
+        setMonthlyGoals(await api.getMonthlyGoalsConfig());
+      } catch (err) {
+        console.error('Ошибка обновления целей в DataProvider:', err);
+      }
+    };
+
+    const handleStorage = () => {
+      void handleRefreshOrders();
+      void handleRefreshGoals();
+    };
+
     window.addEventListener('saved_calculations_updated', handleRefreshCalcs);
-    window.addEventListener('storage', handleRefreshCalcs);
+    window.addEventListener('orders_updated', handleRefreshOrders);
+    window.addEventListener('refresh-orders-data', handleRefreshOrders);
+    window.addEventListener('monthly_goals_updated', handleRefreshGoals);
+    window.addEventListener('storage', handleStorage);
     return () => {
       window.removeEventListener('saved_calculations_updated', handleRefreshCalcs);
-      window.removeEventListener('storage', handleRefreshCalcs);
+      window.removeEventListener('orders_updated', handleRefreshOrders);
+      window.removeEventListener('refresh-orders-data', handleRefreshOrders);
+      window.removeEventListener('monthly_goals_updated', handleRefreshGoals);
+      window.removeEventListener('storage', handleStorage);
     };
-  }, []);
+  }, [userId, isAuthLoading, loadData]);
+
+  // Автоматическое отслеживание статуса сети и автосинхронизация при восстановлении соединения
+  useEffect(() => {
+    if (isAuthLoading || !currentUser) return;
+    let wasOffline = !isOnline;
+    let isChecking = false;
+
+    const handleOnline = async () => {
+      const isConnected = await api.checkSupabaseConnection();
+      setIsOnline(isConnected);
+      if (isConnected && wasOffline) {
+        wasOffline = false;
+        try {
+          const syncResult = await api.syncLocalStorageToSupabase();
+          if (syncResult) {
+            setSettings(syncResult.settings);
+            setFilaments(syncResult.filaments);
+            setPrinters(syncResult.printers);
+            setSavedCalculations(syncResult.savedCalculations);
+            setCollections(syncResult.collections);
+            setOrders(syncResult.orders);
+            setMonthlyGoals(syncResult.goals);
+            window.dispatchEvent(new Event('3d-data-synchronized'));
+            showSuccess('Связь с сервером восстановлена, данные синхронизированы.');
+          }
+        } catch (e) {
+          console.error('Ошибка автоматической синхронизации данных:', e);
+        }
+      }
+    };
+
+    const handleOffline = () => {
+      wasOffline = true;
+      setIsOnline(false);
+      showWarning('Работа в автономном режиме. Данные сохраняются только в браузере.');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Периодическая проверка раз в 25 секунд
+    const interval = setInterval(async () => {
+      if (isChecking || document.visibilityState !== 'visible') return;
+      isChecking = true;
+      try {
+        const currentOnline = await api.checkSupabaseConnection();
+        if (currentOnline && !isOnline) {
+          wasOffline = true;
+          await handleOnline();
+        } else if (!currentOnline && isOnline) {
+          handleOffline();
+        } else {
+          setIsOnline(currentOnline);
+        }
+      } finally {
+        isChecking = false;
+      }
+    }, 25000);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(interval);
+    };
+  }, [currentUser, isAuthLoading, isOnline, showSuccess, showWarning]);
 
   // Филаменты
   const addFilament = async (filamentData: Omit<Filament, 'id'>) => {
@@ -210,10 +391,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const handleDeleteFilament = async (id: string) => {
     await api.deleteFilament(id);
     setFilaments(prev => prev.filter(f => f.id !== id));
-    // Если удалили принтер по умолчанию, сбрасываем его в настройках
-    if (settings && settings.default_printer_id === id) {
-      await updateSettings({ ...settings, default_printer_id: null });
-    }
   };
 
   // Принтеры
@@ -300,19 +477,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const onlineStatus = await api.checkSupabaseConnection();
     setIsOnline(onlineStatus);
     if (onlineStatus) {
-      // Если подключились, перезагружаем данные из облака
-      const [loadedSettings, loadedFilaments, loadedPrinters, loadedSavedCalculations, loadedCollections] = await Promise.all([
-        api.getSettings(),
-        api.getFilaments(),
-        api.getPrinters(),
-        api.getSavedCalculations(),
-        api.getCollections(),
-      ]);
-      setSettings(loadedSettings);
-      setFilaments(loadedFilaments);
-      setPrinters(loadedPrinters);
-      setSavedCalculations(loadedSavedCalculations);
-      setCollections(loadedCollections);
+      // Синхронизируем локальные данные и обновляем состояние
+      const syncResult = await api.syncLocalStorageToSupabase();
+      if (syncResult) {
+        setSettings(syncResult.settings);
+        setFilaments(syncResult.filaments);
+        setPrinters(syncResult.printers);
+        setSavedCalculations(syncResult.savedCalculations);
+        setCollections(syncResult.collections);
+        setOrders(syncResult.orders);
+        setMonthlyGoals(syncResult.goals);
+        window.dispatchEvent(new Event('3d-data-synchronized'));
+        showSuccess('Связь с сервером восстановлена, данные синхронизированы.');
+      }
+    } else {
+      showWarning('Работа в автономном режиме. Данные сохраняются только в браузере.');
     }
     return onlineStatus;
   };
@@ -325,30 +504,51 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   };
 
   const seedRandomData = async () => {
-    setIsLoading(true);
-    try {
-      const result = await api.seedRandomData();
-      setFilaments(result.filaments);
-      setPrinters(result.printers);
-      setSavedCalculations(result.savedCalculations);
-      setCollections(result.collections);
-      if (result.settings) setSettings(result.settings);
-    } finally {
-      setIsLoading(false);
+    const result = await api.seedRandomData();
+    setFilaments(result.filaments);
+    setPrinters(result.printers);
+    setSavedCalculations(result.savedCalculations);
+    setCollections(result.collections);
+    setOrders(result.orders);
+    if (result.settings) setSettings(result.settings);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('3d-data-synchronized'));
     }
   };
 
   const clearAllData = async () => {
-    setIsLoading(true);
-    try {
-      await api.clearAllData();
-      setFilaments([]);
-      setPrinters([]);
-      setSavedCalculations([]);
-      setCollections([]);
-      setSettings(null);
-    } finally {
-      setIsLoading(false);
+    await api.clearAllData();
+    setFilaments([]);
+    setPrinters([]);
+    setSavedCalculations([]);
+    setCollections([]);
+    setOrders([]);
+    setMonthlyGoals(api.DEFAULT_MONTHLY_GOALS_CONFIG);
+    setSettings(null);
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('3d-data-synchronized'));
+    }
+  };
+
+  const restoreBackup = async (input: unknown) => {
+    // Parse before any API call so malformed nested entities cannot partially
+    // overwrite cloud or local data. The API validates again at its boundary.
+    const snapshot: ParsedDataBackup = parseDataBackup(input);
+    await api.restoreDatabaseSnapshot(snapshot);
+
+    if (snapshot.filaments !== undefined) setFilaments(snapshot.filaments);
+    if (snapshot.printers !== undefined) setPrinters(snapshot.printers);
+    if (snapshot.settings !== undefined) setSettings(snapshot.settings);
+    if (snapshot.savedCalculations !== undefined) setSavedCalculations(snapshot.savedCalculations);
+    if (snapshot.collections !== undefined) setCollections(snapshot.collections);
+    if (snapshot.orders !== undefined) setOrders(snapshot.orders);
+    if (snapshot.monthlyGoals !== undefined) setMonthlyGoals(snapshot.monthlyGoals);
+    setIsOnline(await api.checkSupabaseConnection());
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('3d-data-synchronized'));
     }
   };
 
@@ -360,7 +560,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         settings,
         savedCalculations,
         collections,
+        orders,
+        setOrders,
+        monthlyGoals,
+        setMonthlyGoals,
         isLoading,
+        initialLoad: initialLoadUserId === userId && !isAuthLoading
+          ? initialLoad : { revision: initialLoad.revision, completed: [], status: 'loading' },
         isOnline,
         isSettingsDirty,
         setIsSettingsDirty,
@@ -420,6 +626,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         refreshConnection,
         seedRandomData,
         clearAllData,
+        restoreBackup,
         refreshAllData,
       }}
     >

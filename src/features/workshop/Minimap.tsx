@@ -1,0 +1,8 @@
+import { footprint,slotWorld,type Room,type Workshop } from './model';
+export function Minimap({layout,room,onSelect,selected}:{layout:Workshop;room:Room;onSelect:(id:string,kind:'furniture'|'placement')=>void;selected:string|null}) {
+  return <div className="border-t border-white/10 pt-4"><p className="mb-2 font-mono text-[10px] tracking-widest text-neutral-400">ПЛАН КОМНАТЫ</p><svg aria-label="Миникарта мастерской" viewBox={`${-room.width/2-.3} ${-room.depth/2-.3} ${room.width+.6} ${room.depth+.6}`} className="max-h-44 w-full rounded-lg bg-[#141d26]">
+    <rect x={-room.width/2} y={-room.depth/2} width={room.width} height={room.depth} fill="#293440" stroke="#6a7581" strokeWidth=".05"/>
+    {layout.furniture.filter(f=>f.roomId===room.id).map(f=>{const {w,d}=footprint(f);return <g key={f.id} role="button" tabIndex={0} aria-label={`Выбрать ${f.name}`} onClick={()=>onSelect(f.id,'furniture')} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onSelect(f.id,'furniture');}}} className="cursor-pointer"><rect x={f.x-w/2} y={f.z-d/2} width={w} height={d} fill={selected===f.id?'#5294ff':f.kind==='filament_rack'?'#849478':'#b48d66'} stroke="#d5d5cb" strokeWidth=".025"/><title>{f.name}</title></g>;})}
+    {layout.placements.map(p=>{const s=layout.slots.find(s=>s.id===p.slotId),f=s&&layout.furniture.find(f=>f.id===s.furnitureId&&f.roomId===room.id);if(!s||!f)return null;const [x,,z]=slotWorld(f,s);return <circle key={p.id} cx={x} cy={z} r={p.kind==='printer'?.17:.07} fill={selected===p.id?'#75b5ff':'#19242e'} role="button" tabIndex={0} aria-label={`Выбрать размещение ${s.index+1}`} className="cursor-pointer" onClick={()=>onSelect(p.id,'placement')} onKeyDown={e=>{if(e.key==='Enter')onSelect(p.id,'placement');}}/>;})}
+  </svg></div>;
+}
