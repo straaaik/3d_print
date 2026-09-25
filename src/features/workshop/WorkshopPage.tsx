@@ -102,62 +102,6 @@ function Workspace({ userId }: { userId: string }) {
     }
   }, [layout, printers, filaments, isLoading, change]);
 
-  if (!layout || isLoading) {
-    return (
-      <div className="min-h-screen bg-dot-grid text-white flex flex-col justify-between font-sans">
-        <main className="w-full mx-auto px-3 sm:px-6 py-4 md:py-6 max-w-[1540px] space-y-5">
-          <div className="flex justify-center">
-            <MainNavbar activeTab="workshop" />
-          </div>
-          <div className="relative rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl overflow-hidden font-mono">
-            <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 bg-neutral-900/60 text-xs select-none">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
-                </div>
-                <div className="h-4 w-px bg-white/15" />
-                <span className="font-bold tracking-wider text-neutral-200">3D-LABS // МАСТЕРСКАЯ</span>
-              </div>
-              <span className="text-[10px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-neutral-400">
-                ЗАГРУЗКА
-              </span>
-            </div>
-            <div className="flex min-h-[500px] flex-col items-center justify-center gap-3 p-12 text-center text-neutral-400">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
-              <p className="text-xs font-mono text-neutral-300">Инициализация 3D-пространства мастерской…</p>
-            </div>
-            <div className="border-t border-white/10 px-5 py-2.5 bg-neutral-950 flex items-center justify-between text-[11px] font-mono text-neutral-500 select-none">
-              <span>DATABASE: SUPABASE CLOUD</span>
-              <span>CONNECTING…</span>
-            </div>
-          </div>
-        </main>
-        <footer className="w-full text-center py-6 border-t border-white/10 select-none bg-neutral-950/80 backdrop-blur-md font-mono text-xs text-neutral-500">
-          <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-            <span>3D LABS · WORKSHOP RUNTIME v2.4</span>
-            <span>ИНТЕРАКТИВНОЕ 3D-ПРОСТРАНСТВО МАСТЕРСКОЙ</span>
-          </div>
-        </footer>
-      </div>
-    );
-  }
-
-  const room = layout.rooms.find((r) => r.id === activeRoom) ?? layout.rooms[0];
-
-  function commit(next: Workshop) {
-    if (layout) {
-      pushWorkshopHistory({ undoStack: undoStack.current, redoStack: redoStack.current }, layout);
-      setCanUndo(true);
-      setCanRedo(false);
-    }
-    change({
-      ...next,
-      rooms: next.rooms.map((r) => (cameraViews.current.has(r.id) ? { ...r, camera: cameraViews.current.get(r.id) } : r)),
-    });
-  }
-
   function handleUndo() {
     const cur = layoutRef.current;
     if (!cur || undoStack.current.length === 0) return;
@@ -215,6 +159,62 @@ function Workspace({ userId }: { userId: string }) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  if (!layout || isLoading) {
+    return (
+      <div className="min-h-screen bg-dot-grid text-white flex flex-col justify-between font-sans">
+        <main className="w-full mx-auto px-3 sm:px-6 py-4 md:py-6 max-w-[1540px] space-y-5">
+          <div className="flex justify-center">
+            <MainNavbar activeTab="workshop" />
+          </div>
+          <div className="relative rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl overflow-hidden font-mono">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-white/10 bg-neutral-900/60 text-xs select-none">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+                </div>
+                <div className="h-4 w-px bg-white/15" />
+                <span className="font-bold tracking-wider text-neutral-200">3D-LABS // МАСТЕРСКАЯ</span>
+              </div>
+              <span className="text-[10px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-neutral-400">
+                ЗАГРУЗКА
+              </span>
+            </div>
+            <div className="flex min-h-[500px] flex-col items-center justify-center gap-3 p-12 text-center text-neutral-400">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+              <p className="text-xs font-mono text-neutral-300">Инициализация 3D-пространства мастерской…</p>
+            </div>
+            <div className="border-t border-white/10 px-5 py-2.5 bg-neutral-950 flex items-center justify-between text-[11px] font-mono text-neutral-500 select-none">
+              <span>DATABASE: SUPABASE CLOUD</span>
+              <span>CONNECTING…</span>
+            </div>
+          </div>
+        </main>
+        <footer className="w-full text-center py-6 border-t border-white/10 select-none bg-neutral-950/80 backdrop-blur-md font-mono text-xs text-neutral-500">
+          <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span>3D LABS · WORKSHOP RUNTIME v2.4</span>
+            <span>ИНТЕРАКТИВНОЕ 3D-ПРОСТРАНСТВО МАСТЕРСКОЙ</span>
+          </div>
+        </footer>
+      </div>
+    );
+  }
+
+  const room = layout.rooms.find((r) => r.id === activeRoom) ?? layout.rooms[0];
+
+  function commit(next: Workshop) {
+    if (layout) {
+      pushWorkshopHistory({ undoStack: undoStack.current, redoStack: redoStack.current }, layout);
+      setCanUndo(true);
+      setCanRedo(false);
+    }
+    change({
+      ...next,
+      rooms: next.rooms.map((r) => (cameraViews.current.has(r.id) ? { ...r, camera: cameraViews.current.get(r.id) } : r)),
+    });
+  }
 
   function attempt(action: () => void) {
     try {
