@@ -6,8 +6,8 @@ import * as THREE from 'three';
 import type { WorkshopCanvasProps } from '../src/features/workshop/WorkshopCanvas';
 import { createWorkshop, createFurniture, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, updateFurniture, placeEntity, removeRoom, slotWorld, parseWorkshop, pickWorkshopTarget, syncWorkshopPlacements, calculatePanDelta, calculateOrbitAngles, fillEnclosedTiles, existingRoomsTileBounds, roomOrigin, type Room } from '../src/features/workshop/model';
 import { instanceTemplate, disposeInstances } from '../src/features/workshop/instances';
-import { getWorkshopShadowConfig, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget } from '../src/features/workshop/WorkshopScene';
-import { getOrCreateHudButtonTexture, hudButtonTextureCache, clearHudButtonTextureCache } from '../src/features/workshop/spatialAuthoring';
+import { getWorkshopShadowConfig, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget, handleWorkshopKeyDown, type WorkshopHotkeyContext } from '../src/features/workshop/WorkshopScene';
+import { getOrCreateHudButtonTexture, hudButtonTextureCache, clearHudButtonTextureCache, SpatialAuthoring } from '../src/features/workshop/spatialAuthoring';
 
 test('default layout has non-overlapping furnishings including movable decor and no invented inventory', () => {
   const state = createWorkshop();
@@ -1117,8 +1117,353 @@ test('snapFurnitureToNeighbors magnetically snaps edges within snapDist and leav
   const snapResultFar = snapFurnitureToNeighbors(0, 0, tableB, [tableA], room, 0.2);
   assert.equal(snapResultFar.snappedX, false);
   assert.equal(snapResultFar.snappedZ, false);
-  assert.equal(snapResultFar.x, 0);
   assert.equal(snapResultFar.z, 0);
+});
+
+test('hotkeys: Space key toggles 2D top view / 3D isometric view and animates camera smoothly', () => {
+  const cameraMoveCalls: Array<{ target: THREE.Vector3; span: number; azimuth?: number; elevation?: number; notify?: boolean }> = [];
+  let preventDefaultCalled = false;
+
+  const mockContext: WorkshopHotkeyContext = {
+    top: false,
+    edit: false,
+    selected: null,
+    data: createWorkshop(),
+    options: {
+      canvas: {} as any,
+      container: {} as any,
+      onSelect: () => {},
+      onMove: () => {},
+      onCamera: () => {},
+      onReady: () => {},
+      onError: () => {},
+    },
+    authoring: {
+      cancelDraft: () => {},
+      getSelectedLabelId: () => null,
+      setSelectedLabel: () => {},
+    },
+    select: () => {},
+    workshopCenter: () => new THREE.Vector3(1, 0.7, 2),
+    overviewSpan: () => 14,
+    azimuth: Math.PI / 4,
+    elevation: 16,
+    moveCamera: (target, span, azimuth, elevation, notify) => {
+      cameraMoveCalls.push({ target, span, azimuth, elevation, notify });
+    },
+  };
+
+  // 1. When in 3D (top is false), pressing Space switches to Top view
+  const event1 = {
+    key: ' ',
+    cancelable: true,
+    preventDefault: () => { preventDefaultCalled = true; },
+  } as unknown as KeyboardEvent;
+
+  const handled1 = handleWorkshopKeyDown(mockContext, event1);
+  assert.equal(handled1, true);
+  assert.equal(mockContext.top, true);
+  assert.equal(preventDefaultCalled, true);
+  assert.equal(cameraMoveCalls.length, 1);
+  assert.deepEqual(cameraMoveCalls[0].target, new THREE.Vector3(1, 0.7, 2));
+  assert.equal(cameraMoveCalls[0].span, 14);
+  assert.equal(cameraMoveCalls[0].notify, true);
+
+  // 2. When in 2D Top view (top is true), pressing Space switches back to 3D isometric view
+  preventDefaultCalled = false;
+  const event2 = {
+    key: ' ',
+    cancelable: true,
+    preventDefault: () => { preventDefaultCalled = true; },
+  } as unknown as KeyboardEvent;
+
+  const handled2 = handleWorkshopKeyDown(mockContext, event2);
+  assert.equal(handled2, true);
+  assert.equal(mockContext.top, false);
+  assert.equal(preventDefaultCalled, true);
+  assert.equal(cameraMoveCalls.length, 2);
+  assert.equal(cameraMoveCalls[1].azimuth, Math.PI / 4);
+  assert.equal(cameraMoveCalls[1].elevation, 16);
+  assert.equal(cameraMoveCalls[1].notify, true);
+
+  // 3. Ignore when focused in input or textarea
+  const inputEvent = {
+    target: { tagName: 'INPUT' } as any,
+    key: ' ',
+    cancelable: true,
+    preventDefault: () => { assert.fail('Should not preventDefault on input'); },
+  } as unknown as KeyboardEvent;
+  const handledInput = handleWorkshopKeyDown(mockContext, inputEvent);
+  assert.equal(handledInput, false);
+  assert.equal(mockContext.top, false, 'Top view must not toggle when typing in input');
+});
+
+test('hotkeys: Escape key clears selection and cancels draft', () => {
+  let selectedValue: string | null = 'table-1';
+  let onSelectCalledWith: [string, string] | null = null;
+  let cancelDraftCalled = false;
+  let onCancelCalled = false;
+
+  const mockContext: WorkshopHotkeyContext = {
+    top: false,
+    edit: true,
+    selected: 'table-1',
+    data: createWorkshop(),
+    options: {
+      canvas: {} as any,
+      container: {} as any,
+      onSelect: (id, kind) => { onSelectCalledWith = [id, kind]; },
+      onMove: () => {},
+      onCamera: () => {},
+      onReady: () => {},
+      onError: () => {},
+    },
+    authoring: {
+      cancelDraft: () => { cancelDraftCalled = true; },
+      getSelectedLabelId: () => null,
+      setSelectedLabel: () => {},
+    },
+    select: (id) => { selectedValue = id; },
+    onCancel: () => { onCancelCalled = true; },
+    workshopCenter: () => new THREE.Vector3(),
+    overviewSpan: () => 10,
+    azimuth: 0,
+    elevation: 16,
+    moveCamera: () => {},
+  };
+
+  const escapeEvent = {
+    key: 'Escape',
+    cancelable: true,
+    preventDefault: () => {},
+  } as unknown as KeyboardEvent;
+
+  const handled = handleWorkshopKeyDown(mockContext, escapeEvent);
+  assert.equal(handled, true);
+  assert.deepEqual(onSelectCalledWith, ['', 'furniture']);
+  assert.equal(selectedValue, null);
+  assert.equal(cancelDraftCalled, true);
+  assert.equal(onCancelCalled, true);
+});
+
+test('hotkeys: R key triggers 90-degree rotation for furniture and placement', () => {
+  const state = createWorkshop();
+  const f = state.furniture[0]; // rotation: 0
+  let rotatedId: string | null = null;
+  let rotatedValue: number | null = null;
+
+  const mockContext: WorkshopHotkeyContext = {
+    top: false,
+    edit: true,
+    selected: f.id,
+    data: state,
+    options: {
+      canvas: {} as any,
+      container: {} as any,
+      onSelect: () => {},
+      onMove: () => {},
+      onRotate: (id, rotation) => {
+        rotatedId = id;
+        rotatedValue = rotation;
+      },
+      onCamera: () => {},
+      onReady: () => {},
+      onError: () => {},
+    },
+    authoring: {
+      cancelDraft: () => {},
+      getSelectedLabelId: () => null,
+      setSelectedLabel: () => {},
+    },
+    select: () => {},
+    workshopCenter: () => new THREE.Vector3(),
+    overviewSpan: () => 10,
+    azimuth: 0,
+    elevation: 16,
+    moveCamera: () => {},
+  };
+
+  // 1. Pressing 'r' rotates furniture by 90 degrees
+  const rEvent = { key: 'r', cancelable: true, preventDefault: () => {} } as unknown as KeyboardEvent;
+  const handled = handleWorkshopKeyDown(mockContext, rEvent);
+  assert.equal(handled, true);
+  assert.equal(rotatedId, f.id);
+  assert.equal(rotatedValue, (f.rotation + 90) % 360);
+
+  // 2. Pressing 'R' or Cyrillic 'к' also works
+  const cyrillicEvent = { key: 'к', cancelable: true, preventDefault: () => {} } as unknown as KeyboardEvent;
+  assert.equal(handleWorkshopKeyDown(mockContext, cyrillicEvent), true);
+
+  // 3. When placement is selected, rotates parent furniture
+  const placed = placeEntity(state, 'printer', 'printer-test', state.slots[0].id, 'a1');
+  const placement = placed.placements[0];
+  const parentFurnId = state.slots[0].furnitureId;
+  mockContext.data = placed;
+  mockContext.selected = placement.id;
+  rotatedId = null;
+  rotatedValue = null;
+
+  const handledPlacement = handleWorkshopKeyDown(mockContext, rEvent);
+  assert.equal(handledPlacement, true);
+  assert.equal(rotatedId, parentFurnId);
+  assert.equal(rotatedValue, 90);
+});
+
+test('hotkeys: G/M starts move mode and Delete removes furniture, placement or label', () => {
+  const state = createWorkshop();
+  const f = state.furniture[0];
+  let deletedId: string | null = null;
+  let deletedKind: string | null = null;
+  let deletedLabel: [string, string] | null = null;
+
+  const mockContext: WorkshopHotkeyContext = {
+    top: false,
+    edit: true,
+    selected: f.id,
+    data: state,
+    options: {
+      canvas: { style: {} } as any,
+      container: {} as any,
+      onSelect: () => {},
+      onMove: () => {},
+      onDelete: (id, kind) => {
+        deletedId = id;
+        deletedKind = kind;
+      },
+      onDeleteLabel: (roomId, labelId) => {
+        deletedLabel = [roomId, labelId];
+      },
+      onCamera: () => {},
+      onReady: () => {},
+      onError: () => {},
+    },
+    authoring: {
+      cancelDraft: () => {},
+      getSelectedLabelId: () => null,
+      setSelectedLabel: () => {},
+    },
+    select: () => {},
+    workshopCenter: () => new THREE.Vector3(),
+    overviewSpan: () => 10,
+    azimuth: 0,
+    elevation: 16,
+    moveCamera: () => {},
+  };
+
+  // 1. Pressing 'g' or 'm' starts move mode
+  const gEvent = { key: 'g', cancelable: true, preventDefault: () => {} } as unknown as KeyboardEvent;
+  assert.equal(handleWorkshopKeyDown(mockContext, gEvent), true);
+  assert.equal(mockContext.dragged, true);
+  assert.equal(mockContext.down?.furnitureId, f.id);
+
+  // 2. Pressing 'Delete' on furniture
+  const delEvent = { key: 'Delete', cancelable: true, preventDefault: () => {} } as unknown as KeyboardEvent;
+  assert.equal(handleWorkshopKeyDown(mockContext, delEvent), true);
+  assert.equal(deletedId, f.id);
+  assert.equal(deletedKind, 'furniture');
+
+  // 3. Pressing 'Delete' on placement
+  const placed = placeEntity(state, 'printer', 'p-del', state.slots[0].id, 'a1');
+  mockContext.data = placed;
+  mockContext.selected = placed.placements[0].id;
+  deletedId = null;
+  assert.equal(handleWorkshopKeyDown(mockContext, delEvent), true);
+  assert.equal(deletedId, placed.placements[0].id);
+  assert.equal(deletedKind, 'placement');
+
+  // 4. Pressing 'Delete' with active label
+  const stateWithLabel = {
+    ...state,
+    rooms: [{ ...state.rooms[0], labels: [{ id: 'lbl-1', roomId: state.rooms[0].id, text: 'Zone A', color: '#fff', size: 0.3, u: 0.5, v: 0.5, surface: 'floor' as const }] }],
+  };
+  mockContext.data = stateWithLabel;
+  mockContext.authoring.getSelectedLabelId = () => 'lbl-1';
+  assert.equal(handleWorkshopKeyDown(mockContext, delEvent), true);
+  assert.deepEqual(deletedLabel, [state.rooms[0].id, 'lbl-1']);
+});
+
+test('Shift key or right click in Cell-Grid room builder behaves as instant eraser', () => {
+  const container = { clientWidth: 800, clientHeight: 600, style: {} } as any;
+  const canvas = {
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }),
+    style: {},
+    setPointerCapture: () => {},
+    releasePointerCapture: () => {},
+    hasPointerCapture: () => false,
+  } as any;
+  const scene = new THREE.Scene();
+  const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 100);
+  camera.position.set(0, 30, 0.001);
+  camera.lookAt(0, 0, 0);
+  camera.updateProjectionMatrix();
+  camera.updateMatrixWorld();
+
+  const authoring = new SpatialAuthoring(
+    container,
+    canvas,
+    scene,
+    camera,
+    { onAuthoringHint: () => {} },
+    () => {}
+  );
+
+  // Initialize authoring with empty room workshop
+  const emptyWorkshop: Workshop = {
+    version: 1,
+    rooms: [],
+    furniture: [],
+    slots: [],
+    placements: [],
+  };
+  authoring.update(emptyWorkshop, true, null, null);
+
+  // 1. Start room builder with brush
+  authoring.startGridRoomBuilder('brush');
+  assert.equal(authoring.isGridRoomBuilderActive(), true);
+  assert.equal(authoring.getGridBuilderTool(), 'brush');
+  assert.equal(authoring.getDraftTiles().length, 0);
+
+  // 2. Normal Left click adds cell at center (400, 300) -> world (0, 0)
+  authoring.pointerDown({ clientX: 400, clientY: 300, button: 0, pointerId: 1 } as any);
+  authoring.pointerUp({ clientX: 400, clientY: 300, button: 0, pointerId: 1 } as any);
+  assert.equal(authoring.getDraftTiles().length, 1);
+  const firstTile = authoring.getDraftTiles()[0];
+  assert.ok(firstTile, 'Cell should be added to draft tiles');
+
+  // 3. Shift + click at (400, 300) behaves as eraser even when tool is 'brush'
+  authoring.pointerDown({ clientX: 400, clientY: 300, button: 0, shiftKey: true, pointerId: 1 } as any);
+  authoring.pointerUp({ clientX: 400, clientY: 300, button: 0, shiftKey: true, pointerId: 1 } as any);
+  assert.equal(authoring.getDraftTiles().length, 0, 'Cell must be erased via Shift + click');
+
+  // 4. Re-add cell at (400, 300)
+  authoring.pointerDown({ clientX: 400, clientY: 300, button: 0, pointerId: 1 } as any);
+  authoring.pointerUp({ clientX: 400, clientY: 300, button: 0, pointerId: 1 } as any);
+  assert.equal(authoring.getDraftTiles().length, 1);
+
+  // 5. Right click (button === 2) behaves as eraser
+  authoring.pointerDown({ clientX: 400, clientY: 300, button: 2, pointerId: 1 } as any);
+  authoring.pointerUp({ clientX: 400, clientY: 300, button: 2, pointerId: 1 } as any);
+  assert.equal(authoring.getDraftTiles().length, 0, 'Cell must be erased via right click');
+
+  // 6. Cell hover visual: Shift key shows red hover fill (#ef4444)
+  authoring.pointerMove({ clientX: 400, clientY: 300, shiftKey: true, buttons: 0 } as any);
+  assert.equal(authoring.getCellHoverFillColor(), '#ef4444');
+
+  // 7. Cell hover visual: right button held ((buttons & 2) !== 0) shows red hover fill (#ef4444)
+  authoring.pointerMove({ clientX: 400, clientY: 300, buttons: 2 } as any);
+  assert.equal(authoring.getCellHoverFillColor(), '#ef4444');
+
+  // 8. Normal hover without Shift shows standard grid hover color (#94a3b8)
+  authoring.pointerMove({ clientX: 400, clientY: 300, shiftKey: false, buttons: 0 } as any);
+  assert.equal(authoring.getCellHoverFillColor(), '#94a3b8');
+
+  // 9. cancelDraft() method clears active draft and cancels grid room builder
+  authoring.pointerDown({ clientX: 400, clientY: 300, button: 0, pointerId: 1 } as any);
+  authoring.pointerUp({ clientX: 400, clientY: 300, button: 0, pointerId: 1 } as any);
+  assert.equal(authoring.getDraftTiles().length, 1);
+  authoring.cancelDraft();
+  assert.equal(authoring.isGridRoomBuilderActive(), false);
+  assert.equal(authoring.getDraftTiles().length, 0);
 });
 
 

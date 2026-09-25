@@ -886,9 +886,30 @@ export class SpatialAuthoring {
     return group;
   }
 
-  private applyGridTool(gx: number, gz: number) {
+  cancelDraft() {
+    this.cancel();
+  }
+
+  getActiveDraft(): Draft | null {
+    return this.draft;
+  }
+
+  getDraftTiles(): Array<[number, number]> {
+    return Array.from(this.draftTiles.values());
+  }
+
+  getGridBuilderTool(): 'brush' | 'eraser' {
+    return this.gridBuilderTool;
+  }
+
+  getCellHoverFillColor(): string {
+    const mat = this.cellHoverFill.material as THREE.MeshBasicMaterial;
+    return `#${mat.color.getHexString()}`;
+  }
+
+  private applyGridTool(gx: number, gz: number, tool: 'brush' | 'eraser' = this.gridBuilderTool) {
     const key = `${gx},${gz}`;
-    if (this.gridBuilderTool === 'brush') {
+    if (tool === 'brush') {
       if (this.state && isTileOccupiedByRooms(this.state, gx, gz)) {
         return;
       }
@@ -900,7 +921,7 @@ export class SpatialAuthoring {
         this.draftTileMeshes.set(key, tileMesh);
         this.onDraftTilesChange?.(this.draftTiles.size);
       }
-    } else if (this.gridBuilderTool === 'eraser') {
+    } else if (tool === 'eraser') {
       if (this.draftTiles.has(key)) {
         this.draftTiles.delete(key);
         const tileMesh = this.draftTileMeshes.get(key);
@@ -920,11 +941,12 @@ export class SpatialAuthoring {
     }
   }
 
-  private updateGridHover(gx: number, gz: number) {
+  private updateGridHover(gx: number, gz: number, isEraser?: boolean) {
     this.cellHoverGroup.position.set(gx + 0.5, 0.026, gz + 0.5);
     this.cellHoverGroup.visible = true;
     const isOccupied = this.state ? isTileOccupiedByRooms(this.state, gx, gz) : false;
-    if (this.gridBuilderTool === 'eraser') {
+    const eraser = isEraser ?? (this.gridBuilderTool === 'eraser');
+    if (eraser) {
       (this.cellHoverFill.material as THREE.MeshBasicMaterial).color.set('#ef4444');
       (this.cellHoverOutline.material as THREE.LineBasicMaterial).color.set('#f87171');
       this.canvas.style.cursor = 'crosshair';
@@ -1088,8 +1110,12 @@ export class SpatialAuthoring {
   }
 
   private cast(e: PointerEvent) {
-    const r = this.canvas.getBoundingClientRect();
-    this.pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    const r = typeof this.canvas.getBoundingClientRect === 'function'
+      ? this.canvas.getBoundingClientRect()
+      : { left: 0, top: 0, width: 800, height: 600 };
+    const width = r.width || 800;
+    const height = r.height || 600;
+    this.pointer.set(((e.clientX - r.left) / width) * 2 - 1, -((e.clientY - r.top) / height) * 2 + 1);
     this.ray.setFromCamera(this.pointer, this.camera);
   }
 
@@ -1111,22 +1137,32 @@ export class SpatialAuthoring {
   }
 
   pointerDown(e: PointerEvent): boolean {
-    if (!this.edit || e.button !== 0) return false;
+    if (!this.edit) return false;
 
     if (this.gridBuilderActive) {
+      if (e.button !== 0 && e.button !== 2) return false;
       this.cast(e);
       const p = this.ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), new THREE.Vector3());
       if (p) {
         const gx = Math.floor(p.x);
         const gz = Math.floor(p.z);
         this.isDrawingGrid = true;
-        this.applyGridTool(gx, gz);
-        this.canvas.setPointerCapture(e.pointerId);
+        const isEraser = this.gridBuilderTool === 'eraser' || e.shiftKey || (e.buttons & 2) !== 0 || e.button === 2;
+        this.applyGridTool(gx, gz, isEraser ? 'eraser' : 'brush');
+        if (typeof this.canvas.setPointerCapture === 'function' && e.pointerId !== undefined) {
+          try {
+            this.canvas.setPointerCapture(e.pointerId);
+          } catch {
+            // Safe fallback if mock canvas in tests
+          }
+        }
         this.invalidate();
         return true;
       }
       return true;
     }
+
+    if (e.button !== 0) return false;
 
     // 1. Завершение активного режима (чертежа)
     if (this.draft) {
@@ -1254,20 +1290,21 @@ export class SpatialAuthoring {
 
   pointerMove(e: PointerEvent): boolean {
     if (this.gridBuilderActive) {
-      // If user is rotating the camera with middle or right mouse button, don't intercept!
-      if ((e.buttons & 2) !== 0 || (e.buttons & 4) !== 0) {
+      // If user is rotating the camera with middle mouse button, don't intercept!
+      if ((e.buttons & 4) !== 0) {
         return false;
       }
+      const isEraser = this.gridBuilderTool === 'eraser' || e.shiftKey || (e.buttons & 2) !== 0 || e.button === 2;
       this.cast(e);
       const p = this.ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), new THREE.Vector3());
       if (p) {
         const gx = Math.floor(p.x);
         const gz = Math.floor(p.z);
-        this.updateGridHover(gx, gz);
+        this.updateGridHover(gx, gz, isEraser);
         if (this.isDrawingGrid) {
-          this.applyGridTool(gx, gz);
+          this.applyGridTool(gx, gz, isEraser ? 'eraser' : 'brush');
         }
-        this.canvas.style.cursor = this.gridBuilderTool === 'eraser' ? 'crosshair' : 'cell';
+        this.canvas.style.cursor = isEraser ? 'crosshair' : 'cell';
         this.invalidate();
       }
       return true;
@@ -1468,15 +1505,22 @@ export class SpatialAuthoring {
     }
 
     if (this.gridBuilderActive) {
-      if (e.button !== 0 && !this.isDrawingGrid) {
+      if (e.button !== 0 && e.button !== 2 && !this.isDrawingGrid) {
         return false;
       }
       if (this.isDrawingGrid) {
         this.isDrawingGrid = false;
-        if (this.canvas.hasPointerCapture(e.pointerId)) {
-          this.canvas.releasePointerCapture(e.pointerId);
+        if (typeof this.canvas.releasePointerCapture === 'function' && e.pointerId !== undefined) {
+          try {
+            if (typeof this.canvas.hasPointerCapture === 'function' ? this.canvas.hasPointerCapture(e.pointerId) : true) {
+              this.canvas.releasePointerCapture(e.pointerId);
+            }
+          } catch {
+            // Ignore capture error in test/mock environment
+          }
         }
-        if (this.gridBuilderTool === 'brush') {
+        const isEraser = this.gridBuilderTool === 'eraser' || e.shiftKey || (e.buttons & 2) !== 0 || e.button === 2;
+        if (this.gridBuilderTool === 'brush' && !isEraser) {
           const currentTiles = Array.from(this.draftTiles.values());
           const extraBounds = this.state ? existingRoomsTileBounds(this.state) : null;
           const filled = fillEnclosedTiles(

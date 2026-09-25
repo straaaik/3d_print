@@ -68,6 +68,205 @@ function createDoubleArrowGeometry(): THREE.BufferGeometry {
   return geom;
 }
 
+export interface WorkshopHotkeyContext {
+  top: boolean;
+  edit: boolean;
+  selected: string | null;
+  data: Workshop | null;
+  options: Options;
+  authoring: {
+    cancelDraft: () => void;
+    getSelectedLabelId: () => string | null;
+    setSelectedLabel: (id: string | null) => void;
+  };
+  down?: any;
+  dragged?: boolean;
+  grid?: number;
+  floor?: THREE.Plane;
+  ray?: THREE.Raycaster;
+  target?: THREE.Vector3;
+  azimuth?: number;
+  elevation?: number;
+  highlightedFurnitureId?: string | null;
+  onCancel?: () => void;
+  select: (id: string | null) => void;
+  moveCamera: (target: THREE.Vector3, span: number, azimuth?: number, elevation?: number, notify?: boolean) => void;
+  workshopCenter: () => THREE.Vector3;
+  overviewSpan: () => number;
+  findAdjacentSlot?: (placementId: string, axis: 'x' | 'z', dir: number) => Slot | null;
+  build?: {
+    setFurnitureBorderColor?: (id: string, color: string) => void;
+    previewFurniture?: (id: string, x: number, z: number) => void;
+  } | null;
+  invalidate?: () => void;
+}
+
+export function handleWorkshopKeyDown(ctx: WorkshopHotkeyContext, e: KeyboardEvent): boolean {
+  const target = e.target as HTMLElement | null;
+  const isInput =
+    (typeof HTMLInputElement !== 'undefined' && target instanceof HTMLInputElement) ||
+    (typeof HTMLTextAreaElement !== 'undefined' && target instanceof HTMLTextAreaElement) ||
+    target?.tagName === 'INPUT' ||
+    target?.tagName === 'TEXTAREA' ||
+    Boolean(target?.isContentEditable);
+  if (isInput) return false;
+
+  if (e.key === 'Escape') {
+    if (e.cancelable) e.preventDefault();
+    ctx.onCancel?.();
+    ctx.options.onSelect('', 'furniture');
+    ctx.select(null);
+    ctx.authoring.cancelDraft();
+    return true;
+  }
+
+  // Space key: Toggle 2D Top view / 3D Isometric view. If ctx.top, switch to 3D; if not ctx.top, switch to Top.
+  if (e.key === ' ' || e.key === 'Spacebar' || e.code === 'Space') {
+    if (e.cancelable) e.preventDefault();
+    if (ctx.top) {
+      ctx.top = false;
+      ctx.moveCamera(ctx.workshopCenter(), ctx.overviewSpan(), Math.PI / 4, 16, true);
+    } else {
+      ctx.top = true;
+      ctx.moveCamera(ctx.workshopCenter(), ctx.overviewSpan(), ctx.azimuth ?? Math.PI / 4, ctx.elevation ?? 16, true);
+    }
+    return true;
+  }
+
+  // Prevent browser page scrolling on PageUp, PageDown inside 3D workshop
+  if (['PageUp', 'PageDown'].includes(e.key) && e.cancelable) {
+    e.preventDefault();
+  }
+
+  // R key: If an object (furniture or placement) is selected in edit mode: rotate it by 90 degrees.
+  if ((e.key === 'r' || e.key === 'R' || e.key === 'к' || e.key === 'К' || e.code === 'KeyR') && ctx.edit && ctx.selected) {
+    if (e.cancelable) e.preventDefault();
+    let targetFurniture = ctx.data?.furniture.find((item) => item.id === ctx.selected);
+    if (!targetFurniture && ctx.data) {
+      const placement = ctx.data.placements.find((p) => p.id === ctx.selected);
+      if (placement) {
+        const slot = ctx.data.slots.find((s) => s.id === placement.slotId);
+        targetFurniture = ctx.data.furniture.find((item) => item.id === (slot?.furnitureId ?? ctx.data?.slots.find(sl => sl.id === placement.slotId)?.furnitureId));
+      }
+    }
+    if (targetFurniture && ctx.data) {
+      const nextRot = (targetFurniture.rotation + 90) % 360;
+      const next = { ...targetFurniture, rotation: nextRot };
+      if (validFurniture(ctx.data, next)) {
+        ctx.options.onRotate?.(targetFurniture.id, nextRot);
+        ctx.build?.setFurnitureBorderColor?.(targetFurniture.id, '#38bdf8');
+      } else {
+        ctx.build?.setFurnitureBorderColor?.(targetFurniture.id, '#e87668');
+        const reason = getFurnitureCollisionReason(ctx.data, next);
+        ctx.options.onCollisionFeedback?.(reason ?? 'Недопустимое положение объекта');
+        setTimeout(() => {
+          if (ctx.selected === targetFurniture!.id || ctx.highlightedFurnitureId === targetFurniture!.id) {
+            ctx.build?.setFurnitureBorderColor?.(targetFurniture!.id, '#38bdf8');
+          }
+        }, 500);
+      }
+    } else if (ctx.selected) {
+      ctx.options.onRotate?.(ctx.selected, 90);
+    }
+    return true;
+  }
+
+  // G / M key: If furniture is selected in edit mode: start move mode / attach preview to mouse.
+  if ((e.key === 'g' || e.key === 'G' || e.key === 'm' || e.key === 'M' || e.key === 'п' || e.key === 'П' || e.key === 'ь' || e.key === 'Ь' || e.code === 'KeyG' || e.code === 'KeyM') && ctx.edit && ctx.selected) {
+    if (e.cancelable) e.preventDefault();
+    const f = ctx.data?.furniture.find((item) => item.id === ctx.selected);
+    if (f && ctx.data) {
+      const fOrigin = roomOrigin(ctx.data, f.roomId);
+      const fCenter = new THREE.Vector3(fOrigin.x + f.x, 0, fOrigin.z + f.z);
+      const floorPlane = ctx.floor ?? new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+      const floorPt = ctx.ray?.ray.intersectPlane(floorPlane, new THREE.Vector3()) ?? fCenter.clone();
+      ctx.down = {
+        x: 0,
+        y: 0,
+        target: ctx.target ? ctx.target.clone() : new THREE.Vector3(),
+        azimuth: ctx.azimuth ?? Math.PI / 4,
+        furnitureId: f.id,
+        start: floorPt.clone(),
+        origin: fCenter.clone(),
+        right: false,
+      };
+      ctx.dragged = true;
+      if (ctx.options.canvas) ctx.options.canvas.style.cursor = 'grabbing';
+      ctx.build?.setFurnitureBorderColor?.(f.id, '#38bdf8');
+      ctx.invalidate?.();
+    }
+    return true;
+  }
+
+  // Delete / Backspace key: Delete selected furniture, placement, or label.
+  if ((e.key === 'Delete' || e.key === 'Backspace' || e.code === 'Delete' || e.code === 'Backspace') && ctx.edit) {
+    if (e.cancelable) e.preventDefault();
+    const selectedLabelId = ctx.authoring.getSelectedLabelId();
+    if (selectedLabelId && ctx.data) {
+      for (const room of ctx.data.rooms) {
+        const lbl = (room.labels ?? []).find((l) => l.id === selectedLabelId);
+        if (lbl) {
+          ctx.options.onDeleteLabel?.(room.id, selectedLabelId);
+          ctx.authoring.setSelectedLabel(null);
+          return true;
+        }
+      }
+    }
+    if (ctx.selected) {
+      const placement = ctx.data?.placements.find((p) => p.id === ctx.selected);
+      if (placement) {
+        ctx.options.onDelete?.(placement.id, 'placement');
+        return true;
+      }
+      const f = ctx.data?.furniture.find((item) => item.id === ctx.selected);
+      if (f) {
+        ctx.options.onDelete?.(f.id, 'furniture');
+        return true;
+      }
+      ctx.options.onDelete?.(ctx.selected, 'furniture');
+      return true;
+    }
+    return true;
+  }
+
+  // Arrow keys: fine grid nudging
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && ctx.edit && ctx.selected) {
+    if (e.cancelable) e.preventDefault();
+    const axis = e.key === 'ArrowLeft' || e.key === 'ArrowRight' ? 'x' : 'z';
+    const dir = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1;
+    const placement = ctx.data?.placements.find((p) => p.id === ctx.selected);
+    if (placement) {
+      const nextSlot = ctx.findAdjacentSlot?.(placement.id, axis, dir);
+      if (nextSlot) {
+        ctx.options.onMovePlacement?.(placement.id, nextSlot.id);
+      }
+      return true;
+    }
+    const f = ctx.data?.furniture.find((item) => item.id === ctx.selected);
+    if (f && ctx.data) {
+      const grid = ctx.grid ?? 0.25;
+      const step = grid * dir;
+      const nextX = axis === 'x' ? snap(f.x + step, grid) : f.x;
+      const nextZ = axis === 'z' ? snap(f.z + step, grid) : f.z;
+      const next = { ...f, x: nextX, z: nextZ };
+      if (validFurniture(ctx.data, next)) {
+        ctx.options.onMove(f.id, nextX, nextZ, f.roomId);
+        ctx.build?.setFurnitureBorderColor?.(f.id, '#38bdf8');
+      } else {
+        ctx.build?.setFurnitureBorderColor?.(f.id, '#e87668');
+        const reason = getFurnitureCollisionReason(ctx.data, next);
+        ctx.options.onCollisionFeedback?.(reason ?? 'Недопустимое положение объекта');
+        setTimeout(() => {
+          if (ctx.selected === f.id) ctx.build?.setFurnitureBorderColor?.(f.id, '#38bdf8');
+        }, 500);
+      }
+    }
+    return true;
+  }
+
+  return false;
+}
+
 /** Extends the prototype's demand rendering, orthographic framing and raycast controls
  * to user-authored layouts; shares its instanced model renderer and disposal helpers. */
 export class WorkshopScene {
@@ -346,84 +545,8 @@ export class WorkshopScene {
     this.resize();
   }
 
-  private onKeyDown = (e: KeyboardEvent) => {
-    const isInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
-    if (isInput) return;
-    if(e.key === 'Escape'){this.cancelAuthoring();return;}
-
-    // Prevent browser page scrolling on Space, PageUp, PageDown inside 3D workshop
-    if ([' ', 'Spacebar', 'PageUp', 'PageDown'].includes(e.key) && e.cancelable) {
-      e.preventDefault();
-    }
-
-    if ((e.key === 'r' || e.key === 'R' || e.key === 'к' || e.key === 'К') && this.edit && this.selected) {
-      if (e.cancelable) e.preventDefault();
-      const placement = this.data?.placements.find((p) => p.id === this.selected);
-      if (placement) {
-        if (placement.kind === 'printer') {
-          const nextModel: ModelKey = placement.model === 'a1' ? 'p1' : 'a1';
-          this.options.onModelChange?.(placement.id, nextModel);
-        }
-        return;
-      }
-      const f = this.data?.furniture.find((item) => item.id === this.selected);
-      if (f) {
-        const nextRot = (f.rotation + 90) % 360;
-        const next = { ...f, rotation: nextRot };
-        if (validFurniture(this.data!, next)) {
-          this.options.onRotate?.(f.id, nextRot);
-          this.build?.setFurnitureBorderColor(f.id, '#38bdf8');
-        } else {
-          this.build?.setFurnitureBorderColor(f.id, '#e87668');
-          const reason = getFurnitureCollisionReason(this.data!, next);
-          this.options.onCollisionFeedback?.(reason ?? 'Недопустимое положение объекта');
-          setTimeout(() => {
-            if (this.selected === f.id) this.build?.setFurnitureBorderColor(f.id, '#38bdf8');
-          }, 500);
-        }
-      }
-    } else if ((e.key === 'Delete' || e.key === 'Backspace') && this.edit && this.selected) {
-      if (e.cancelable) e.preventDefault();
-      const placement = this.data?.placements.find((p) => p.id === this.selected);
-      if (placement) {
-        this.options.onDelete?.(placement.id, 'placement');
-        return;
-      }
-      const f = this.data?.furniture.find((item) => item.id === this.selected);
-      if (f) {
-        this.options.onDelete?.(f.id, 'furniture');
-      }
-    } else if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && this.edit && this.selected) {
-      if (e.cancelable) e.preventDefault();
-      const axis = e.key === 'ArrowLeft' || e.key === 'ArrowRight' ? 'x' : 'z';
-      const dir = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1;
-      const placement = this.data?.placements.find((p) => p.id === this.selected);
-      if (placement) {
-        const nextSlot = this.findAdjacentSlot(placement.id, axis, dir);
-        if (nextSlot) {
-          this.options.onMovePlacement?.(placement.id, nextSlot.id);
-        }
-        return;
-      }
-      const f = this.data?.furniture.find((item) => item.id === this.selected);
-      if (f && this.data) {
-        const step = this.grid * dir;
-        const nextX = axis === 'x' ? snap(f.x + step, this.grid) : f.x;
-        const nextZ = axis === 'z' ? snap(f.z + step, this.grid) : f.z;
-        const next = { ...f, x: nextX, z: nextZ };
-        if (validFurniture(this.data, next)) {
-          this.options.onMove(f.id, nextX, nextZ, f.roomId);
-          this.build?.setFurnitureBorderColor(f.id, '#38bdf8');
-        } else {
-          this.build?.setFurnitureBorderColor(f.id, '#e87668');
-          const reason = getFurnitureCollisionReason(this.data, next);
-          this.options.onCollisionFeedback?.(reason ?? 'Недопустимое положение объекта');
-          setTimeout(() => {
-            if (this.selected === f.id) this.build?.setFurnitureBorderColor(f.id, '#38bdf8');
-          }, 500);
-        }
-      }
-    }
+  onKeyDown = (e: KeyboardEvent) => {
+    handleWorkshopKeyDown(this as unknown as WorkshopHotkeyContext, e);
   };
 
   public findAdjacentSlot(placementId: string, axis: 'x' | 'z', dir: number): Slot | null {
@@ -1021,7 +1144,7 @@ export class WorkshopScene {
     this.invertControls = invert;
   }
 
-  private overviewSpan() {
+  overviewSpan() {
     if (!this.room) return 7;
     const size=this.data?workshopBounds(this.data).getSize(new THREE.Vector3()):new THREE.Vector3(this.room.width,2.7,this.room.depth);
     const w = size.x;
@@ -1053,7 +1176,23 @@ export class WorkshopScene {
     this.authoring.setSelectedLabel(id);
   }
   beginFurniturePlacement(kind: FurnitureKind) {this.authoring.beginFurniture(kind);}
-  cancelAuthoring() {this.authoring.cancel();}
+  cancelAuthoring() {this.authoring.cancelDraft();}
+
+  isTopView(): boolean {
+    return this.top;
+  }
+
+  getSelectedId(): string | null {
+    return this.selected;
+  }
+
+  isMoveModeActive(): boolean {
+    return !!(this.down?.furnitureId && this.dragged);
+  }
+
+  getAuthoring(): SpatialAuthoring {
+    return this.authoring;
+  }
 
   startGridRoomBuilder(tool: 'brush' | 'eraser' = 'brush', onDraftChange?: (count: number) => void) {
     this.authoring.startGridRoomBuilder(tool, onDraftChange);
@@ -1070,7 +1209,7 @@ export class WorkshopScene {
   isGridRoomBuilderActive(): boolean {
     return this.authoring.isGridRoomBuilderActive();
   }
-  private workshopCenter() {const center=this.data?workshopBounds(this.data).getCenter(new THREE.Vector3()):new THREE.Vector3();center.y=.7;return center;}
+  workshopCenter() {const center=this.data?workshopBounds(this.data).getCenter(new THREE.Vector3()):new THREE.Vector3();center.y=.7;return center;}
   private get aspect() {
     return Math.max(1, this.options.container.clientWidth) / Math.max(1, this.options.container.clientHeight);
   }
@@ -1112,7 +1251,7 @@ export class WorkshopScene {
     });
   }
 
-  private moveCamera(
+  moveCamera(
     target: THREE.Vector3,
     span: number,
     targetAzimuth = this.azimuth,
