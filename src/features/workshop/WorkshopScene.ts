@@ -4,7 +4,7 @@ import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { ScenePresentation } from './scenePresentation';
 import { animate, type AnimationPlaybackControls } from 'motion';
 import { acquireAssets, releaseAssets, type Assets, type SceneBuild } from './sceneGeometry';
-import { roomOrigin, findRoomAt, type FurnitureKind, snap, validFurniture, pickWorkshopTarget, footprint, slotWorld, calculatePanDelta, calculateOrbitAngles, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget, type Furniture, type Room, type Workshop, type Slot, type ModelKey, type Placement } from './model';
+import { roomOrigin, findRoomAt, type FurnitureKind, snap, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, pickWorkshopTarget, footprint, slotWorld, calculatePanDelta, calculateOrbitAngles, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget, type Furniture, type Room, type Workshop, type Slot, type ModelKey, type Placement } from './model';
 import { buildSpatialWorkshop, workshopBounds } from './spatialScene';
 import { SpatialAuthoring, type SpatialCallbacks } from './spatialAuthoring';
 import type { Filament, Printer } from '../../shared/types';
@@ -32,6 +32,7 @@ interface Options extends SpatialCallbacks {
   onReady: () => void;
   onError: (message: string) => void;
   onHoverPlacement?: (info: HoverPlacementInfo | null) => void;
+  onCollisionFeedback?: (reason: string) => void;
 }
 
 function createArrowGeometry(): THREE.BufferGeometry {
@@ -374,6 +375,8 @@ export class WorkshopScene {
           this.build?.setFurnitureBorderColor(f.id, '#38bdf8');
         } else {
           this.build?.setFurnitureBorderColor(f.id, '#e87668');
+          const reason = getFurnitureCollisionReason(this.data!, next);
+          this.options.onCollisionFeedback?.(reason ?? 'Недопустимое положение объекта');
           setTimeout(() => {
             if (this.selected === f.id) this.build?.setFurnitureBorderColor(f.id, '#38bdf8');
           }, 500);
@@ -413,6 +416,8 @@ export class WorkshopScene {
           this.build?.setFurnitureBorderColor(f.id, '#38bdf8');
         } else {
           this.build?.setFurnitureBorderColor(f.id, '#e87668');
+          const reason = getFurnitureCollisionReason(this.data, next);
+          this.options.onCollisionFeedback?.(reason ?? 'Недопустимое положение объекта');
           setTimeout(() => {
             if (this.selected === f.id) this.build?.setFurnitureBorderColor(f.id, '#38bdf8');
           }, 500);
@@ -1363,6 +1368,8 @@ export class WorkshopScene {
             this.build?.setFurnitureBorderColor(f.id, '#38bdf8');
           } else {
             this.build?.setFurnitureBorderColor(f.id, '#e87668');
+            const reason = getFurnitureCollisionReason(this.data!, next);
+            this.options.onCollisionFeedback?.(reason ?? 'Недопустимое положение объекта');
             setTimeout(() => {
               if (this.selected === f.id) this.build?.setFurnitureBorderColor(f.id, '#38bdf8');
             }, 500);
@@ -1544,19 +1551,35 @@ export class WorkshopScene {
       if (d.gizmoAxis === 'x') worldZ = fOrigin.z + f.z;
       else if (d.gizmoAxis === 'z') worldX = fOrigin.x + f.x;
 
-      const previewX = worldX - fOrigin.x;
-      const previewZ = worldZ - fOrigin.z;
-      this.build?.previewFurniture(f.id, previewX, previewZ);
-
-      const targetRoom = findRoomAt(this.data, worldX, worldZ);
+      const targetRoom = findRoomAt(this.data, worldX, worldZ) ?? this.data.rooms.find((r) => r.id === f.roomId);
       let isValid = false;
       if (targetRoom) {
         const targetOrigin = roomOrigin(this.data, targetRoom.id);
-        const localX = snap(worldX - targetOrigin.x, this.grid);
-        const localZ = snap(worldZ - targetOrigin.z, this.grid);
+        let localX = snap(worldX - targetOrigin.x, this.grid);
+        let localZ = snap(worldZ - targetOrigin.z, this.grid);
+
+        const snapped = snapFurnitureToNeighbors(
+          localX,
+          localZ,
+          { ...f, roomId: targetRoom.id },
+          this.data.furniture,
+          targetRoom
+        );
+        if (d.gizmoAxis !== 'z' && snapped.snappedX) localX = snapped.x;
+        if (d.gizmoAxis !== 'x' && snapped.snappedZ) localZ = snapped.z;
+
+        worldX = targetOrigin.x + localX;
+        worldZ = targetOrigin.z + localZ;
+        const previewX = worldX - fOrigin.x;
+        const previewZ = worldZ - fOrigin.z;
+        this.build?.previewFurniture(f.id, previewX, previewZ);
+
         isValid = validFurniture(this.data, { ...f, roomId: targetRoom.id, x: localX, z: localZ });
         this.updateGizmo({ ...f, roomId: targetRoom.id, x: localX, z: localZ });
       } else {
+        const previewX = worldX - fOrigin.x;
+        const previewZ = worldZ - fOrigin.z;
+        this.build?.previewFurniture(f.id, previewX, previewZ);
         this.updateGizmo({ ...f, x: previewX, z: previewZ });
       }
 
@@ -1736,15 +1759,27 @@ export class WorkshopScene {
         if (d.gizmoAxis === 'x') worldZ = fOrigin.z + f.z;
         else if (d.gizmoAxis === 'z') worldX = fOrigin.x + f.x;
 
-        const targetRoom = findRoomAt(this.data, worldX, worldZ);
+        const targetRoom = findRoomAt(this.data, worldX, worldZ) ?? this.data.rooms.find((r) => r.id === f.roomId);
         if (targetRoom) {
           const targetOrigin = roomOrigin(this.data, targetRoom.id);
-          const localX = snap(worldX - targetOrigin.x, this.grid);
-          const localZ = snap(worldZ - targetOrigin.z, this.grid);
+          let localX = snap(worldX - targetOrigin.x, this.grid);
+          let localZ = snap(worldZ - targetOrigin.z, this.grid);
+          const snapped = snapFurnitureToNeighbors(
+            localX,
+            localZ,
+            { ...f, roomId: targetRoom.id },
+            this.data.furniture,
+            targetRoom
+          );
+          if (d.gizmoAxis !== 'z' && snapped.snappedX) localX = snapped.x;
+          if (d.gizmoAxis !== 'x' && snapped.snappedZ) localZ = snapped.z;
+
           const testF = { ...f, roomId: targetRoom.id, x: localX, z: localZ };
           if (validFurniture(this.data, testF)) {
             this.options.onMove(f.id, localX, localZ, targetRoom.id);
           } else {
+            const reason = getFurnitureCollisionReason(this.data, testF);
+            this.options.onCollisionFeedback?.(reason ?? 'Недопустимое положение объекта');
             this.build?.previewFurniture(f.id, f.x, f.z);
             this.updateGizmo(f);
             this.build?.setFurnitureBorderColor(f.id, '#e87668');
@@ -1753,6 +1788,7 @@ export class WorkshopScene {
             }, 600);
           }
         } else {
+          this.options.onCollisionFeedback?.('Комната не найдена');
           this.build?.previewFurniture(f.id, f.x, f.z);
           this.updateGizmo(f);
         }
@@ -1764,7 +1800,7 @@ export class WorkshopScene {
         const step = this.grid * (d.gizmoDir ?? 1);
         let worldX = fOrigin.x + (d.gizmoAxis === 'x' ? snap(f.x + step, this.grid) : f.x);
         let worldZ = fOrigin.z + (d.gizmoAxis === 'z' ? snap(f.z + step, this.grid) : f.z);
-        const targetRoom = findRoomAt(this.data, worldX, worldZ);
+        const targetRoom = findRoomAt(this.data, worldX, worldZ) ?? this.data.rooms.find((r) => r.id === f.roomId);
         if (targetRoom) {
           const targetOrigin = roomOrigin(this.data, targetRoom.id);
           const localX = snap(worldX - targetOrigin.x, this.grid);
@@ -1773,6 +1809,8 @@ export class WorkshopScene {
           if (validFurniture(this.data, next)) {
             this.options.onMove(f.id, next.x, next.z, targetRoom.id);
           } else {
+            const reason = getFurnitureCollisionReason(this.data, next);
+            this.options.onCollisionFeedback?.(reason ?? 'Недопустимое положение объекта');
             this.build?.setFurnitureBorderColor(f.id, '#e87668');
             setTimeout(() => {
               if (this.selected === f.id) this.build?.setFurnitureBorderColor(f.id, '#38bdf8');

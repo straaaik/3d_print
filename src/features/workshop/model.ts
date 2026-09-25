@@ -71,6 +71,107 @@ export function validFurniture(state: Workshop, f: Furniture): boolean {
     return Math.abs(other.x - f.x) < (o.w+w)/2 + .08 && Math.abs(other.z - f.z) < (o.d+d)/2 + .08;
   });
 }
+export function getFurnitureCollisionReason(state: Workshop, f: Furniture): string | null {
+  const room = state.rooms.find(r => r.id === f.roomId);
+  if (!room) return 'Комната не найдена';
+
+  const { w, d } = footprint(f);
+  if (Math.abs(f.x) + w / 2 > room.width / 2 - 0.15 || Math.abs(f.z) + d / 2 > room.depth / 2 - 0.15) {
+    return 'Выход за пределы комнаты';
+  }
+
+  const collidingOther = state.furniture.find(other => {
+    if (other.id === f.id || other.roomId !== f.roomId) return false;
+    const o = footprint(other);
+    return Math.abs(other.x - f.x) < (o.w + w) / 2 + 0.08 && Math.abs(other.z - f.z) < (o.d + d) / 2 + 0.08;
+  });
+  if (collidingOther) {
+    return `Пересечение с «${collidingOther.name}»`;
+  }
+
+  if (!validFurniture(state, f)) {
+    return 'Недопустимые параметры объекта';
+  }
+
+  return null;
+}
+export function snapFurnitureToNeighbors(
+  targetX: number,
+  targetZ: number,
+  f: Furniture,
+  others: Furniture[],
+  room: Room,
+  snapDist = 0.2,
+): { x: number; z: number; snappedX: boolean; snappedZ: boolean } {
+  const { w, d } = footprint(f);
+  const validOthers = others.filter(o => o.id !== f.id && (!o.roomId || o.roomId === room.id));
+
+  let bestX = targetX;
+  let minXDist = Infinity;
+
+  const fOffsetsX = [-w / 2, 0, w / 2];
+  for (const other of validOthers) {
+    const { w: ow } = footprint(other);
+    const otherPointsX = [other.x - ow / 2, other.x, other.x + ow / 2];
+    for (const off of fOffsetsX) {
+      for (const pt of otherPointsX) {
+        const candX = pt - off;
+        const dist = Math.abs(targetX - candX);
+        if (dist < minXDist) {
+          minXDist = dist;
+          bestX = candX;
+        }
+      }
+    }
+  }
+
+  const wallMarginX = room.width / 2 - w / 2 - 0.15;
+  for (const wallX of [wallMarginX, -wallMarginX]) {
+    const dist = Math.abs(targetX - wallX);
+    if (dist < minXDist) {
+      minXDist = dist;
+      bestX = wallX;
+    }
+  }
+
+  let bestZ = targetZ;
+  let minZDist = Infinity;
+
+  const fOffsetsZ = [-d / 2, 0, d / 2];
+  for (const other of validOthers) {
+    const { d: od } = footprint(other);
+    const otherPointsZ = [other.z - od / 2, other.z, other.z + od / 2];
+    for (const off of fOffsetsZ) {
+      for (const pt of otherPointsZ) {
+        const candZ = pt - off;
+        const dist = Math.abs(targetZ - candZ);
+        if (dist < minZDist) {
+          minZDist = dist;
+          bestZ = candZ;
+        }
+      }
+    }
+  }
+
+  const wallMarginZ = room.depth / 2 - d / 2 - 0.15;
+  for (const wallZ of [wallMarginZ, -wallMarginZ]) {
+    const dist = Math.abs(targetZ - wallZ);
+    if (dist < minZDist) {
+      minZDist = dist;
+      bestZ = wallZ;
+    }
+  }
+
+  const snappedX = minXDist <= snapDist;
+  const snappedZ = minZDist <= snapDist;
+
+  return {
+    x: snappedX ? Math.round(bestX * 10000) / 10000 : targetX,
+    z: snappedZ ? Math.round(bestZ * 10000) / 10000 : targetZ,
+    snappedX,
+    snappedZ,
+  };
+}
 export function slotWorld(f: Furniture, s: Slot): [number,number,number] {
   const angle = f.rotation * Math.PI / 180;
   return [f.x + s.x * Math.cos(angle) + s.z * Math.sin(angle), s.y, f.z - s.x * Math.sin(angle) + s.z * Math.cos(angle)];

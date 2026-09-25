@@ -4,7 +4,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as THREE from 'three';
 import type { WorkshopCanvasProps } from '../src/features/workshop/WorkshopCanvas';
-import { createWorkshop, createFurniture, validFurniture, updateFurniture, placeEntity, removeRoom, slotWorld, parseWorkshop, pickWorkshopTarget, syncWorkshopPlacements, calculatePanDelta, calculateOrbitAngles, fillEnclosedTiles, existingRoomsTileBounds, roomOrigin, type Room } from '../src/features/workshop/model';
+import { createWorkshop, createFurniture, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, updateFurniture, placeEntity, removeRoom, slotWorld, parseWorkshop, pickWorkshopTarget, syncWorkshopPlacements, calculatePanDelta, calculateOrbitAngles, fillEnclosedTiles, existingRoomsTileBounds, roomOrigin, type Room } from '../src/features/workshop/model';
 import { instanceTemplate, disposeInstances } from '../src/features/workshop/instances';
 import { getWorkshopShadowConfig, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget } from '../src/features/workshop/WorkshopScene';
 import { getOrCreateHudButtonTexture, hudButtonTextureCache, clearHudButtonTextureCache } from '../src/features/workshop/spatialAuthoring';
@@ -1060,6 +1060,65 @@ test('WorkshopCanvasProps is clean, does not contain roomEditorOpen, and UI layo
     canvasSource.includes('space-y-2.5'),
     'Top-left overlay stack must wrap in a flex container with max-h-[calc(100vh-140px)] overflow-y-auto space-y-2.5'
   );
+});
+
+test('getFurnitureCollisionReason diagnoses room bounds, overlap with item name, invalid parameters and valid state', () => {
+  const state = createWorkshop();
+  const table = state.furniture[0]; // 'Стол A'
+  const otherTable = state.furniture[1]; // 'Стол B'
+
+  // Valid placement returns null
+  assert.equal(getFurnitureCollisionReason(state, table), null);
+
+  // Missing room returns 'Комната не найдена'
+  assert.equal(getFurnitureCollisionReason(state, { ...table, roomId: 'non-existent-room' }), 'Комната не найдена');
+
+  // Exceeding room bounds returns 'Выход за пределы комнаты'
+  assert.equal(getFurnitureCollisionReason(state, { ...table, x: 8 }), 'Выход за пределы комнаты');
+  assert.equal(getFurnitureCollisionReason(state, { ...table, z: 6 }), 'Выход за пределы комнаты');
+
+  // Overlapping another furniture returns `Пересечение с «${other.name}»`
+  assert.equal(
+    getFurnitureCollisionReason(state, { ...table, x: otherTable.x, z: otherTable.z }),
+    `Пересечение с «${otherTable.name}»`
+  );
+
+  // Invalid parameters returns 'Недопустимые параметры объекта'
+  assert.equal(getFurnitureCollisionReason(state, { ...table, rotation: 45 }), 'Недопустимые параметры объекта');
+  assert.equal(getFurnitureCollisionReason(state, { ...table, levels: 0 }), 'Недопустимые параметры объекта');
+});
+
+test('snapFurnitureToNeighbors magnetically snaps edges within snapDist and leaves coordinates unchanged when far', () => {
+  const state = createWorkshop();
+  const room = state.rooms[0]; // width: 14, depth: 10
+  const tableA = state.furniture[0]; // Table A at x: -2.8, z: 1.6, width: 3.6, depth: 0.8
+  // tableA footprint: w: 3.6, d: 0.8. Right edge of tableA: -2.8 + 1.8 = -1.0
+  const tableB = { ...createFurniture(room.id, 'table'), id: 'test-table-b', width: 3.6, depth: 0.8 };
+  // Left edge of tableB is targetX - 1.8.
+  // If tableB left edge is placed at -0.9 (targetX = -0.9 + 1.8 = 0.9):
+  // Distance between tableB left edge (-0.9) and tableA right edge (-1.0) is 0.1 <= snapDist (0.2).
+  // tableB left edge snaps to -1.0, so snapped center is -1.0 + 1.8 = 0.8.
+
+  const snapResultClose = snapFurnitureToNeighbors(0.9, 1.6, tableB, [tableA], room, 0.2);
+  assert.equal(snapResultClose.snappedX, true);
+  assert.equal(snapResultClose.x, 0.8);
+  assert.equal(snapResultClose.snappedZ, true); // tableA.z is 1.6, targetZ is 1.6 (dist 0 <= 0.2)
+  assert.equal(snapResultClose.z, 1.6);
+
+  // Snapping to room wall boundaries: ±(room.width/2 - w/2 - 0.15)
+  // room.width = 14, w = 3.6 -> wallMarginX = 14/2 - 3.6/2 - 0.15 = 7 - 1.8 - 0.15 = 5.05.
+  // If targetX is 5.1, distance to wallMarginX is |5.1 - 5.05| = 0.05 <= 0.2
+  const snapResultWall = snapFurnitureToNeighbors(5.1, 0, tableB, [], room, 0.2);
+  assert.equal(snapResultWall.snappedX, true);
+  assert.equal(snapResultWall.x, 5.05);
+
+  // Far from all neighbors and walls: no snapping
+  // Target position (0, 0) is far from wall (5.05) and tableA (-2.8, 1.6)
+  const snapResultFar = snapFurnitureToNeighbors(0, 0, tableB, [tableA], room, 0.2);
+  assert.equal(snapResultFar.snappedX, false);
+  assert.equal(snapResultFar.snappedZ, false);
+  assert.equal(snapResultFar.x, 0);
+  assert.equal(snapResultFar.z, 0);
 });
 
 

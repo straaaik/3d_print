@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { RotateCcw, RotateCw, X, Save, Eye, ZoomIn, ZoomOut, Type, MousePointer2, Plus, Paintbrush, Eraser, Check, Pencil, Trash2 } from 'lucide-react';
+import { RotateCcw, RotateCw, X, Save, Eye, ZoomIn, ZoomOut, Type, MousePointer2, Plus, Paintbrush, Eraser, Check, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import type { WorkshopScene, HoverPlacementInfo } from './WorkshopScene';
 import type { FurnitureKind, ModelKey, Room, RoomLabel, Workshop } from './model';
 import type { Filament, Printer } from '../../shared/types';
@@ -52,6 +52,7 @@ export interface WorkshopCanvasProps {
   onExitEdit?: () => void;
   activePrinterIds?: Set<string>;
   onToggleActivePrinter?: (printerId: string) => void;
+  onCollisionFeedback?: (reason: string) => void;
 }
 
 export type Props = WorkshopCanvasProps;
@@ -78,6 +79,26 @@ export function WorkshopCanvas(props: WorkshopCanvasProps) {
     setRoomName(props.room.name);
   }, [props.room.id, props.room.name]);
   const [isDeleteRoomConfirmOpen, setIsDeleteRoomConfirmOpen] = useState(false);
+  const [collisionToast, setCollisionToast] = useState<string | null>(null);
+  const collisionToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleCollisionFeedback = (reason: string) => {
+    if (collisionToastTimer.current) {
+      clearTimeout(collisionToastTimer.current);
+    }
+    setCollisionToast(reason);
+    collisionToastTimer.current = setTimeout(() => {
+      setCollisionToast(null);
+    }, 2000);
+    latest.current.onCollisionFeedback?.(reason);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (collisionToastTimer.current) clearTimeout(collisionToastTimer.current);
+    };
+  }, []);
+
   const top = props.room.camera?.top ?? false;
 
   const handleConfirmReset = async () => {
@@ -164,6 +185,7 @@ export function WorkshopCanvas(props: WorkshopCanvasProps) {
           onReady: () => setStatus(''),
           onError: setStatus,
           onHoverPlacement: setHoverPlacement,
+          onCollisionFeedback: handleCollisionFeedback,
         });
         scene.current = instance;
         const p = latest.current;
@@ -579,7 +601,21 @@ export function WorkshopCanvas(props: WorkshopCanvasProps) {
         )}
       </AnimatePresence>
 
-
+      {/* Collision Diagnosis Cockpit Feedback Toast */}
+      <AnimatePresence>
+        {collisionToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 16, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.96 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 rounded-xl border border-rose-500/40 bg-[#0a0d12]/95 px-4 py-2.5 font-mono text-xs font-semibold text-rose-200 shadow-2xl backdrop-blur-md pointer-events-none select-none"
+          >
+            <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
+            <span>{collisionToast}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* EQUIPMENT & MATERIAL INSPECTION MENU: Full-featured cockpit panel (View mode only) */}
       <AnimatePresence>
