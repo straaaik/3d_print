@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { createWorkshop, createFurniture, validFurniture, updateFurniture, placeEntity, removeRoom, slotWorld, parseWorkshop, pickWorkshopTarget, syncWorkshopPlacements, calculatePanDelta, calculateOrbitAngles, fillEnclosedTiles, existingRoomsTileBounds, roomOrigin, type Room } from '../src/features/workshop/model';
 import { instanceTemplate, disposeInstances } from '../src/features/workshop/instances';
-import { getWorkshopShadowConfig } from '../src/features/workshop/WorkshopScene';
+import { getWorkshopShadowConfig, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget } from '../src/features/workshop/WorkshopScene';
 import { getOrCreateHudButtonTexture, hudButtonTextureCache, clearHudButtonTextureCache } from '../src/features/workshop/spatialAuthoring';
 
 test('default layout has non-overlapping furnishings including movable decor and no invented inventory', () => {
@@ -857,6 +857,176 @@ test('spatial authoring caches HUD button textures by text, color and width to p
   clearHudButtonTextureCache();
   assert.equal(hudButtonTextureCache.size, 0);
 });
+
+test('room camera focus coordinates for a room with custom camera and a room without custom camera (using roomOrigin)', () => {
+  const rootRoom: Room = {
+    id: 'room-root',
+    name: 'Main Room',
+    width: 12,
+    depth: 8,
+  };
+  const attachedRoom: Room = {
+    id: 'room-north',
+    name: 'North Annex',
+    width: 8,
+    depth: 6,
+    attachment: { roomId: 'room-root', side: 'north' },
+  };
+  const customCameraRoom: Room = {
+    id: 'room-custom',
+    name: 'Studio',
+    width: 10,
+    depth: 10,
+    camera: {
+      x: 4.5,
+      y: 1.2,
+      z: -7.8,
+      span: 14.5,
+      azimuth: Math.PI / 3,
+      top: true,
+    },
+  };
+
+  const state = {
+    version: 1 as const,
+    rooms: [rootRoom, attachedRoom, customCameraRoom],
+    furniture: [],
+    slots: [],
+    placements: [],
+  };
+
+  // 1. Room with custom camera: coordinates, span, azimuth, top match room.camera exactly
+  const customFocus = calculateRoomCameraFocus(state, customCameraRoom);
+  assert.deepEqual(customFocus.target, { x: 4.5, y: 1.2, z: -7.8 });
+  assert.equal(customFocus.span, 14.5);
+  assert.equal(customFocus.azimuth, Math.PI / 3);
+  assert.equal(customFocus.elevation, 16);
+  assert.equal(customFocus.top, true);
+
+  // 2. Room without custom camera (root room): targets room origin with span = max(width, depth) * 1.15
+  const rootFocus = calculateRoomCameraFocus(state, rootRoom);
+  const rootOriginCoord = roomOrigin(state, rootRoom.id);
+  assert.deepEqual(rootOriginCoord, { x: 0, z: 0 });
+  assert.deepEqual(rootFocus.target, { x: 0, y: 0.7, z: 0 });
+  assert.equal(rootFocus.span, 12 * 1.15); // max(8, 12) * 1.15 = 13.8
+  assert.equal(rootFocus.azimuth, Math.PI / 4);
+  assert.equal(rootFocus.elevation, 16);
+  assert.equal(rootFocus.top, false);
+
+  // 3. Room without custom camera attached to parent: targets its calculated roomOrigin
+  const northFocus = calculateRoomCameraFocus(state, attachedRoom);
+  const northOriginCoord = roomOrigin(state, attachedRoom.id);
+  // Root room depth = 8, attached room depth = 6, side = 'north' -> z = -(8 + 6) / 2 = -7
+  assert.deepEqual(northOriginCoord, { x: 0, z: -7 });
+  assert.deepEqual(northFocus.target, { x: 0, y: 0.7, z: -7 });
+  assert.equal(northFocus.span, 8 * 1.15); // max(6, 8) * 1.15 = 9.2
+  assert.equal(northFocus.azimuth, Math.PI / 4);
+  assert.equal(northFocus.elevation, 16);
+  assert.equal(northFocus.top, false);
+
+  // 4. Default azimuth when room.camera has no azimuth specified
+  const customNoAzimuthRoom: Room = {
+    id: 'room-no-azimuth',
+    name: 'Lab',
+    width: 6,
+    depth: 6,
+    camera: { x: 1, y: 0.7, z: 2, span: 8 },
+  };
+  const noAzimuthFocus = calculateRoomCameraFocus(state, customNoAzimuthRoom);
+  assert.equal(noAzimuthFocus.azimuth, Math.PI / 4);
+  assert.equal(noAzimuthFocus.top, false);
+});
+
+test('zoom target stability helper and math keeps target stable and shifts clamped', () => {
+  const currentTarget = { x: 10, y: 0.7, z: -15 };
+  const bounds = { min: { x: -20, z: -30 }, max: { x: 40, z: 20 } };
+  const camRight = { x: 1, y: 0, z: 0 };
+  const camUp = { x: 0, y: 0, z: -1 };
+
+  // 1. calculateWheelShift clamps NDC and bounds shifts
+  const shiftNormal = calculateWheelShift(0.5, -0.5, 2.0, 1.5);
+  assert.ok(Number.isFinite(shiftNormal.shiftX));
+  assert.ok(Number.isFinite(shiftNormal.shiftZ));
+
+  // Extreme or NaN NDC is clamped within [-1, 1]
+  const shiftExtreme = calculateWheelShift(100, -500, 2.0, 1.5);
+  const shiftClamped = calculateWheelShift(1, -1, 2.0, 1.5);
+  assert.deepEqual(shiftExtreme, shiftClamped);
+
+  const shiftNaN = calculateWheelShift(NaN, Infinity, 2.0, 1.5);
+  assert.equal(shiftNaN.shiftX, 0);
+  assert.equal(shiftNaN.shiftZ, 0);
+
+  // 2. Zooming out (clampedDelta > 0) keeps camera target stable without jumping to (0,0,0)
+  // Even if an object is selected, zooming out MUST NOT snap to the object or jump to (0,0,0)
+  const selectedObjectPos = { x: -5, y: 0.7, z: 8 };
+  const { shiftX, shiftZ } = calculateWheelShift(0.2, 0.1, 1.5, 1.33);
+  const zoomOutTarget = calculateZoomTarget(
+    currentTarget,
+    60, // clampedDelta > 0: zooming out
+    selectedObjectPos,
+    camRight,
+    camUp,
+    shiftX,
+    shiftZ,
+    bounds
+  );
+
+  // Target remains in the vicinity of currentTarget, never resets to (0,0,0)
+  assert.notEqual(zoomOutTarget.x, 0);
+  assert.notEqual(zoomOutTarget.z, 0);
+  assert.equal(zoomOutTarget.y, 0.7);
+  assert.ok(Math.abs(zoomOutTarget.x - currentTarget.x) < 5);
+  assert.ok(Math.abs(zoomOutTarget.z - currentTarget.z) < 5);
+
+  // 3. No object selected: both zoom-in and zoom-out remain stable without jumping to (0,0,0)
+  const zoomInNoObject = calculateZoomTarget(
+    currentTarget,
+    -80, // clampedDelta < 0: zooming in
+    null,
+    camRight,
+    camUp,
+    shiftX,
+    shiftZ,
+    bounds
+  );
+  assert.notEqual(zoomInNoObject.x, 0);
+  assert.notEqual(zoomInNoObject.z, 0);
+  assert.ok(Math.abs(zoomInNoObject.x - currentTarget.x) < 5);
+  assert.ok(Math.abs(zoomInNoObject.z - currentTarget.z) < 5);
+
+  // 4. Zooming in with selected object smoothly biases target towards object position
+  const zoomInWithObject = calculateZoomTarget(
+    currentTarget,
+    -100, // clampedDelta < 0: zooming in
+    selectedObjectPos,
+    camRight,
+    camUp,
+    shiftX,
+    shiftZ,
+    bounds
+  );
+  // Has moved closer to selectedObjectPos
+  const distBefore = Math.hypot(selectedObjectPos.x - currentTarget.x, selectedObjectPos.z - currentTarget.z);
+  const distAfter = Math.hypot(selectedObjectPos.x - zoomInWithObject.x, selectedObjectPos.z - zoomInWithObject.z);
+  assert.ok(distAfter < distBefore);
+
+  // 5. Clamping to workshop bounds keeps camera bounded even with extreme offsets
+  const extremeTarget = { x: 1000, y: 0.7, z: -1000 };
+  const clampedTarget = calculateZoomTarget(
+    extremeTarget,
+    50,
+    null,
+    camRight,
+    camUp,
+    0,
+    0,
+    bounds
+  );
+  assert.equal(clampedTarget.x, bounds.max.x + 5);
+  assert.equal(clampedTarget.z, bounds.min.z - 5);
+});
+
 
 
 

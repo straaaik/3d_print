@@ -4,7 +4,7 @@ import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { ScenePresentation } from './scenePresentation';
 import { animate, type AnimationPlaybackControls } from 'motion';
 import { acquireAssets, releaseAssets, type Assets, type SceneBuild } from './sceneGeometry';
-import { roomOrigin, findRoomAt, type FurnitureKind, snap, validFurniture, pickWorkshopTarget, footprint, slotWorld, calculatePanDelta, calculateOrbitAngles, type Furniture, type Room, type Workshop, type Slot, type ModelKey, type Placement } from './model';
+import { roomOrigin, findRoomAt, type FurnitureKind, snap, validFurniture, pickWorkshopTarget, footprint, slotWorld, calculatePanDelta, calculateOrbitAngles, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget, type Furniture, type Room, type Workshop, type Slot, type ModelKey, type Placement } from './model';
 import { buildSpatialWorkshop, workshopBounds } from './spatialScene';
 import { SpatialAuthoring, type SpatialCallbacks } from './spatialAuthoring';
 import type { Filament, Printer } from '../../shared/types';
@@ -694,16 +694,22 @@ export class WorkshopScene {
       this.selected = null;
       this.highlightedFurnitureId = null;
       this.hideGizmo();
-      if (room.camera && !this.customView) {
-        this.target.set(room.camera.x, room.camera.y, room.camera.z);
-        this.span = room.camera.span;
-        this.azimuth = room.camera.azimuth ?? Math.PI / 4;
-        this.top = room.camera.top ?? false;
+      this.customView = false;
+      if (room) {
+        const focus = calculateRoomCameraFocus(this.data, room);
+        this.top = focus.top;
+        this.moveCamera(
+          new THREE.Vector3(focus.target.x, focus.target.y, focus.target.z),
+          focus.span,
+          focus.azimuth,
+          focus.elevation,
+          true
+        );
       } else {
-        this.target.copy(this.workshopCenter());
-        this.span = this.overviewSpan() * .88;
-        this.azimuth = Math.PI / 4;
-        this.elevation = 16;
+        this.top = false;
+        const target = this.workshopCenter();
+        const span = this.overviewSpan() * .88;
+        this.moveCamera(target, span, Math.PI / 4, 16, true);
       }
     } else {
       if (structureChanged) {
@@ -1918,38 +1924,44 @@ export class WorkshopScene {
 
     if (Math.abs(newSpan - oldSpan) > 0.001) {
       const rect = this.options.canvas.getBoundingClientRect();
-      const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      const ndcY = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      const rawNdcX = rect.width > 0 ? ((e.clientX - rect.left) / rect.width) * 2 - 1 : 0;
+      const rawNdcY = rect.height > 0 ? -((e.clientY - rect.top) / rect.height) * 2 + 1 : 0;
 
       const dSpan = newSpan - oldSpan;
+      const { shiftX, shiftZ } = calculateWheelShift(rawNdcX, rawNdcY, dSpan, this.aspect);
+
       const camRight = new THREE.Vector3();
       const camUp = new THREE.Vector3();
       this.camera.matrixWorld.extractBasis(camRight, camUp, new THREE.Vector3());
 
       camRight.y = 0;
-      camRight.normalize();
-      camUp.y = 0;
-      camUp.normalize();
+      if (camRight.lengthSq() > 1e-6) {
+        camRight.normalize();
+      } else {
+        camRight.set(1, 0, 0);
+      }
 
-      const shiftX = ndcX * (this.aspect * dSpan * 0.45);
-      const shiftZ = ndcY * (dSpan * 0.45);
+      camUp.y = 0;
+      if (camUp.lengthSq() > 1e-6) {
+        camUp.normalize();
+      } else {
+        camUp.set(0, 0, -1);
+      }
 
       const selectedPos = this.getSelectedObjectPosition();
-      if (selectedPos && clampedDelta < 0) {
-        // Smoothly zoom in towards the selected 3D item (printer, furniture, or label)
-        const zoomWeight = Math.min(0.25, (Math.abs(clampedDelta) / 120) * 0.22);
-        this.target.lerp(new THREE.Vector3(selectedPos.x, this.target.y, selectedPos.z), zoomWeight);
-      } else {
-        this.target.addScaledVector(camRight, shiftX);
-        this.target.addScaledVector(camUp, shiftZ);
-      }
+      const bounds = this.data ? workshopBounds(this.data) : null;
+      const nextTarget = calculateZoomTarget(
+        this.target,
+        clampedDelta,
+        selectedPos,
+        camRight,
+        camUp,
+        shiftX,
+        shiftZ,
+        bounds
+      );
 
-      if (this.data) {
-        const bounds = workshopBounds(this.data);
-        this.target.x = THREE.MathUtils.clamp(this.target.x, bounds.min.x - 5, bounds.max.x + 5);
-        this.target.z = THREE.MathUtils.clamp(this.target.z, bounds.min.z - 5, bounds.max.z + 5);
-      }
-
+      this.target.set(nextTarget.x, nextTarget.y, nextTarget.z);
       this.span = newSpan;
       this.invalidate();
       this.saveCameraDebounced();
@@ -2123,3 +2135,6 @@ export function getWorkshopShadowConfig(containerWidth: number) {
     shadowMapType: THREE.PCFSoftShadowMap,
   };
 }
+
+export { calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget } from './model';
+

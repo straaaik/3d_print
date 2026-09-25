@@ -805,4 +805,115 @@ export function calculateOrbitAngles(
   };
 }
 
+/**
+ * Calculates camera target, span, azimuth, elevation and top-down flag for focusing on a room.
+ * When room.camera is present, uses its saved coordinates.
+ * When room.camera is absent, centers camera on the room's origin with span covering the room bounds.
+ */
+export function calculateRoomCameraFocus(
+  state: Workshop | null,
+  room: Room
+): {
+  target: { x: number; y: number; z: number };
+  span: number;
+  azimuth: number;
+  elevation: number;
+  top: boolean;
+} {
+  if (room.camera) {
+    return {
+      target: { x: room.camera.x, y: room.camera.y, z: room.camera.z },
+      span: room.camera.span,
+      azimuth: room.camera.azimuth ?? Math.PI / 4,
+      elevation: 16,
+      top: room.camera.top ?? false,
+    };
+  }
+
+  let o = { x: 0, z: 0 };
+  if (state) {
+    try {
+      o = roomOrigin(state, room.id);
+    } catch {
+      // Fallback in case of corrupted room graph
+    }
+  }
+
+  return {
+    target: { x: o.x, y: 0.7, z: o.z },
+    span: Math.max(room.depth * 1.15, room.width * 1.15),
+    azimuth: Math.PI / 4,
+    elevation: 16,
+    top: false,
+  };
+}
+
+/**
+ * Calculates bounded camera panning shift in NDC space during mouse wheel zoom.
+ * Ensures NDC coordinates and resulting screen-space shifts are clamped and bounded.
+ */
+export function calculateWheelShift(
+  ndcX: number,
+  ndcY: number,
+  dSpan: number,
+  aspect: number
+): { shiftX: number; shiftZ: number } {
+  const boundedNdcX = Math.max(-1, Math.min(1, Number.isFinite(ndcX) ? ndcX : 0));
+  const boundedNdcY = Math.max(-1, Math.min(1, Number.isFinite(ndcY) ? ndcY : 0));
+  const boundedAspect = Math.max(0.2, Math.min(5, Number.isFinite(aspect) ? aspect : 1));
+  const maxShift = Math.abs(dSpan) * 2;
+  const rawShiftX = boundedNdcX * (boundedAspect * dSpan * 0.45);
+  const rawShiftZ = boundedNdcY * (dSpan * 0.45);
+  return {
+    shiftX: Math.max(-maxShift, Math.min(maxShift, rawShiftX)),
+    shiftZ: Math.max(-maxShift, Math.min(maxShift, rawShiftZ)),
+  };
+}
+
+/**
+ * Calculates updated camera target during wheel zoom with stability guarantees.
+ * When zooming in (clampedDelta < 0) with an object selected, smoothly biases target towards the object.
+ * When zooming out (clampedDelta > 0) or when no object is selected, shifts target stably based on cursor NDC projection
+ * without jumping to (0,0,0) or drifting outside workshop bounds.
+ */
+export function calculateZoomTarget(
+  currentTarget: { x: number; y: number; z: number },
+  clampedDelta: number,
+  selectedPos: { x: number; y: number; z: number } | null | undefined,
+  camRight: { x: number; y: number; z: number },
+  camUp: { x: number; y: number; z: number },
+  shiftX: number,
+  shiftZ: number,
+  bounds?: { min: { x: number; z: number }; max: { x: number; z: number } } | null
+): { x: number; y: number; z: number } {
+  let nextX = currentTarget.x;
+  const nextY = currentTarget.y;
+  let nextZ = currentTarget.z;
+
+  if (selectedPos && clampedDelta < 0) {
+    const zoomWeight = Math.min(0.25, (Math.abs(clampedDelta) / 120) * 0.22);
+    nextX += (selectedPos.x - nextX) * zoomWeight;
+    nextZ += (selectedPos.z - nextZ) * zoomWeight;
+  } else {
+    nextX += camRight.x * shiftX + camUp.x * shiftZ;
+    nextZ += camRight.z * shiftX + camUp.z * shiftZ;
+  }
+
+  if (bounds) {
+    const minX = bounds.min.x - 5;
+    const maxX = bounds.max.x + 5;
+    const minZ = bounds.min.z - 5;
+    const maxZ = bounds.max.z + 5;
+    nextX = Math.max(minX, Math.min(maxX, nextX));
+    nextZ = Math.max(minZ, Math.min(maxZ, nextZ));
+  }
+
+  return {
+    x: Number.isFinite(nextX) ? nextX : currentTarget.x,
+    y: Number.isFinite(nextY) ? nextY : currentTarget.y,
+    z: Number.isFinite(nextZ) ? nextZ : currentTarget.z,
+  };
+}
+
+
 
