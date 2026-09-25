@@ -351,73 +351,96 @@ export function WorkshopCanvas(props: WorkshopCanvasProps) {
       <div className={`absolute left-4 ${props.edit ? 'top-20' : 'top-4'} z-20 flex flex-col max-h-[calc(100vh-140px)] overflow-y-auto space-y-2.5 font-mono pointer-events-none`}>
         {/* Row 1: Metrics */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="rounded-lg border border-white/10 bg-neutral-950/80 px-3 py-2 shadow-lg backdrop-blur-md">
-            <strong className="text-xl font-bold text-white">
-              {
-                props.layout.placements.filter(
-                  (p) =>
-                    p.kind === 'printer' &&
-                    props.layout.slots.some(
-                      (s) => s.id === p.slotId && props.layout.furniture.some((f) => f.id === s.furnitureId && f.roomId === props.room.id)
-                    )
-                ).length
-              }
-            </strong>
-            <p className="text-[10px] text-neutral-400 uppercase tracking-wider">ПРИНТЕРОВ В КОМНАТЕ</p>
-          </div>
-          <div className="rounded-lg border border-white/10 bg-neutral-950/80 px-3 py-2 shadow-lg backdrop-blur-md">
-            <strong className="text-xl font-bold text-white">
-              {props.room.width} × {props.room.depth}
-            </strong>
-            <p className="text-[10px] text-neutral-400 uppercase tracking-wider">
-              МЕТРАЖ ({props.room.tiles && props.room.tiles.length > 0 ? props.room.tiles.length : props.room.width * props.room.depth} М²)
-            </p>
-          </div>
-        </div>
-
-        {/* Row 2: Room name (editable) & Delete room button */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="pointer-events-auto flex flex-col justify-between rounded-lg border border-white/10 bg-neutral-950/80 px-3 py-1.5 shadow-lg backdrop-blur-md transition-colors focus-within:border-cyan-400/60 focus-within:bg-neutral-950/95 min-w-[200px] max-w-[280px]">
-            <div className="flex items-center gap-1.5">
-              <input
-                type="text"
-                aria-label="Название комнаты"
-                value={roomName}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setRoomName(val);
-                  if (val.trim()) {
-                    props.onSaveRoom({ ...props.room, name: val.trim() });
+          {props.edit ? (
+            <>
+              <div className="rounded-lg border border-white/10 bg-neutral-950/80 px-3 py-2 shadow-lg backdrop-blur-md">
+                <strong className="text-xl font-bold text-white">
+                  {
+                    props.layout.placements.filter(
+                      (p) =>
+                        p.kind === 'printer' &&
+                        props.layout.slots.some(
+                          (s) => s.id === p.slotId && props.layout.furniture.some((f) => f.id === s.furnitureId && f.roomId === props.room.id)
+                        )
+                    ).length
                   }
-                }}
-                maxLength={80}
-                placeholder="Название комнаты"
-                className="w-full bg-transparent font-mono text-sm font-bold text-white placeholder-neutral-500 focus:outline-none"
-              />
-              <Pencil className="h-3 w-3 shrink-0 text-neutral-400 opacity-60 pointer-events-none" />
-            </div>
-            <p className="text-[10px] text-neutral-400 font-mono uppercase tracking-wider">
-              НАЗВАНИЕ КОМНАТЫ
-            </p>
-          </div>
-
-          {props.edit && props.layout.rooms.length > 1 && (
-            <button
-              type="button"
-              onClick={() => setIsDeleteRoomConfirmOpen(true)}
-              title={`Удалить комнату «${props.room.name}»`}
-              className="pointer-events-auto flex flex-col justify-between rounded-lg border border-rose-500/30 bg-neutral-950/80 px-3 py-1.5 text-rose-400 shadow-lg backdrop-blur-md transition-all hover:border-rose-500/60 hover:bg-rose-950/40 active:scale-95"
-            >
-              <div className="flex items-center gap-1.5">
-                <Trash2 className="h-3.5 w-3.5 text-rose-400" />
-                <span className="font-mono text-xs font-bold text-rose-300">УДАЛИТЬ</span>
+                </strong>
+                <p className="text-[10px] text-neutral-400 uppercase tracking-wider">ПРИНТЕРОВ В КОМНАТЕ</p>
               </div>
-              <p className="text-[10px] font-mono text-rose-400/80 uppercase tracking-wider">
-                КОМНАТУ
-              </p>
-            </button>
+              <div className="rounded-lg border border-white/10 bg-neutral-950/80 px-3 py-2 shadow-lg backdrop-blur-md">
+                <strong className="text-xl font-bold text-white">
+                  {props.room.width} × {props.room.depth}
+                </strong>
+                <p className="text-[10px] text-neutral-400 uppercase tracking-wider">
+                  МЕТРАЖ ({props.room.tiles && props.room.tiles.length > 0 ? props.room.tiles.length : props.room.width * props.room.depth} М²)
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="rounded-lg border border-white/10 bg-neutral-950/80 px-3 py-2 shadow-lg backdrop-blur-md">
+                <strong className="text-xl font-bold text-white">
+                  {props.layout.placements.filter((p) => p.kind === 'printer').length}
+                </strong>
+                <p className="text-[10px] text-neutral-400 uppercase tracking-wider">ПРИНТЕРОВ В МАСТЕРСКОЙ</p>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-neutral-950/80 px-3 py-2 shadow-lg backdrop-blur-md">
+                <strong className="text-xl font-bold text-white">
+                  {props.layout.rooms.length}
+                </strong>
+                <p className="text-[10px] text-neutral-400 uppercase tracking-wider">
+                  {props.layout.rooms.length === 1 ? 'ПОМЕЩЕНИЕ' : props.layout.rooms.length < 5 ? 'ПОМЕЩЕНИЯ' : 'ПОМЕЩЕНИЙ'}
+                </p>
+              </div>
+            </>
           )}
         </div>
+
+        {/* Row 2: Room name (editable) & Delete room button (Edit mode only) */}
+        {props.edit && (
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="pointer-events-auto flex flex-col justify-between rounded-lg border border-white/10 bg-neutral-950/80 px-3 py-1.5 shadow-lg backdrop-blur-md transition-colors focus-within:border-cyan-400/60 focus-within:bg-neutral-950/95 min-w-[200px] max-w-[280px]">
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  aria-label="Название комнаты"
+                  value={roomName}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setRoomName(val);
+                    if (val.trim()) {
+                      props.onSaveRoom({ ...props.room, name: val.trim() });
+                    }
+                  }}
+                  maxLength={80}
+                  placeholder="Название комнаты"
+                  className="w-full bg-transparent font-mono text-sm font-bold text-white placeholder-neutral-500 focus:outline-none"
+                />
+                <Pencil className="h-3 w-3 shrink-0 text-neutral-400 opacity-60 pointer-events-none" />
+              </div>
+              <p className="text-[10px] text-neutral-400 font-mono uppercase tracking-wider">
+                НАЗВАНИЕ КОМНАТЫ
+              </p>
+            </div>
+
+            {props.layout.rooms.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setIsDeleteRoomConfirmOpen(true)}
+                title={`Удалить комнату «${props.room.name}»`}
+                className="pointer-events-auto flex flex-col justify-between rounded-lg border border-rose-500/30 bg-neutral-950/80 px-3 py-1.5 text-rose-400 shadow-lg backdrop-blur-md transition-all hover:border-rose-500/60 hover:bg-rose-950/40 active:scale-95"
+              >
+                <div className="flex items-center gap-1.5">
+                  <Trash2 className="h-3.5 w-3.5 text-rose-400" />
+                  <span className="font-mono text-xs font-bold text-rose-300">УДАЛИТЬ</span>
+                </div>
+                <p className="text-[10px] font-mono text-rose-400/80 uppercase tracking-wider">
+                  КОМНАТУ
+                </p>
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* View angle & zoom buttons */}

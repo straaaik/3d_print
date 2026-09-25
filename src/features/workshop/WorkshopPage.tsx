@@ -202,7 +202,8 @@ function Workspace({ userId }: { userId: string }) {
     );
   }
 
-  const room = layout.rooms.find((r) => r.id === activeRoom) ?? layout.rooms[0];
+  const currentActiveRoom = activeRoom || (layout.rooms[0]?.id ?? '');
+  const room = layout.rooms.find((r) => r.id === currentActiveRoom) ?? layout.rooms[0];
 
   function commit(next: Workshop) {
     if (layout) {
@@ -235,11 +236,10 @@ function Workspace({ userId }: { userId: string }) {
         ? id
         : layout!.slots.find((slot) => slot.id === layout!.placements.find((item) => item.id === id)?.slotId)?.furnitureId;
     const owner = layout!.furniture.find((item) => item.id === furnitureId);
-    if (owner && owner.roomId !== activeRoom) {
+    if (owner && owner.roomId !== currentActiveRoom) {
       setActiveRoom(owner.roomId);
     }
     setSelectedLabel(null);
-    setFocusToken((n) => n + 1);
   }
 
   function handleToggleEdit() {
@@ -531,8 +531,9 @@ function Workspace({ userId }: { userId: string }) {
     if (found) {
       const slot = layout!.slots.find((s) => s.id === found.slotId);
       const f = layout!.furniture.find((item) => item.id === slot?.furnitureId);
-      if (f) setActiveRoom(f.roomId);
+      if (f && f.roomId !== currentActiveRoom) setActiveRoom(f.roomId);
       select(found.id, 'placement');
+      setFocusToken((n) => n + 1);
     }
   }
 

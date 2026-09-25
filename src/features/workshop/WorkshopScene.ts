@@ -954,26 +954,28 @@ export class WorkshopScene {
     }
 
     if (roomChanged) {
-      this.selected = null;
-      this.selectedFurnitureIds.clear();
-      this.highlightedFurnitureId = null;
-      this.hideGizmo();
       this.customView = false;
-      if (room) {
-        const focus = calculateRoomCameraFocus(this.data, room);
-        this.top = focus.top;
-        this.moveCamera(
-          new THREE.Vector3(focus.target.x, focus.target.y, focus.target.z),
-          focus.span,
-          focus.azimuth,
-          focus.elevation,
-          true
-        );
-      } else {
-        this.top = false;
-        const target = this.workshopCenter();
-        const span = this.overviewSpan() * .88;
-        this.moveCamera(target, span, Math.PI / 4, 16, true);
+      if (!this.selected) {
+        this.selectedFurnitureIds.clear();
+        this.highlightedFurnitureId = null;
+        this.hideGizmo();
+        if (room) {
+          const focus = calculateRoomCameraFocus(this.data, room);
+          const targetAzimuth = room.camera?.azimuth ?? this.azimuth;
+          this.top = focus.top;
+          this.moveCamera(
+            new THREE.Vector3(focus.target.x, focus.target.y, focus.target.z),
+            focus.span,
+            targetAzimuth,
+            focus.elevation,
+            false
+          );
+        } else {
+          this.top = false;
+          const target = this.workshopCenter();
+          const span = this.overviewSpan() * .88;
+          this.moveCamera(target, span, Math.PI / 4, 16, false);
+        }
       }
     } else {
       if (structureChanged) {
@@ -1171,7 +1173,6 @@ export class WorkshopScene {
     if (!id || !this.data) {
       this.hideGizmo();
       this.hidePrinterInspectionLight();
-      if(!this.edit)this.overview();
       return;
     }
 
@@ -1376,7 +1377,8 @@ export class WorkshopScene {
     if (!this.assets || !this.data || !this.room) return;
     this.authoring?.setAssets(this.assets);
     this.build?.dispose();
-    this.build = buildSpatialWorkshop(this.data,this.assets,this.filaments,this.printers,this.activePrinterIds,this.room.id);
+    const selectedRoomId = this.edit ? this.room.id : undefined;
+    this.build = buildSpatialWorkshop(this.data,this.assets,this.filaments,this.printers,this.activePrinterIds,selectedRoomId);
     this.scene.add(this.build.root);
     this.authoring?.update(this.data,this.edit,this.selected,this.room.id);
     for (const fid of this.selectedFurnitureIds) {
@@ -1447,6 +1449,7 @@ export class WorkshopScene {
         this.invalidate();
       },
       onComplete: () => {
+        this.transition = null;
         if (notify) this.saveCamera();
       },
     });
@@ -2273,11 +2276,9 @@ export class WorkshopScene {
           this.build?.setFurnitureBorderColor(prevId, '#d6d6cd');
         }
         this.selectedFurnitureIds.clear();
-        const hitRoom = this.authoring.selectRoomAt(e);
-        if (!hitRoom) {
-          this.options.onSelect('', 'furniture');
-          this.overview();
-        }
+        this.options.onSelect('', 'furniture');
+        this.select(null);
+        this.overview();
       }
     }
     this.onCancel();
@@ -2503,7 +2504,6 @@ export class WorkshopScene {
     if (this.disposed) return;
     this.renderer.setSize(this.options.container.clientWidth, this.options.container.clientHeight, false);
     this.presentation.resize(this.options.container.clientWidth, this.options.container.clientHeight);
-    if (!this.selected && !this.customView) this.span = this.overviewSpan()*(this.edit?1.12:.88);
     this.invalidate();
   };
 

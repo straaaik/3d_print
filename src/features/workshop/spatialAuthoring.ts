@@ -1573,6 +1573,7 @@ export class SpatialAuthoring {
   }
 
   selectRoomAt(e: PointerEvent): boolean {
+    if (!this.edit) return false;
     const p = this.floor(e);
     const room = p && this.roomAt(p);
     if (room) {
