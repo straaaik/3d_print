@@ -68,6 +68,8 @@ export interface SceneBuild {
   setPlacementHover: (placementId: string, progress: number) => void;
   setPrinterHover: (placementId: string, progress: number) => void;
   setFurnitureBorderColor: (id: string, color: string) => void;
+  setSelected?: (selected: boolean) => void;
+  setSelectedRoom?: (roomId?: string) => void;
   dispose: () => void;
 }
 export function buildWorkshop(
@@ -293,11 +295,43 @@ export function buildWorkshop(
       if(meshes.length<2)continue;
       const geometries=meshes.map(mesh=>{mesh.updateMatrix();return mesh.geometry.clone().applyMatrix4(mesh.matrix);});
       const merged=mergeGeometries(geometries);geometries.forEach(g=>g.dispose());
-      const replacement=new THREE.Mesh(merged,mat);replacement.castShadow=meshes.some(mesh=>mesh.castShadow);replacement.receiveShadow=meshes.some(mesh=>mesh.receiveShadow);parent.add(replacement);
+      const replacement=new THREE.Mesh(merged,mat);replacement.castShadow=meshes.some(mesh=>mesh.castShadow);replacement.receiveShadow=meshes.some(mesh=>mesh.receiveShadow);
+      if (meshes[0].userData.floorPart) {
+        replacement.userData.floorPart = meshes[0].userData.floorPart;
+      }
+      parent.add(replacement);
       meshes.forEach(mesh=>mesh.removeFromParent());
     }
   }
   batch(owned);
+
+  const floorItems: Array<{ mesh: THREE.Mesh; part: 'plinth' | 'grout' | 'tile'; tone?: number }> = [];
+  owned.traverse((child) => {
+    if (child instanceof THREE.Mesh && child.userData.floorPart) {
+      const part = child.userData.floorPart as string;
+      if (part === 'plinth' || part === 'grout') {
+        floorItems.push({ mesh: child, part });
+      } else if (part.startsWith('tile-')) {
+        floorItems.push({ mesh: child, part: 'tile', tone: parseInt(part.slice(5), 10) });
+      }
+    }
+  });
+
+  function setSelected(selected: boolean) {
+    for (const item of floorItems) {
+      if (item.part === 'plinth') {
+        item.mesh.material = referenceParts.getFloorPlinthMaterial(selected);
+      } else if (item.part === 'grout') {
+        item.mesh.material = referenceParts.getFloorGroutMaterial(selected);
+      } else if (item.part === 'tile' && item.tone !== undefined) {
+        item.mesh.material = referenceParts.getFloorTileMaterial(item.tone, selected);
+      }
+    }
+  }
+
+  function setSelectedRoom(roomId?: string) {
+    setSelected(roomId === room.id);
+  }
   const translated=new THREE.Matrix4();
   function previewFurniture(id:string,x:number,z:number) {
     const f=furnitureById.get(id),group=furnitureGroups.get(id);if(!f||!group)return;
@@ -387,7 +421,29 @@ export function buildWorkshop(
   function setFurnitureBorderColor(id:string, color:string) {
     furnitureBorders.get(id)?.color.set(color);
   }
-  root.updateMatrixWorld(true);
-  return {root,picks,positions,placements:placementsMeta,previewFurniture,previewPlacement,resetPlacementPreview,setPlacementHover,setPrinterHover:setPlacementHover,setFurnitureBorderColor,dispose:()=>{furnitureBorders.forEach(m=>m.dispose());disposeInstances(instances);disposeAssets([owned]);cube.dispose();referenceParts.dispose();if(!placementHits.size)hitMaterial.dispose();spoolMaterials.forEach(m=>m.dispose());root.removeFromParent();}};
+  return {
+    root,
+    picks,
+    positions,
+    placements: placementsMeta,
+    previewFurniture,
+    previewPlacement,
+    resetPlacementPreview,
+    setPlacementHover,
+    setPrinterHover: setPlacementHover,
+    setFurnitureBorderColor,
+    setSelected,
+    setSelectedRoom,
+    dispose: () => {
+      furnitureBorders.forEach((m) => m.dispose());
+      disposeInstances(instances);
+      disposeAssets([owned]);
+      cube.dispose();
+      referenceParts.dispose();
+      if (!placementHits.size) hitMaterial.dispose();
+      spoolMaterials.forEach((m) => m.dispose());
+      root.removeFromParent();
+    },
+  };
 }
 

@@ -83,30 +83,60 @@ export class ReferenceSceneParts {
       if(!occupied&&f.width>=1.5&&f.depth>=.72)this.copy(parent,'workbench','Decor_',new THREE.Vector3(0,f.height-.85,0));
     }
   }
-  room(parent:THREE.Group,room:Room, openSides: Set<string> = new Set(), origin: { x: number; z: number } = { x: 0, z: 0 }, state?: Workshop, isSelected = false){
-    const surface = (key: string, color: string, roughness: number, emissive?: string, emissiveIntensity?: number) => {
-      const fullKey = emissive ? `${key}-${color}-${emissive}-${emissiveIntensity}` : `${key}-${color}`;
-      if (!this.materials.has(fullKey)) {
-        this.materials.set(
-          fullKey,
-          new THREE.MeshStandardMaterial({
-            color,
-            roughness,
-            metalness: emissive ? 0.08 : 0.04,
-            emissive: emissive ? new THREE.Color(emissive) : new THREE.Color(0x000000),
-            emissiveIntensity: emissiveIntensity ?? 0,
-          })
-        );
-      }
-      return this.materials.get(fullKey)!;
-    };
+  surface(key: string, color: string, roughness: number, emissive?: string, emissiveIntensity?: number): THREE.MeshStandardMaterial {
+    const fullKey = emissive ? `${key}-${color}-${emissive}-${emissiveIntensity}` : `${key}-${color}`;
+    if (!this.materials.has(fullKey)) {
+      this.materials.set(
+        fullKey,
+        new THREE.MeshStandardMaterial({
+          color,
+          roughness,
+          metalness: emissive ? 0.08 : 0.04,
+          emissive: emissive ? new THREE.Color(emissive) : new THREE.Color(0x000000),
+          emissiveIntensity: emissiveIntensity ?? 0,
+        })
+      );
+    }
+    return this.materials.get(fullKey)! as THREE.MeshStandardMaterial;
+  }
+
+  getFloorPlinthMaterial(isSelected: boolean): THREE.MeshStandardMaterial {
+    return this.surface(
+      isSelected ? 'room-plinth-sel' : 'room-plinth',
+      isSelected ? '#243346' : '#353e50',
+      0.76
+    );
+  }
+
+  getFloorGroutMaterial(isSelected: boolean): THREE.MeshStandardMaterial {
+    return this.surface(
+      isSelected ? 'room-grout-sel' : 'room-grout',
+      isSelected ? '#3b5577' : '#727780',
+      0.95,
+      isSelected ? '#0e243d' : undefined,
+      isSelected ? 0.3 : 0
+    );
+  }
+
+  getFloorTileMaterial(tone: number, isSelected: boolean): THREE.MeshStandardMaterial {
     const concreteNormal = ['#7e828b', '#82858e', '#7b808a', '#888a93', '#80838c', '#7d828c'];
     const concreteSelected = ['#425d80', '#466487', '#3f5979', '#4c6c92', '#446083', '#415b7c'];
     const concrete = isSelected ? concreteSelected : concreteNormal;
     const tileEmissive = isSelected ? '#123860' : undefined;
     const tileEmissiveIntensity = isSelected ? 0.45 : 0;
-    const wall=surface('room-wall','#636979',.86);
-    const trim=surface('room-trim','#636b7a',.62);
+    const safeTone = Math.abs(tone) % concrete.length;
+    return this.surface(
+      (isSelected ? 'tile-sel-' : 'tile-') + safeTone,
+      concrete[safeTone],
+      isSelected ? 0.6 : 0.78,
+      tileEmissive,
+      tileEmissiveIntensity
+    );
+  }
+
+  room(parent:THREE.Group,room:Room, openSides: Set<string> = new Set(), origin: { x: number; z: number } = { x: 0, z: 0 }, state?: Workshop, isSelected = false){
+    const wall = this.surface('room-wall','#636979',.86);
+    const trim = this.surface('room-trim','#636b7a',.62);
 
     if (room.tiles && room.tiles.length > 0) {
       const tileTop = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
@@ -115,30 +145,20 @@ export class ReferenceSceneParts {
       for (const [gx, gz] of room.tiles) {
         const lx = (gx + 0.5) - origin.x;
         const lz = (gz + 0.5) - origin.z;
-        this.part(parent, 'room', 'FloorTile_Subfloor', [1.02, .34, 1.02], [lx, -.17, lz]).material = surface(
-          isSelected ? 'room-plinth-sel' : 'room-plinth',
-          isSelected ? '#243346' : '#353e50',
-          .76
-        );
-        this.part(parent, 'room', 'FloorTile_Subfloor', [1.0, .015, 1.0], [lx, .005, lz]).material = surface(
-          isSelected ? 'room-grout-sel' : 'room-grout',
-          isSelected ? '#3b5577' : '#727780',
-          .95,
-          isSelected ? '#0e243d' : undefined,
-          isSelected ? 0.3 : 0
-        );
+        const plinth = this.part(parent, 'room', 'FloorTile_Subfloor', [1.02, .34, 1.02], [lx, -.17, lz]);
+        plinth.material = this.getFloorPlinthMaterial(isSelected);
+        plinth.userData.floorPart = 'plinth';
+
+        const grout = this.part(parent, 'room', 'FloorTile_Subfloor', [1.0, .015, 1.0], [lx, .005, lz]);
+        grout.material = this.getFloorGroutMaterial(isSelected);
+        grout.userData.floorPart = 'grout';
 
         const tile = this.part(parent, 'room', 'FloorTile_0_0', [1, 1, 1], [lx, .026, lz]);
         tile.geometry = tileTop;
         tile.castShadow = false;
-        const tone = Math.abs(((gx * 73 + gz * 37) ^ (gx * gz * 11))) % concrete.length;
-        tile.material = surface(
-          (isSelected ? 'tile-sel-' : 'tile-') + tone,
-          concrete[tone],
-          isSelected ? 0.6 : 0.78,
-          tileEmissive,
-          tileEmissiveIntensity
-        );
+        const tone = Math.abs(((gx * 73 + gz * 37) ^ (gx * gz * 11))) % 6;
+        tile.material = this.getFloorTileMaterial(tone, isSelected);
+        tile.userData.floorPart = `tile-${tone}`;
       }
 
       const isInteriorBoundary = (x: number, z: number, side: RoomSide): boolean => {
@@ -272,18 +292,14 @@ export class ReferenceSceneParts {
       return;
     }
     const nx=Math.ceil(room.width),nz=Math.ceil(room.depth),dx=room.width/nx,dz=room.depth/nz;
-    this.part(parent,'room','FloorTile_Subfloor',[room.width+.10,.34,room.depth+.10],[0,-.17,0]).material=surface(
-      isSelected ? 'room-plinth-sel' : 'room-plinth',
-      isSelected ? '#243346' : '#353e50',
-      .76
-    );
-    this.part(parent,'room','FloorTile_Subfloor',[room.width,.015,room.depth],[0,.005,0]).material=surface(
-      isSelected ? 'room-grout-sel' : 'room-grout',
-      isSelected ? '#3b5577' : '#727780',
-      .95,
-      isSelected ? '#0e243d' : undefined,
-      isSelected ? 0.3 : 0
-    );
+    const plinth = this.part(parent,'room','FloorTile_Subfloor',[room.width+.10,.34,room.depth+.10],[0,-.17,0]);
+    plinth.material = this.getFloorPlinthMaterial(isSelected);
+    plinth.userData.floorPart = 'plinth';
+
+    const grout = this.part(parent,'room','FloorTile_Subfloor',[room.width,.015,room.depth],[0,.005,0]);
+    grout.material = this.getFloorGroutMaterial(isSelected);
+    grout.userData.floorPart = 'grout';
+
     // Continuous top faces avoid subpixel bevels / self-shadow aliasing in the
     // distant overview. The perimeter still uses the beveled Blender plinth.
     const tileTop=new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2);
@@ -291,14 +307,9 @@ export class ReferenceSceneParts {
     for(let x=0;x<nx;x++)for(let z=0;z<nz;z++){
       const tile=this.part(parent,'room','FloorTile_0_0',[dx,1,dz],[-room.width/2+(x+.5)*dx,.026,-room.depth/2+(z+.5)*dz]);
       tile.geometry=tileTop;tile.castShadow=false;
-      const tone=((x*73+z*37)^(x*z*11))%concrete.length;
-      tile.material=surface(
-        (isSelected ? 'tile-sel-' : 'tile-') + tone,
-        concrete[tone],
-        isSelected ? 0.6 : 0.78,
-        tileEmissive,
-        tileEmissiveIntensity
-      );
+      const tone=Math.abs(((x*73+z*37)^(x*z*11)))%6;
+      tile.material = this.getFloorTileMaterial(tone, isSelected);
+      tile.userData.floorPart = `tile-${tone}`;
     }
     const backCount=Math.ceil(room.width/2.8),leftCount=Math.ceil(room.depth/2.8),bw=room.width/backCount,lw=room.depth/leftCount;
     for(let i=0;!openSides.has('north')&&i<backCount;i++){

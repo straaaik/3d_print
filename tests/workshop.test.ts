@@ -9,6 +9,7 @@ import { instanceTemplate, disposeInstances } from '../src/features/workshop/ins
 import { getWorkshopShadowConfig, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget, handleWorkshopKeyDown, type WorkshopHotkeyContext, WorkshopScene } from '../src/features/workshop/WorkshopScene';
 import { getOrCreateHudButtonTexture, hudButtonTextureCache, clearHudButtonTextureCache, SpatialAuthoring } from '../src/features/workshop/spatialAuthoring';
 import { occupiedSides } from '../src/features/workshop/spatialScene';
+import { ReferenceSceneParts } from '../src/features/workshop/referenceSceneParts';
 
 test('default layout has non-overlapping furnishings including movable decor and no invented inventory', () => {
   const state = createWorkshop();
@@ -2002,11 +2003,34 @@ test('printer calibration cube is positioned with clean clearance from printer s
   assert.ok(cubeMinX > p1MaxX, `Cube inner edge (${cubeMinX}) must be strictly outside P1 shell (${p1MaxX})`);
   assert.ok(cubeMinX - p1MaxX >= 0.07, 'Cube must maintain at least 70mm clearance from P1 model');
 });
+test('setSelectedRoom dynamically updates floor materials without rebuilding scene geometry', () => {
+  const parts = new ReferenceSceneParts({} as any);
+  const normalPlinth = parts.getFloorPlinthMaterial(false);
+  const selectedPlinth = parts.getFloorPlinthMaterial(true);
+  assert.notEqual(normalPlinth, selectedPlinth);
+  assert.equal((normalPlinth as THREE.MeshStandardMaterial).color.getHexString(), '353e50');
+  assert.equal((selectedPlinth as THREE.MeshStandardMaterial).color.getHexString(), '243346');
 
+  const normalGrout = parts.getFloorGroutMaterial(false);
+  const selectedGrout = parts.getFloorGroutMaterial(true);
+  assert.notEqual(normalGrout, selectedGrout);
 
+  const normalTile0 = parts.getFloorTileMaterial(0, false);
+  const selectedTile0 = parts.getFloorTileMaterial(0, true);
+  assert.notEqual(normalTile0, selectedTile0);
+  assert.equal((selectedTile0 as THREE.MeshStandardMaterial).emissive.getHexString(), '123860');
 
+  // Verify getSceneSignature does NOT include active room ID, preventing scene rebuilds on room switch
+  const workshopSceneProto = WorkshopScene.prototype as any;
+  const state = createWorkshop();
+  const roomA = state.rooms[0];
+  const roomB: Room = { id: 'room-b', name: 'Room B', width: 6, depth: 6, labels: [] };
+  const twoRoomState = { ...state, rooms: [roomA, roomB] };
 
-
+  const sig1 = workshopSceneProto.getSceneSignature(twoRoomState, [], [], new Set());
+  const sig2 = workshopSceneProto.getSceneSignature(twoRoomState, [], [], new Set());
+  assert.equal(sig1, sig2, 'Scene signature must remain identical when switching rooms, preventing camera-jumping rebuilds');
+});
 
 
 

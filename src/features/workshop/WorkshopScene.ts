@@ -903,8 +903,7 @@ export class WorkshopScene {
     data: Workshop,
     filaments: Filament[],
     printers: Printer[],
-    activePrinterIds: Set<string>,
-    activeRoomId?: string
+    activePrinterIds: Set<string>
   ): string {
     const rSig = data.rooms.map(r => `${r.id}:${r.width}x${r.depth}:${r.attachment?.roomId ?? ''}_${r.attachment?.side ?? ''}:${(r.labels ?? []).map(l => `${l.id}_${l.u}_${l.v}_${l.text}_${l.color}_${l.size}_${l.rotation ?? 0}`).join(';')}`).join('|');
     const fSig = data.furniture.map(f => `${f.id}:${f.roomId}:${f.kind}:${f.x}:${f.z}:${f.rotation}:${f.width}:${f.depth}:${f.height}:${f.levels}:${f.columns}`).join('|');
@@ -912,8 +911,7 @@ export class WorkshopScene {
     const aSig = Array.from(activePrinterIds).sort().join(',');
     const filSig = filaments.map(f => `${f.id}:${f.color}`).join('|');
     const prSig = printers.map(p => `${p.id}:${p.model_3d ?? ''}`).join('|');
-    const effectiveSelectedRoomId = this.edit ? (activeRoomId ?? '') : '';
-    return `${effectiveSelectedRoomId}#${this.edit ? 'edit' : 'view'}#${rSig}#${fSig}#${pSig}#${aSig}#${filSig}#${prSig}`;
+    return `${rSig}#${fSig}#${pSig}#${aSig}#${filSig}#${prSig}`;
   }
 
   private saveCameraDebounced(delay = 500) {
@@ -935,7 +933,7 @@ export class WorkshopScene {
   ) {
     const roomChanged = !this.room || this.room.id !== room.id;
     const structureChanged = this.data && JSON.stringify(this.data.rooms.map(r => [r.id, r.width, r.depth, r.attachment])) !== JSON.stringify(data.rooms.map(r => [r.id, r.width, r.depth, r.attachment]));
-    const sig = this.getSceneSignature(data, filaments, printers, activePrinterIds, room.id);
+    const sig = this.getSceneSignature(data, filaments, printers, activePrinterIds);
     const sceneChanged = !this.build || sig !== this.lastSceneSignature;
     this.lastSceneSignature = sig;
 
@@ -955,33 +953,33 @@ export class WorkshopScene {
 
     if (sceneChanged) {
       this.rebuild();
+    } else {
+      this.build?.setSelectedRoom?.(this.edit ? this.room?.id : undefined);
     }
 
     if (roomChanged) {
       this.customView = false;
-      if (!this.selected) {
-        this.selectedFurnitureIds.clear();
-        this.highlightedFurnitureId = null;
-        this.hideGizmo();
-        if (room) {
-          const focus = calculateRoomCameraFocus(this.data, room);
-          const targetAzimuth = room.camera?.azimuth ?? this.azimuth;
-          if (room.camera?.top !== undefined) {
-            this.top = room.camera.top;
-          }
-          this.moveCamera(
-            new THREE.Vector3(focus.target.x, focus.target.y, focus.target.z),
-            focus.span,
-            targetAzimuth,
-            focus.elevation,
-            false
-          );
-        } else {
-          this.top = false;
-          const target = this.workshopCenter();
-          const span = this.overviewSpan() * .88;
-          this.moveCamera(target, span, Math.PI / 4, 16, false);
+      this.selectedFurnitureIds.clear();
+      this.highlightedFurnitureId = null;
+      this.hideGizmo();
+      if (room) {
+        const focus = calculateRoomCameraFocus(this.data, room);
+        const targetAzimuth = room.camera?.azimuth ?? this.azimuth;
+        if (room.camera?.top !== undefined) {
+          this.top = room.camera.top;
         }
+        this.moveCamera(
+          new THREE.Vector3(focus.target.x, focus.target.y, focus.target.z),
+          focus.span,
+          targetAzimuth,
+          focus.elevation,
+          false
+        );
+      } else {
+        this.top = false;
+        const target = this.workshopCenter();
+        const span = this.overviewSpan() * .88;
+        this.moveCamera(target, span, Math.PI / 4, 16, false);
       }
     } else {
       if (structureChanged) {
@@ -1121,12 +1119,9 @@ export class WorkshopScene {
     if (this.data) this.authoring.update(this.data, edit, this.selected, this.room?.id ?? null);
     this.grid = grid;
     this.hidePrinterInspectionLight();
-    if (editChanged && this.data && this.room) {
-      const sig = this.getSceneSignature(this.data, this.filaments, this.printers, this.activePrinterIds, this.room.id);
-      if (sig !== this.lastSceneSignature) {
-        this.lastSceneSignature = sig;
-        this.rebuild();
-      }
+    if (editChanged && this.build) {
+      this.build.setSelectedRoom?.(this.edit ? this.room?.id : undefined);
+      this.invalidate();
     }
     if (edit) {
       this.setHoveredPlacement(null);
@@ -2307,7 +2302,11 @@ export class WorkshopScene {
           this.build?.setFurnitureBorderColor(prevId, '#d6d6cd');
         }
         this.selectedFurnitureIds.clear();
-        this.authoring.selectRoomAt(e);
+        const roomClicked = this.authoring.selectRoomAt(e);
+        if (roomClicked) {
+          this.options.onSelect('', 'furniture');
+          this.select(null);
+        }
       } else if (!this.edit) {
         for (const prevId of this.selectedFurnitureIds) {
           this.build?.setFurnitureBorderColor(prevId, '#d6d6cd');

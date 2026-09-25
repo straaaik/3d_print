@@ -368,6 +368,11 @@ export function buildSpatialWorkshop(
     setPlacementHover(id,progress){owner(id)?.build.setPlacementHover(id,progress);},
     setPrinterHover(id,progress){owner(id)?.build.setPrinterHover(id,progress);},
     setFurnitureBorderColor(id,color){owner(id)?.build.setFurnitureBorderColor(id,color);},
+    setSelectedRoom(roomId?: string) {
+      for (const p of pieces) {
+        p.build.setSelectedRoom?.(roomId);
+      }
+    },
     dispose(){pieces.forEach(p=>p.build.dispose());geometry.dispose();wallMaterial.dispose();partitionWallMaterial.dispose();trimMaterial.dispose();skirtingMaterial.dispose();doorLeafMaterial.dispose();root.removeFromParent();},
   };
 }
