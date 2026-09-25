@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "room": {
+    "id": "demo-room-1",
+    "name": "Основная мастерская",
+    "width_m": 14,
+    "depth_m": 10
+  },
+  "furniture": [
+    {
+      "id": "table-1",
+      "kind": "table",
+      "name": "Стол A",
+      "position": [
+        -2.8,
+        0,
+        1.9
+      ],
+      "rotation_y": 0,
+      "width": 3.6,
+      "depth": 0.8,
+      "height": 0.85,
+      "printer_slots": 4
+    },
+    {
+      "id": "table-2",
+      "kind": "table",
+      "name": "Стол B",
+      "position": [
+        1.4,
+        0,
+        1.9
+      ],
+      "rotation_y": 0,
+      "width": 3.6,
+      "depth": 0.8,
+      "height": 0.85,
+      "printer_slots": 4
+    },
+    {
+      "id": "table-3",
+      "kind": "table",
+      "name": "Стол C",
+      "position": [
+        -2.8,
+        0,
+        -0.6
+      ],
+      "rotation_y": 0,
+      "width": 3.6,
+      "depth": 0.8,
+      "height": 0.85,
+      "printer_slots": 4
+    },
+    {
+      "id": "table-4",
+      "kind": "table",
+      "name": "Стол D",
+      "position": [
+        1.4,
+        0,
+        -0.6
+      ],
+      "rotation_y": 0,
+      "width": 3.6,
+      "depth": 0.8,
+      "height": 0.85,
+      "printer_slots": 4
+    },
+    {
+      "id": "filament-1",
+      "kind": "filament_rack",
+      "name": "Филамент 1",
+      "position": [
+        4.9,
+        0,
+        3.65
+      ],
+      "rotation_y": 0,
+      "width": 1.8,
+      "depth": 0.45,
+      "height": 2.15,
+      "levels": 4
+    },
+    {
+      "id": "filament-2",
+      "kind": "filament_rack",
+      "name": "Филамент 2",
+      "position": [
+        2.7,
+        0,
+        3.65
+      ],
+      "rotation_y": 0,
+      "width": 1.8,
+      "depth": 0.45,
+      "height": 2.15,
+      "levels": 4
+    }
+  ],
+  "demoPlacements": [
+    {
+      "slot": "table-1:0",
+      "printer": "demo-a1-01",
+      "visual_model_key": "a1"
+    },
+    {
+      "slot": "table-1:1",
+      "printer": "demo-p1-01",
+      "visual_model_key": "p1"
+    },
+    {
+      "slot": "table-2:0",
+      "printer": "demo-a1-02",
+      "visual_model_key": "a1"
+    },
+    {
+      "slot": "table-2:1",
+      "printer": "demo-p1-02",
+      "visual_model_key": "p1"
+    },
+    {
+      "slot": "table-3:0",
+      "printer": "demo-a1-03",
+      "visual_model_key": "a1"
+    },
+    {
+      "slot": "table-3:1",
+      "printer": "demo-p1-03",
+      "visual_model_key": "p1"
+    },
+    {
+      "slot": "table-4:0",
+      "printer": "demo-a1-04",
+      "visual_model_key": "a1"
+    }
+  ]
+}

@@ -236,13 +236,162 @@ export function resolvePlacementPosition(
   return { x: origin.x + lx, y: ly, z: origin.z + lz };
 }
 
-export function updateFurniture(state: Workshop, f: Furniture): Workshop {
-  if (!validFurniture(state,f)) throw new Error('Проверьте размеры, интервалы между слотами, границы комнаты и пересечения мебели.');
+export function updateFurniture(state: Workshop, f: Furniture, allowInvalid = false): Workshop {
+  if (!allowInvalid && !validFurniture(state, f)) throw new Error('Проверьте размеры, интервалы между слотами, границы комнаты и пересечения мебели.');
   const slots = slotsFor(f, state.slots.filter(s => s.furnitureId === f.id));
   const removed = new Set(state.slots.filter(s => s.furnitureId === f.id && !slots.some(n=>n.id===s.id)).map(s=>s.id));
   if (state.placements.some(p => removed.has(p.slotId))) throw new Error('Сначала освободите слоты, которые исчезнут после изменения.');
   return { ...state, furniture: state.furniture.some(x=>x.id===f.id) ? state.furniture.map(x=>x.id===f.id?f:x) : [...state.furniture,f], slots:[...state.slots.filter(s=>s.furnitureId!==f.id),...slots] };
 }
+
+export function findNearestValidPosition(
+  state: Workshop,
+  furniture: Furniture,
+  gridStep = 0.1
+): { x: number; z: number; roomId: string; rotation: number } | null {
+  // If already valid in place, return current position
+  if (validFurniture(state, furniture)) {
+    return { x: furniture.x, z: furniture.z, roomId: furniture.roomId, rotation: furniture.rotation };
+  }
+
+  // Preserve user-specified rotation first, fall back to other 90° rotations only if needed
+  const rotationsToTry = [
+    furniture.rotation,
+    (furniture.rotation + 90) % 360,
+    (furniture.rotation + 270) % 360,
+    (furniture.rotation + 180) % 360,
+  ];
+
+  const currentRoom = state.rooms.find((r) => r.id === furniture.roomId);
+  const roomsToCheck = currentRoom
+    ? [currentRoom, ...state.rooms.filter((r) => r.id !== currentRoom.id)]
+    : state.rooms;
+
+  const fCurrentRoomOrigin = currentRoom ? roomOrigin(state, currentRoom.id) : { x: 0, z: 0 };
+  const fWorldX = fCurrentRoomOrigin.x + furniture.x;
+  const fWorldZ = fCurrentRoomOrigin.z + furniture.z;
+
+  for (const rot of rotationsToTry) {
+    const fWithRot = { ...furniture, rotation: rot };
+    const { w, d } = footprint(fWithRot);
+
+    let bestCandidate: { x: number; z: number; roomId: string; distSq: number } | null = null;
+
+    for (const room of roomsToCheck) {
+      const maxX = room.width / 2 - 0.15 - w / 2;
+      const maxZ = room.depth / 2 - 0.15 - d / 2;
+      if (maxX < -0.01 || maxZ < -0.01) continue;
+
+      const rOrigin = roomOrigin(state, room.id);
+      const localTargetX = fWorldX - rOrigin.x;
+      const localTargetZ = fWorldZ - rOrigin.z;
+
+      const clampedX = Math.round(Math.max(-maxX, Math.min(maxX, localTargetX)) * 100) / 100;
+      const clampedZ = Math.round(Math.max(-maxZ, Math.min(maxZ, localTargetZ)) * 100) / 100;
+
+      const testCurrent = { ...fWithRot, roomId: room.id, x: clampedX, z: clampedZ };
+      if (validFurniture(state, testCurrent)) {
+        const worldCandX = rOrigin.x + clampedX;
+        const worldCandZ = rOrigin.z + clampedZ;
+        const distSq = (worldCandX - fWorldX) ** 2 + (worldCandZ - fWorldZ) ** 2;
+        if (!bestCandidate || distSq < bestCandidate.distSq) {
+          bestCandidate = { x: clampedX, z: clampedZ, roomId: room.id, distSq };
+        }
+        continue;
+      }
+
+      // Concentric circular search around (clampedX, clampedZ)
+      const maxRadius = Math.max(room.width, room.depth);
+      const searchStep = Math.max(0.1, gridStep);
+      let foundInRoom = false;
+
+      for (let r = searchStep; r <= maxRadius && !foundInRoom; r += searchStep) {
+        const stepsCount = Math.max(8, Math.round((2 * Math.PI * r) / searchStep));
+        for (let i = 0; i < stepsCount; i++) {
+          const angle = (i * 2 * Math.PI) / stepsCount;
+          const testX = Math.round((clampedX + r * Math.cos(angle)) * 100) / 100;
+          const testZ = Math.round((clampedZ + r * Math.sin(angle)) * 100) / 100;
+
+          if (Math.abs(testX) > maxX + 0.001 || Math.abs(testZ) > maxZ + 0.001) continue;
+
+          const candF = { ...fWithRot, roomId: room.id, x: testX, z: testZ };
+          if (validFurniture(state, candF)) {
+            const worldCandX = rOrigin.x + testX;
+            const worldCandZ = rOrigin.z + testZ;
+            const distSq = (worldCandX - fWorldX) ** 2 + (worldCandZ - fWorldZ) ** 2;
+            if (!bestCandidate || distSq < bestCandidate.distSq) {
+              bestCandidate = { x: testX, z: testZ, roomId: room.id, distSq };
+            }
+            foundInRoom = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (bestCandidate) {
+      return { x: bestCandidate.x, z: bestCandidate.z, roomId: bestCandidate.roomId, rotation: rot };
+    }
+  }
+
+  return null;
+}
+
+export function resolveInvalidFurniture(
+  state: Workshop,
+  targetIds?: string[]
+): {
+  nextState: Workshop;
+  relocated: Array<{
+    furniture: Furniture;
+    from: { x: number; z: number; roomId: string; rotation: number };
+    to: { x: number; z: number; roomId: string; rotation: number };
+  }>;
+} {
+  let current = state;
+  const relocated: Array<{
+    furniture: Furniture;
+    from: { x: number; z: number; roomId: string; rotation: number };
+    to: { x: number; z: number; roomId: string; rotation: number };
+  }> = [];
+
+  const candidates = targetIds
+    ? state.furniture.filter((f) => targetIds.includes(f.id))
+    : state.furniture;
+
+  for (const f of candidates) {
+    const freshF = current.furniture.find((item) => item.id === f.id);
+    if (!freshF) continue;
+
+    if (!validFurniture(current, freshF)) {
+      const nearest = findNearestValidPosition(current, freshF);
+      if (
+        nearest &&
+        (nearest.x !== freshF.x ||
+          nearest.z !== freshF.z ||
+          nearest.roomId !== freshF.roomId ||
+          nearest.rotation !== freshF.rotation)
+      ) {
+        const updated = {
+          ...freshF,
+          x: nearest.x,
+          z: nearest.z,
+          roomId: nearest.roomId,
+          rotation: nearest.rotation,
+        };
+        current = updateFurniture(current, updated, true);
+        relocated.push({
+          furniture: freshF,
+          from: { x: freshF.x, z: freshF.z, roomId: freshF.roomId, rotation: freshF.rotation },
+          to: nearest,
+        });
+      }
+    }
+  }
+
+  return { nextState: current, relocated };
+}
+
 export function placeEntity(state: Workshop, kind: EntityKind, entityId: string, slotId: string, model: ModelKey): Workshop {
   const slot = state.slots.find(s => s.id === slotId);
   if (!slot || slot.kind !== kind) throw new Error('Этот слот не подходит для выбранного объекта.');

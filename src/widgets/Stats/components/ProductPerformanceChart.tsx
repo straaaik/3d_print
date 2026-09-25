@@ -34,7 +34,7 @@ export function ProductPerformanceChart({ data }: { data: StatsReport['products'
             <div key={item.id} className="group">
               <div className="mb-1 flex items-center justify-between gap-3 font-mono text-[11px]"><span className="min-w-0 truncate text-neutral-300"><b className="mr-2 text-neutral-600">{String(index + 1).padStart(2, '0')}</b>{item.label}</span><strong className={value < 0 ? 'text-rose-400' : 'text-white'}>{valueLabel(item)}</strong></div>
               <div className="h-2 overflow-hidden rounded-full bg-neutral-900">
-                <motion.div className={value < 0 ? 'h-full rounded-full bg-rose-500/80' : 'h-full rounded-full bg-gradient-to-r from-cyan-700 to-cyan-300'} initial={reducedMotion ? false : { width: 0 }} animate={{ width: `${percent}%` }} transition={{ type: 'spring', bounce: .06, duration: .5, delay: index * .035 }} />
+                <motion.div className={value < 0 ? 'h-full rounded-full bg-rose-500/80' : 'h-full rounded-full bg-cyan-500/80'} initial={reducedMotion ? false : { width: 0 }} animate={{ width: `${percent}%` }} transition={{ type: 'spring', bounce: .06, duration: .5, delay: index * .035 }} />
               </div>
             </div>
           );

@@ -4,7 +4,7 @@ import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { ScenePresentation } from './scenePresentation';
 import { animate, type AnimationPlaybackControls } from 'motion';
 import { acquireAssets, releaseAssets, type Assets, type SceneBuild } from './sceneGeometry';
-import { roomOrigin, findRoomAt, type FurnitureKind, snap, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, pickWorkshopTarget, footprint, slotWorld, calculatePanDelta, calculateOrbitAngles, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget, calculateGroupMove, resolvePlacementPosition, type Furniture, type Room, type Workshop, type Slot, type ModelKey, type Placement } from './model';
+import { roomOrigin, findRoomAt, type FurnitureKind, snap, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, pickWorkshopTarget, footprint, slotWorld, calculatePanDelta, calculateOrbitAngles, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget, calculateGroupMove, resolvePlacementPosition, defaultRoomLabels, type Furniture, type Room, type Workshop, type Slot, type ModelKey, type Placement } from './model';
 import { buildSpatialWorkshop, workshopBounds } from './spatialScene';
 import { SpatialAuthoring, type SpatialCallbacks } from './spatialAuthoring';
 import type { Filament, Printer } from '../../shared/types';
@@ -17,6 +17,22 @@ export interface HoverPlacementInfo {
   isActive?: boolean;
   screenX: number;
   screenY: number;
+}
+
+export interface LabelScreenTransform {
+  roomId: string;
+  labelId: string;
+  text: string;
+  color: string;
+  size: number;
+  rotation: number;
+  surface: 'floor' | 'north' | 'south' | 'west' | 'east';
+  screenX: number;
+  screenY: number;
+  hudX: number;
+  hudY: number;
+  visible: boolean;
+  isDraft?: boolean;
 }
 
 interface Options extends SpatialCallbacks {
@@ -32,6 +48,7 @@ interface Options extends SpatialCallbacks {
   onReady: () => void;
   onError: (message: string) => void;
   onHoverPlacement?: (info: HoverPlacementInfo | null) => void;
+  onLabelTransform?: (transform: LabelScreenTransform | null) => void;
   onCollisionFeedback?: (reason: string) => void;
 }
 
@@ -154,19 +171,9 @@ export function handleWorkshopKeyDown(ctx: WorkshopHotkeyContext, e: KeyboardEve
     if (targetFurniture && ctx.data) {
       const nextRot = (targetFurniture.rotation + 90) % 360;
       const next = { ...targetFurniture, rotation: nextRot };
-      if (validFurniture(ctx.data, next)) {
-        ctx.options.onRotate?.(targetFurniture.id, nextRot);
-        ctx.build?.setFurnitureBorderColor?.(targetFurniture.id, '#38bdf8');
-      } else {
-        ctx.build?.setFurnitureBorderColor?.(targetFurniture.id, '#e87668');
-        const reason = getFurnitureCollisionReason(ctx.data, next);
-        ctx.options.onCollisionFeedback?.(reason ?? 'Недопустимое положение объекта');
-        setTimeout(() => {
-          if (ctx.selected === targetFurniture!.id || ctx.highlightedFurnitureId === targetFurniture!.id) {
-            ctx.build?.setFurnitureBorderColor?.(targetFurniture!.id, '#38bdf8');
-          }
-        }, 500);
-      }
+      ctx.options.onRotate?.(targetFurniture.id, nextRot);
+      const isValid = validFurniture(ctx.data, next);
+      ctx.build?.setFurnitureBorderColor?.(targetFurniture.id, isValid ? '#38bdf8' : '#e87668');
     } else if (ctx.selected) {
       ctx.options.onRotate?.(ctx.selected, 90);
     }
@@ -284,17 +291,9 @@ export function handleWorkshopKeyDown(ctx: WorkshopHotkeyContext, e: KeyboardEve
       const nextX = axis === 'x' ? snap(f.x + step, grid) : f.x;
       const nextZ = axis === 'z' ? snap(f.z + step, grid) : f.z;
       const next = { ...f, x: nextX, z: nextZ };
-      if (validFurniture(ctx.data, next)) {
-        ctx.options.onMove(f.id, nextX, nextZ, f.roomId);
-        ctx.build?.setFurnitureBorderColor?.(f.id, '#38bdf8');
-      } else {
-        ctx.build?.setFurnitureBorderColor?.(f.id, '#e87668');
-        const reason = getFurnitureCollisionReason(ctx.data, next);
-        ctx.options.onCollisionFeedback?.(reason ?? 'Недопустимое положение объекта');
-        setTimeout(() => {
-          if (ctx.selected === f.id) ctx.build?.setFurnitureBorderColor?.(f.id, '#38bdf8');
-        }, 500);
-      }
+      ctx.options.onMove(f.id, nextX, nextZ, f.roomId);
+      const isValid = validFurniture(ctx.data, next);
+      ctx.build?.setFurnitureBorderColor?.(f.id, isValid ? '#38bdf8' : '#e87668');
     }
     return true;
   }
@@ -1353,11 +1352,23 @@ export class WorkshopScene {
     return Math.max(extentY * 2, extentX * 2 / Math.max(.2, this.aspect));
   }
 
-  beginLabelPlacement(surface?: 'floor'|'north'|'east'|'south'|'west', text?: string, color?: string) {
-    this.authoring.beginLabel(surface, text, color);
+  beginLabelPlacement(surface?: 'floor'|'north'|'east'|'south'|'west', text?: string, color?: string, size = 0.35, rotation = 0) {
+    this.authoring.beginLabel(surface, text, color, size, rotation);
+    this.invalidate();
+  }
+  updateDraftLabel(patch: { text?: string; color?: string; size?: number; rotation?: number }) {
+    this.authoring.updateDraftLabel(patch);
+    this.invalidate();
+  }
+  startDraggingSelectedLabel(e: PointerEvent): boolean {
+    return this.authoring.startDraggingSelectedLabel(e);
+  }
+  isDraftingLabel(): boolean {
+    return this.authoring.getActiveDraft()?.type === 'label';
   }
   setSelectedLabel(id: string | null) {
     this.authoring.setSelectedLabel(id);
+    this.invalidate();
   }
   beginFurniturePlacement(kind: FurnitureKind) {this.authoring.beginFurniture(kind);}
   cancelAuthoring() {this.authoring.cancelDraft();}
@@ -1572,6 +1583,130 @@ export class WorkshopScene {
     this.options.onHoverPlacement?.(nextInfo);
   }
 
+  public updateLabelTransform() {
+    if (!this.options.onLabelTransform) return;
+    const transform = this.getSelectedOrDraftLabelTransform();
+    this.options.onLabelTransform(transform);
+  }
+
+  public getSelectedOrDraftLabelTransform(): LabelScreenTransform | null {
+    if (!this.edit || !this.data) return null;
+
+    // 1. Check if drafting a new label
+    const draft = this.authoring.getActiveDraft();
+    if (draft && draft.type === 'label') {
+      const previewPos = this.authoring.getLabelPreviewPosition();
+      if (previewPos && this.authoring.isLabelPreviewVisible()) {
+        const rect = this.options.canvas.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return null;
+
+        const textProj = previewPos.worldPos.clone().project(this.camera);
+        if (textProj.z < -1 || textProj.z > 1) return null;
+
+        const screenX = ((textProj.x + 1) / 2) * rect.width;
+        const screenY = ((-textProj.y + 1) / 2) * rect.height;
+
+        const hudWorldPos = previewPos.worldPos.clone();
+        if (previewPos.surface === 'floor') {
+          hudWorldPos.z -= 0.45;
+          hudWorldPos.y += 0.35;
+        } else {
+          hudWorldPos.y = Math.min(2.65, hudWorldPos.y + 0.35);
+        }
+        const hudProj = hudWorldPos.project(this.camera);
+        const hudX = ((hudProj.x + 1) / 2) * rect.width;
+        const hudY = ((-hudProj.y + 1) / 2) * rect.height;
+
+        return {
+          roomId: previewPos.roomId,
+          labelId: 'draft',
+          text: draft.text || 'Новая надпись',
+          color: draft.color || '#38bdf8',
+          size: draft.size || 0.35,
+          rotation: draft.rotation || 0,
+          surface: previewPos.surface,
+          screenX,
+          screenY,
+          hudX,
+          hudY,
+          visible: true,
+          isDraft: true,
+        };
+      }
+    }
+
+    // 2. Check if a label is selected
+    const selectedLabelId = this.authoring.getSelectedLabelId();
+    if (!selectedLabelId) return null;
+
+    for (const room of this.data.rooms) {
+      const lbl = (room.labels ?? defaultRoomLabels(room)).find((l) => l.id === selectedLabelId);
+      if (!lbl) continue;
+
+      const o = roomOrigin(this.data, room.id);
+      let worldX = o.x + (lbl.u - 0.5) * room.width;
+      let worldZ = o.z + (lbl.v - 0.5) * room.depth;
+      let worldY = 0.05;
+
+      let hudWorldX = worldX;
+      let hudWorldZ = worldZ;
+      let hudWorldY = worldY;
+
+      if (lbl.surface === 'floor') {
+        worldY = 0.05;
+        hudWorldZ = worldZ - (lbl.size / 2 + 0.45);
+        hudWorldY = 0.35;
+      } else if (lbl.surface === 'north') {
+        worldZ = o.z - room.depth / 2 + 0.09;
+        worldY = lbl.v * 2.6;
+        hudWorldY = Math.min(2.65, lbl.v * 2.6 + lbl.size / 2 + 0.35);
+      } else if (lbl.surface === 'south') {
+        worldZ = o.z + room.depth / 2 - 0.09;
+        worldY = lbl.v * 2.6;
+        hudWorldY = Math.min(2.65, lbl.v * 2.6 + lbl.size / 2 + 0.35);
+      } else if (lbl.surface === 'west') {
+        worldX = o.x - room.width / 2 + 0.09;
+        worldY = lbl.v * 2.6;
+        hudWorldY = Math.min(2.65, lbl.v * 2.6 + lbl.size / 2 + 0.35);
+      } else if (lbl.surface === 'east') {
+        worldX = o.x + room.width / 2 - 0.09;
+        worldY = lbl.v * 2.6;
+        hudWorldY = Math.min(2.65, lbl.v * 2.6 + lbl.size / 2 + 0.35);
+      }
+
+      const rect = this.options.canvas.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return null;
+
+      const textProj = new THREE.Vector3(worldX, worldY, worldZ).project(this.camera);
+      if (textProj.z < -1 || textProj.z > 1) return null;
+
+      const hudProj = new THREE.Vector3(hudWorldX, hudWorldY, hudWorldZ).project(this.camera);
+
+      const screenX = ((textProj.x + 1) / 2) * rect.width;
+      const screenY = ((-textProj.y + 1) / 2) * rect.height;
+      const hudX = ((hudProj.x + 1) / 2) * rect.width;
+      const hudY = ((-hudProj.y + 1) / 2) * rect.height;
+
+      return {
+        roomId: room.id,
+        labelId: lbl.id,
+        text: lbl.text,
+        color: lbl.color,
+        size: lbl.size,
+        rotation: lbl.rotation ?? 0,
+        surface: lbl.surface,
+        screenX,
+        screenY,
+        hudX,
+        hudY,
+        visible: true,
+        isDraft: false,
+      };
+    }
+
+    return null;
+  }
+
   private startHoverAnimation() {
     if (this.hoverRaf !== null) return;
     const tick = () => {
@@ -1698,17 +1833,9 @@ export class WorkshopScene {
         if (u.action === 'rotate') {
           const nextRot = (f.rotation + 90) % 360;
           const next = { ...f, rotation: nextRot };
-          if (validFurniture(this.data!, next)) {
-            this.options.onRotate?.(f.id, nextRot);
-            this.build?.setFurnitureBorderColor(f.id, '#38bdf8');
-          } else {
-            this.build?.setFurnitureBorderColor(f.id, '#e87668');
-            const reason = getFurnitureCollisionReason(this.data!, next);
-            this.options.onCollisionFeedback?.(reason ?? 'Недопустимое положение объекта');
-            setTimeout(() => {
-              if (this.selected === f.id) this.build?.setFurnitureBorderColor(f.id, '#38bdf8');
-            }, 500);
-          }
+          this.options.onRotate?.(f.id, nextRot);
+          const isValid = validFurniture(this.data!, next);
+          this.build?.setFurnitureBorderColor(f.id, isValid ? '#38bdf8' : '#e87668');
           return;
         }
         if (u.action === 'delete') {
@@ -2150,23 +2277,19 @@ export class WorkshopScene {
             }
           } else {
             const testF = { ...f, roomId: targetRoom.id, x: localX, z: localZ };
-            if (validFurniture(this.data, testF)) {
-              this.options.onMove(f.id, localX, localZ, targetRoom.id);
-            } else {
-              const reason = getFurnitureCollisionReason(this.data, testF);
-              this.options.onCollisionFeedback?.(reason ?? 'Недопустимое положение объекта');
-              this.build?.previewFurniture(f.id, f.x, f.z);
-              this.updateGizmo(f);
-              this.build?.setFurnitureBorderColor(f.id, '#e87668');
-              setTimeout(() => {
-                if (this.selected === f.id) this.build?.setFurnitureBorderColor(f.id, '#38bdf8');
-              }, 600);
-            }
+            this.options.onMove(f.id, localX, localZ, targetRoom.id);
+            const isValid = validFurniture(this.data, testF);
+            this.build?.setFurnitureBorderColor(f.id, isValid ? '#38bdf8' : '#e87668');
+            this.updateGizmo(testF);
           }
         } else {
-          this.options.onCollisionFeedback?.('Комната не найдена');
-          this.build?.previewFurniture(f.id, f.x, f.z);
-          this.updateGizmo(f);
+          const fOrigin = roomOrigin(this.data, f.roomId);
+          const localX = snap(worldX - fOrigin.x, this.grid);
+          const localZ = snap(worldZ - fOrigin.z, this.grid);
+          const testF = { ...f, x: localX, z: localZ };
+          this.options.onMove(f.id, localX, localZ, f.roomId);
+          this.build?.setFurnitureBorderColor(f.id, '#e87668');
+          this.updateGizmo(testF);
         }
       }
     } else if (!this.dragged && d?.furnitureId && d?.gizmoAxis) {
@@ -2203,16 +2326,9 @@ export class WorkshopScene {
             const localX = snap(worldX - targetOrigin.x, this.grid);
             const localZ = snap(worldZ - targetOrigin.z, this.grid);
             const next = { ...f, roomId: targetRoom.id, x: localX, z: localZ };
-            if (validFurniture(this.data, next)) {
-              this.options.onMove(f.id, next.x, next.z, targetRoom.id);
-            } else {
-              const reason = getFurnitureCollisionReason(this.data, next);
-              this.options.onCollisionFeedback?.(reason ?? 'Недопустимое положение объекта');
-              this.build?.setFurnitureBorderColor(f.id, '#e87668');
-              setTimeout(() => {
-                if (this.selected === f.id) this.build?.setFurnitureBorderColor(f.id, '#38bdf8');
-              }, 500);
-            }
+            this.options.onMove(f.id, next.x, next.z, targetRoom.id);
+            const isValid = validFurniture(this.data, next);
+            this.build?.setFurnitureBorderColor(f.id, isValid ? '#38bdf8' : '#e87668');
           }
         }
       }
@@ -2577,6 +2693,7 @@ export class WorkshopScene {
     if (this.hoveredPlacementId) {
       this.updateHoverPlacementBadge();
     }
+    this.updateLabelTransform();
   };
 
   dispose() {

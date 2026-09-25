@@ -1,13 +1,11 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import dynamic from 'next/dynamic';
 import {
   Activity,
   Banknote,
   BarChart3,
   Bolt,
-  Box,
   Cpu,
   Edit3,
   Gauge,
@@ -52,30 +50,14 @@ import {
   getPrinterHourlyCost,
   getPrinterViewModeOptions,
   parseRequiredNonNegative,
+  detectPrinterModel,
   type InventoryViewMode,
+  type Printer3DModel,
   type PrinterSort,
 } from '../InventoryCockpit/model';
 
-const is3DRoomEnabled = true;
-
 const VIEW_MODE_OPTIONS: ReadonlyArray<SegmentedFilterOption<InventoryViewMode>> =
-  getPrinterViewModeOptions(Table, LayoutGrid, Box, is3DRoomEnabled);
-
-const PrinterRoom3DSkeleton = () => (
-  <div className="w-full h-[580px] sm:h-[640px] rounded-2xl border border-white/10 bg-white/[0.02] flex items-center justify-center animate-pulse text-xs text-neutral-500">
-    Загрузка 3D-комнаты...
-  </div>
-);
-
-const PrinterRoom3D = is3DRoomEnabled
-  ? dynamic(
-      () => import('../../features/printers-room').then((m) => m.PrinterRoom3D),
-      {
-        ssr: false,
-        loading: PrinterRoom3DSkeleton,
-      },
-    )
-  : null;
+  getPrinterViewModeOptions(Table, LayoutGrid);
 
 const SORT_OPTIONS = [
   { value: 'name-asc', label: 'По названию' },
@@ -100,13 +82,15 @@ export function PrinterList() {
   const [query, setQuery] = useState('');
   const [sort, setSort] = usePersistentState<PrinterSort>('3d_printers_sort', 'name-asc');
   const [viewMode, setViewMode] = usePersistentState<InventoryViewMode>('3d_printers_view_mode', 'cards');
-  const effectiveViewMode = getEffectivePrinterViewMode(viewMode, is3DRoomEnabled);
+  const effectiveViewMode = getEffectivePrinterViewMode(viewMode);
 
   const [name, setName] = usePersistentState('3d_printer_draft_name', '');
   const [powerW, setPowerW] = usePersistentState('3d_printer_draft_power', '300');
   const [price, setPrice] = usePersistentState('3d_printer_draft_price', '');
   const [lifespanHours, setLifespanHours] = usePersistentState('3d_printer_draft_lifespan', '5000');
   const [color, setColor] = usePersistentState('3d_printer_draft_color', '#0CB4E0');
+  const [model3d, setModel3d] = useState<Printer3DModel>('a1');
+  const [isModelManual, setIsModelManual] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; powerW?: string; price?: string; lifespanHours?: string }>({});
 
   const currencySymbol = settings?.currency ?? '₽';
@@ -140,6 +124,8 @@ export function PrinterList() {
     setPrice('');
     setLifespanHours('5000');
     setColor('#0CB4E0');
+    setModel3d('a1');
+    setIsModelManual(false);
     setErrors({});
     setIsFormOpen(true);
   };
@@ -151,6 +137,8 @@ export function PrinterList() {
     setPrice(String(printer.price));
     setLifespanHours(String(printer.lifespan_hours));
     setColor(printer.color || '#0CB4E0');
+    setModel3d(printer.model_3d || detectPrinterModel(printer.name));
+    setIsModelManual(Boolean(printer.model_3d));
     setErrors({});
     setIsFormOpen(true);
   };
@@ -177,6 +165,7 @@ export function PrinterList() {
         price: parseRequiredNonNegative(price) ?? 0,
         lifespan_hours: Number(lifespanHours),
         color,
+        model_3d: model3d,
       };
       if (editingPrinter) await updatePrinter({ ...payload, id: editingPrinter.id });
       else await addPrinter(payload);
@@ -498,35 +487,24 @@ export function PrinterList() {
           </div>
         </InventoryRegistryToolbar>
 
-        {is3DRoomEnabled && effectiveViewMode === 'room3d' && PrinterRoom3D ? (
-          <PrinterRoom3D
-            printers={visiblePrinters}
-            electricityRate={electricityRate}
-            currency={currencySymbol}
-            onEditPrinter={openEdit}
-            onDeletePrinter={(printer) => setDeleteTarget(printer)}
-            onAddPrinter={openAdd}
-          />
-        ) : (
-          <InventoryRegistryTable
-            ariaLabel="Реестр 3D-принтеров"
-            data={visiblePrinters}
-            columns={printerColumns}
-            keyExtractor={(printer) => printer.id}
-            viewMode={effectiveViewMode === 'room3d' ? 'cards' : effectiveViewMode}
-            renderCard={renderPrinterCard}
-            renderMobileCard={renderPrinterCard}
-            emptyState={<EmptyState hasRecords={printers.length > 0} onAdd={openAdd} onReset={() => setQuery('')} />}
-            isExpanded={isExpanded}
-            currentSort={sort}
-            onSort={setSort}
-            onRowClick={openEdit}
-            minWidth={isExpanded ? '1560px' : '1080px'}
-            visibleCount={visiblePrinters.length}
-            totalCount={visiblePrinters.length}
-            registryLabel="PRINTER FLEET REGISTRY"
-          />
-        )}
+        <InventoryRegistryTable
+          ariaLabel="Реестр 3D-принтеров"
+          data={visiblePrinters}
+          columns={printerColumns}
+          keyExtractor={(printer) => printer.id}
+          viewMode={effectiveViewMode}
+          renderCard={renderPrinterCard}
+          renderMobileCard={renderPrinterCard}
+          emptyState={<EmptyState hasRecords={printers.length > 0} onAdd={openAdd} onReset={() => setQuery('')} />}
+          isExpanded={isExpanded}
+          currentSort={sort}
+          onSort={setSort}
+          onRowClick={openEdit}
+          minWidth={isExpanded ? '1560px' : '1080px'}
+          visibleCount={visiblePrinters.length}
+          totalCount={visiblePrinters.length}
+          registryLabel="PRINTER FLEET REGISTRY"
+        />
       </div>
 
       <CockpitModal
@@ -546,8 +524,20 @@ export function PrinterList() {
       >
         <form id="printer-form" onSubmit={submit}>
           <PrinterFormFields
-            values={{ name, price, powerW, lifespanHours, color }}
-            onChange={(field, value) => ({ name: setName, price: setPrice, powerW: setPowerW, lifespanHours: setLifespanHours, color: setColor })[field](value)}
+            values={{ name, price, powerW, lifespanHours, color, model3d }}
+            onChange={(field, value) => {
+              if (field === 'name') {
+                setName(value);
+                if (!isModelManual) {
+                  setModel3d(detectPrinterModel(value));
+                }
+              } else if (field === 'model3d') {
+                setModel3d(value as Printer3DModel);
+                setIsModelManual(true);
+              } else {
+                ({ price: setPrice, powerW: setPowerW, lifespanHours: setLifespanHours, color: setColor }[field as 'price' | 'powerW' | 'lifespanHours' | 'color'](value));
+              }
+            }}
             errors={errors}
             currencySymbol={currencySymbol}
           />

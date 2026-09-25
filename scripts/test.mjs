@@ -5,6 +5,8 @@ import { spawnSync } from 'node:child_process';
 const outputDirectory = resolve('.test-dist');
 const tscScript = resolve('node_modules', 'typescript', 'bin', 'tsc');
 const unitTestFiles = [
+  'tests/workshop.test.ts',
+  'tests/workshop-persistence.test.ts',
   'tests/page-loading-assets.test.ts',
   'tests/page-loading-overlay.test.tsx',
   'tests/page-loading-data.test.ts',
@@ -34,9 +36,6 @@ const unitTestFiles = [
   'tests/receipt-template.test.ts',
   'tests/order-contacts-modal.test.tsx',
   'tests/inventory-spool-background.test.tsx',
-  'tests/printers-room-layout.test.ts',
-  'tests/printers-room-models.test.ts',
-  'tests/printers-room-ui.test.tsx',
 ];
 
 rmSync(outputDirectory, { recursive: true, force: true });
@@ -71,6 +70,8 @@ try {
     '--require',
     resolve('tests', 'register-aliases.cjs'),
     '--test',
+    resolve(outputDirectory, 'tests', 'workshop.test.js'),
+    resolve(outputDirectory, 'tests', 'workshop-persistence.test.js'),
     resolve(outputDirectory, 'tests', 'page-loading-assets.test.js'),
     resolve(outputDirectory, 'tests', 'page-loading-overlay.test.js'),
     resolve(outputDirectory, 'tests', 'page-loading-data.test.js'),
@@ -101,9 +102,6 @@ try {
     resolve(outputDirectory, 'tests', 'inventory-spool-background.test.js'),
     resolve(outputDirectory, 'tests', 'cockpit-delete-modal.test.js'),
     resolve(outputDirectory, 'tests', 'round-modals.test.js'),
-    resolve(outputDirectory, 'tests', 'printers-room-layout.test.js'),
-    resolve(outputDirectory, 'tests', 'printers-room-models.test.js'),
-    resolve(outputDirectory, 'tests', 'printers-room-ui.test.js'),
   ], { stdio: 'inherit' });
   process.exitCode = run.status ?? 1;
 } finally {

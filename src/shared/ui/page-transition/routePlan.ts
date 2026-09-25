@@ -1,7 +1,7 @@
 import type { TaskDefinition, TransitionTaskId } from './model';
 
 const localOrigin = 'https://page-transition.invalid';
-const protectedPaths = new Set(['/', '/calculator', '/orders', '/products', '/filaments', '/printers', '/stats', '/settings', '/admin']);
+const protectedPaths = new Set(['/', '/calculator', '/orders', '/products', '/filaments', '/printers', '/workshop', '/stats', '/settings', '/admin']);
 const publicAuthPaths = new Set(['/login', '/about']);
 
 /** Accept local hrefs only; browser callers resolve same-origin absolute URLs first. */

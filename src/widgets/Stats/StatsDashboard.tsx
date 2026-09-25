@@ -166,25 +166,31 @@ export function StatsDashboard() {
         <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-neutral-950/90 shadow-[0_20px_80px_-15px_rgba(0,0,0,0.9)] backdrop-blur-2xl">
           <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-neutral-900/60 px-4 py-2.5">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <Tooltip content="Закрыть статистику и перейти на главную">
                   <button
                     type="button"
                     onClick={() => curtainNavigate('/')}
-                    className="h-3 w-3 rounded-full border border-red-400/40 bg-red-500/80 hover:bg-red-500 cursor-pointer outline-none shadow-sm shadow-red-500/30"
+                    aria-label="Закрыть статистику и перейти на главную"
+                    className="w-3 h-3 rounded-full border border-rose-400/40 bg-rose-500/80 hover:bg-rose-500 cursor-pointer outline-none shadow-sm shadow-rose-500/30 transition-transform hover:scale-110"
                   />
                 </Tooltip>
-                <span className="h-3 w-3 rounded-full border border-yellow-400/40 bg-yellow-500/80" />
-                <span className="h-3 w-3 rounded-full border border-emerald-400/40 bg-emerald-500/80" />
               </div>
-              <div className="flex min-w-0 flex-wrap items-center gap-2 border-l border-white/10 pl-3 font-mono text-xs">
-                <strong className="text-white">KUMO-CRM</strong><span className="text-neutral-600">{'//'}</span><span className="text-neutral-400">СТАТИСТИКА</span>
-                <span className={`flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] ${isOnline ? 'border-emerald-800/40 bg-emerald-950/60 text-emerald-400' : 'border-white/10 bg-white/5 text-neutral-400'}`}><i className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-neutral-500'}`} />{isOnline ? 'Online' : 'Offline'}</span>
+              <div className="flex min-w-0 items-center gap-2 border-l border-white/10 pl-3 font-mono text-xs text-neutral-300">
+                <span className="text-white font-bold">KUMO-CRM</span>
+                <span className="text-neutral-600">{'//'}</span>
+                <span className="text-neutral-400 hidden sm:inline">СТАТИСТИКА</span>
+                <span
+                  className={`flex items-center gap-1.5 rounded border px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider ${
+                    isOnline
+                      ? 'border-emerald-800/40 bg-emerald-950/60 text-emerald-400'
+                      : 'border-white/10 bg-white/5 text-neutral-400'
+                  }`}
+                >
+                  <MotionPulse className={`h-1.5 w-1.5 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-neutral-500'}`} />
+                  {isOnline ? 'Online' : 'Offline'}
+                </span>
               </div>
-            </div>
-
-            <div className="min-w-0 max-w-full">
-              <AnalyticsModeToggle value={mode} onChange={handleModeChange} disabled={loadState === 'refreshing'} />
             </div>
 
             <div className="flex items-center gap-2.5 text-xs font-mono">
@@ -218,6 +224,13 @@ export function StatsDashboard() {
               customRange={customRange}
               onChangeCustomRange={setCustomRange}
               orders={orders}
+              rightSlot={(
+                <AnalyticsModeToggle
+                  value={mode}
+                  onChange={handleModeChange}
+                  disabled={loadState === 'refreshing'}
+                />
+              )}
             />
 
             <StatsKpiCards kpi={report.kpi} deltas={report.deltas} mode={mode} goal={report.goal} />
@@ -266,9 +279,17 @@ export function StatsDashboard() {
             </div>
           </CockpitContentTransition>
 
-          <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-neutral-950 px-5 py-2.5 font-mono text-[11px] text-neutral-500">
-            <div className="flex items-center gap-3"><span>DATABASE: {isOnline ? 'CONNECTED' : 'OFFLINE'}</span><span className="hidden sm:inline">•</span><span className="hidden sm:inline">ORDERS: {orders.length}</span><span className="hidden md:inline">•</span><span className="hidden md:inline">PRODUCTS: {savedCalculations.length}</span></div>
-            <span>{lastUpdatedAt ? `CALCULATED: ${lastUpdatedAt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'DATA: READY'}</span>
+          <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-neutral-950 px-5 py-2.5 font-mono text-[11px] text-neutral-500 select-none">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span>DATABASE: {isOnline ? 'SUPABASE CLOUD' : 'OFFLINE'}</span>
+              <span className="hidden sm:inline">•</span>
+              <span>CACHE: LOCALSTORAGE</span>
+              <span className="hidden sm:inline">•</span>
+              <span className="hidden sm:inline">ORDERS: {orders.length}</span>
+              <span className="hidden md:inline">•</span>
+              <span className="hidden md:inline">PRODUCTS: {savedCalculations.length}</span>
+            </div>
+            <span>{lastUpdatedAt ? `CALCULATED: ${lastUpdatedAt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'RUNTIME READY'}</span>
           </footer>
         </div>
       </div>

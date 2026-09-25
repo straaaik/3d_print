@@ -1,15 +1,14 @@
 'use client';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { RotateCcw, RotateCw, X, Save, Eye, ZoomIn, ZoomOut, Type, MousePointer2, Plus, Paintbrush, Eraser, Check, Pencil, Trash2, AlertTriangle } from 'lucide-react';
-import type { WorkshopScene, HoverPlacementInfo } from './WorkshopScene';
+import { RotateCcw, RotateCw, X, Save, Eye, ZoomIn, ZoomOut, Type, MousePointer2, Plus, Paintbrush, Eraser, Check, Pencil, Trash2, AlertTriangle, Move } from 'lucide-react';
+import type { WorkshopScene, HoverPlacementInfo, LabelScreenTransform } from './WorkshopScene';
 import type { FurnitureKind, ModelKey, Room, RoomLabel, Workshop } from './model';
 import type { Filament, Printer } from '../../shared/types';
 import { CockpitButton } from '../../shared/ui/CockpitButton';
 import { CockpitDeleteModal } from '../../shared/ui/CockpitDeleteModal';
 import { WorkshopInspectionMenu } from './WorkshopInspectionMenu';
 import { WorkshopAddCatalog } from './WorkshopAddCatalog';
-import { SpatialProperties } from './SpatialProperties';
 
 export interface WorkshopCanvasProps {
   layout: Workshop;
@@ -34,10 +33,10 @@ export interface WorkshopCanvasProps {
   onCreateFurniture: (roomId:string,kind:FurnitureKind,x:number,z:number,width:number,depth:number) => void;
   onResizeFurniture: (id:string,width:number,depth:number) => void;
   onLabelSelect: (roomId:string,labelId:string) => void;
-  onMoveLabel?: (roomId:string,labelId:string,u:number,v:number) => void;
+  onMoveLabel?: (roomId:string,labelId:string,u:number,v:number,surface?:RoomLabel['surface']) => void;
   onUpdateLabel?: (roomId:string,labelId:string,patch:Partial<RoomLabel>) => void;
   onDeleteRoomLabel?: (roomId:string,labelId:string) => void;
-  onPlaceLabel: (roomId:string,surface:RoomLabel['surface'],u:number,v:number,text?:string,color?:string) => void;
+  onPlaceLabel: (roomId:string,surface:RoomLabel['surface'],u:number,v:number,text?:string,color?:string,size?:number,rotation?:number) => void;
   selectedLabel?: RoomLabel;
   onSaveRoom: (room:Room) => void;
   onSaveLabel: (label:RoomLabel) => void;
@@ -54,6 +53,7 @@ export interface WorkshopCanvasProps {
   activePrinterIds?: Set<string>;
   onToggleActivePrinter?: (printerId: string) => void;
   onCollisionFeedback?: (reason: string) => void;
+  relocationNotice?: string | null;
 }
 
 export type Props = WorkshopCanvasProps;
@@ -82,6 +82,26 @@ export function WorkshopCanvas(props: WorkshopCanvasProps) {
   const [isDeleteRoomConfirmOpen, setIsDeleteRoomConfirmOpen] = useState(false);
   const [collisionToast, setCollisionToast] = useState<string | null>(null);
   const collisionToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [labelTransform, setLabelTransform] = useState<LabelScreenTransform | null>(null);
+  const [isEditingText, setIsEditingText] = useState(false);
+  const [editingText, setEditingText] = useState('');
+  const inlineInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (props.selectedLabel) {
+      setEditingText(props.selectedLabel.text);
+    } else {
+      setIsEditingText(false);
+    }
+  }, [props.selectedLabel?.id, props.selectedLabel?.text]);
+
+  useEffect(() => {
+    if (isEditingText && inlineInputRef.current) {
+      inlineInputRef.current.focus();
+      inlineInputRef.current.select();
+    }
+  }, [isEditingText]);
 
   const handleCollisionFeedback = (reason: string) => {
     if (collisionToastTimer.current) {
@@ -177,15 +197,17 @@ export function WorkshopCanvas(props: WorkshopCanvasProps) {
           onCreateFurniture: (...args)=>latest.current.onCreateFurniture(...args),
           onResizeFurniture: (...args)=>latest.current.onResizeFurniture(...args),
           onLabelSelect: (...args)=>latest.current.onLabelSelect(...args),
-          onMoveLabel: (...args)=>latest.current.onMoveLabel?.(...args),
+          onMoveLabel: (rId, lId, u, v, surf) => latest.current.onMoveLabel?.(rId, lId, u, v, surf),
           onUpdateLabel: (...args)=>latest.current.onUpdateLabel?.(...args),
           onDeleteLabel: (roomId, labelId)=>latest.current.onDeleteRoomLabel?.(roomId, labelId),
-          onPlaceLabel: (...args)=>latest.current.onPlaceLabel(...args),
+          onPlaceLabel: (rId, surf, u, v, text, col, sz, rot) => latest.current.onPlaceLabel(rId, surf, u, v, text, col, sz, rot),
           onAuthoringHint: setAuthoringHint,
           onCamera: (c) => latest.current.onCamera(c),
           onReady: () => setStatus(''),
           onError: setStatus,
           onHoverPlacement: setHoverPlacement,
+          onLabelTransform: setLabelTransform,
+          onLabelEditStart: () => setIsEditingText(true),
           onCollisionFeedback: handleCollisionFeedback,
         });
         scene.current = instance;
@@ -575,18 +597,213 @@ export function WorkshopCanvas(props: WorkshopCanvasProps) {
         </div>
       )}
 
-      <AnimatePresence>
-        {props.edit && props.selectedLabel && (
-          <SpatialProperties
-            key={`label-${props.selectedLabel.id}`}
-            room={props.room}
-            label={props.selectedLabel}
-            onSaveLabel={props.onSaveLabel}
-            onDeleteLabel={props.onDeleteLabel}
-            onClose={props.onCloseSpatialEditor}
-          />
-        )}
-      </AnimatePresence>
+      {/* 3D-Projected Cockpit HUD for Selected Graffiti or Draft Graffiti */}
+      {props.edit && labelTransform && labelTransform.visible && (
+        <>
+          {/* Floating 3D Cockpit Toolbar */}
+          <div
+            className="absolute z-30 flex items-center gap-1.5 rounded-xl border border-sky-400/50 bg-[#071526]/95 p-1.5 font-mono text-xs text-white shadow-[0_12px_32px_rgba(0,0,0,0.85)] backdrop-blur-md select-none -translate-x-1/2 -translate-y-full mb-3"
+            style={{
+              left: labelTransform.hudX,
+              top: labelTransform.hudY,
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* ✥ Drag handle */}
+            {!labelTransform.isDraft && (
+              <button
+                type="button"
+                title="Переместить надпись (зажмите и тяните мышь)"
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  scene.current?.startDraggingSelectedLabel(e.nativeEvent);
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-sky-500/40 bg-sky-500/10 hover:bg-sky-500/25 hover:border-sky-400 text-sky-300 hover:text-white transition-all cursor-grab active:cursor-grabbing active:scale-95"
+              >
+                <Move className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {/* Color Swatches */}
+            <div className="flex items-center gap-1 border-l border-white/15 pl-1.5">
+              {['#ffffff', '#38bdf8', '#f59e0b', '#f43f5e', '#10b981', '#a855f7'].map((col) => (
+                <button
+                  key={col}
+                  type="button"
+                  title={`Цвет: ${col}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!labelTransform.isDraft && props.selectedLabel) {
+                      props.onUpdateLabel?.(props.room.id, props.selectedLabel.id, { color: col });
+                    } else if (labelTransform.isDraft) {
+                      scene.current?.updateDraftLabel({ color: col });
+                    }
+                  }}
+                  className={`h-5 w-5 rounded-md transition-all cursor-pointer ${
+                    (labelTransform.color || '#38bdf8').toLowerCase() === col.toLowerCase()
+                      ? 'ring-2 ring-white scale-110 shadow-sm shadow-sky-400/50'
+                      : 'opacity-70 hover:opacity-100 hover:scale-105'
+                  }`}
+                  style={{ backgroundColor: col }}
+                />
+              ))}
+            </div>
+
+            {/* Separator */}
+            <div className="h-4 w-px bg-white/20 mx-0.5" />
+
+            {/* Size controls (-/+) */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                title="Уменьшить размер (-5 см)"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const curSize = labelTransform.size || 0.35;
+                  const nextSize = Math.max(0.15, Number((curSize - 0.05).toFixed(2)));
+                  if (!labelTransform.isDraft && props.selectedLabel) {
+                    props.onUpdateLabel?.(props.room.id, props.selectedLabel.id, { size: nextSize });
+                  } else if (labelTransform.isDraft) {
+                    scene.current?.updateDraftLabel({ size: nextSize });
+                  }
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/20 bg-white/5 hover:bg-white/15 text-neutral-200 hover:text-white transition-all cursor-pointer active:scale-95 font-bold"
+              >
+                −
+              </button>
+              <button
+                type="button"
+                title="Увеличить размер (+5 см)"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const curSize = labelTransform.size || 0.35;
+                  const nextSize = Math.min(5.0, Number((curSize + 0.05).toFixed(2)));
+                  if (!labelTransform.isDraft && props.selectedLabel) {
+                    props.onUpdateLabel?.(props.room.id, props.selectedLabel.id, { size: nextSize });
+                  } else if (labelTransform.isDraft) {
+                    scene.current?.updateDraftLabel({ size: nextSize });
+                  }
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/20 bg-white/5 hover:bg-white/15 text-neutral-200 hover:text-white transition-all cursor-pointer active:scale-95 font-bold"
+              >
+                +
+              </button>
+            </div>
+
+            {/* Rotate button (90°) */}
+            <button
+              type="button"
+              title="Повернуть на 90°"
+              onClick={(e) => {
+                e.stopPropagation();
+                const curRot = labelTransform.rotation || 0;
+                const nextRot = (curRot + 90) % 360;
+                if (!labelTransform.isDraft && props.selectedLabel) {
+                  props.onUpdateLabel?.(props.room.id, props.selectedLabel.id, { rotation: nextRot });
+                } else if (labelTransform.isDraft) {
+                  scene.current?.updateDraftLabel({ rotation: nextRot });
+                }
+              }}
+              className="flex h-7 px-2 items-center justify-center rounded-lg border border-white/20 bg-white/5 hover:bg-white/15 text-sky-300 hover:text-white transition-all cursor-pointer active:scale-95 font-bold text-[11px]"
+            >
+              90°
+            </button>
+
+            {/* Pencil button to trigger inline text editing */}
+            <button
+              type="button"
+              title="Редактировать текст надписи"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsEditingText(true);
+              }}
+              className={`flex h-7 px-2 items-center gap-1 justify-center rounded-lg border transition-all cursor-pointer active:scale-95 ${
+                isEditingText
+                  ? 'border-sky-400 bg-sky-500/20 text-white'
+                  : 'border-white/20 bg-white/5 hover:bg-white/15 text-neutral-300 hover:text-white'
+              }`}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Delete / Cancel button (✕) */}
+            <button
+              type="button"
+              title={labelTransform.isDraft ? 'Отменить нанесение' : 'Удалить надпись'}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (labelTransform.isDraft) {
+                  scene.current?.cancelAuthoring();
+                } else if (props.selectedLabel) {
+                  props.onDeleteRoomLabel?.(props.room.id, props.selectedLabel.id);
+                  props.onCloseSpatialEditor();
+                }
+              }}
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/30 text-rose-300 hover:text-white transition-all cursor-pointer active:scale-95 font-bold"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* In-Scene Inline Text Editor positioned right over the graffiti text */}
+          {isEditingText ? (
+            <input
+              ref={inlineInputRef}
+              type="text"
+              value={editingText}
+              onChange={(e) => {
+                const val = e.target.value;
+                setEditingText(val);
+                if (!labelTransform.isDraft && props.selectedLabel) {
+                  props.onUpdateLabel?.(props.room.id, props.selectedLabel.id, { text: val });
+                } else if (labelTransform.isDraft) {
+                  scene.current?.updateDraftLabel({ text: val });
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setIsEditingText(false);
+                } else if (e.key === 'Escape') {
+                  if (props.selectedLabel) {
+                    setEditingText(props.selectedLabel.text);
+                    props.onUpdateLabel?.(props.room.id, props.selectedLabel.id, { text: props.selectedLabel.text });
+                  }
+                  setIsEditingText(false);
+                }
+              }}
+              onBlur={() => {
+                setIsEditingText(false);
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              className="absolute z-40 -translate-x-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg border-2 border-sky-400 bg-neutral-950/95 font-mono font-bold text-sm tracking-wider shadow-[0_0_25px_rgba(56,189,248,0.5)] backdrop-blur-md outline-none text-center select-text"
+              style={{
+                left: labelTransform.screenX,
+                top: labelTransform.screenY,
+                color: labelTransform.color || '#38bdf8',
+                minWidth: '160px',
+              }}
+            />
+          ) : (
+            /* Clickable hotspot over the 3D text allowing single-click to edit */
+            <div
+              className="absolute z-20 -translate-x-1/2 -translate-y-1/2 cursor-pointer group"
+              style={{
+                left: labelTransform.screenX,
+                top: labelTransform.screenY,
+                width: Math.max(120, labelTransform.size * 300),
+                height: Math.max(40, labelTransform.size * 90),
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsEditingText(true);
+              }}
+              title="Нажмите на текст, чтобы изменить его"
+            />
+          )}
+        </>
+      )}
 
       {/* 3D Floating Hover Badge for Printers and Filaments */}
       <AnimatePresence>
@@ -627,18 +844,22 @@ export function WorkshopCanvas(props: WorkshopCanvasProps) {
         )}
       </AnimatePresence>
 
-      {/* Collision Diagnosis Cockpit Feedback Toast */}
+      {/* Cockpit Feedback Toast (Collision / Relocation) */}
       <AnimatePresence>
-        {collisionToast && (
+        {(props.relocationNotice || collisionToast) && (
           <motion.div
             initial={{ opacity: 0, y: 16, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.96 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 rounded-xl border border-rose-500/40 bg-[#0a0d12]/95 px-4 py-2.5 font-mono text-xs font-semibold text-rose-200 shadow-2xl backdrop-blur-md pointer-events-none select-none"
+            className={`absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 rounded-xl border ${
+              props.relocationNotice
+                ? 'border-amber-500/50 bg-[#0a0d12]/95 text-amber-200 shadow-amber-500/10'
+                : 'border-rose-500/40 bg-[#0a0d12]/95 text-rose-200 shadow-rose-500/10'
+            } px-4 py-2.5 font-mono text-xs font-semibold shadow-2xl backdrop-blur-md pointer-events-none select-none`}
           >
-            <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
-            <span>{collisionToast}</span>
+            <AlertTriangle className={`h-4 w-4 shrink-0 ${props.relocationNotice ? 'text-amber-400' : 'text-amber-400'}`} />
+            <span>{props.relocationNotice || collisionToast}</span>
           </motion.div>
         )}
       </AnimatePresence>

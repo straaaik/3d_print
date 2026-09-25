@@ -30,10 +30,11 @@ export interface SpatialCallbacks {
   onResizeFurniture?: (id: string, width: number, depth: number) => void;
   onCreateFurniture?: (roomId: string, kind: FurnitureKind, x: number, z: number, width: number, depth: number) => void;
   onLabelSelect?: (roomId: string, labelId: string) => void;
-  onMoveLabel?: (roomId: string, labelId: string, u: number, v: number) => void;
+  onLabelEditStart?: (roomId: string, labelId: string) => void;
+  onMoveLabel?: (roomId: string, labelId: string, u: number, v: number, surface?: Surface) => void;
   onUpdateLabel?: (roomId: string, labelId: string, patch: Partial<RoomLabel>) => void;
   onDeleteLabel?: (roomId: string, labelId: string) => void;
-  onPlaceLabel?: (roomId: string, surface: Surface, u: number, v: number, text?: string, color?: string) => void;
+  onPlaceLabel?: (roomId: string, surface: Surface, u: number, v: number, text?: string, color?: string, size?: number, rotation?: number) => void;
   onAuthoringHint?: (text: string | null) => void;
 }
 
@@ -41,7 +42,7 @@ type Draft =
   | { type: 'room'; roomId: string; width: number; depth: number; snapped?: boolean }
   | { type: 'resize'; id: string; width: number; depth: number; axis: 'width' | 'depth' }
   | { type: 'furniture'; kind: FurnitureKind; roomId?: string; anchor?: THREE.Vector3; x: number; z: number; width: number; depth: number }
-  | { type: 'label'; surface?: Surface; text?: string; color?: string };
+  | { type: 'label'; surface?: Surface; text?: string; color?: string; size?: number; rotation?: number };
 
 export const hudButtonTextureCache = new Map<string, THREE.CanvasTexture>();
 
@@ -197,6 +198,7 @@ export class SpatialAuthoring {
   private labelPreviewMesh: THREE.Mesh | null = null;
   private labelPreviewFrame: THREE.LineSegments | null = null;
   private currentPreviewKey = '';
+  private lastHit: { room: Room; surface: Surface; p: THREE.Vector3; u: number; v: number } | null = null;
   private interactingWithControl = false;
   private ray = new THREE.Raycaster();
   private pointer = new THREE.Vector2();
@@ -552,31 +554,45 @@ export class SpatialAuthoring {
     const z = (v - 0.5) * room.depth;
     const y = v * 2.6;
 
+    const lbl = (room.labels ?? defaultRoomLabels(room)).find((l) => l.id === labelId);
+    const rotDeg = lbl?.rotation ?? 0;
+    const rotRad = (rotDeg * Math.PI) / 180;
+
     if (mesh) {
       if (surface === 'floor') {
         mesh.position.set(x, 0.045, z);
+        mesh.rotation.set(-Math.PI / 2, 0, rotRad);
       } else if (surface === 'north') {
         mesh.position.set(x, y, -room.depth / 2 + 0.09);
+        mesh.rotation.set(0, 0, rotRad);
       } else if (surface === 'south') {
         mesh.position.set(x, y, room.depth / 2 - 0.09);
+        mesh.rotation.set(0, Math.PI, -rotRad);
       } else if (surface === 'west') {
         mesh.position.set(-room.width / 2 + 0.09, y, (u - 0.5) * room.depth);
+        mesh.rotation.set(0, Math.PI / 2, rotRad);
       } else if (surface === 'east') {
         mesh.position.set(room.width / 2 - 0.09, y, (u - 0.5) * room.depth);
+        mesh.rotation.set(0, -Math.PI / 2, -rotRad);
       }
     }
 
     if (this.selectedLabelFrame) {
       if (surface === 'floor') {
         this.selectedLabelFrame.position.set(o.x + x, 0.046, o.z + z);
+        this.selectedLabelFrame.rotation.set(-Math.PI / 2, 0, rotRad);
       } else if (surface === 'north') {
         this.selectedLabelFrame.position.set(o.x + x, y, o.z - room.depth / 2 + 0.091);
+        this.selectedLabelFrame.rotation.set(0, 0, rotRad);
       } else if (surface === 'south') {
         this.selectedLabelFrame.position.set(o.x + x, y, o.z + room.depth / 2 - 0.091);
+        this.selectedLabelFrame.rotation.set(0, Math.PI, -rotRad);
       } else if (surface === 'west') {
         this.selectedLabelFrame.position.set(o.x - room.width / 2 + 0.091, y, o.z + (u - 0.5) * room.depth);
+        this.selectedLabelFrame.rotation.set(0, Math.PI / 2, rotRad);
       } else if (surface === 'east') {
         this.selectedLabelFrame.position.set(o.x + room.width / 2 - 0.091, y, o.z + (u - 0.5) * room.depth);
+        this.selectedLabelFrame.rotation.set(0, -Math.PI / 2, -rotRad);
       }
     }
   }
@@ -674,11 +690,66 @@ export class SpatialAuthoring {
     this.callbacks.onAuthoringHint?.('Нажмите на пол и протяните размер мебели. Второй щелчок подтверждает. Esc — отмена.');
   }
 
-  beginLabel(surface?: Surface, text?: string, color?: string) {
+  beginLabel(surface?: Surface, text?: string, color?: string, size = 0.35, rotation = 0) {
     if (this.edit) {
-      this.start({ type: 'label', surface, text, color });
+      this.selectedLabelId = null;
+      this.start({ type: 'label', surface, text, color, size, rotation });
       this.callbacks.onAuthoringHint?.('Нажмите на пол или стену, чтобы нанести надпись. Esc — отмена.');
     }
+  }
+
+  updateDraftLabel(patch: { text?: string; color?: string; size?: number; rotation?: number }) {
+    if (this.draft?.type !== 'label') return;
+    if (patch.text !== undefined) this.draft.text = patch.text;
+    if (patch.color !== undefined) this.draft.color = patch.color;
+    if (patch.size !== undefined) this.draft.size = patch.size;
+    if (patch.rotation !== undefined) this.draft.rotation = patch.rotation;
+    this.currentPreviewKey = '';
+    if (this.lastHit) {
+      this.updateLabelPreview(this.lastHit);
+    }
+    this.invalidate();
+  }
+
+  startDraggingSelectedLabel(e: PointerEvent): boolean {
+    if (!this.selectedLabelId || !this.state) return false;
+    for (const room of this.state.rooms) {
+      const lbl = (room.labels ?? defaultRoomLabels(room)).find((item) => item.id === this.selectedLabelId);
+      if (lbl) {
+        this.draggingLabel = {
+          roomId: room.id,
+          labelId: lbl.id,
+          surface: lbl.surface,
+          startU: lbl.u,
+          startV: lbl.v,
+          currentU: lbl.u,
+          currentV: lbl.v,
+          hasMoved: false,
+        };
+        if (typeof this.canvas.setPointerCapture === 'function' && e.pointerId !== undefined) {
+          try {
+            this.canvas.setPointerCapture(e.pointerId);
+          } catch {}
+        }
+        this.callbacks.onAuthoringHint?.('Перетаскивайте надпись по поверхности. Отпустите для подтверждения.');
+        this.invalidate();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  getLabelPreviewPosition(): { worldPos: THREE.Vector3; surface: Surface; roomId: string } | null {
+    if (!this.draft || this.draft.type !== 'label' || !this.lastHit) return null;
+    return {
+      worldPos: this.lastHit.p.clone(),
+      surface: this.lastHit.surface,
+      roomId: this.lastHit.room.id,
+    };
+  }
+
+  isLabelPreviewVisible(): boolean {
+    return this.labelPreviewGroup.visible && this.draft?.type === 'label';
   }
 
   cancel() {
@@ -699,6 +770,7 @@ export class SpatialAuthoring {
   private cleanupLabelPreview() {
     this.labelPreviewGroup.visible = false;
     this.currentPreviewKey = '';
+    this.lastHit = null;
     if (this.labelPreviewMesh) {
       if (this.labelPreviewMesh.material instanceof THREE.Material) {
         if ((this.labelPreviewMesh.material as any).map) (this.labelPreviewMesh.material as any).map.dispose();
@@ -716,8 +788,76 @@ export class SpatialAuthoring {
     }
   }
 
+  findSurfaceHitForRoom(
+    e: PointerEvent,
+    room: Room
+  ): { surface: Surface; p: THREE.Vector3; u: number; v: number } | null {
+    if (!this.state) return null;
+    this.cast(e);
+    const o = roomOrigin(this.state, room.id);
+    const occupied = occupiedSides(this.state, room);
+    const surfaces: Surface[] = [
+      'floor',
+      'north',
+      'west',
+      ...(['east', 'south'] as const).filter((side) => occupied.has(side)),
+    ];
+
+    const hits: { surface: Surface; p: THREE.Vector3; distance: number; u: number; v: number }[] = [];
+
+    for (const surface of surfaces) {
+      const normal =
+        surface === 'floor'
+          ? new THREE.Vector3(0, 1, 0)
+          : surface === 'north' || surface === 'south'
+          ? new THREE.Vector3(0, 0, 1)
+          : new THREE.Vector3(1, 0, 0);
+
+      const constant =
+        surface === 'floor'
+          ? 0
+          : surface === 'north'
+          ? -(o.z - room.depth / 2)
+          : surface === 'south'
+          ? -(o.z + room.depth / 2)
+          : surface === 'west'
+          ? -(o.x - room.width / 2)
+          : -(o.x + room.width / 2);
+
+      const p = this.ray.ray.intersectPlane(new THREE.Plane(normal, constant), new THREE.Vector3());
+      if (
+        !p ||
+        p.y < -0.01 ||
+        p.y > 2.6 ||
+        Math.abs(p.x - o.x) > room.width / 2 + 0.05 ||
+        Math.abs(p.z - o.z) > room.depth / 2 + 0.05
+      )
+        continue;
+
+      const u =
+        surface === 'east' || surface === 'west'
+          ? (p.z - o.z) / room.depth + 0.5
+          : (p.x - o.x) / room.width + 0.5;
+      const v = surface === 'floor' ? (p.z - o.z) / room.depth + 0.5 : p.y / 2.6;
+
+      hits.push({
+        surface,
+        p,
+        distance: p.distanceTo(this.ray.ray.origin),
+        u: THREE.MathUtils.clamp(u, 0.05, 0.95),
+        v: THREE.MathUtils.clamp(v, 0.05, 0.95),
+      });
+    }
+
+    hits.sort((a, b) => a.distance - b.distance);
+    return hits[0] ?? null;
+  }
+
   private findSurfaceHit(e: PointerEvent): { room: Room; surface: Surface; p: THREE.Vector3; u: number; v: number } | null {
-    if (!this.state || !this.draft || this.draft.type !== 'label') return null;
+    if (!this.state || !this.draft || this.draft.type !== 'label') {
+      this.lastHit = null;
+      return null;
+    }
     this.cast(e);
     const hits: { room: Room; surface: Surface; p: THREE.Vector3; distance: number }[] = [];
     for (const room of this.state.rooms) {
@@ -752,7 +892,10 @@ export class SpatialAuthoring {
       }
     }
     const hit = hits.sort((a, b) => a.distance - b.distance)[0];
-    if (!hit) return null;
+    if (!hit) {
+      this.lastHit = null;
+      return null;
+    }
 
     const o = roomOrigin(this.state, hit.room.id);
     const u =
@@ -761,13 +904,15 @@ export class SpatialAuthoring {
         : (hit.p.x - o.x) / hit.room.width + 0.5;
     const v = hit.surface === 'floor' ? (hit.p.z - o.z) / hit.room.depth + 0.5 : hit.p.y / 2.6;
 
-    return {
+    const res = {
       room: hit.room,
       surface: hit.surface,
       p: hit.p,
       u: THREE.MathUtils.clamp(u, 0.05, 0.95),
       v: THREE.MathUtils.clamp(v, 0.05, 0.95),
     };
+    this.lastHit = res;
+    return res;
   }
 
   private updateLabelPreview(hit: { room: Room; surface: Surface; p: THREE.Vector3; u: number; v: number } | null) {
@@ -778,7 +923,10 @@ export class SpatialAuthoring {
 
     const text = this.draft.text && this.draft.text.trim() ? this.draft.text.trim() : 'Новая надпись';
     const color = this.draft.color || '#38bdf8';
-    const previewKey = `${text}_${color}`;
+    const size = this.draft.size || 0.35;
+    const rotation = this.draft.rotation || 0;
+    const rotRad = (rotation * Math.PI) / 180;
+    const previewKey = `${text}_${color}_${size}_${rotation}`;
 
     if (!this.labelPreviewMesh || this.currentPreviewKey !== previewKey) {
       this.currentPreviewKey = previewKey;
@@ -798,7 +946,6 @@ export class SpatialAuthoring {
         this.labelPreviewFrame = null;
       }
 
-      const size = 0.35;
       const texture = makeCanvasTexture((ctx, cw, ch) => {
         ctx.fillStyle = color;
         ctx.font = '600 104px sans-serif';
@@ -833,19 +980,19 @@ export class SpatialAuthoring {
     const o = roomOrigin(this.state!, hit.room.id);
     if (hit.surface === 'floor') {
       this.labelPreviewGroup.position.set(hit.p.x, 0.046, hit.p.z);
-      this.labelPreviewGroup.rotation.set(-Math.PI / 2, 0, 0);
+      this.labelPreviewGroup.rotation.set(-Math.PI / 2, 0, rotRad);
     } else if (hit.surface === 'north') {
       this.labelPreviewGroup.position.set(hit.p.x, hit.p.y, o.z - hit.room.depth / 2 + 0.091);
-      this.labelPreviewGroup.rotation.set(0, 0, 0);
+      this.labelPreviewGroup.rotation.set(0, 0, rotRad);
     } else if (hit.surface === 'south') {
       this.labelPreviewGroup.position.set(hit.p.x, hit.p.y, o.z + hit.room.depth / 2 - 0.091);
-      this.labelPreviewGroup.rotation.set(0, Math.PI, 0);
+      this.labelPreviewGroup.rotation.set(0, Math.PI, -rotRad);
     } else if (hit.surface === 'west') {
       this.labelPreviewGroup.position.set(o.x - hit.room.width / 2 + 0.091, hit.p.y, hit.p.z);
-      this.labelPreviewGroup.rotation.set(0, Math.PI / 2, 0);
+      this.labelPreviewGroup.rotation.set(0, Math.PI / 2, rotRad);
     } else if (hit.surface === 'east') {
       this.labelPreviewGroup.position.set(o.x + hit.room.width / 2 - 0.091, hit.p.y, hit.p.z);
-      this.labelPreviewGroup.rotation.set(0, -Math.PI / 2, 0);
+      this.labelPreviewGroup.rotation.set(0, -Math.PI / 2, -rotRad);
     }
     this.labelPreviewGroup.visible = true;
   }
@@ -1312,47 +1459,18 @@ export class SpatialAuthoring {
 
     // 1. Перетаскивание существующей надписи в 3D
     if (this.draggingLabel && this.state) {
-      this.cast(e);
       const room = this.state.rooms.find((r) => r.id === this.draggingLabel!.roomId);
       if (!room) return true;
-      const o = roomOrigin(this.state, room.id);
-      const surface = this.draggingLabel.surface;
 
-      const normal =
-        surface === 'floor'
-          ? new THREE.Vector3(0, 1, 0)
-          : surface === 'north' || surface === 'south'
-          ? new THREE.Vector3(0, 0, 1)
-          : new THREE.Vector3(1, 0, 0);
-
-      const constant =
-        surface === 'floor'
-          ? 0
-          : surface === 'north'
-          ? -(o.z - room.depth / 2)
-          : surface === 'south'
-          ? -(o.z + room.depth / 2)
-          : surface === 'west'
-          ? -(o.x - room.width / 2)
-          : -(o.x + room.width / 2);
-
-      const p = this.ray.ray.intersectPlane(new THREE.Plane(normal, constant), new THREE.Vector3());
-      if (p) {
-        let u =
-          surface === 'east' || surface === 'west'
-            ? (p.z - o.z) / room.depth + 0.5
-            : (p.x - o.x) / room.width + 0.5;
-        let v = surface === 'floor' ? (p.z - o.z) / room.depth + 0.5 : p.y / 2.6;
-
-        u = THREE.MathUtils.clamp(u, 0.05, 0.95);
-        v = THREE.MathUtils.clamp(v, 0.05, 0.95);
-
-        this.draggingLabel.currentU = u;
-        this.draggingLabel.currentV = v;
+      const hit = this.findSurfaceHitForRoom(e, room);
+      if (hit) {
+        this.draggingLabel.surface = hit.surface;
+        this.draggingLabel.currentU = hit.u;
+        this.draggingLabel.currentV = hit.v;
         this.draggingLabel.hasMoved = true;
 
-        this.updateLabelMeshPosition(this.draggingLabel.labelId, room, surface, u, v);
-        this.updateLabelHudPosition(room, surface, u, v);
+        this.updateLabelMeshPosition(this.draggingLabel.labelId, room, hit.surface, hit.u, hit.v);
+        this.updateLabelHudPosition(room, hit.surface, hit.u, hit.v);
         this.canvas.style.cursor = 'grabbing';
         this.invalidate();
       }
@@ -1499,6 +1617,30 @@ export class SpatialAuthoring {
   }
 
   pointerUp(e: PointerEvent): boolean {
+    if (this.draggingLabel) {
+      const { roomId, labelId, currentU, currentV, surface, hasMoved } = this.draggingLabel;
+      this.draggingLabel = null;
+      this.interactingWithControl = false;
+      this.callbacks.onAuthoringHint?.(null);
+      if (typeof this.canvas.releasePointerCapture === 'function' && e.pointerId !== undefined) {
+        try {
+          if (typeof this.canvas.hasPointerCapture === 'function' ? this.canvas.hasPointerCapture(e.pointerId) : true) {
+            this.canvas.releasePointerCapture(e.pointerId);
+          }
+        } catch {
+          // Safe release
+        }
+      }
+      this.canvas.style.cursor = 'default';
+      if (hasMoved) {
+        this.callbacks.onMoveLabel?.(roomId, labelId, currentU, currentV, surface);
+      } else {
+        this.callbacks.onLabelEditStart?.(roomId, labelId);
+      }
+      this.rebuildControls();
+      return true;
+    }
+
     if (this.interactingWithControl) {
       this.interactingWithControl = false;
       return true;
@@ -1547,20 +1689,6 @@ export class SpatialAuthoring {
       return true;
     }
 
-    if (this.draggingLabel) {
-      const { roomId, labelId, currentU, currentV, hasMoved } = this.draggingLabel;
-      this.draggingLabel = null;
-      this.callbacks.onAuthoringHint?.(null);
-      if (this.canvas.hasPointerCapture(e.pointerId)) {
-        this.canvas.releasePointerCapture(e.pointerId);
-      }
-      this.canvas.style.cursor = 'default';
-      if (hasMoved) {
-        this.callbacks.onMoveLabel?.(roomId, labelId, currentU, currentV);
-      }
-      this.rebuildControls();
-      return true;
-    }
 
     if (!this.draft) return false;
     if (this.pressed && Math.abs(e.clientX - this.pressed.x) + Math.abs(e.clientY - this.pressed.y) > 5) {
@@ -1666,7 +1794,9 @@ export class SpatialAuthoring {
       hit.u,
       hit.v,
       this.draft.text,
-      this.draft.color
+      this.draft.color,
+      this.draft.size,
+      this.draft.rotation
     );
     this.cancel();
   }

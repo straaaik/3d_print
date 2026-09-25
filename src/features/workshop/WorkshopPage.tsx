@@ -27,6 +27,8 @@ import {
   syncWorkshopPlacements,
   uid,
   updateFurniture,
+  findNearestValidPosition,
+  resolveInvalidFurniture,
   pushWorkshopHistory,
   undoWorkshopHistory,
   redoWorkshopHistory,
@@ -61,6 +63,8 @@ function Workspace({ userId }: { userId: string }) {
   const [canRedo, setCanRedo] = useState(false);
   const layoutRef = useRef(layout);
   layoutRef.current = layout;
+  const [relocationNotice, setRelocationNotice] = useState<string | null>(null);
+  const relocationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const hasUnsavedChanges = useMemo(() => {
     if (!edit || !baselineLayout.current || !layout) return false;
@@ -225,7 +229,35 @@ function Workspace({ userId }: { userId: string }) {
     }
   }
 
+  function showRelocationNotice(message: string) {
+    if (relocationTimer.current) clearTimeout(relocationTimer.current);
+    setRelocationNotice(message);
+    relocationTimer.current = setTimeout(() => {
+      setRelocationNotice(null);
+    }, 3500);
+  }
+
+  function resolveInvalidAndNotify(targetIds?: string[]): boolean {
+    if (!layout) return false;
+    const { nextState, relocated } = resolveInvalidFurniture(layout, targetIds);
+    if (relocated.length > 0) {
+      commit(nextState);
+      const names = relocated.map((r) => `«${r.furniture.name}»`).join(', ');
+      const message =
+        relocated.length === 1
+          ? `Предмет ${names} перемещён, так как он стоял в недоступном месте.`
+          : `Предметы ${names} перемещены, так как они стояли в недоступных местах.`;
+      showRelocationNotice(message);
+      return true;
+    }
+    return false;
+  }
+
   function select(id: string, kind: 'furniture' | 'placement') {
+    if (selection?.kind === 'furniture' && selection.id && selection.id !== id) {
+      resolveInvalidAndNotify([selection.id]);
+    }
+
     if (!id) {
       setSelection(null);
       return;
@@ -247,6 +279,7 @@ function Workspace({ userId }: { userId: string }) {
       if (hasUnsavedChanges) {
         setShowUnsavedModal(true);
       } else {
+        resolveInvalidAndNotify();
         setEdit(false);
         setSelection(null);
         setSelectedLabel(null);
@@ -265,6 +298,7 @@ function Workspace({ userId }: { userId: string }) {
     if (hasUnsavedChanges) {
       setShowUnsavedModal(true);
     } else {
+      resolveInvalidAndNotify();
       setEdit(false);
       setSelection(null);
       setSelectedLabel(null);
@@ -277,9 +311,20 @@ function Workspace({ userId }: { userId: string }) {
 
   function handleSaveAndExit() {
     if (!layout) return;
+    const { nextState, relocated } = resolveInvalidFurniture(layout);
+    let effectiveLayout = nextState;
+    if (relocated.length > 0) {
+      commit(effectiveLayout);
+      const names = relocated.map((r) => `«${r.furniture.name}»`).join(', ');
+      const message =
+        relocated.length === 1
+          ? `Предмет ${names} перемещён, так как он стоял в недоступном месте.`
+          : `Предметы ${names} перемещены, так как они стояли в недоступных местах.`;
+      showRelocationNotice(message);
+    }
     const withCameras: Workshop = {
-      ...layout,
-      rooms: layout.rooms.map((r) => (cameraViews.current.has(r.id) ? { ...r, camera: cameraViews.current.get(r.id) } : r)),
+      ...effectiveLayout,
+      rooms: effectiveLayout.rooms.map((r) => (cameraViews.current.has(r.id) ? { ...r, camera: cameraViews.current.get(r.id) } : r)),
     };
     change(withCameras);
     void save();
@@ -313,7 +358,7 @@ function Workspace({ userId }: { userId: string }) {
       const f = layout!.furniture.find((item) => item.id === id);
       if (!f) return;
       const next = { ...f, rotation };
-      commit(updateFurniture(layout!, next));
+      commit(updateFurniture(layout!, next, true));
       select(id, 'furniture');
     });
   }
@@ -364,6 +409,9 @@ function Workspace({ userId }: { userId: string }) {
   }
 
   function switchRoom(id: string) {
+    if (selection?.kind === 'furniture' && selection.id) {
+      resolveInvalidAndNotify([selection.id]);
+    }
     setActiveRoom(id);
     setSelection(null);
     setSelectedLabel(null);
@@ -421,9 +469,14 @@ function Workspace({ userId }: { userId: string }) {
     });
   }
 
-  function handleLabelSelect(roomId:string,labelId:string){
-    if(!edit)return;
-    setActiveRoom(roomId);setSelection(null);setSelectedLabel(labelId);
+  function handleLabelSelect(roomId: string, labelId: string) {
+    if (!edit) return;
+    if (selection?.kind === 'furniture' && selection.id) {
+      resolveInvalidAndNotify([selection.id]);
+    }
+    setActiveRoom(roomId);
+    setSelection(null);
+    setSelectedLabel(labelId);
   }
 
   function handlePlaceLabel(
@@ -432,7 +485,9 @@ function Workspace({ userId }: { userId: string }) {
     u: number,
     v: number,
     text?: string,
-    color?: string
+    color?: string,
+    size?: number,
+    rotation?: number
   ) {
     if (!edit) return;
     attempt(() => {
@@ -444,18 +499,18 @@ function Workspace({ userId }: { userId: string }) {
         surface,
         u,
         v,
-        size: 0.35,
-        rotation: 0,
+        size: size ?? 0.35,
+        rotation: rotation ?? 0,
       };
       commit(updateRoomLabels(layout!, roomId, [...defaultRoomLabels(target), label]));
       handleLabelSelect(roomId, label.id);
     });
   }
 
-  function handleMoveLabel(roomId: string, labelId: string, u: number, v: number) {
+  function handleMoveLabel(roomId: string, labelId: string, u: number, v: number, surface?: RoomLabel['surface']) {
     if (!edit) return;
     attempt(() => {
-      commit(updateRoomLabel(layout!, roomId, labelId, { u, v }));
+      commit(updateRoomLabel(layout!, roomId, labelId, surface ? { u, v, surface } : { u, v }));
     });
   }
 
@@ -689,7 +744,7 @@ function Workspace({ userId }: { userId: string }) {
                   attempt(() => {
                     const f = layout.furniture.find((item) => item.id === id)!;
                     const nextRoomId = targetRoomId ?? f.roomId;
-                    commit(updateFurniture(layout, { ...f, roomId: nextRoomId, x, z }));
+                    commit(updateFurniture(layout, { ...f, roomId: nextRoomId, x, z }, true));
                     if (nextRoomId !== activeRoom) {
                       setActiveRoom(nextRoomId);
                     }
@@ -735,6 +790,7 @@ function Workspace({ userId }: { userId: string }) {
                 hasUnsavedChanges={hasUnsavedChanges}
                 onExitEdit={handleRequestExitEdit}
                 activePrinterIds={activePrinterIds}
+                relocationNotice={relocationNotice}
               />
             ) : (
               <div className="flex min-h-96 flex-col items-center justify-center gap-4 text-neutral-400 font-mono">

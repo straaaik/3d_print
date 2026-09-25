@@ -433,14 +433,27 @@ export async function savePrinter(printer: Omit<Printer, 'id'> & { id?: string }
 
   if (client) {
     try {
-      const { data, error } = await (client as any)
+      let { data, error } = await (client as any)
         .from('printers')
         .upsert(newPrinter)
         .select()
         .single();
 
+      if (error && (error.code === 'PGRST204' || String(error.message || '').includes('model_3d'))) {
+        const { model_3d: _, ...fallbackPayload } = newPrinter;
+        const retry = await (client as any)
+          .from('printers')
+          .upsert(fallbackPayload)
+          .select()
+          .single();
+        if (!retry.error && retry.data) {
+          data = { ...retry.data, model_3d: newPrinter.model_3d };
+          error = null;
+        }
+      }
+
       if (error || !data) throwDatabaseError('сохранение принтера', error);
-      const saved = data as Printer;
+      const saved = { ...data, model_3d: newPrinter.model_3d || (data as Printer).model_3d || 'a1' } as Printer;
       upsertLocalItem(STORAGE_KEYS.PRINTERS, saved);
       removeSyncOperation('printers', saved.id);
       return saved;

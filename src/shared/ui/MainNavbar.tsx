@@ -26,6 +26,7 @@ export interface MainNavbarProps {
 
 // 6 основных рабочих разделов
 const NAV_ITEMS = [
+  { id: 'workshop', label: 'Мастерская', href: '/workshop' },
   {
     id: 'orders',
     label: 'Заказы',
@@ -265,7 +266,7 @@ export function MainNavbar({ className = '', activeTab, onTabChange, onNavigate 
                     handleClick(e, item.href);
                     return;
                   }
-                  if (onTabChange) {
+                  if (onTabChange && item.id !== 'workshop') {
                     e.preventDefault();
                     onTabChange(item.id);
                     return;

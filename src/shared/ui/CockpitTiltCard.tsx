@@ -264,15 +264,15 @@ export const CockpitTiltCard = React.memo(function CockpitTiltCard({
       : 'rotateY(180deg) translateZ(1px)';
 
   return (
-    <div
+    <motion.div
       style={{ perspective: 1200 }}
+      initial={initial}
+      animate={animate}
+      transition={transition}
       className={`h-full w-full select-none ${containerClassName}`}
     >
       <Component
         ref={cardRef}
-        initial={initial}
-        animate={animate}
-        transition={transition}
         onPointerMove={handlePointerMove}
         onPointerEnter={handlePointerEnter}
         onPointerLeave={handlePointerLeave}
@@ -372,6 +372,6 @@ export const CockpitTiltCard = React.memo(function CockpitTiltCard({
           </div>
         )}
       </Component>
-    </div>
+    </motion.div>
   );
 });

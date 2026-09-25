@@ -6,11 +6,13 @@ import {
   calculateFilamentMetrics,
   calculatePrinterInsights,
   calculatePrinterMetrics,
+  detectPrinterModel,
   filterAndSortFilaments,
   filterAndSortPrinters,
   getEffectivePrinterViewMode,
   getPrinterViewModeOptions,
   parseRequiredNonNegative,
+  PRINTER_MODEL_OPTIONS,
 } from '../src/widgets/InventoryCockpit/model';
 
 const filaments: Filament[] = [
@@ -107,28 +109,35 @@ test('printer fullscreen insights split hourly fleet cost into depreciation and 
   assert.ok(Math.abs(insights.energySharePercent - 3.055 / 22.055 * 100) < 1e-10);
 });
 
-test('getEffectivePrinterViewMode allows 3D room in dev but safely falls back to cards in production', () => {
-  assert.equal(getEffectivePrinterViewMode('room3d', true), 'room3d');
-  assert.equal(getEffectivePrinterViewMode('room3d', false), 'cards');
-  assert.equal(getEffectivePrinterViewMode('table', false), 'table');
-  assert.equal(getEffectivePrinterViewMode('cards', false), 'cards');
-  assert.equal(getEffectivePrinterViewMode('table', true), 'table');
-  assert.equal(getEffectivePrinterViewMode('cards', true), 'cards');
+test('getEffectivePrinterViewMode safely falls back to cards for legacy room3d or invalid modes', () => {
+  assert.equal(getEffectivePrinterViewMode('room3d'), 'cards');
+  assert.equal(getEffectivePrinterViewMode('table'), 'table');
+  assert.equal(getEffectivePrinterViewMode('cards'), 'cards');
+  assert.equal(getEffectivePrinterViewMode('unknown'), 'cards');
 });
 
-test('getPrinterViewModeOptions excludes room3d in production and includes it in development', () => {
-  const prodOptions = getPrinterViewModeOptions('icon-table', 'icon-cards', 'icon-3d', false);
+test('getPrinterViewModeOptions returns table and cards options', () => {
+  const options = getPrinterViewModeOptions('icon-table', 'icon-cards');
   assert.deepEqual(
-    prodOptions.map((opt) => opt.value),
+    options.map((opt) => opt.value),
     ['table', 'cards'],
-    'Production options must not include room3d',
+    'Options must include table and cards',
   );
+});
 
-  const devOptions = getPrinterViewModeOptions('icon-table', 'icon-cards', 'icon-3d', true);
+test('detectPrinterModel identifies A1 and P1/X1 families and defaults to a1', () => {
+  assert.equal(detectPrinterModel('Bambu Lab A1'), 'a1');
+  assert.equal(detectPrinterModel('Bambu Lab A1 Mini'), 'a1');
+  assert.equal(detectPrinterModel('Bambu Lab P1S'), 'p1');
+  assert.equal(detectPrinterModel('Bambu Lab P1P'), 'p1');
+  assert.equal(detectPrinterModel('Bambu Lab X1-Carbon'), 'p1');
+  assert.equal(detectPrinterModel('X1C Combo'), 'p1');
+  assert.equal(detectPrinterModel('Creality Ender 3 V3'), 'a1');
+  assert.equal(detectPrinterModel(''), 'a1');
+
   assert.deepEqual(
-    devOptions.map((opt) => opt.value),
-    ['table', 'cards', 'room3d'],
-    'Development options must include room3d',
+    PRINTER_MODEL_OPTIONS.map((opt) => opt.value),
+    ['a1', 'p1'],
   );
 });
 

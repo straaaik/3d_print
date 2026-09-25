@@ -46,7 +46,6 @@ const TONES = {
   rose: 'text-rose-300 bg-rose-950/60 border-rose-800/40',
   emerald: 'text-emerald-300 bg-emerald-950/60 border-emerald-800/40',
   amber: 'text-amber-300 bg-amber-950/60 border-amber-800/40',
-  violet: 'text-violet-300 bg-violet-950/60 border-violet-800/40',
   neutral: 'text-neutral-300 bg-white/5 border-white/10',
 } as const;
 
@@ -103,7 +102,7 @@ export function StatsKpiCards({ kpi, deltas, mode, goal }: StatsKpiCardsProps) {
       formula: `${labels.result} / ${labels.revenue} × 100`, footer: kpi.margin >= 20 ? 'Рабочий диапазон' : 'Ниже контрольных 20%', delta: deltas.margin,
     },
     {
-      id: 'averageCheck', label: 'Средний чек', value: kpi.averageCheck, unit: '₽', icon: ReceiptText, tone: 'violet' as const,
+      id: 'averageCheck', label: 'Средний чек', value: kpi.averageCheck, unit: '₽', icon: ReceiptText, tone: 'cyan' as const,
       formula: `${labels.revenue} / количество доходных заказов`, footer: `${kpi.completedOrders} завершено`, delta: deltas.averageCheck,
     },
     {
@@ -114,17 +113,13 @@ export function StatsKpiCards({ kpi, deltas, mode, goal }: StatsKpiCardsProps) {
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
-      {cards.map((card, index) => {
+      {cards.map((card) => {
         const Icon = card.icon;
         const isNegative = card.value < 0;
         return (
           <CockpitTiltCard
             key={card.id}
             tone={card.tone}
-            as="article"
-            initial={{ opacity: 0, transform: 'translateY(10px)' }}
-            animate={{ opacity: 1, transform: 'translateY(0px)' }}
-            transition={{ duration: 0.28, delay: index * 0.045 }}
             className="flex min-h-36 flex-col justify-between p-4"
             backContent={(
               <div className="flex h-full flex-col justify-between font-mono text-[10px]">

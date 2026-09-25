@@ -7,6 +7,7 @@ export interface Printer {
   price: number;
   lifespan_hours: number;
   color?: string; // цветная метка принтера
+  model_3d?: 'a1' | 'p1';
 }
 
 export interface Filament {

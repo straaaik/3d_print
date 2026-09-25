@@ -1,0 +1,62 @@
+[
+  {
+    "file": "workshop-printer-a1.blend",
+    "editable_parts": 124,
+    "modifiers": 106,
+    "curves": 2
+  },
+  {
+    "file": "workshop-printer-p1.blend",
+    "editable_parts": 108,
+    "modifiers": 122,
+    "curves": 2
+  },
+  {
+    "file": "workshop-filament-spool.blend",
+    "editable_parts": 34,
+    "modifiers": 0,
+    "curves": 0
+  },
+  {
+    "file": "workshop-filament-rack.blend",
+    "editable_parts": 150,
+    "modifiers": 84,
+    "curves": 0
+  },
+  {
+    "file": "workshop-workbench.blend",
+    "editable_parts": 117,
+    "modifiers": 96,
+    "curves": 20
+  },
+  {
+    "file": "workshop-printer-rack.blend",
+    "editable_parts": 104,
+    "modifiers": 64,
+    "curves": 0
+  },
+  {
+    "file": "workshop-packing-boxes.blend",
+    "editable_parts": 118,
+    "modifiers": 148,
+    "curves": 0
+  },
+  {
+    "file": "workshop-plant.blend",
+    "editable_parts": 57,
+    "modifiers": 9,
+    "curves": 14
+  },
+  {
+    "file": "workshop-tool-cabinet.blend",
+    "editable_parts": 154,
+    "modifiers": 180,
+    "curves": 10
+  },
+  {
+    "file": "workshop-room-module.blend",
+    "editable_parts": 75,
+    "modifiers": 78,
+    "curves": 0
+  }
+]

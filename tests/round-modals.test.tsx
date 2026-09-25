@@ -42,3 +42,19 @@ test('CockpitDeleteModal delegates to RoundDeleteModal without throwing', () => 
   );
   assert.equal(markup, '');
 });
+
+test('CockpitDeleteModal accepts workshop reset props without throwing', () => {
+  const markup = renderToStaticMarkup(
+    <CockpitDeleteModal
+      isOpen={false}
+      onClose={() => undefined}
+      onConfirm={() => undefined}
+      title="Сброс мастерской"
+      itemName="Вся мастерская"
+      itemDetails="Сброс до базовой конфигурации"
+      description="Внимание! Вы действительно хотите сбросить всю мастерскую до одной стандартной комнаты?"
+    />
+  );
+  assert.equal(markup, '');
+});
+

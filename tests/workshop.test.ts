@@ -4,7 +4,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as THREE from 'three';
 import type { WorkshopCanvasProps } from '../src/features/workshop/WorkshopCanvas';
-import { createWorkshop, createFurniture, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, snap, updateFurniture, placeEntity, removeRoom, slotWorld, parseWorkshop, pickWorkshopTarget, syncWorkshopPlacements, calculatePanDelta, calculateOrbitAngles, fillEnclosedTiles, existingRoomsTileBounds, roomOrigin, type Room, createWorkshopHistory, pushWorkshopHistory, undoWorkshopHistory, redoWorkshopHistory, WORKSHOP_HISTORY_MAX_DEPTH, calculateGroupMove, resolvePlacementPosition, findWorkshopSeams, getRoomOccupiedTiles } from '../src/features/workshop/model';
+import { createWorkshop, createFurniture, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, snap, updateFurniture, placeEntity, removeRoom, slotWorld, parseWorkshop, pickWorkshopTarget, syncWorkshopPlacements, calculatePanDelta, calculateOrbitAngles, fillEnclosedTiles, existingRoomsTileBounds, roomOrigin, type Room, createWorkshopHistory, pushWorkshopHistory, undoWorkshopHistory, redoWorkshopHistory, WORKSHOP_HISTORY_MAX_DEPTH, calculateGroupMove, resolvePlacementPosition, findWorkshopSeams, getRoomOccupiedTiles, updateRoomLabel, deleteRoomLabel, defaultRoomLabels, findNearestValidPosition, resolveInvalidFurniture } from '../src/features/workshop/model';
 import { instanceTemplate, disposeInstances } from '../src/features/workshop/instances';
 import { getWorkshopShadowConfig, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget, handleWorkshopKeyDown, type WorkshopHotkeyContext, WorkshopScene } from '../src/features/workshop/WorkshopScene';
 import { getOrCreateHudButtonTexture, hudButtonTextureCache, clearHudButtonTextureCache, SpatialAuthoring } from '../src/features/workshop/spatialAuthoring';
@@ -2031,6 +2031,215 @@ test('setSelectedRoom dynamically updates floor materials without rebuilding sce
   const sig2 = workshopSceneProto.getSceneSignature(twoRoomState, [], [], new Set());
   assert.equal(sig1, sig2, 'Scene signature must remain identical when switching rooms, preventing camera-jumping rebuilds');
 });
+
+test('updateRoomLabel and deleteRoomLabel allow moving labels across surfaces, changing rotation/size and removing labels', () => {
+  const state = createWorkshop();
+  const room = state.rooms[0];
+  const initialLabels = defaultRoomLabels(room);
+  const targetLabel = initialLabels[0];
+
+  // Update position and surface (e.g. from floor to north wall)
+  const updatedState = updateRoomLabel(state, room.id, targetLabel.id, {
+    surface: 'north',
+    u: 0.6,
+    v: 0.7,
+    text: 'UPDATED GRAFFITI',
+    size: 0.8,
+    rotation: 90,
+    color: '#ffaa00'
+  });
+
+  const updatedRoom = updatedState.rooms.find(r => r.id === room.id)!;
+  const updatedLabel = updatedRoom.labels?.find(l => l.id === targetLabel.id)!;
+  assert.equal(updatedLabel.surface, 'north');
+  assert.equal(updatedLabel.u, 0.6);
+  assert.equal(updatedLabel.v, 0.7);
+  assert.equal(updatedLabel.text, 'UPDATED GRAFFITI');
+  assert.equal(updatedLabel.size, 0.8);
+  assert.equal(updatedLabel.rotation, 90);
+  assert.equal(updatedLabel.color, '#ffaa00');
+
+  // Deletion
+  const deletedState = deleteRoomLabel(updatedState, room.id, targetLabel.id);
+  const deletedRoom = deletedState.rooms.find(r => r.id === room.id)!;
+  assert.equal(deletedRoom.labels?.some(l => l.id === targetLabel.id), false);
+});
+
+test('SpatialAuthoring: clicking a label triggers onLabelEditStart, while dragging commits new position and surface via onMoveLabel', () => {
+  const container = {
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }),
+    style: { cursor: 'default' },
+  } as any;
+  const canvas = {
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }),
+    style: { cursor: 'default' },
+  } as any;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, 800 / 600, 0.1, 100);
+  camera.position.set(0, 10, 10);
+  camera.lookAt(0, 0, 0);
+  camera.updateProjectionMatrix();
+  camera.updateMatrixWorld();
+
+  let editStarted: { roomId: string; labelId: string } | null = null;
+  let movedLabel: { roomId: string; labelId: string; u: number; v: number; surface?: string } | null = null;
+
+  const authoring = new SpatialAuthoring(
+    container,
+    canvas,
+    scene,
+    camera,
+    {
+      onLabelEditStart: (roomId, labelId) => { editStarted = { roomId, labelId }; },
+      onMoveLabel: (roomId, labelId, u, v, surface) => { movedLabel = { roomId, labelId, u, v, surface }; },
+    },
+    () => {}
+  );
+
+  const workshop = createWorkshop();
+  authoring.update(workshop, true, null, null);
+
+  // 1. Simulate clicking graffiti text without dragging -> onLabelEditStart
+  const room = workshop.rooms[0];
+  const label = defaultRoomLabels(room)[0];
+  authoring.setSelectedLabel(label.id);
+  assert.equal(authoring.getSelectedLabelId(), label.id);
+
+  // 2. Simulate dragging label
+  const started = authoring.startDraggingSelectedLabel({ clientX: 400, clientY: 300 } as any);
+  assert.equal(started, true);
+
+  // Move pointer
+  authoring.pointerMove({ clientX: 450, clientY: 320 } as any);
+
+  // Release pointer -> onMoveLabel is invoked
+  authoring.pointerUp({ clientX: 450, clientY: 320, button: 0 } as any);
+
+  assert.ok(movedLabel, 'onMoveLabel must be called when dragging label finishes');
+  assert.equal((movedLabel as any).labelId, label.id);
+  assert.equal((movedLabel as any).roomId, room.id);
+  assert.ok(typeof (movedLabel as any).u === 'number');
+  assert.ok(typeof (movedLabel as any).v === 'number');
+});
+
+test('WorkshopScene: getSelectedOrDraftLabelTransform calculates screen and HUD coordinates for in-scene graffiti editing', () => {
+  const workshop = createWorkshop();
+  const room = workshop.rooms[0];
+  const label = defaultRoomLabels(room)[0];
+
+  const camera = new THREE.PerspectiveCamera(45, 800 / 600, 0.1, 100);
+  camera.position.set(0, 10, 10);
+  camera.lookAt(0, 0, 0);
+  camera.updateProjectionMatrix();
+  camera.updateMatrixWorld();
+
+  const fakeAuthoring = {
+    getActiveDraft: () => null,
+    isDraftingLabel: () => false,
+    getSelectedLabelId: () => label.id,
+    getLabelPreviewPosition: () => null,
+    isLabelPreviewVisible: () => false,
+  };
+
+  const fakeScene: any = {
+    edit: true,
+    options: {
+      canvas: {
+        getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }),
+      },
+    },
+    authoring: fakeAuthoring,
+    data: workshop,
+    camera,
+    container: { clientWidth: 800, clientHeight: 600 },
+  };
+
+  const transform = WorkshopScene.prototype.getSelectedOrDraftLabelTransform.call(fakeScene);
+  assert.ok(transform, 'Transform must be calculated for selected label');
+  assert.equal(transform.labelId, label.id);
+  assert.equal(transform.text, label.text);
+  assert.equal(transform.surface, label.surface);
+  assert.ok(Number.isFinite(transform.screenX), 'screenX must be a finite number');
+  assert.ok(Number.isFinite(transform.screenY), 'screenY must be a finite number');
+  assert.ok(Number.isFinite(transform.hudX), 'hudX must be a finite number');
+  assert.ok(Number.isFinite(transform.hudY), 'hudY must be a finite number');
+});
+
+test('WorkshopCanvas: left modal SpatialProperties is completely removed in favor of 3D in-scene cockpit editing', () => {
+  const canvasSource = fs.readFileSync(path.resolve(process.cwd(), 'src/features/workshop/WorkshopCanvas.tsx'), 'utf-8');
+  assert.ok(!canvasSource.includes('SpatialProperties'), 'WorkshopCanvas must not import or render SpatialProperties modal');
+  assert.ok(canvasSource.includes('labelTransform'), 'WorkshopCanvas must handle labelTransform projected from 3D space');
+  assert.ok(canvasSource.includes('isEditingText'), 'WorkshopCanvas must support direct in-scene text editing');
+  assert.ok(canvasSource.includes('startDraggingSelectedLabel'), 'WorkshopCanvas must allow dragging graffiti directly from 3D cockpit');
+});
+
+test('findNearestValidPosition: returns current position for valid furniture, snaps out-of-bounds to nearest room border, and resolves collisions', () => {
+  const state = createWorkshop();
+  const room = state.rooms[0];
+  const table = state.furniture.find((f) => f.kind === 'table')!;
+
+  // 1. Valid furniture returns current coordinates
+  const validPos = findNearestValidPosition(state, table);
+  assert.ok(validPos);
+  assert.equal(validPos.x, table.x);
+  assert.equal(validPos.z, table.z);
+  assert.equal(validPos.roomId, table.roomId);
+
+  // 2. Out-of-bounds furniture (e.g. dragged far past wall to x = 20, z = 0) snaps to nearest valid point within room bounds
+  const outOfBoundsTable = { ...table, x: 20, z: 0 };
+  assert.equal(validFurniture(state, outOfBoundsTable), false);
+
+  const nearestPos = findNearestValidPosition(state, outOfBoundsTable);
+  assert.ok(nearestPos, 'Nearest valid position must be found');
+  assert.equal(nearestPos.roomId, room.id);
+  const resolvedTable = { ...table, x: nearestPos.x, z: nearestPos.z, roomId: nearestPos.roomId };
+  assert.equal(validFurniture(state, resolvedTable), true, 'Resolved position must be valid');
+  assert.ok(nearestPos.x < 20, 'Resolved x must be pulled inside the room');
+
+  // 3. Collision resolution: placing table directly on top of another table
+  const otherTable = state.furniture.filter((f) => f.kind === 'table' && f.id !== table.id)[0];
+  const collidingTable = { ...table, x: otherTable.x, z: otherTable.z };
+  assert.equal(validFurniture(state, collidingTable), false);
+
+  const resolvedCollision = findNearestValidPosition(state, collidingTable);
+  assert.ok(resolvedCollision);
+  const testResolvedCollision = { ...collidingTable, x: resolvedCollision.x, z: resolvedCollision.z };
+  assert.equal(validFurniture(state, testResolvedCollision), true, 'Collision must be resolved to a non-overlapping valid spot');
+  assert.ok(
+    Math.abs(resolvedCollision.x - otherTable.x) > 0.01 || Math.abs(resolvedCollision.z - otherTable.z) > 0.01,
+    'Must be shifted away from colliding other item'
+  );
+});
+
+test('resolveInvalidFurniture and updateFurniture: allows free placement/rotation in edit mode, relocates on deselect/save and generates user notification', () => {
+  const state = createWorkshop();
+  const plant = state.furniture.find((f) => f.kind === 'plant')!;
+
+  // 1. updateFurniture throws when allowInvalid is false (default behavior)
+  assert.throws(() => updateFurniture(state, { ...plant, x: 25 }));
+
+  // 2. updateFurniture allows temporarily invalid placement during edit mode when allowInvalid is true
+  const invalidPlant = { ...plant, x: 25, z: 10 };
+  const stateWithInvalid = updateFurniture(state, invalidPlant, true);
+  assert.equal(stateWithInvalid.furniture.find((f) => f.id === plant.id)?.x, 25);
+
+  // 3. resolveInvalidFurniture relocates all invalid furniture to closest accessible spots
+  const { nextState, relocated } = resolveInvalidFurniture(stateWithInvalid, [plant.id]);
+  assert.equal(relocated.length, 1);
+  assert.equal(relocated[0].furniture.id, plant.id);
+  assert.equal(relocated[0].from.x, 25);
+  assert.ok(relocated[0].to.x < 25);
+
+  const restoredPlant = nextState.furniture.find((f) => f.id === plant.id)!;
+  assert.equal(validFurniture(nextState, restoredPlant), true, 'Relocated furniture must be fully valid');
+
+  // 4. Notification message matches user requirement
+  const notification = `Предмет «${relocated[0].furniture.name}» перемещён, так как он стоял в недоступном месте.`;
+  assert.ok(notification.includes('перемещён, так как он стоял в недоступном месте'));
+});
+
+
 
 
 

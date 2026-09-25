@@ -30,8 +30,8 @@ export function PrinterWorkloadChart({ data }: { data: StatsReport['printerWorkl
       <div className="min-h-64 space-y-3">
         {ranked.map((item, index) => (
           <div key={item.id}>
-            <div className="mb-1 flex justify-between gap-3 font-mono text-[11px]"><span className="truncate text-neutral-300">{item.label}</span><strong className="text-violet-300">{display(item)}</strong></div>
-            <div className="h-2 overflow-hidden rounded-full bg-neutral-900"><motion.div className="h-full rounded-full bg-gradient-to-r from-violet-800 to-violet-300" initial={reducedMotion ? false : { width: 0 }} animate={{ width: `${(Math.max(0, item[view]) / max) * 100}%` }} transition={{ type: 'spring', bounce: .06, duration: .5, delay: index * .035 }} /></div>
+            <div className="mb-1 flex justify-between gap-3 font-mono text-[11px]"><span className="truncate text-neutral-300">{item.label}</span><strong className="text-cyan-400">{display(item)}</strong></div>
+            <div className="h-2 overflow-hidden rounded-full bg-neutral-900"><motion.div className="h-full rounded-full bg-cyan-500/80" initial={reducedMotion ? false : { width: 0 }} animate={{ width: `${(Math.max(0, item[view]) / max) * 100}%` }} transition={{ type: 'spring', bounce: .06, duration: .5, delay: index * .035 }} /></div>
           </div>
         ))}
         {data.length === 0 ? <p className="py-16 text-center text-xs text-neutral-600">Привяжите товары к принтерам, чтобы увидеть загрузку.</p> : null}

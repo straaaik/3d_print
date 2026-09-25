@@ -8,6 +8,8 @@ import { ColorPicker } from '../../shared/ui/ColorPicker';
 import { ModalDetails } from '../../shared/ui/ModalDetails';
 import { IsometricSpoolPicker } from '../../shared/ui/color-picker/IsometricSpoolPicker';
 import { IsometricPrinterPicker } from '../../shared/ui/color-picker/IsometricPrinterPicker';
+import { CockpitDropdown } from '../../shared/ui/CockpitDropdown';
+import { PRINTER_MODEL_OPTIONS, type Printer3DModel } from './model';
 import { FilamentSpoolIcon, PrinterMachineIcon } from './InventoryIcons';
 
 export interface PrinterFormValues {
@@ -16,6 +18,7 @@ export interface PrinterFormValues {
   powerW: string;
   lifespanHours: string;
   color: string;
+  model3d?: Printer3DModel;
 }
 
 export interface FilamentFormValues {
@@ -61,6 +64,25 @@ export function PrinterFormFields({ values, onChange, errors = {}, currencySymbo
           required
           autoFocus
         />
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-neutral-300">
+            3D-модель для Мастерской
+          </label>
+          <CockpitDropdown
+            ariaLabel="3D-модель для Мастерской"
+            variant="input"
+            value={values.model3d || 'a1'}
+            options={PRINTER_MODEL_OPTIONS.map((opt) => ({
+              value: opt.value,
+              label: opt.label,
+            }))}
+            onChange={(val) => onChange('model3d', val)}
+          />
+          <p className="text-[11px] text-neutral-500">
+            Подбирается автоматически по названию или выбирается вручную.
+          </p>
+        </div>
 
         <Input
           label={'Стоимость покупки, ' + currencySymbol}
