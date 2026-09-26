@@ -800,8 +800,9 @@ function OrderRowDrawerEditor({
   const handleSetFullPayment = () => {
     if (totalAmount <= 0) return;
 
-    // Считаем сумму всех уже внесённых платежей
-    const currentPaidSum = roundTo2(paymentItems.reduce((sum, it) => sum + (Number(it.amount) || 0), 0));
+    // Считаем сумму всех уже внесённых платежей с положительной суммой
+    const validItems = paymentItems.filter((it) => (Number(it.amount) || 0) > 0);
+    const currentPaidSum = roundTo2(validItems.reduce((sum, it) => sum + (Number(it.amount) || 0), 0));
     const remainingDebt = roundTo2(Math.max(0, totalAmount - currentPaidSum));
 
     if (remainingDebt <= 0) {
@@ -810,18 +811,46 @@ function OrderRowDrawerEditor({
     }
 
     const todayStr = getTodayFormatted();
-    const note = paymentItems.length === 0 ? 'Полная оплата 100%' : 'Доплата до 100%';
-    const newItem: PaymentItem = {
-      id: createPaymentItemId(order.id, paymentItems),
-      amount: remainingDebt,
-      date: todayStr,
-      note,
-    };
 
-    const updated = [...paymentItems, newItem];
+    if (validItems.length === 0) {
+      const singleItem: PaymentItem = {
+        id: paymentItems[0]?.id || createPaymentItemId(order.id, []),
+        amount: totalAmount,
+        date: todayStr,
+        note: 'Полная оплата 100%',
+      };
+      setPaymentItems([singleItem]);
+      handleCommitPaymentItemEdit([singleItem]);
+      return;
+    }
+
+    const lastItem = paymentItems[paymentItems.length - 1];
+    let updated: PaymentItem[];
+    if (lastItem && (Number(lastItem.amount) || 0) <= 0) {
+      updated = paymentItems.map((it, idx) =>
+        idx === paymentItems.length - 1
+          ? {
+              ...it,
+              amount: remainingDebt,
+              date: it.date || todayStr,
+              note: it.note?.trim() || 'Доплата до 100%',
+            }
+          : it
+      ).filter((it, idx, arr) => (Number(it.amount) || 0) > 0 || idx === arr.length - 1);
+    } else {
+      const newItem: PaymentItem = {
+        id: createPaymentItemId(order.id, paymentItems),
+        amount: remainingDebt,
+        date: todayStr,
+        note: 'Доплата до 100%',
+      };
+      updated = [...validItems, newItem];
+    }
+
     setPaymentItems(updated);
     handleCommitPaymentItemEdit(updated);
   };
+
 
   const handleAddPaymentItem = (initialAmount = 0, initialNote = '') => {
     const newItem: PaymentItem = {

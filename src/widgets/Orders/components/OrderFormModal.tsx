@@ -86,7 +86,6 @@ const DEFAULT_DIRECT_EXTRA_OPTIONS: DirectExtraOption[] = [
   { id: 'opt-paint', category: 'Покраска', defaultAmount: 150 },
   { id: 'opt-delivery', category: 'Доставка', defaultAmount: 300 },
   { id: 'opt-hardware', category: 'Фурнитура', defaultAmount: 100 },
-  { id: 'opt-modeling', category: 'Моделирование', defaultAmount: 500 },
 ];
 
 const DEFAULT_EXPENSE_CATEGORIES: string[] = [
@@ -107,6 +106,13 @@ const DEFAULT_EXPENSE_CATEGORIES: string[] = [
   'Обучение и курсы',
   'Прочие расходы',
 ];
+
+function getTodayFormatted(): string {
+  const today = new Date();
+  const day = String(today.getDate()).padStart(2, '0');
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  return `${day}.${month}.${today.getFullYear()}`;
+}
 
 interface OrderFormModalProps {
   isOpen: boolean;
@@ -735,17 +741,63 @@ export function OrderFormModal({
   const handleApplyPaymentPreset = (ratio: number) => {
     const targetPayment = roundTo2(totalAmount * ratio);
     const payments = [...(order.payments || [])];
+    const priorTotal = payments.reduce<number>(
+      (sum, value) => sum + (typeof value === 'number' ? value : value.amount || 0),
+      0
+    );
+
+    if (ratio === 1) {
+      // 100% полная оплата: если уже был внесён платёж, добавляем платёж на сумму остатка
+      const remainingDebt = roundTo2(Math.max(0, targetPayment - priorTotal));
+      if (priorTotal > 0 && remainingDebt > 0) {
+        const lastIdx = payments.length - 1;
+        const last = payments[lastIdx];
+        const lastAmt = typeof last === 'number' ? last : (last?.amount || 0);
+
+        if (lastAmt <= 0) {
+          if (typeof last === 'number') {
+            payments[lastIdx] = remainingDebt;
+          } else if (last) {
+            payments[lastIdx] = {
+              ...last,
+              amount: remainingDebt,
+              date: last.date || getTodayFormatted(),
+              note: last.note?.trim() || 'Доплата до 100%',
+            };
+          }
+        } else {
+          const hasObjectStructure = payments.some((p) => typeof p === 'object' && p !== null);
+          if (hasObjectStructure) {
+            payments.push({
+              id: `pay-${Date.now()}-${payments.length}`,
+              amount: remainingDebt,
+              date: getTodayFormatted(),
+              note: 'Доплата до 100%',
+            });
+          } else {
+            payments.push(remainingDebt);
+          }
+        }
+
+        setOrder({
+          ...order,
+          payment: targetPayment,
+          payments,
+        });
+        return;
+      }
+    }
+
     if (payments.length === 0) {
       if (targetPayment !== 0) payments.push(targetPayment);
     } else {
-      const priorTotal = payments.reduce<number>((sum, value) => sum + (typeof value === 'number' ? value : value.amount || 0), 0);
       const lastIdx = payments.length - 1;
       const last = payments[lastIdx];
-      const lastAmt = typeof last === 'number' ? last : (last.amount || 0);
+      const lastAmt = typeof last === 'number' ? last : (last?.amount || 0);
       const newAmt = roundTo2(lastAmt + targetPayment - priorTotal);
       if (typeof last === 'number') {
         payments[lastIdx] = newAmt;
-      } else {
+      } else if (last) {
         payments[lastIdx] = { ...last, amount: newAmt };
       }
     }
@@ -755,6 +807,7 @@ export function OrderFormModal({
       payments,
     });
   };
+
 
   const handlePaymentTotalChange = (targetPayment: number) => {
     const safePayment = Math.max(0, roundTo2(targetPayment));

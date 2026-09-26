@@ -1,4 +1,4 @@
-import { copyFileSync, rmSync } from 'node:fs';
+import { copyFileSync, rmSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
@@ -36,6 +36,7 @@ const unitTestFiles = [
   'tests/receipt-template.test.ts',
   'tests/order-contacts-modal.test.tsx',
   'tests/inventory-spool-background.test.tsx',
+  'tests/order-payment.test.tsx',
 ];
 
 rmSync(outputDirectory, { recursive: true, force: true });
@@ -64,6 +65,7 @@ try {
     '--skipLibCheck',
   ], { stdio: 'inherit' });
   if (compileRuntimeArchitecture.status !== 0) process.exit(compileRuntimeArchitecture.status ?? 1);
+  mkdirSync(resolve(outputDirectory, 'src', 'app'), { recursive: true });
   copyFileSync(resolve('src', 'app', 'globals.css'), resolve(outputDirectory, 'src', 'app', 'globals.css'));
 
   const run = spawnSync(process.execPath, [
@@ -102,6 +104,7 @@ try {
     resolve(outputDirectory, 'tests', 'inventory-spool-background.test.js'),
     resolve(outputDirectory, 'tests', 'cockpit-delete-modal.test.js'),
     resolve(outputDirectory, 'tests', 'round-modals.test.js'),
+    resolve(outputDirectory, 'tests', 'order-payment.test.js'),
   ], { stdio: 'inherit' });
   process.exitCode = run.status ?? 1;
 } finally {

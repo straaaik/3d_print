@@ -1,6 +1,6 @@
 -- =========================================================================
--- ИМПОРТ 99 ЗАКАЗОВ (ТОЛЬКО ПРОДАЖИ) ИЗ GOOGLE SHEETS В SUPABASE
--- Статус всех заказов: 'Готово'
+-- ИМПОРТ 139 ЗАКАЗОВ И РАСХОДОВ (99 ПРОДАЖ + 40 РАСХОДОВ) ИЗ GOOGLE SHEETS
+-- Все продажи оплачены на 100% • Статус всех записей: 'Готово'
 -- =========================================================================
 
 DO $$
@@ -34,9 +34,13 @@ BEGIN
     RAISE EXCEPTION 'В системе не найдено ни одного пользователя. Сначала зарегистрируйтесь или войдите в систему!';
   END IF;
 
-  RAISE NOTICE 'Запуск импорта заказов для пользователя: % (ID: %)', v_admin_email, v_admin_id;
+  RAISE NOTICE 'Запуск импорта данных для пользователя: % (ID: %)', v_admin_email, v_admin_id;
 
-  -- 2. Вставка 99 заказов продаж
+  -- 2. Очищаем старые заказы пользователя, чтобы не было дубликатов при повторном запуске
+  DELETE FROM public.orders WHERE user_id = v_admin_id;
+  RAISE NOTICE 'Предыдущие записи пользователя очищены перед загрузкой актуального реестра.';
+
+  -- 3. Вставка всех записей (продажи и расходы)
 
   INSERT INTO public.orders (
     id, user_id, order_number, created_at, date, type, title, quantity,
@@ -46,7 +50,7 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '280d922c-f9d7-4f51-b691-5833808f32e2'::uuid,
+    '1e2c0904-7044-408c-96e8-a7c461ebe76e'::uuid,
     v_admin_id,
     1001,
     '2025-10-10T09:00:00.000Z'::timestamptz,
@@ -59,9 +63,9 @@ BEGIN
     'percent', 0, 0,
     5000,
     1500,
-    '[{"id":"49fd7281-394d-4a2e-b150-03da19d5d4aa","category":"Печать","amount":1500}]'::jsonb,
-    '[{"id":"913258e5-3b22-43fb-aeb1-f5060ed7f2fa","amount":2500,"date":"10.10.2025","note":"Предоплата"},{"id":"707790da-4d8d-4b5f-80c0-4315572b787c","amount":2500,"date":"10.10.2025","note":"Оплата"},{"id":"a474e7ca-f4eb-4402-8271-c8193666a458","amount":200,"date":"10.10.2025","note":"Доп. оплата"}]'::jsonb,
-    5200,
+    '[{"id":"32d4fab2-03ae-4d6e-9103-ae78a82d8e7b","category":"Печать","amount":1500}]'::jsonb,
+    '[{"id":"9396c3c4-8ae3-431f-8fda-a588e644a7e1","amount":2500,"date":"10.10.2025","note":"Предоплата"},{"id":"53e702a0-f232-4a6d-aa3d-32e4516786ab","amount":2500,"date":"10.10.2025","note":"Окончательный расчет (100%)"}]'::jsonb,
+    5000,
     'Авито',
     NULL,
     '79188798043',
@@ -88,7 +92,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -99,9 +103,115 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '90062c40-3105-412b-bc32-abb96dee60d0'::uuid,
+    '5f76a0f7-3831-4d85-a531-39a81af973e5'::uuid,
     v_admin_id,
     1002,
+    '2025-10-11T09:00:00.000Z'::timestamptz,
+    '11.10.2025',
+    'expense',
+    'Авито',
+    1,
+    367,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    367,
+    0,
+    '[]'::jsonb,
+    '[{"id":"b23c5fc5-91bb-437b-8dea-36381ed37147","amount":367,"date":"11.10.2025","note":"Списание"}]'::jsonb,
+    367,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '948e6986-71c0-4bf9-99f5-7eef76998c6c'::uuid,
+    v_admin_id,
+    1003,
+    '2025-10-11T09:00:00.000Z'::timestamptz,
+    '11.10.2025',
+    'expense',
+    'Авито',
+    1,
+    367,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    367,
+    0,
+    '[]'::jsonb,
+    '[{"id":"5db68f40-cc41-491a-9ab8-7b3455295665","amount":367,"date":"11.10.2025","note":"Списание"}]'::jsonb,
+    367,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '5c72305a-9235-426b-b7e2-9d868bb514e0'::uuid,
+    v_admin_id,
+    1004,
     '2025-10-12T09:00:00.000Z'::timestamptz,
     '12.10.2025',
     'income',
@@ -112,9 +222,9 @@ BEGIN
     'percent', 0, 0,
     21000,
     500,
-    '[{"id":"df35a447-a0bc-4475-a0e5-fee532577923","category":"Печать","amount":500}]'::jsonb,
-    '[{"id":"b8188d5f-dda8-49ad-a4f4-e2da6753f819","amount":10500,"date":"12.10.2025","note":"Предоплата"}]'::jsonb,
-    10500,
+    '[{"id":"0dc45959-2040-4ab8-a5c6-89ddaf80fa94","category":"Печать","amount":500}]'::jsonb,
+    '[{"id":"79175364-8c2b-4a02-8c84-c9df82f30e7d","amount":10500,"date":"12.10.2025","note":"Предоплата"},{"id":"a94d1483-c0a1-4354-ab46-d6330f36188b","amount":10500,"date":"12.10.2025","note":"Окончательный расчет (100%)"}]'::jsonb,
+    21000,
     'Авито',
     NULL,
     '79064755254 | https://www.avito.ru/profile/messenger/channel/u2i-ckdClTkAwUkvT9OxMpn21w | 7 906 475 5254',
@@ -141,7 +251,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -152,9 +262,115 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '7ef09975-6c63-4f41-926d-d8abc8cb1d64'::uuid,
+    '6ca06a7d-3f3c-4720-af79-e8c851cb5585'::uuid,
     v_admin_id,
-    1003,
+    1005,
+    '2025-10-12T09:00:00.000Z'::timestamptz,
+    '12.10.2025',
+    'expense',
+    'Авито',
+    1,
+    94,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    94,
+    0,
+    '[]'::jsonb,
+    '[{"id":"5ab8a550-da1c-4c08-bd77-8c7f87d03cff","amount":94,"date":"12.10.2025","note":"Списание"}]'::jsonb,
+    94,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '049a45ec-8f1c-494c-a94f-c7d357465462'::uuid,
+    v_admin_id,
+    1006,
+    '2025-10-12T09:00:00.000Z'::timestamptz,
+    '12.10.2025',
+    'expense',
+    'Авито',
+    1,
+    94,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    94,
+    0,
+    '[]'::jsonb,
+    '[{"id":"073382b0-3f00-4d6d-a993-9ce9da5f0b87","amount":94,"date":"12.10.2025","note":"Списание"}]'::jsonb,
+    94,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    'a40bde0e-8e74-4e9d-9483-c28f47fe6679'::uuid,
+    v_admin_id,
+    1007,
     '2025-10-13T09:00:00.000Z'::timestamptz,
     '13.10.2025',
     'income',
@@ -165,8 +381,8 @@ BEGIN
     'percent', 0, 0,
     2500,
     200,
-    '[{"id":"d90d530e-eb3a-4cc8-9e39-6a30b35c20bb","category":"Печать","amount":200}]'::jsonb,
-    '[{"id":"3e9a9626-0323-4a16-b6c5-78f238118e5b","amount":2500,"date":"13.10.2025","note":"Предоплата"}]'::jsonb,
+    '[{"id":"2bf6f0cf-d1bc-4601-b4a0-4e82494d609a","category":"Печать","amount":200}]'::jsonb,
+    '[{"id":"de5016e0-03c6-499c-807e-6cddd70c6b79","amount":2500,"date":"13.10.2025","note":"Полная оплата (100%)"}]'::jsonb,
     2500,
     'Авито',
     NULL,
@@ -194,7 +410,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -205,9 +421,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '166bc3f0-b6da-43fc-a306-a752e63f8bd9'::uuid,
+    '2cf23787-9a39-4355-86b8-3e9bc2be31dc'::uuid,
     v_admin_id,
-    1004,
+    1008,
     '2025-10-13T09:00:00.000Z'::timestamptz,
     '13.10.2025',
     'income',
@@ -218,8 +434,8 @@ BEGIN
     'percent', 0, 0,
     12000,
     5000,
-    '[{"id":"c7fa4ec4-98fb-4a10-af79-d161f1144049","category":"Печать","amount":5000}]'::jsonb,
-    '[{"id":"06a64e19-a8ed-4a3d-8c68-a908c7c6b402","amount":6000,"date":"13.10.2025","note":"Предоплата"},{"id":"822bda21-25a1-4d9f-bf42-25d5ce32578a","amount":6000,"date":"13.10.2025","note":"Оплата"}]'::jsonb,
+    '[{"id":"d6d7324f-2ee8-46b8-8fa0-5ee0783dc08f","category":"Печать","amount":5000}]'::jsonb,
+    '[{"id":"21619061-982a-471c-9ada-79709885dc25","amount":6000,"date":"13.10.2025","note":"Предоплата"},{"id":"17b69e34-e18a-49e8-a43b-b8e73dd81b99","amount":6000,"date":"13.10.2025","note":"Окончательный расчет (100%)"}]'::jsonb,
     12000,
     'Авито',
     NULL,
@@ -247,7 +463,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -258,9 +474,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '6125d007-6e47-4fc9-865f-7c5683da90fb'::uuid,
+    'fc0b0a4c-347b-413d-b02d-e0e60fed7260'::uuid,
     v_admin_id,
-    1005,
+    1009,
     '2025-10-14T09:00:00.000Z'::timestamptz,
     '14.10.2025',
     'income',
@@ -271,8 +487,8 @@ BEGIN
     'percent', 0, 0,
     13000,
     5000,
-    '[{"id":"ecbe796b-9330-42f0-9963-7928028d085c","category":"Печать","amount":5000}]'::jsonb,
-    '[{"id":"ccaf624a-5884-44f2-af16-c65413d3b531","amount":6500,"date":"14.10.2025","note":"Предоплата"},{"id":"22275030-bd10-4b72-959e-b754c7be7a05","amount":6500,"date":"14.10.2025","note":"Оплата"}]'::jsonb,
+    '[{"id":"3d91634f-305e-41e8-a406-389a843792c5","category":"Печать","amount":5000}]'::jsonb,
+    '[{"id":"6d1f1e45-ef4c-4b09-8849-7a09bc947cbb","amount":6500,"date":"14.10.2025","note":"Предоплата"},{"id":"4fded341-2939-448c-899a-d9c63c7227fa","amount":6500,"date":"14.10.2025","note":"Окончательный расчет (100%)"}]'::jsonb,
     13000,
     'Авито',
     NULL,
@@ -300,7 +516,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -311,9 +527,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'a07a51e9-f038-4272-a0c7-8db8157a0d06'::uuid,
+    'cd3f9b42-f217-4bd8-a81a-cedb3c6db772'::uuid,
     v_admin_id,
-    1006,
+    1010,
     '2025-10-20T09:00:00.000Z'::timestamptz,
     '20.10.2025',
     'income',
@@ -324,8 +540,8 @@ BEGIN
     'percent', 0, 0,
     2500,
     1100,
-    '[{"id":"af40d6f3-4aec-42f5-b97f-781aba359d94","category":"Печать","amount":1100}]'::jsonb,
-    '[{"id":"6208b77e-1900-4e9d-b777-89a2897907c2","amount":1250,"date":"20.10.2025","note":"Предоплата"},{"id":"ac48eb7d-4e14-4cc6-8346-d641b51ef57e","amount":1250,"date":"20.10.2025","note":"Оплата"}]'::jsonb,
+    '[{"id":"51cc6b42-51e8-4067-9ad9-a67d0b3a89b8","category":"Печать","amount":1100}]'::jsonb,
+    '[{"id":"01396bb5-369e-4656-9257-50a354ffef38","amount":1250,"date":"20.10.2025","note":"Предоплата"},{"id":"0d560494-cbc4-4fef-943c-bf1ece71b860","amount":1250,"date":"20.10.2025","note":"Окончательный расчет (100%)"}]'::jsonb,
     2500,
     'Авито',
     NULL,
@@ -353,7 +569,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -364,9 +580,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '365951a8-6e50-425b-8ff0-53e2ad20b78a'::uuid,
+    'f891f5b7-500f-472e-85ff-4a8e8d2c2364'::uuid,
     v_admin_id,
-    1007,
+    1011,
     '2025-11-13T09:00:00.000Z'::timestamptz,
     '13.11.2025',
     'income',
@@ -377,8 +593,8 @@ BEGIN
     'percent', 0, 0,
     600,
     10,
-    '[{"id":"b90ba465-af01-4c7f-aaa7-ce4cd673d44f","category":"Печать","amount":10}]'::jsonb,
-    '[{"id":"df88187d-0d38-4ef1-aa0e-92729b5ae5ef","amount":600,"date":"13.11.2025","note":"Предоплата"}]'::jsonb,
+    '[{"id":"49edaacf-7125-4771-9dcd-f1dac8e87bb7","category":"Печать","amount":10}]'::jsonb,
+    '[{"id":"f0943793-049f-4239-8c04-4684547530b2","amount":600,"date":"13.11.2025","note":"Полная оплата (100%)"}]'::jsonb,
     600,
     'Авито',
     NULL,
@@ -406,7 +622,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -417,9 +633,221 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '73c6853a-2701-41b2-8069-31ba94020b0c'::uuid,
+    '2b94dfa2-8030-4106-91ca-e510bb7b8e27'::uuid,
     v_admin_id,
-    1008,
+    1012,
+    '2025-11-18T09:00:00.000Z'::timestamptz,
+    '18.11.2025',
+    'expense',
+    'Авито',
+    1,
+    239,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    239,
+    0,
+    '[]'::jsonb,
+    '[{"id":"a638776f-520f-494b-b47c-d8f5dd2c1634","amount":239,"date":"18.11.2025","note":"Списание"}]'::jsonb,
+    239,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '93e04b01-5856-4699-b03d-e11b7a07ca59'::uuid,
+    v_admin_id,
+    1013,
+    '2025-11-28T09:00:00.000Z'::timestamptz,
+    '28.11.2025',
+    'expense',
+    'Авито',
+    1,
+    500,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    500,
+    0,
+    '[]'::jsonb,
+    '[{"id":"37a0b01d-5113-4b90-ab81-6801b59b2065","amount":500,"date":"28.11.2025","note":"Списание"}]'::jsonb,
+    500,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '72545c68-2e7b-44da-be61-6e1181d23655'::uuid,
+    v_admin_id,
+    1014,
+    '2025-12-02T09:00:00.000Z'::timestamptz,
+    '02.12.2025',
+    'expense',
+    'Авито',
+    1,
+    500,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    500,
+    0,
+    '[]'::jsonb,
+    '[{"id":"22d73912-0efe-418f-a538-4c58401fbb8a","amount":500,"date":"02.12.2025","note":"Списание"}]'::jsonb,
+    500,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    'ec93deab-63c4-40b9-a7f2-bc988650fe7a'::uuid,
+    v_admin_id,
+    1015,
+    '2025-12-02T09:00:00.000Z'::timestamptz,
+    '02.12.2025',
+    'expense',
+    'Авито Товары',
+    1,
+    300,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    300,
+    0,
+    '[]'::jsonb,
+    '[{"id":"c18c20b8-6910-4454-bcff-497bb0242c2b","amount":300,"date":"02.12.2025","note":"Списание"}]'::jsonb,
+    300,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '1cf11dfe-d0aa-49a0-8cad-b986fcdea544'::uuid,
+    v_admin_id,
+    1016,
     '2025-12-02T09:00:00.000Z'::timestamptz,
     '02.12.2025',
     'income',
@@ -430,8 +858,8 @@ BEGIN
     'percent', 0, 0,
     5000,
     500,
-    '[{"id":"224069dc-30d8-4f67-aed2-6a8e7ea0d89c","category":"Печать","amount":500}]'::jsonb,
-    '[{"id":"2cfeca40-a06a-4411-8e71-3bd62265e391","amount":2500,"date":"02.12.2025","note":"Предоплата"},{"id":"e9a2e915-616d-446e-9958-f0c1c37577ad","amount":2500,"date":"02.12.2025","note":"Оплата"}]'::jsonb,
+    '[{"id":"cad08b53-6400-49e3-8373-1833e585f3b6","category":"Печать","amount":500}]'::jsonb,
+    '[{"id":"cda6f1ef-c5c2-458f-b7d0-08fdddea644e","amount":2500,"date":"02.12.2025","note":"Предоплата"},{"id":"d9cf36c6-7eff-4a24-a2b0-d5622a66f48e","amount":2500,"date":"02.12.2025","note":"Окончательный расчет (100%)"}]'::jsonb,
     5000,
     'Авито',
     NULL,
@@ -459,7 +887,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -470,9 +898,115 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'd73aef5f-3b91-428b-90a4-3d3e372c22b0'::uuid,
+    '34d854ba-d713-4de1-9a0b-a2a10cd8d9a5'::uuid,
     v_admin_id,
-    1009,
+    1017,
+    '2025-12-04T09:00:00.000Z'::timestamptz,
+    '04.12.2025',
+    'expense',
+    'Авито Товары',
+    1,
+    300,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    300,
+    0,
+    '[]'::jsonb,
+    '[{"id":"bfbd5186-b8b7-4e7d-a0f0-dfc7ec88e334","amount":300,"date":"04.12.2025","note":"Списание"}]'::jsonb,
+    300,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '049cc3a1-f2ef-4fba-9c21-b31410cc71f6'::uuid,
+    v_admin_id,
+    1018,
+    '2025-12-06T09:00:00.000Z'::timestamptz,
+    '06.12.2025',
+    'expense',
+    'Авито Товары',
+    1,
+    600,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    600,
+    0,
+    '[]'::jsonb,
+    '[{"id":"70778449-5ca0-489b-9d7e-14d915fb386b","amount":600,"date":"06.12.2025","note":"Списание"}]'::jsonb,
+    600,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '4f0186f4-2283-470d-a8ff-cbb5c3b28d83'::uuid,
+    v_admin_id,
+    1019,
     '2025-12-06T09:00:00.000Z'::timestamptz,
     '06.12.2025',
     'income',
@@ -483,8 +1017,8 @@ BEGIN
     'percent', 0, 0,
     949,
     416,
-    '[{"id":"f164ab78-6b42-45b0-bb84-d3230dc96414","category":"Печать","amount":416}]'::jsonb,
-    '[{"id":"9e8847a5-64ec-4001-a214-6056078347f4","amount":949,"date":"06.12.2025","note":"Оплата"}]'::jsonb,
+    '[{"id":"ed9b2c7f-fbdc-45de-aa37-55c5887b92ee","category":"Печать","amount":416}]'::jsonb,
+    '[{"id":"8a1fe904-98c5-4bd8-bf48-775648c62602","amount":949,"date":"06.12.2025","note":"Полная оплата (100%)"}]'::jsonb,
     949,
     'Авито',
     NULL,
@@ -512,7 +1046,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -523,9 +1057,115 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'dcb055de-5bc6-4024-bde3-d224fd228c72'::uuid,
+    'bd87c630-5c5e-46ad-b9d8-5ede5f70cf70'::uuid,
     v_admin_id,
-    1010,
+    1020,
+    '2025-12-07T09:00:00.000Z'::timestamptz,
+    '07.12.2025',
+    'expense',
+    'Авито',
+    1,
+    600,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    600,
+    0,
+    '[]'::jsonb,
+    '[{"id":"47089540-ad5a-4aa9-a0fb-ab081b7dfc8c","amount":600,"date":"07.12.2025","note":"Списание"}]'::jsonb,
+    600,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    'a7725251-afb7-4682-8bae-a00098b672d5'::uuid,
+    v_admin_id,
+    1021,
+    '2025-12-07T09:00:00.000Z'::timestamptz,
+    '07.12.2025',
+    'expense',
+    'Авито Товары',
+    1,
+    500,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    500,
+    0,
+    '[]'::jsonb,
+    '[{"id":"a807bb02-6a9d-4d2b-b54e-727f0120c694","amount":500,"date":"07.12.2025","note":"Списание"}]'::jsonb,
+    500,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '65a691ec-6be8-4077-b19d-61b8d6f28620'::uuid,
+    v_admin_id,
+    1022,
     '2025-12-08T09:00:00.000Z'::timestamptz,
     '08.12.2025',
     'income',
@@ -536,8 +1176,8 @@ BEGIN
     'percent', 0, 0,
     949,
     416,
-    '[{"id":"9ef88c83-0992-4482-a554-f65c7332592e","category":"Печать","amount":416}]'::jsonb,
-    '[{"id":"d4b7ca2a-acdc-4ac4-b352-34487ba06c7d","amount":949,"date":"08.12.2025","note":"Оплата"}]'::jsonb,
+    '[{"id":"34a44146-039a-4f74-9e48-32796a4f79a6","category":"Печать","amount":416}]'::jsonb,
+    '[{"id":"6ccb0ec9-33f2-4290-8763-e6aed9868255","amount":949,"date":"08.12.2025","note":"Полная оплата (100%)"}]'::jsonb,
     949,
     'Авито',
     NULL,
@@ -565,7 +1205,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -576,9 +1216,115 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '6a7995d8-e208-4247-ae48-7a01bc913a29'::uuid,
+    'eff09cb0-ae5c-4653-a78b-9ac52e30d3b6'::uuid,
     v_admin_id,
-    1011,
+    1023,
+    '2025-12-12T09:00:00.000Z'::timestamptz,
+    '12.12.2025',
+    'expense',
+    'Авито Товары',
+    1,
+    500,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    500,
+    0,
+    '[]'::jsonb,
+    '[{"id":"117d7fed-6455-4351-821f-ff6f6c0b4f6d","amount":500,"date":"12.12.2025","note":"Списание"}]'::jsonb,
+    500,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    'e728ac3e-ae9a-43de-bd6e-1dd16f8a5901'::uuid,
+    v_admin_id,
+    1024,
+    '2025-12-12T09:00:00.000Z'::timestamptz,
+    '12.12.2025',
+    'expense',
+    'Авито',
+    1,
+    300,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    300,
+    0,
+    '[]'::jsonb,
+    '[{"id":"5b199d48-b57a-4ec9-869b-841dae2ca4f2","amount":300,"date":"12.12.2025","note":"Списание"}]'::jsonb,
+    300,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '3778cfbb-1dce-4a8c-a680-fc98f97e1e5f'::uuid,
+    v_admin_id,
+    1025,
     '2025-12-12T09:00:00.000Z'::timestamptz,
     '12.12.2025',
     'income',
@@ -590,7 +1336,7 @@ BEGIN
     1150,
     0,
     '[]'::jsonb,
-    '[{"id":"e89e8561-976c-418e-9baf-173c2c0eed12","amount":1150,"date":"12.12.2025","note":"Оплата"}]'::jsonb,
+    '[{"id":"028d45b2-d1ee-40ba-a457-fa28eeb8e2f5","amount":1150,"date":"12.12.2025","note":"Полная оплата (100%)"}]'::jsonb,
     1150,
     'Авито',
     NULL,
@@ -618,7 +1364,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -629,9 +1375,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'f8af52b8-4c72-47bd-ac61-00c4007898f4'::uuid,
+    'eddaf49a-d281-4c6c-a0ca-568be473fade'::uuid,
     v_admin_id,
-    1012,
+    1026,
     '2025-12-13T09:00:00.000Z'::timestamptz,
     '13.12.2025',
     'income',
@@ -642,8 +1388,8 @@ BEGIN
     'percent', 0, 0,
     3190,
     1774,
-    '[{"id":"1288e084-830d-4054-8640-24adab246bb4","category":"Печать","amount":1774}]'::jsonb,
-    '[{"id":"1b7e5420-dba7-4283-8026-7e2755188b8f","amount":3190,"date":"13.12.2025","note":"Оплата"}]'::jsonb,
+    '[{"id":"4eb2fabc-db63-47e0-89ad-68505404b5fd","category":"Печать","amount":1774}]'::jsonb,
+    '[{"id":"8cca87cc-3b9f-4378-a959-8dbf407296c9","amount":3190,"date":"13.12.2025","note":"Полная оплата (100%)"}]'::jsonb,
     3190,
     'Авито',
     NULL,
@@ -671,7 +1417,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -682,9 +1428,115 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '2ab898a8-816c-40d0-a52e-33aeec5f515a'::uuid,
+    '465059bf-0371-47e4-bb37-d94d55dc1d18'::uuid,
     v_admin_id,
-    1013,
+    1027,
+    '2025-12-14T09:00:00.000Z'::timestamptz,
+    '14.12.2025',
+    'expense',
+    'Авито',
+    1,
+    600,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    600,
+    0,
+    '[]'::jsonb,
+    '[{"id":"130add4e-6180-43c3-b7de-d84172296c53","amount":600,"date":"14.12.2025","note":"Списание"}]'::jsonb,
+    600,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    'c1fe3d05-d842-4ad3-a645-72e66fa0acea'::uuid,
+    v_admin_id,
+    1028,
+    '2025-12-14T09:00:00.000Z'::timestamptz,
+    '14.12.2025',
+    'expense',
+    'Авито Товары',
+    1,
+    600,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    600,
+    0,
+    '[]'::jsonb,
+    '[{"id":"b380636e-848d-4fd8-8b09-0f6922adc473","amount":600,"date":"14.12.2025","note":"Списание"}]'::jsonb,
+    600,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    'aba14a7f-8ed3-436c-ba34-1f411a863456'::uuid,
+    v_admin_id,
+    1029,
     '2025-12-14T09:00:00.000Z'::timestamptz,
     '14.12.2025',
     'income',
@@ -696,8 +1548,8 @@ BEGIN
     380,
     0,
     '[]'::jsonb,
-    '[{"id":"8bc81ffe-eea9-48a3-add3-8d287b9c031c","amount":200,"date":"14.12.2025","note":"Оплата"}]'::jsonb,
-    200,
+    '[{"id":"cf4b0cfd-03d1-426a-af2f-346d413fc7b7","amount":380,"date":"14.12.2025","note":"Полная оплата (100%)"}]'::jsonb,
+    380,
     'Авито',
     NULL,
     'https://www.avito.ru/profile/messenger/channel/u2i-AjMMrnHBve2T_hG~ehLspw',
@@ -724,7 +1576,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -735,9 +1587,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '5a42d246-788c-415b-a4fa-044fe766a71e'::uuid,
+    '5215b48a-cf62-4f1c-b5fc-fcd03f0251b8'::uuid,
     v_admin_id,
-    1014,
+    1030,
     '2025-12-15T09:00:00.000Z'::timestamptz,
     '15.12.2025',
     'income',
@@ -748,8 +1600,8 @@ BEGIN
     'percent', 0, 0,
     5500,
     2500,
-    '[{"id":"f7cd2a47-1e96-41ba-a5d6-ba4979250d46","category":"Печать","amount":2500}]'::jsonb,
-    '[{"id":"a0c968a5-345b-42d9-a0cd-29b1ef5df64c","amount":2750,"date":"15.12.2025","note":"Предоплата"},{"id":"19fe866c-c6e5-4569-b606-a289f5115633","amount":2750,"date":"15.12.2025","note":"Оплата"}]'::jsonb,
+    '[{"id":"19d45fb4-82a4-4506-9b1a-f7a0aa72b73a","category":"Печать","amount":2500}]'::jsonb,
+    '[{"id":"2f55ea96-585f-4914-80ee-8bb79d243026","amount":2750,"date":"15.12.2025","note":"Предоплата"},{"id":"a961c9b7-a4be-4bf2-ae93-60220f48ebb6","amount":2750,"date":"15.12.2025","note":"Окончательный расчет (100%)"}]'::jsonb,
     5500,
     'Авито',
     NULL,
@@ -777,7 +1629,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -788,9 +1640,62 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'fe969889-7d4a-4d8e-805a-cef5a51255a4'::uuid,
+    'b2d2a803-e1be-4046-9e25-5187b8babfb2'::uuid,
     v_admin_id,
-    1015,
+    1031,
+    '2025-12-16T09:00:00.000Z'::timestamptz,
+    '16.12.2025',
+    'expense',
+    'Авито Товары',
+    1,
+    300,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    300,
+    0,
+    '[]'::jsonb,
+    '[{"id":"98d6e642-30f9-419e-9597-20ab6f7fb805","amount":300,"date":"16.12.2025","note":"Списание"}]'::jsonb,
+    300,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '1883ba7b-7a2b-4069-9011-bc1383b76fec'::uuid,
+    v_admin_id,
+    1032,
     '2025-12-16T09:00:00.000Z'::timestamptz,
     '16.12.2025',
     'income',
@@ -801,9 +1706,9 @@ BEGIN
     'percent', 0, 0,
     50,
     550,
-    '[{"id":"fc13ff60-5044-4a02-8f60-1b4ba606596e","category":"Печать","amount":550}]'::jsonb,
-    '[{"id":"84946431-be02-4a10-9dd2-a345d1176cd0","amount":550,"date":"16.12.2025","note":"Оплата"},{"id":"72240fac-c822-43a5-ac74-ca6394f24ac4","amount":200,"date":"16.12.2025","note":"Доп. оплата"}]'::jsonb,
-    750,
+    '[{"id":"0849dd78-db22-4bef-95e5-17492d420a68","category":"Печать","amount":550}]'::jsonb,
+    '[{"id":"84b1bc45-0112-47f8-8d81-4fa42fbc4a66","amount":50,"date":"16.12.2025","note":"Полная оплата (100%)"}]'::jsonb,
+    50,
     'Авито',
     NULL,
     '',
@@ -830,7 +1735,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -841,9 +1746,62 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'a57b4c05-d84f-4cf7-ad6b-76872b09bb1c'::uuid,
+    '7d6781d5-8aad-48c3-8d1e-c4d1f651d4a8'::uuid,
     v_admin_id,
-    1016,
+    1033,
+    '2025-12-17T09:00:00.000Z'::timestamptz,
+    '17.12.2025',
+    'expense',
+    'Авито',
+    1,
+    1000,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    1000,
+    0,
+    '[]'::jsonb,
+    '[{"id":"9c3cddc1-50bf-4397-8667-33b70ba2242b","amount":1000,"date":"17.12.2025","note":"Списание"}]'::jsonb,
+    1000,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '75409611-7a71-4f4a-a70a-8935ef0c2026'::uuid,
+    v_admin_id,
+    1034,
     '2025-12-18T09:00:00.000Z'::timestamptz,
     '18.12.2025',
     'income',
@@ -854,8 +1812,8 @@ BEGIN
     'percent', 0, 0,
     600,
     200,
-    '[{"id":"0a769d9f-852b-4432-8376-4bbef1f548fd","category":"Печать","amount":200}]'::jsonb,
-    '[{"id":"7f205550-1de4-4533-9df7-dedfdc3dda02","amount":300,"date":"18.12.2025","note":"Предоплата"},{"id":"5f9a3449-73da-4df6-8cbb-8b1962cd9941","amount":300,"date":"18.12.2025","note":"Оплата"}]'::jsonb,
+    '[{"id":"2373e249-7f81-4922-8282-b23be59f25d3","category":"Печать","amount":200}]'::jsonb,
+    '[{"id":"acb8c364-c03a-4891-9f06-e423cccab59d","amount":300,"date":"18.12.2025","note":"Предоплата"},{"id":"d672a664-7ff1-4db3-a98d-1b97273149fd","amount":300,"date":"18.12.2025","note":"Окончательный расчет (100%)"}]'::jsonb,
     600,
     'Авито',
     NULL,
@@ -883,7 +1841,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -894,9 +1852,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '60b34b4e-3003-45c0-a353-aadf4ad514c6'::uuid,
+    '0a87f01a-236b-4a1e-92ee-675e89f1e0ab'::uuid,
     v_admin_id,
-    1017,
+    1035,
     '2025-12-18T09:00:00.000Z'::timestamptz,
     '18.12.2025',
     'income',
@@ -907,8 +1865,8 @@ BEGIN
     'percent', 0, 0,
     3550,
     800,
-    '[{"id":"607e8e8b-ad1e-43d5-958e-75d908254baa","category":"Печать","amount":800}]'::jsonb,
-    '[{"id":"50cac5b5-b129-4034-ba03-1c0397ae8fe2","amount":3550,"date":"18.12.2025","note":"Оплата"}]'::jsonb,
+    '[{"id":"396cc2fa-66d9-4e74-98ad-f07754cb01cc","category":"Печать","amount":800}]'::jsonb,
+    '[{"id":"457b45d4-1e31-4c8a-a9fe-565609f249c5","amount":3550,"date":"18.12.2025","note":"Полная оплата (100%)"}]'::jsonb,
     3550,
     'Авито',
     NULL,
@@ -936,7 +1894,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -947,9 +1905,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'a2a69416-e0ae-40ee-a1ed-56fefc4c9fa7'::uuid,
+    '84988e5b-d9fd-4a14-9b03-936a45b2e5eb'::uuid,
     v_admin_id,
-    1018,
+    1036,
     '2025-12-21T09:00:00.000Z'::timestamptz,
     '21.12.2025',
     'income',
@@ -960,8 +1918,8 @@ BEGIN
     'percent', 0, 0,
     3200,
     2080,
-    '[{"id":"5d19c02d-8e55-45ed-a37d-a04a43450eea","category":"Печать","amount":2080}]'::jsonb,
-    '[{"id":"1553a4b2-74b4-47fe-b2b9-e3cd8eeca4dd","amount":2000,"date":"21.12.2025","note":"Предоплата"},{"id":"2a4dbcb8-de71-40f3-a516-2bd655d2c0d2","amount":1200,"date":"21.12.2025","note":"Оплата"}]'::jsonb,
+    '[{"id":"a47311e8-d162-4dba-ad11-5f9857d5a0a6","category":"Печать","amount":2080}]'::jsonb,
+    '[{"id":"0687eb25-be9f-4ba7-829e-d33481fca35a","amount":2000,"date":"21.12.2025","note":"Предоплата"},{"id":"d20965ed-42c9-42ca-8225-816f7b168ed7","amount":1200,"date":"21.12.2025","note":"Окончательный расчет (100%)"}]'::jsonb,
     3200,
     'Авито',
     NULL,
@@ -989,7 +1947,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1000,9 +1958,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'ed4078fb-a0ce-4633-a4cc-635ac3df70c4'::uuid,
+    '104447d4-3abe-4a03-9b28-71a639392772'::uuid,
     v_admin_id,
-    1019,
+    1037,
     '2025-12-22T09:00:00.000Z'::timestamptz,
     '22.12.2025',
     'income',
@@ -1014,8 +1972,8 @@ BEGIN
     1000,
     0,
     '[]'::jsonb,
-    '[]'::jsonb,
-    0,
+    '[{"id":"5425d3e3-b87d-4a1f-9560-bfa058271f7c","amount":1000,"date":"22.12.2025","note":"Полная оплата (100%)"}]'::jsonb,
+    1000,
     'Другое',
     NULL,
     '',
@@ -1042,7 +2000,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1053,9 +2011,115 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '8c8e2d4e-b4ff-4761-8c0f-c91c48e4fa82'::uuid,
+    'cd71f2ab-383a-4d28-bd81-6acdb1304fa8'::uuid,
     v_admin_id,
-    1020,
+    1038,
+    '2025-12-25T09:00:00.000Z'::timestamptz,
+    '25.12.2025',
+    'expense',
+    'Авито',
+    1,
+    367,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    367,
+    0,
+    '[]'::jsonb,
+    '[{"id":"693fb83c-9667-4de7-99d2-cc61d6fc2834","amount":367,"date":"25.12.2025","note":"Списание"}]'::jsonb,
+    367,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '4b747b8f-c091-4b01-9599-550e9f53fa9b'::uuid,
+    v_admin_id,
+    1039,
+    '2025-12-25T09:00:00.000Z'::timestamptz,
+    '25.12.2025',
+    'expense',
+    'Авито',
+    1,
+    367,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    367,
+    0,
+    '[]'::jsonb,
+    '[{"id":"b5596076-78ee-4009-82fb-657c721614e4","amount":367,"date":"25.12.2025","note":"Списание"}]'::jsonb,
+    367,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    'e009ba0e-b572-4f39-a5f7-1add97f70d5b'::uuid,
+    v_admin_id,
+    1040,
     '2025-12-25T09:00:00.000Z'::timestamptz,
     '25.12.2025',
     'income',
@@ -1066,8 +2130,8 @@ BEGIN
     'percent', 0, 0,
     2000,
     1000,
-    '[{"id":"ad98f2cb-2bac-4adb-9a15-9a6722733b60","category":"Печать","amount":1000}]'::jsonb,
-    '[{"id":"31cf6f5e-aab2-41f1-aab1-5718a0e9b58c","amount":2000,"date":"25.12.2025","note":"Оплата"}]'::jsonb,
+    '[{"id":"7a208286-f6a7-4507-b5d3-b2eb439f3294","category":"Печать","amount":1000}]'::jsonb,
+    '[{"id":"e039009e-ec70-49b7-bc18-c7dea66bd8d8","amount":2000,"date":"25.12.2025","note":"Полная оплата (100%)"}]'::jsonb,
     2000,
     'Другое',
     NULL,
@@ -1095,7 +2159,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1106,9 +2170,327 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '7ba085c8-5b6b-44b1-b394-00f6e3875588'::uuid,
+    '1683bccb-7b70-49d4-95ef-abf42d900466'::uuid,
     v_admin_id,
-    1021,
+    1041,
+    '2025-12-25T09:00:00.000Z'::timestamptz,
+    '25.12.2025',
+    'expense',
+    'Авито',
+    1,
+    255,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    255,
+    0,
+    '[]'::jsonb,
+    '[{"id":"a7caa97f-db8a-4582-b0bf-1e7d77ce8d0a","amount":255,"date":"25.12.2025","note":"Списание"}]'::jsonb,
+    255,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '75d4eda5-b3ee-4b87-b605-102c84933dae'::uuid,
+    v_admin_id,
+    1042,
+    '2025-12-26T09:00:00.000Z'::timestamptz,
+    '26.12.2025',
+    'expense',
+    'Авито',
+    1,
+    141,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    141,
+    0,
+    '[]'::jsonb,
+    '[{"id":"4670c4fa-d57e-47c5-860c-34272b8088fc","amount":141,"date":"26.12.2025","note":"Списание"}]'::jsonb,
+    141,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '2052fa1d-96c3-4462-b146-aece73814b43'::uuid,
+    v_admin_id,
+    1043,
+    '2026-01-07T09:00:00.000Z'::timestamptz,
+    '07.01.2026',
+    'expense',
+    'Авито',
+    1,
+    141,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    141,
+    0,
+    '[]'::jsonb,
+    '[{"id":"7bfaf0ef-03d1-4f77-a5ce-52664e0b859a","amount":141,"date":"07.01.2026","note":"Списание"}]'::jsonb,
+    141,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '31235862-76e0-4710-a71a-60eb9dcdd111'::uuid,
+    v_admin_id,
+    1044,
+    '2026-01-09T09:00:00.000Z'::timestamptz,
+    '09.01.2026',
+    'expense',
+    'Пластик',
+    1,
+    1400,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    1400,
+    0,
+    '[]'::jsonb,
+    '[{"id":"51740762-482c-4a0b-9d6f-a4c658028ce4","amount":1400,"date":"09.01.2026","note":"Списание"}]'::jsonb,
+    1400,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Закупка филамента / расходных материалов'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '48546c1a-a4c0-4af0-96ce-b97d6c123c1b'::uuid,
+    v_admin_id,
+    1045,
+    '2026-01-11T09:00:00.000Z'::timestamptz,
+    '11.01.2026',
+    'expense',
+    'Пластик',
+    1,
+    1300,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    1300,
+    0,
+    '[]'::jsonb,
+    '[{"id":"694f35b6-2979-42fd-90e1-69d4be002c86","amount":1300,"date":"11.01.2026","note":"Списание"}]'::jsonb,
+    1300,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Закупка филамента / расходных материалов'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '48cbeb4b-8f82-4d74-a4c3-b254db8999de'::uuid,
+    v_admin_id,
+    1046,
+    '2026-01-12T09:00:00.000Z'::timestamptz,
+    '12.01.2026',
+    'expense',
+    'Авито',
+    1,
+    367,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    367,
+    0,
+    '[]'::jsonb,
+    '[{"id":"9f6c0edf-72ac-4943-997c-06bfe98a4af9","amount":367,"date":"12.01.2026","note":"Списание"}]'::jsonb,
+    367,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '0fa21b46-cf59-4cfd-b5b5-e4c27d81f5a3'::uuid,
+    v_admin_id,
+    1047,
     '2026-01-12T09:00:00.000Z'::timestamptz,
     '12.01.2026',
     'income',
@@ -1119,8 +2501,8 @@ BEGIN
     'percent', 0, 0,
     5300,
     3148,
-    '[{"id":"2c8743c5-234f-4cc2-a296-072d037877f9","category":"Печать","amount":3148}]'::jsonb,
-    '[{"id":"d73b5eef-def6-45a3-b667-2fb178e25bf7","amount":5300,"date":"12.01.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"916fed23-b08c-464f-a432-d9280320356c","category":"Печать","amount":3148}]'::jsonb,
+    '[{"id":"9d2b6876-0dcf-4c26-a171-f40b7fd4252f","amount":5300,"date":"12.01.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5300,
     'Другое',
     NULL,
@@ -1148,7 +2530,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1159,9 +2541,62 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '77774a5e-9556-4c94-9fb7-3bcaaf34d4a8'::uuid,
+    '3c45529b-cc21-492e-943d-c8bdf5554f12'::uuid,
     v_admin_id,
-    1022,
+    1048,
+    '2026-01-19T09:00:00.000Z'::timestamptz,
+    '19.01.2026',
+    'expense',
+    'Авито',
+    1,
+    141,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    141,
+    0,
+    '[]'::jsonb,
+    '[{"id":"6ff21522-bb5e-46cc-8fea-2d748f51329a","amount":141,"date":"19.01.2026","note":"Списание"}]'::jsonb,
+    141,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    'b6fafcf1-88b9-4802-823f-4008b98ad5e1'::uuid,
+    v_admin_id,
+    1049,
     '2026-01-19T09:00:00.000Z'::timestamptz,
     '19.01.2026',
     'income',
@@ -1172,8 +2607,8 @@ BEGIN
     'percent', 0, 0,
     2500,
     623,
-    '[{"id":"e8c2e1c1-c09e-4aa9-9048-be8a4cb56ced","category":"Печать","amount":623}]'::jsonb,
-    '[{"id":"f02e32ab-5b48-451e-a559-e925fef86108","amount":2500,"date":"19.01.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"0a5650dd-8d87-44fe-b4e1-7dc87e57ea28","category":"Печать","amount":623}]'::jsonb,
+    '[{"id":"76bab250-b3cd-4650-bbbd-02ac5b59fed4","amount":2500,"date":"19.01.2026","note":"Полная оплата (100%)"}]'::jsonb,
     2500,
     'Другое',
     NULL,
@@ -1201,7 +2636,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1212,9 +2647,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '67c4d301-c304-4234-b4e2-1f2f10d4e708'::uuid,
+    'f84c053a-ec2b-46cf-9caf-2dc52bc6ba12'::uuid,
     v_admin_id,
-    1023,
+    1050,
     '2026-01-20T09:00:00.000Z'::timestamptz,
     '20.01.2026',
     'income',
@@ -1225,8 +2660,8 @@ BEGIN
     'percent', 0, 0,
     3250,
     810,
-    '[{"id":"01747b2d-d835-473e-bb89-57ad7a438dc8","category":"Печать","amount":810}]'::jsonb,
-    '[{"id":"63f63148-af2a-4627-8913-fbba3870df0d","amount":3250,"date":"20.01.2026","note":"Полная оплата"}]'::jsonb,
+    '[{"id":"3e993816-7278-48f6-8c01-c5c61cee5a9b","category":"Печать","amount":810}]'::jsonb,
+    '[{"id":"10a36dcc-442a-442c-a956-bb5fdac6d70a","amount":3250,"date":"20.01.2026","note":"Полная оплата (100%)"}]'::jsonb,
     3250,
     'Другое',
     NULL,
@@ -1254,7 +2689,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1265,9 +2700,115 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '96e42144-d1d4-4699-880c-ebff020af25a'::uuid,
+    '84946e8c-6bb2-41cd-a6f2-e415753327b1'::uuid,
     v_admin_id,
-    1024,
+    1051,
+    '2026-01-25T09:00:00.000Z'::timestamptz,
+    '25.01.2026',
+    'expense',
+    'Авито',
+    1,
+    1500,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    1500,
+    0,
+    '[]'::jsonb,
+    '[{"id":"74686e3f-6320-4e81-8487-543a0e54c7d5","amount":1500,"date":"25.01.2026","note":"Списание"}]'::jsonb,
+    1500,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    'e922611a-11a3-4657-b79e-a74bde8da9d7'::uuid,
+    v_admin_id,
+    1052,
+    '2026-01-27T09:00:00.000Z'::timestamptz,
+    '27.01.2026',
+    'expense',
+    'Авито',
+    1,
+    900,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    900,
+    0,
+    '[]'::jsonb,
+    '[{"id":"cab42984-bc5d-4b39-bd8d-5aea32f695fb","amount":900,"date":"27.01.2026","note":"Списание"}]'::jsonb,
+    900,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    'fa027942-a9df-4254-b0f4-13637efed301'::uuid,
+    v_admin_id,
+    1053,
     '2026-01-28T09:00:00.000Z'::timestamptz,
     '28.01.2026',
     'income',
@@ -1278,8 +2819,8 @@ BEGIN
     'percent', 0, 0,
     4489,
     2311,
-    '[{"id":"cb26ff78-0cc9-49ae-b769-1dc92277aad9","category":"Печать","amount":2311}]'::jsonb,
-    '[{"id":"f2c6afde-c6f5-4a23-b716-676945098786","amount":4489,"date":"28.01.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"ae5f5c35-ab1c-4e2b-8278-ffed3d00a8bc","category":"Печать","amount":2311}]'::jsonb,
+    '[{"id":"063bd79a-900d-4909-a05e-c5c96bd82ea8","amount":4489,"date":"28.01.2026","note":"Полная оплата (100%)"}]'::jsonb,
     4489,
     'Авито',
     NULL,
@@ -1307,7 +2848,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1318,9 +2859,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'a1983fea-422e-4fd5-9fce-a76cc1964002'::uuid,
+    '86b776a0-0a67-4f6b-8e23-78bd06aa6fdb'::uuid,
     v_admin_id,
-    1025,
+    1054,
     '2026-01-28T09:00:00.000Z'::timestamptz,
     '28.01.2026',
     'income',
@@ -1331,8 +2872,8 @@ BEGIN
     'percent', 0, 0,
     4489,
     2311,
-    '[{"id":"d0f29b8d-1bb8-45c1-bd30-47e3dfb6fa90","category":"Печать","amount":2311}]'::jsonb,
-    '[{"id":"2e65fe4c-82bb-428e-b07a-95bd3123bc12","amount":4489,"date":"28.01.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"c2c3175e-7873-425b-bc31-9196beeb4609","category":"Печать","amount":2311}]'::jsonb,
+    '[{"id":"b194d319-685e-4c99-9b7e-7c022d8fbe6a","amount":4489,"date":"28.01.2026","note":"Полная оплата (100%)"}]'::jsonb,
     4489,
     'Авито',
     NULL,
@@ -1360,7 +2901,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1371,9 +2912,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '8de3a9dc-bbee-40a6-91bd-beb64d064c56'::uuid,
+    '088d288c-609d-4095-88e7-c5e893bc9aef'::uuid,
     v_admin_id,
-    1026,
+    1055,
     '2026-01-29T09:00:00.000Z'::timestamptz,
     '29.01.2026',
     'income',
@@ -1384,9 +2925,9 @@ BEGIN
     'percent', 0, 0,
     1050,
     274,
-    '[{"id":"93d9e48e-6082-497a-95b9-cccecde97f2e","category":"Печать","amount":274}]'::jsonb,
-    '[{"id":"7b4d6c42-dcba-4346-a87f-acaf2cfcc6ed","amount":500,"date":"29.01.2026","note":"Предоплата"},{"id":"6d7d0221-81ae-4dfc-8395-bfbb9cc71e3b","amount":650,"date":"29.01.2026","note":"Оплата"}]'::jsonb,
-    1150,
+    '[{"id":"31c6afd0-e234-44e0-830a-4b91ad18e44b","category":"Печать","amount":274}]'::jsonb,
+    '[{"id":"d3ce105f-5c71-45b7-b0d8-b24a2d3c1df4","amount":500,"date":"29.01.2026","note":"Предоплата"},{"id":"9a53505d-9b47-4e71-906c-afd199366140","amount":550,"date":"29.01.2026","note":"Окончательный расчет (100%)"}]'::jsonb,
+    1050,
     'Другое',
     NULL,
     '',
@@ -1413,7 +2954,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1424,9 +2965,62 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '34f83f32-55ea-4f3c-b3fd-a1da7ddb8fe7'::uuid,
+    'cf3aa7b3-e1e7-4be9-821d-c6df540d0c46'::uuid,
     v_admin_id,
-    1027,
+    1056,
+    '2026-02-01T09:00:00.000Z'::timestamptz,
+    '01.02.2026',
+    'expense',
+    'Авито',
+    1,
+    900,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    900,
+    0,
+    '[]'::jsonb,
+    '[{"id":"20a0a229-d43a-48dc-a994-0590c5b5a473","amount":900,"date":"01.02.2026","note":"Списание"}]'::jsonb,
+    900,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '47c3777c-a863-4364-93f2-35d0e300bd14'::uuid,
+    v_admin_id,
+    1057,
     '2026-02-03T09:00:00.000Z'::timestamptz,
     '03.02.2026',
     'income',
@@ -1437,8 +3031,8 @@ BEGIN
     'percent', 0, 0,
     1300,
     100,
-    '[{"id":"888e47c6-b8ce-4201-a63c-b40943e97d57","category":"Печать","amount":100}]'::jsonb,
-    '[{"id":"5c3a5400-8428-4082-ab35-5aad2e84e2b7","amount":500,"date":"03.02.2026","note":"Предоплата"},{"id":"34fc4919-bf3a-400e-b39e-d801e1b2caa5","amount":800,"date":"03.02.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"17762eb4-cec9-440f-ad5f-cc9f38b0416f","category":"Печать","amount":100}]'::jsonb,
+    '[{"id":"79bb5ebf-a438-4746-8f55-62c81694e153","amount":500,"date":"03.02.2026","note":"Предоплата"},{"id":"a6ddef6b-379a-471b-b957-1f942e289ecb","amount":800,"date":"03.02.2026","note":"Окончательный расчет (100%)"}]'::jsonb,
     1300,
     'Авито',
     NULL,
@@ -1466,7 +3060,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1477,9 +3071,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'de0ad996-68ba-45e5-bcd7-ab1f52508ea2'::uuid,
+    'bfcf7e75-b85c-419c-b5d9-21fe81167fb8'::uuid,
     v_admin_id,
-    1028,
+    1058,
     '2026-02-05T09:00:00.000Z'::timestamptz,
     '05.02.2026',
     'income',
@@ -1490,8 +3084,8 @@ BEGIN
     'percent', 0, 0,
     6179,
     2400,
-    '[{"id":"99c57c0d-6a86-4f07-a753-4a27f273eefd","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"5e2785a1-2ac9-42b0-855e-fd055f94e05f","amount":6179,"date":"05.02.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"61118d27-6098-4475-963c-ea9961cd33df","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"2289bd2b-5884-45a8-82ec-0e28f5c99532","amount":6179,"date":"05.02.2026","note":"Полная оплата (100%)"}]'::jsonb,
     6179,
     'Авито',
     NULL,
@@ -1519,7 +3113,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1530,9 +3124,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'ec921ef1-50e3-4670-8361-ee346dc07bfc'::uuid,
+    'efaaaed1-c373-4c6c-895e-a2c1153af0f7'::uuid,
     v_admin_id,
-    1029,
+    1059,
     '2026-02-05T09:00:00.000Z'::timestamptz,
     '05.02.2026',
     'income',
@@ -1543,8 +3137,8 @@ BEGIN
     'percent', 0, 0,
     65000,
     25000,
-    '[{"id":"4582026e-f05e-4658-a766-a6a1999d7337","category":"Печать","amount":25000}]'::jsonb,
-    '[{"id":"75e802cb-5605-48c7-bc9a-c01794c09683","amount":65000,"date":"05.02.2026","note":"Предоплата"}]'::jsonb,
+    '[{"id":"e8d0ecf3-f605-4318-a895-9dbb2460ee2c","category":"Печать","amount":25000}]'::jsonb,
+    '[{"id":"ec33fcd3-0dfc-4fe7-be90-f54388c363e6","amount":65000,"date":"05.02.2026","note":"Полная оплата (100%)"}]'::jsonb,
     65000,
     'Авито',
     NULL,
@@ -1572,7 +3166,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1583,9 +3177,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '2db28322-ee29-4008-8750-c05a1e2a94d1'::uuid,
+    'cc7e5cbc-fe69-4444-bb22-11bd130d3907'::uuid,
     v_admin_id,
-    1030,
+    1060,
     '2026-02-07T09:00:00.000Z'::timestamptz,
     '07.02.2026',
     'income',
@@ -1597,7 +3191,7 @@ BEGIN
     3000,
     0,
     '[]'::jsonb,
-    '[{"id":"cc862d6c-c720-40fd-a687-f7f334c63d7d","amount":3000,"date":"07.02.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"c22a3e1b-bd72-4e16-9cd5-d0c3f9cf056a","amount":3000,"date":"07.02.2026","note":"Полная оплата (100%)"}]'::jsonb,
     3000,
     'Другое',
     NULL,
@@ -1625,7 +3219,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1636,9 +3230,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '1c489cbe-9e4b-4b20-a97b-3f65801d5d24'::uuid,
+    '2af151d0-e81f-45fa-88fa-e7c7d2d772ba'::uuid,
     v_admin_id,
-    1031,
+    1061,
     '2026-02-07T09:00:00.000Z'::timestamptz,
     '07.02.2026',
     'income',
@@ -1650,8 +3244,8 @@ BEGIN
     15000,
     0,
     '[]'::jsonb,
-    '[]'::jsonb,
-    0,
+    '[{"id":"088a5791-a9bf-4364-a72e-a93eebeaf2ae","amount":15000,"date":"07.02.2026","note":"Полная оплата (100%)"}]'::jsonb,
+    15000,
     'Авито',
     NULL,
     '89624499433 Сергей',
@@ -1678,7 +3272,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1689,9 +3283,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '3d7a215b-9b75-41ba-b322-27b4a026bffd'::uuid,
+    '8d9db8bb-2b4d-489b-ba9f-b316983b5ec6'::uuid,
     v_admin_id,
-    1032,
+    1062,
     '2026-02-11T09:00:00.000Z'::timestamptz,
     '11.02.2026',
     'income',
@@ -1702,8 +3296,8 @@ BEGIN
     'percent', 0, 0,
     1500,
     82,
-    '[{"id":"0816fcae-9e13-4333-87df-a4eabd777990","category":"Печать","amount":82}]'::jsonb,
-    '[{"id":"50fe5d5e-13c6-4876-ad10-5871416c9c69","amount":1500,"date":"11.02.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"4334b6e6-475e-40d9-b276-55a27e008dd4","category":"Печать","amount":82}]'::jsonb,
+    '[{"id":"543cbef8-2d57-4150-9056-48e7f061c3e2","amount":1500,"date":"11.02.2026","note":"Полная оплата (100%)"}]'::jsonb,
     1500,
     'Авито',
     NULL,
@@ -1731,7 +3325,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1742,9 +3336,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'ce60f712-aa7e-4995-a5e9-3a429797593e'::uuid,
+    'a6ea6d9b-007c-4e1e-8041-ec1cdcd70613'::uuid,
     v_admin_id,
-    1033,
+    1063,
     '2026-02-18T09:00:00.000Z'::timestamptz,
     '18.02.2026',
     'income',
@@ -1756,8 +3350,8 @@ BEGIN
     500,
     0,
     '[]'::jsonb,
-    '[]'::jsonb,
-    0,
+    '[{"id":"dad2006a-1e0f-4267-adf9-80e531d3a5cd","amount":500,"date":"18.02.2026","note":"Полная оплата (100%)"}]'::jsonb,
+    500,
     'Другое',
     NULL,
     '',
@@ -1784,7 +3378,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1795,9 +3389,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '82dd6dec-f92e-41c3-b8ca-4ac1217d3b91'::uuid,
+    'bb908ee2-483d-4868-88b9-9e145e7ffcfd'::uuid,
     v_admin_id,
-    1034,
+    1064,
     '2026-02-20T09:00:00.000Z'::timestamptz,
     '20.02.2026',
     'income',
@@ -1808,8 +3402,8 @@ BEGIN
     'percent', 0, 0,
     5421,
     2400,
-    '[{"id":"4848063c-6a15-4441-98bf-430c88f2d343","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"ca58f660-b0ab-4d06-90f9-0a0c303297c7","amount":5421,"date":"20.02.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"d98398f4-60b4-401f-84ba-e7b4fa0d6072","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"2f612c88-ab81-4eea-937a-af6a7cc5b1a8","amount":5421,"date":"20.02.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5421,
     'Авито',
     NULL,
@@ -1837,7 +3431,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1848,9 +3442,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '9331a2b9-a160-4ff2-85ad-26b905ec8737'::uuid,
+    '5f0ebefb-5b95-4e13-91a1-913fe0ac6d2c'::uuid,
     v_admin_id,
-    1035,
+    1065,
     '2026-02-24T09:00:00.000Z'::timestamptz,
     '24.02.2026',
     'income',
@@ -1861,9 +3455,9 @@ BEGIN
     'percent', 0, 0,
     1500,
     550,
-    '[{"id":"2a814af7-0502-4ba9-bfc3-821e97c7056e","category":"Печать","amount":550}]'::jsonb,
-    '[]'::jsonb,
-    0,
+    '[{"id":"25e65bb1-ae37-471e-9edd-556e4f741f0e","category":"Печать","amount":550}]'::jsonb,
+    '[{"id":"d91a3bea-3c84-4b9b-96f4-c8f0984860d7","amount":1500,"date":"24.02.2026","note":"Полная оплата (100%)"}]'::jsonb,
+    1500,
     'Другое',
     NULL,
     '',
@@ -1890,7 +3484,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1901,9 +3495,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '00d6a02d-df21-4d22-952e-d2c85d5958ab'::uuid,
+    'de93e2ad-02a1-4422-bcc0-a5ef7005a421'::uuid,
     v_admin_id,
-    1036,
+    1066,
     '2026-02-27T09:00:00.000Z'::timestamptz,
     '27.02.2026',
     'income',
@@ -1914,8 +3508,8 @@ BEGIN
     'percent', 0, 0,
     5421,
     2400,
-    '[{"id":"9d53a186-cb83-4c69-8ea5-6dbbb9123750","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"ac319b62-2f00-4f9a-81a3-5f3baa1d8ca8","amount":5421,"date":"27.02.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"8da6e9f4-e5a4-4dc1-8433-3ffaa39de207","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"0e147f5a-3578-41d7-8cbb-4bdfaa9480b3","amount":5421,"date":"27.02.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5421,
     'Авито',
     NULL,
@@ -1943,7 +3537,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -1954,9 +3548,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'cc282575-03f1-4dd0-b5a1-055d188d9130'::uuid,
+    '71ff5ac3-de55-480d-a59e-0f318db76c15'::uuid,
     v_admin_id,
-    1037,
+    1067,
     '2026-02-27T09:00:00.000Z'::timestamptz,
     '27.02.2026',
     'income',
@@ -1967,8 +3561,8 @@ BEGIN
     'percent', 0, 0,
     5421,
     2400,
-    '[{"id":"a990b7ef-1346-4018-89b6-29b20edfeb94","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"2bb7c3b3-eebe-4e56-a757-ccc12ada81b2","amount":5421,"date":"27.02.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"93790137-a320-46fa-81e7-9832d9c2c4cc","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"1868fdd2-a9d6-437c-be82-609a89074d18","amount":5421,"date":"27.02.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5421,
     'Авито',
     NULL,
@@ -1996,7 +3590,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2007,9 +3601,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '163c904b-6500-4f4a-a65f-b00e27aaace4'::uuid,
+    '79892d56-8892-49c8-9639-9d1d8fda521a'::uuid,
     v_admin_id,
-    1038,
+    1068,
     '2026-02-28T09:00:00.000Z'::timestamptz,
     '28.02.2026',
     'income',
@@ -2020,8 +3614,8 @@ BEGIN
     'percent', 0, 0,
     5421,
     2400,
-    '[{"id":"c73eec25-8d78-4e4f-be7d-60b3cd04808a","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"f3795361-f622-4fce-bab1-5f63ffcec7f4","amount":5421,"date":"28.02.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"8b83a33a-1502-4cd0-b0be-525372850ec9","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"4587cd19-534e-41d2-b5a3-59c609f62a8a","amount":5421,"date":"28.02.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5421,
     'Авито',
     NULL,
@@ -2049,7 +3643,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2060,9 +3654,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '81fd3c9a-8400-44bc-add0-64569263cc38'::uuid,
+    '5cbb9bf4-e687-44bc-b2e2-a816ec1c4c20'::uuid,
     v_admin_id,
-    1039,
+    1069,
     '2026-02-28T09:00:00.000Z'::timestamptz,
     '28.02.2026',
     'income',
@@ -2073,8 +3667,8 @@ BEGIN
     'percent', 0, 0,
     5421,
     2400,
-    '[{"id":"92fb0db9-2ed4-4fd1-9a57-5f388b45c501","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"d1ae49d3-c0b0-4926-90b1-32adf891dbdd","amount":5421,"date":"28.02.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"384b1d09-f665-4991-9669-92bb6587011b","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"cbb93c8b-3f95-4c3b-b711-fd22dd778e3e","amount":5421,"date":"28.02.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5421,
     'Авито',
     NULL,
@@ -2102,7 +3696,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2113,9 +3707,62 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '085e13f0-9f28-4161-98b4-97372ec49b80'::uuid,
+    '25fa9723-7e34-498f-8972-4393c1eb83ed'::uuid,
     v_admin_id,
-    1040,
+    1070,
+    '2026-03-01T09:00:00.000Z'::timestamptz,
+    '01.03.2026',
+    'expense',
+    'Авито',
+    1,
+    367,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    367,
+    0,
+    '[]'::jsonb,
+    '[{"id":"c0b0bade-2a10-402c-9aa3-bafda79ae933","amount":367,"date":"01.03.2026","note":"Списание"}]'::jsonb,
+    367,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    'b9163631-249d-4544-9f42-58823cc38777'::uuid,
+    v_admin_id,
+    1071,
     '2026-03-02T09:00:00.000Z'::timestamptz,
     '02.03.2026',
     'income',
@@ -2126,8 +3773,8 @@ BEGIN
     'percent', 0, 0,
     5421,
     2400,
-    '[{"id":"1f22ab0c-41b7-4d11-879a-502d9d28ee97","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"12c0f1e7-c6f7-46fa-9dab-d1e06656836a","amount":5421,"date":"02.03.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"8f79d9fb-d428-412b-a307-225887034f5a","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"ce978f96-04e8-4427-9cce-c04309636992","amount":5421,"date":"02.03.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5421,
     'Авито',
     NULL,
@@ -2155,7 +3802,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2166,9 +3813,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'bc603931-4b43-4dfe-95a4-0753239e23b3'::uuid,
+    '4f5feeff-c705-4da5-b654-830c3edb8912'::uuid,
     v_admin_id,
-    1041,
+    1072,
     '2026-03-02T09:00:00.000Z'::timestamptz,
     '02.03.2026',
     'income',
@@ -2179,8 +3826,8 @@ BEGIN
     'percent', 0, 0,
     5421,
     2400,
-    '[{"id":"b027ff4f-f1a9-4060-bbb5-5caf1e80783f","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"2b3c63b9-ffbe-4ec5-bc68-677eb474244f","amount":5421,"date":"02.03.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"aa6b8ebc-faf1-457c-824b-904151e8ab68","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"45345d93-611e-47dd-8ef9-305ba590c54a","amount":5421,"date":"02.03.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5421,
     'Авито',
     NULL,
@@ -2208,7 +3855,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2219,9 +3866,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '02f1403e-70a1-42e7-9bad-13675995f488'::uuid,
+    'fc2de0b7-e108-4b5f-b592-a19ee4d98dc5'::uuid,
     v_admin_id,
-    1042,
+    1073,
     '2026-03-04T09:00:00.000Z'::timestamptz,
     '04.03.2026',
     'income',
@@ -2232,8 +3879,8 @@ BEGIN
     'percent', 0, 0,
     5421,
     2400,
-    '[{"id":"bf3d1d1e-25bd-4c10-9b07-3ee35c9fe98e","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"008236e7-cacf-4277-95f0-922f35b5d09b","amount":5421,"date":"04.03.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"ebdf31c1-0671-4731-bdd1-e910dc019e9a","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"8a44830c-4150-4d27-9c6c-a0d3facc5ba6","amount":5421,"date":"04.03.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5421,
     'Авито',
     NULL,
@@ -2261,7 +3908,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2272,9 +3919,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'e5334298-aba2-4bd7-9634-103987f31643'::uuid,
+    'd9170aeb-1cbb-4df8-92a9-fcbe5f5bf510'::uuid,
     v_admin_id,
-    1043,
+    1074,
     '2026-03-04T09:00:00.000Z'::timestamptz,
     '04.03.2026',
     'income',
@@ -2285,8 +3932,8 @@ BEGIN
     'percent', 0, 0,
     1500,
     100,
-    '[{"id":"c356da51-1a75-4393-bde6-4c39f3ce21db","category":"Печать","amount":100}]'::jsonb,
-    '[{"id":"fbfab11d-e913-482f-b156-9a3a25b9d08f","amount":1500,"date":"04.03.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"24153b58-6b6d-4f91-9bcf-4546fa703aaa","category":"Печать","amount":100}]'::jsonb,
+    '[{"id":"62b474f1-47f9-4f77-ab25-14f5955828e7","amount":1500,"date":"04.03.2026","note":"Полная оплата (100%)"}]'::jsonb,
     1500,
     'Другое',
     NULL,
@@ -2314,7 +3961,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2325,9 +3972,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '69606a52-b60c-4005-ba28-a70695b4ae89'::uuid,
+    '5a483ad3-b0a3-4f9a-b770-fadd611e3f02'::uuid,
     v_admin_id,
-    1044,
+    1075,
     '2026-03-04T09:00:00.000Z'::timestamptz,
     '04.03.2026',
     'income',
@@ -2338,8 +3985,8 @@ BEGIN
     'percent', 0, 0,
     5421,
     2400,
-    '[{"id":"f9d8b984-37a4-40d2-a338-4a2cb7d9c1a3","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"d9dcd0e1-eea8-45c7-8ca7-16fa51a76740","amount":5421,"date":"04.03.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"5f5d77b5-a600-4c64-abb1-98c872545614","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"a68d0385-742d-4aeb-8c2c-daebac7751ff","amount":5421,"date":"04.03.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5421,
     'Авито',
     NULL,
@@ -2367,7 +4014,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2378,9 +4025,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'f33d2974-a9f3-44df-acf1-1c967aa1832d'::uuid,
+    '17ba777c-2da8-4cc5-a9da-923f4d80b62a'::uuid,
     v_admin_id,
-    1045,
+    1076,
     '2026-03-04T09:00:00.000Z'::timestamptz,
     '04.03.2026',
     'income',
@@ -2391,8 +4038,8 @@ BEGIN
     'percent', 0, 0,
     6311,
     2400,
-    '[{"id":"efbe38df-dc90-408e-85ee-3fa28f83cd6c","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"77c423c0-2435-44ce-a582-019a6db0c518","amount":6311,"date":"04.03.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"f31703ed-516b-4a70-bf13-2e4ae799b55e","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"e4a5b522-3c4b-4e08-8e88-e0bbd5772a33","amount":6311,"date":"04.03.2026","note":"Полная оплата (100%)"}]'::jsonb,
     6311,
     'Авито',
     NULL,
@@ -2420,7 +4067,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2431,9 +4078,62 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '2beea3e3-532b-445e-a411-f4788de23c2a'::uuid,
+    '9583020e-b44d-4e9b-9b47-f8118ec17312'::uuid,
     v_admin_id,
-    1046,
+    1077,
+    '2026-03-07T09:00:00.000Z'::timestamptz,
+    '07.03.2026',
+    'expense',
+    'Принтер Bambu lab a1',
+    1,
+    27000,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    27000,
+    0,
+    '[]'::jsonb,
+    '[{"id":"9d24ce81-4858-42e0-9cf8-2b591b059607","amount":27000,"date":"07.03.2026","note":"Списание"}]'::jsonb,
+    27000,
+    'Другое',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Покупка оборудования (3D принтер)'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '473b70da-6da5-4c62-86a6-7d518e821f81'::uuid,
+    v_admin_id,
+    1078,
     '2026-03-20T09:00:00.000Z'::timestamptz,
     '20.03.2026',
     'income',
@@ -2444,8 +4144,8 @@ BEGIN
     'percent', 0, 0,
     5603,
     2400,
-    '[{"id":"c0b3998f-3fb1-423a-870e-1e9d74d49050","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"34ef0e64-11d0-41ed-a413-d0ff7a87de4c","amount":5603,"date":"20.03.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"86a0a824-1783-46c6-8629-ce903ffc5f8d","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"47d2f113-8d72-4bdb-b090-d96a2ac2a081","amount":5603,"date":"20.03.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5603,
     'Авито',
     NULL,
@@ -2473,7 +4173,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2484,9 +4184,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '57031071-dd22-4ede-a577-fad1d758e7d1'::uuid,
+    'ef6b61a5-baac-4d94-a147-06fdc883848f'::uuid,
     v_admin_id,
-    1047,
+    1079,
     '2026-04-01T09:00:00.000Z'::timestamptz,
     '01.04.2026',
     'income',
@@ -2497,8 +4197,8 @@ BEGIN
     'percent', 0, 0,
     5603,
     2400,
-    '[{"id":"406d94f9-791b-4f9e-93c5-1cb9a2251f08","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"3cde4933-ab6f-4485-893a-06194451d28b","amount":5603,"date":"01.04.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"0fdd72bc-931d-47ef-81ce-16def613f42b","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"076edefe-5277-463d-9883-91962e12d19a","amount":5603,"date":"01.04.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5603,
     'Авито',
     NULL,
@@ -2526,7 +4226,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2537,9 +4237,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '39c34784-10df-4079-ab4f-e9069385bb44'::uuid,
+    '9fcef746-2237-45ea-b2b4-4c9450c1d3b2'::uuid,
     v_admin_id,
-    1048,
+    1080,
     '2026-04-02T09:00:00.000Z'::timestamptz,
     '02.04.2026',
     'income',
@@ -2550,8 +4250,8 @@ BEGIN
     'percent', 0, 0,
     5603,
     2400,
-    '[{"id":"a517d345-d43e-4208-ab71-0ba6f0c91848","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"1b372319-e402-4b08-9dd8-cdb47d8fb21a","amount":5603,"date":"02.04.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"7f1991da-7e59-4ce2-8d87-85994a208b50","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"6568d425-e7eb-4856-8035-1ee72fa60203","amount":5603,"date":"02.04.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5603,
     'Авито',
     NULL,
@@ -2579,7 +4279,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2590,9 +4290,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '4419e897-3d4d-402d-821f-9d66f7a18126'::uuid,
+    'd407bb08-9e46-4f36-8d90-2515e3077ee2'::uuid,
     v_admin_id,
-    1049,
+    1081,
     '2026-04-07T09:00:00.000Z'::timestamptz,
     '07.04.2026',
     'income',
@@ -2603,8 +4303,8 @@ BEGIN
     'percent', 0, 0,
     5154,
     2400,
-    '[{"id":"62093bee-0709-411f-9f90-0094c72eb91b","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"45d32aad-11c7-44ba-8f48-ba2a4917ece5","amount":5154,"date":"07.04.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"3436c2b5-ee0f-47a0-a897-daa9663a161e","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"b9643803-bd0f-45fc-893a-3e142364e53b","amount":5154,"date":"07.04.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5154,
     'Авито',
     NULL,
@@ -2632,7 +4332,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2643,9 +4343,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '43b45b14-7404-4a0d-8c5f-69dd146831b8'::uuid,
+    '7c2c6079-52b0-4acd-8a4b-6d72e1c21e4f'::uuid,
     v_admin_id,
-    1050,
+    1082,
     '2026-04-10T09:00:00.000Z'::timestamptz,
     '10.04.2026',
     'income',
@@ -2656,8 +4356,8 @@ BEGIN
     'percent', 0, 0,
     5154,
     2400,
-    '[{"id":"e6b47f89-2f60-43f9-91e2-404ee3312340","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"d0159b6a-97c1-4fb9-9e01-21b6d664f474","amount":5154,"date":"10.04.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"34e8782f-32f1-4cf7-906d-82e09c77061b","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"71bbcb00-8daf-4237-8755-fd8c05823dff","amount":5154,"date":"10.04.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5154,
     'Авито',
     NULL,
@@ -2685,7 +4385,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2696,9 +4396,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '4a334b6d-235f-461c-8d09-9f488cd3c27a'::uuid,
+    'b76ca1a3-300d-41ad-853d-dff215ac93c9'::uuid,
     v_admin_id,
-    1051,
+    1083,
     '2026-04-11T09:00:00.000Z'::timestamptz,
     '11.04.2026',
     'income',
@@ -2709,8 +4409,8 @@ BEGIN
     'percent', 0, 0,
     5154,
     2400,
-    '[{"id":"075906d3-a47f-4c88-a2b4-f960658d50b2","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"49a340c7-cc49-4fc5-97ea-6e8ef431657c","amount":5154,"date":"11.04.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"5c97feb9-8b17-4593-993d-900a55156788","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"7add5579-12a7-462d-a1cd-3f4a1d0b86a4","amount":5154,"date":"11.04.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5154,
     'Авито',
     NULL,
@@ -2738,7 +4438,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2749,9 +4449,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '6b7e6d6f-06b9-4d33-8e8f-c5fcf8e8c7e0'::uuid,
+    'a2a50c56-b6f1-469f-a3c5-e7dff7c3db9c'::uuid,
     v_admin_id,
-    1052,
+    1084,
     '2026-04-12T09:00:00.000Z'::timestamptz,
     '12.04.2026',
     'income',
@@ -2762,8 +4462,8 @@ BEGIN
     'percent', 0, 0,
     5154,
     2400,
-    '[{"id":"feea7ac5-fb24-4e32-9e1c-b593dd120f42","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"a536e7db-1492-4212-bbd2-337ff4b37a46","amount":5154,"date":"12.04.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"0ae6a8fd-9d5b-4dba-ba8f-348bca96ef7f","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"2c28c077-0f7c-4b0a-a9fc-8ec6674c87fd","amount":5154,"date":"12.04.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5154,
     'Авито',
     NULL,
@@ -2791,7 +4491,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2802,9 +4502,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'f08435b6-a150-4789-8b9f-be1c540288f5'::uuid,
+    'a146999e-9551-4eb5-a5fb-859314a9c3ed'::uuid,
     v_admin_id,
-    1053,
+    1085,
     '2026-04-15T09:00:00.000Z'::timestamptz,
     '15.04.2026',
     'income',
@@ -2815,8 +4515,8 @@ BEGIN
     'percent', 0, 0,
     5154,
     2400,
-    '[{"id":"5bae64dc-c1c7-49d8-8c01-7a64f68648fe","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"b28e3531-57e1-4557-8983-8218938e71ad","amount":5154,"date":"15.04.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"634b5081-4d2e-4ca3-95b1-74c3333a09e4","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"4b2b8dac-a3a0-4d72-987c-a21203c190e1","amount":5154,"date":"15.04.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5154,
     'Авито',
     NULL,
@@ -2844,7 +4544,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2855,9 +4555,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '37b55b55-6541-4845-a179-670ac8072cb4'::uuid,
+    'cd408e51-d072-4cb7-ad47-598128e1799f'::uuid,
     v_admin_id,
-    1054,
+    1086,
     '2026-04-16T09:00:00.000Z'::timestamptz,
     '16.04.2026',
     'income',
@@ -2868,8 +4568,8 @@ BEGIN
     'percent', 0, 0,
     5154,
     2400,
-    '[{"id":"116cc989-c165-455c-83bc-3d2f087b6b16","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"d994012a-9380-4efd-99db-80b09359c2ac","amount":5154,"date":"16.04.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"80afc0b1-ce22-443e-a7ae-cf3cdcbf413e","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"f8af19e0-3b26-4ebb-b5b3-4dc88c58ec8e","amount":5154,"date":"16.04.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5154,
     'Авито',
     NULL,
@@ -2897,7 +4597,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2908,9 +4608,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'e103ec5a-bd18-45e9-94fe-e1860fb237a4'::uuid,
+    'de651891-b2c2-437b-bde2-e646e9351b0c'::uuid,
     v_admin_id,
-    1055,
+    1087,
     '2026-04-16T09:00:00.000Z'::timestamptz,
     '16.04.2026',
     'income',
@@ -2921,8 +4621,8 @@ BEGIN
     'percent', 0, 0,
     1500,
     100,
-    '[{"id":"022fe9d9-65d8-4c72-8a76-563be5ce874b","category":"Печать","amount":100}]'::jsonb,
-    '[{"id":"0c1d43be-6804-4a3a-991e-cc02dd27b4d2","amount":750,"date":"16.04.2026","note":"Предоплата"},{"id":"0f17938e-aaa6-4d22-b205-1aa6dc8fe0ad","amount":750,"date":"16.04.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"ff818f24-f518-4df5-a0bf-c016ea5f7c94","category":"Печать","amount":100}]'::jsonb,
+    '[{"id":"e4956a14-d1bf-4ad4-b56a-56ffedb4b5db","amount":750,"date":"16.04.2026","note":"Предоплата"},{"id":"4a14438c-13e9-4c92-aa05-d4a53d4a014d","amount":750,"date":"16.04.2026","note":"Окончательный расчет (100%)"}]'::jsonb,
     1500,
     'Авито',
     NULL,
@@ -2950,7 +4650,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -2961,9 +4661,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'e56fc206-0172-4857-a07b-b8c79df50390'::uuid,
+    '2192e854-dd19-4d02-a103-e12f285b4fd5'::uuid,
     v_admin_id,
-    1056,
+    1088,
     '2026-04-19T09:00:00.000Z'::timestamptz,
     '19.04.2026',
     'income',
@@ -2974,8 +4674,8 @@ BEGIN
     'percent', 0, 0,
     5542,
     2400,
-    '[{"id":"0be78cdf-29c2-44ce-a2cb-1f2d6fca1ab2","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"f20cf76a-8fe0-4d53-b7d9-889796ab745b","amount":5542,"date":"19.04.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"8fef4e25-db3f-4945-b65b-e3f082c2c135","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"72909faa-82f3-481a-abc6-5bf4e98373a3","amount":5542,"date":"19.04.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5542,
     'Авито',
     NULL,
@@ -3003,7 +4703,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3014,9 +4714,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'f33fe66d-785a-45f5-a837-9b6406713763'::uuid,
+    'a1e0f637-53cd-4426-a37e-b8f8b16d6022'::uuid,
     v_admin_id,
-    1057,
+    1089,
     '2026-04-21T09:00:00.000Z'::timestamptz,
     '21.04.2026',
     'income',
@@ -3027,8 +4727,8 @@ BEGIN
     'percent', 0, 0,
     5154,
     2400,
-    '[{"id":"0a7cb7c2-c9ba-4870-b570-8ff5694375f0","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"5c28974d-6ef6-4d8f-84e2-c88b3d98908b","amount":5154,"date":"21.04.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"222bbd0d-a29e-4624-92ac-267643f93a54","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"faab6f6c-2d79-4ea3-8b69-084d4f82553e","amount":5154,"date":"21.04.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5154,
     'Авито',
     NULL,
@@ -3056,7 +4756,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3067,9 +4767,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'f53b041b-8093-4e0c-99cb-88c426f0e188'::uuid,
+    '65f79c9d-711d-4067-97ee-be5a3f7fa69c'::uuid,
     v_admin_id,
-    1058,
+    1090,
     '2026-04-22T09:00:00.000Z'::timestamptz,
     '22.04.2026',
     'income',
@@ -3080,8 +4780,8 @@ BEGIN
     'percent', 0, 0,
     5154,
     2400,
-    '[{"id":"f79fb5c8-bb1b-43b8-84ee-624f5feab15a","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"16718b57-1bf8-4389-9d1e-17a4f9163d50","amount":5154,"date":"22.04.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"069e48da-b13b-4189-b4c6-cb4166513c60","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"87a9b997-2e94-4f33-b225-62138c50431a","amount":5154,"date":"22.04.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5154,
     'Авито',
     NULL,
@@ -3109,7 +4809,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3120,9 +4820,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '97bd8b22-a69b-4b92-bf14-9ea0750ebadc'::uuid,
+    '41889bcf-1df2-48a2-b83c-d72395d5e17d'::uuid,
     v_admin_id,
-    1059,
+    1091,
     '2026-04-22T09:00:00.000Z'::timestamptz,
     '22.04.2026',
     'income',
@@ -3133,8 +4833,8 @@ BEGIN
     'percent', 0, 0,
     5700,
     2060,
-    '[{"id":"b19fa905-0a81-4f61-b182-5b4920a521c6","category":"Печать","amount":2060}]'::jsonb,
-    '[{"id":"ccf688fd-ebef-4d4a-9b46-e83d5ce0affc","amount":5700,"date":"22.04.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"04ef0fcb-13d3-45f0-aa86-7b6dc34a388b","category":"Печать","amount":2060}]'::jsonb,
+    '[{"id":"65904733-d862-4a73-90bd-ed823570c499","amount":5700,"date":"22.04.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5700,
     'Другое',
     NULL,
@@ -3162,7 +4862,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3173,9 +4873,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'a57ce383-1412-4cdd-bd7f-ddd55fbeb943'::uuid,
+    '09ba2ed3-c734-4e10-86f5-d5f4c12bba65'::uuid,
     v_admin_id,
-    1060,
+    1092,
     '2026-05-02T09:00:00.000Z'::timestamptz,
     '02.05.2026',
     'income',
@@ -3186,8 +4886,8 @@ BEGIN
     'percent', 0, 0,
     5511,
     2400,
-    '[{"id":"0a63ad10-0344-4ae6-9c11-821c950a1dbc","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"353c0002-62a6-431a-a487-f63e936d4735","amount":5511,"date":"02.05.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"c911e2b3-e076-403e-a1ab-240c60c66771","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"0031ad8f-9649-464a-aa1a-a5abc30dd5ed","amount":5511,"date":"02.05.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5511,
     'Авито',
     NULL,
@@ -3215,7 +4915,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3226,9 +4926,168 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '261263ef-f400-4b9f-af4f-6cf44e503010'::uuid,
+    '83fb8b1a-65b9-4161-8d64-2d611adc8a8d'::uuid,
     v_admin_id,
-    1061,
+    1093,
+    '2026-05-04T09:00:00.000Z'::timestamptz,
+    '04.05.2026',
+    'expense',
+    'Авито Обьявление детали',
+    1,
+    367,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    367,
+    0,
+    '[]'::jsonb,
+    '[{"id":"de58af0a-7b4a-475b-8256-731ada559122","amount":367,"date":"04.05.2026","note":"Списание"}]'::jsonb,
+    367,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    'd0487265-14a4-42cc-8887-baad94564dfd'::uuid,
+    v_admin_id,
+    1094,
+    '2026-05-04T09:00:00.000Z'::timestamptz,
+    '04.05.2026',
+    'expense',
+    'Авито Обьявление фигурки',
+    1,
+    367,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    367,
+    0,
+    '[]'::jsonb,
+    '[{"id":"bc8fcc7b-c6c2-42b0-9fe5-432fb24055a4","amount":367,"date":"04.05.2026","note":"Списание"}]'::jsonb,
+    367,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '7d9e6fa9-7ed5-4480-bfa1-1f518bf83ec5'::uuid,
+    v_admin_id,
+    1095,
+    '2026-05-04T09:00:00.000Z'::timestamptz,
+    '04.05.2026',
+    'expense',
+    'Авито Продвижение Капсулы',
+    1,
+    535,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    535,
+    0,
+    '[]'::jsonb,
+    '[{"id":"4d2bbbfe-d050-4bb0-b29e-abd8792cc0bf","amount":535,"date":"04.05.2026","note":"Списание"}]'::jsonb,
+    535,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '3a5612a3-7e92-480b-9908-5ce0d054d5df'::uuid,
+    v_admin_id,
+    1096,
     '2026-05-07T09:00:00.000Z'::timestamptz,
     '07.05.2026',
     'income',
@@ -3239,8 +5098,8 @@ BEGIN
     'percent', 0, 0,
     5511,
     2400,
-    '[{"id":"5d19291e-07e1-42e5-9779-e436d4ce982f","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"8f3142ed-57eb-4568-8c55-2eccdd85254e","amount":5511,"date":"07.05.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"508183c3-e694-450f-9841-a965a922018a","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"83b39352-ee4e-4525-881b-e851e55cef25","amount":5511,"date":"07.05.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5511,
     'Авито',
     NULL,
@@ -3268,7 +5127,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3279,9 +5138,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '67820960-dab2-4145-9137-764421df6c5f'::uuid,
+    '4ff47c3a-3ba1-4fb3-a3c8-e9ba7f3eda7e'::uuid,
     v_admin_id,
-    1062,
+    1097,
     '2026-05-08T09:00:00.000Z'::timestamptz,
     '08.05.2026',
     'income',
@@ -3292,8 +5151,8 @@ BEGIN
     'percent', 0, 0,
     5511,
     2400,
-    '[{"id":"38199c64-835b-4b8b-bade-2b15f7b3d0d8","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"0739be8d-f1e6-4804-b1b4-85db847b4245","amount":5511,"date":"08.05.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"76455062-d025-4b2f-841c-7f01aa8729d1","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"8706973c-4566-4c74-ad67-3b7115be60a1","amount":5511,"date":"08.05.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5511,
     'Авито',
     NULL,
@@ -3321,7 +5180,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3332,9 +5191,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '619a265a-2b6c-4251-a15e-ec510cb60af7'::uuid,
+    '00d49476-6c74-4f13-b14b-c6409c110a49'::uuid,
     v_admin_id,
-    1063,
+    1098,
     '2026-05-08T09:00:00.000Z'::timestamptz,
     '08.05.2026',
     'income',
@@ -3345,8 +5204,8 @@ BEGIN
     'percent', 0, 0,
     1000,
     100,
-    '[{"id":"faf7e633-1c01-4771-bfbc-be6c5aa726e2","category":"Печать","amount":100}]'::jsonb,
-    '[{"id":"0d6f282f-6b1a-470e-855c-59b3d2508248","amount":1000,"date":"08.05.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"9b818030-d885-4538-986a-4ecca10f94df","category":"Печать","amount":100}]'::jsonb,
+    '[{"id":"b2651a9e-cbbe-4327-842a-b4012201c14c","amount":1000,"date":"08.05.2026","note":"Полная оплата (100%)"}]'::jsonb,
     1000,
     'Другое',
     NULL,
@@ -3374,7 +5233,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3385,9 +5244,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'd59b99eb-59a6-4541-bfdd-9f2a0c23624a'::uuid,
+    'f166cce1-d898-43c9-8a70-b8e6cc404cf4'::uuid,
     v_admin_id,
-    1064,
+    1099,
     '2026-05-08T09:00:00.000Z'::timestamptz,
     '08.05.2026',
     'income',
@@ -3398,9 +5257,9 @@ BEGIN
     'percent', 0, 0,
     800,
     100,
-    '[{"id":"b10873ea-16ee-4de6-8220-0ac9a292538b","category":"Печать","amount":100}]'::jsonb,
-    '[]'::jsonb,
-    0,
+    '[{"id":"2627f7d6-8c9f-4ecd-9835-df9a46e79ccd","category":"Печать","amount":100}]'::jsonb,
+    '[{"id":"11275c04-a84f-4ce7-8e98-1f2abcb938e1","amount":800,"date":"08.05.2026","note":"Полная оплата (100%)"}]'::jsonb,
+    800,
     'Авито',
     NULL,
     '',
@@ -3427,7 +5286,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3438,9 +5297,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '5bb600de-390c-432e-92c4-77ad88c8ec85'::uuid,
+    'a4d021d4-a376-45b5-89ef-fdef0a50911d'::uuid,
     v_admin_id,
-    1065,
+    1100,
     '2026-05-12T09:00:00.000Z'::timestamptz,
     '12.05.2026',
     'income',
@@ -3451,8 +5310,8 @@ BEGIN
     'percent', 0, 0,
     12000,
     5208,
-    '[{"id":"47d5c759-3073-4d04-8d42-70be13870b71","category":"Печать","amount":5208}]'::jsonb,
-    '[{"id":"6a6930f4-8a9a-4e92-a6f0-d6bb3b47a47d","amount":6000,"date":"12.05.2026","note":"Предоплата"},{"id":"8d094b35-9e24-42e6-8de1-9edc24735c04","amount":6000,"date":"12.05.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"f4474193-6d33-4a12-8d30-b245735e8e4a","category":"Печать","amount":5208}]'::jsonb,
+    '[{"id":"e18c980c-6fc0-4da4-a778-14c5b919a912","amount":6000,"date":"12.05.2026","note":"Предоплата"},{"id":"0499876f-dee5-4f5b-841c-62d8ab2c52d6","amount":6000,"date":"12.05.2026","note":"Окончательный расчет (100%)"}]'::jsonb,
     12000,
     'Авито',
     NULL,
@@ -3480,7 +5339,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3491,9 +5350,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '9c3d07ac-9994-458b-bfdd-9b3fa2fc60ec'::uuid,
+    '83fecc1f-103a-4a0d-9fb7-fcd52cc858f4'::uuid,
     v_admin_id,
-    1066,
+    1101,
     '2026-05-18T09:00:00.000Z'::timestamptz,
     '18.05.2026',
     'income',
@@ -3504,8 +5363,8 @@ BEGIN
     'percent', 0, 0,
     200,
     40,
-    '[{"id":"330ddf81-77da-4744-8763-7742c297d562","category":"Печать","amount":40}]'::jsonb,
-    '[{"id":"02ffc6bc-3fce-4265-a1f6-a0579e53eb86","amount":200,"date":"18.05.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"849b8345-c8ac-4d66-a5a0-2d49396d8d8f","category":"Печать","amount":40}]'::jsonb,
+    '[{"id":"3e0e3ed3-9ac7-4499-abd4-4f3395207622","amount":200,"date":"18.05.2026","note":"Полная оплата (100%)"}]'::jsonb,
     200,
     'Другое',
     NULL,
@@ -3533,7 +5392,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3544,9 +5403,62 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'a6172b55-4f1d-47fe-b048-e756beb0696c'::uuid,
+    '5ff59250-e124-43bb-aadd-f56e94d0cf8a'::uuid,
     v_admin_id,
-    1067,
+    1102,
+    '2026-05-19T09:00:00.000Z'::timestamptz,
+    '19.05.2026',
+    'expense',
+    'Авито Продвижение Капсулы',
+    1,
+    535,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    535,
+    0,
+    '[]'::jsonb,
+    '[{"id":"b720ffdd-e083-40a5-94d9-caf1c28c8a7a","amount":535,"date":"19.05.2026","note":"Списание"}]'::jsonb,
+    535,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '6bec4d89-67ba-4759-b654-e1ff31bc5af4'::uuid,
+    v_admin_id,
+    1103,
     '2026-05-21T09:00:00.000Z'::timestamptz,
     '21.05.2026',
     'income',
@@ -3557,8 +5469,8 @@ BEGIN
     'percent', 0, 0,
     5511,
     2400,
-    '[{"id":"48d39723-b4af-47ea-bdfe-41ed656bea4b","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"9aa1f38e-09e3-4cb4-bc3d-e20cc214881a","amount":5511,"date":"21.05.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"02e5b355-c5d5-4e1e-aadb-17556693e236","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"4bf7c734-ad02-45c9-b07b-4ffbbbf177e4","amount":5511,"date":"21.05.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5511,
     'Авито',
     NULL,
@@ -3586,7 +5498,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3597,9 +5509,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '6e28457e-c875-41ec-afab-988eddddd822'::uuid,
+    'aad842d0-776b-4383-91ad-64843d3a2baa'::uuid,
     v_admin_id,
-    1068,
+    1104,
     '2026-05-23T09:00:00.000Z'::timestamptz,
     '23.05.2026',
     'income',
@@ -3610,8 +5522,8 @@ BEGIN
     'percent', 0, 0,
     5511,
     2400,
-    '[{"id":"1ea44856-6954-4ee3-bf2d-8d94dc93844a","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"ef8391bd-9645-407e-8c04-5471a70b65a3","amount":5511,"date":"23.05.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"ec19496e-4675-4a58-9985-3d753610ec02","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"6f266389-632f-484b-9020-9e5edf3e4395","amount":5511,"date":"23.05.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5511,
     'Авито',
     NULL,
@@ -3639,7 +5551,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3650,9 +5562,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'c569e849-ed02-49d1-b6ba-829626f8afec'::uuid,
+    '735f8a4b-b8d8-4c9e-9427-e06fc1902f7d'::uuid,
     v_admin_id,
-    1069,
+    1105,
     '2026-05-23T09:00:00.000Z'::timestamptz,
     '23.05.2026',
     'income',
@@ -3663,8 +5575,8 @@ BEGIN
     'percent', 0, 0,
     3500,
     1500,
-    '[{"id":"df81db1e-d22a-4fda-85d2-d12f922b9591","category":"Печать","amount":1500}]'::jsonb,
-    '[{"id":"0dfab89c-644c-4b1e-8663-822142f172c2","amount":3500,"date":"23.05.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"28de2394-a9cf-4cdd-804b-332cb88234e2","category":"Печать","amount":1500}]'::jsonb,
+    '[{"id":"7d823e6f-9651-4212-8878-9a47b10c0eb7","amount":3500,"date":"23.05.2026","note":"Полная оплата (100%)"}]'::jsonb,
     3500,
     'Авито',
     NULL,
@@ -3692,7 +5604,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3703,9 +5615,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '466f4b80-505b-439e-be6a-ae5fea94ed8d'::uuid,
+    '06f5f907-0d7e-47f5-8c0a-7a9db48bfdd2'::uuid,
     v_admin_id,
-    1070,
+    1106,
     '2026-05-23T09:00:00.000Z'::timestamptz,
     '23.05.2026',
     'income',
@@ -3716,8 +5628,8 @@ BEGIN
     'percent', 0, 0,
     5511,
     2400,
-    '[{"id":"33a67703-d781-4092-895c-d302c3a45e34","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"d59ea70a-76fa-47ba-baed-6ed2635189a8","amount":5511,"date":"23.05.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"cda07b0b-1c1c-41a7-bbbb-e8d7608dc179","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"02c1df70-2075-4457-8120-49170df133e1","amount":5511,"date":"23.05.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5511,
     'Авито',
     NULL,
@@ -3745,7 +5657,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3756,9 +5668,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '27b79d46-008c-4459-817e-b6e2a5ec9a8f'::uuid,
+    '596fa4ca-b0eb-419e-966d-3d8f5100bce4'::uuid,
     v_admin_id,
-    1071,
+    1107,
     '2026-05-25T09:00:00.000Z'::timestamptz,
     '25.05.2026',
     'income',
@@ -3769,8 +5681,8 @@ BEGIN
     'percent', 0, 0,
     5511,
     2400,
-    '[{"id":"fce29a9c-3806-4751-a365-aefa690c4c4c","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"5a474bb7-90c3-4714-a1fa-91db8eb3c20c","amount":5511,"date":"25.05.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"d74d824f-8896-444c-a1f4-9fe121bcf44a","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"f384d083-008c-4471-ab4b-e2ca9961c342","amount":5511,"date":"25.05.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5511,
     'Авито',
     NULL,
@@ -3798,7 +5710,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3809,9 +5721,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'dff7acf7-6c4d-4413-a401-eb05d72439f2'::uuid,
+    'a6c01394-eec3-4439-bf94-9acef9b05ce8'::uuid,
     v_admin_id,
-    1072,
+    1108,
     '2026-05-25T09:00:00.000Z'::timestamptz,
     '25.05.2026',
     'income',
@@ -3822,8 +5734,8 @@ BEGIN
     'percent', 0, 0,
     5511,
     2400,
-    '[{"id":"a09501af-30c1-407b-9790-f8b7a4804a8c","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"f528f482-a2c3-4477-ba52-60ef9a2a9472","amount":5511,"date":"25.05.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"35f0b9bf-9233-4dd4-813b-b6c44855f48e","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"5092da02-74f2-4e15-85c9-712c2f180d50","amount":5511,"date":"25.05.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5511,
     'Авито',
     NULL,
@@ -3851,7 +5763,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3862,9 +5774,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '95167bf4-92cf-49df-9f07-9ede174e58a7'::uuid,
+    '57493bdd-fb79-4b56-aa43-46b28e495ba8'::uuid,
     v_admin_id,
-    1073,
+    1109,
     '2026-05-30T09:00:00.000Z'::timestamptz,
     '30.05.2026',
     'income',
@@ -3875,8 +5787,8 @@ BEGIN
     'percent', 0, 0,
     15000,
     2000,
-    '[{"id":"818a4f9d-83bf-4d4e-a155-023d6f81bef7","category":"Печать","amount":2000}]'::jsonb,
-    '[{"id":"6394be7f-0a39-41c7-948d-30d83e92c667","amount":15000,"date":"30.05.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"ba059013-bf53-4793-ad8c-a2391dc65b1f","category":"Печать","amount":2000}]'::jsonb,
+    '[{"id":"c1888e3e-33cf-4576-860a-7be660285ca5","amount":15000,"date":"30.05.2026","note":"Полная оплата (100%)"}]'::jsonb,
     15000,
     'Авито',
     NULL,
@@ -3904,7 +5816,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3915,9 +5827,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '70ee1a39-6c6a-4f59-a0aa-cd685b49f5c0'::uuid,
+    '8022e20d-578f-487e-a02a-32671b85a5f9'::uuid,
     v_admin_id,
-    1074,
+    1110,
     '2026-06-01T09:00:00.000Z'::timestamptz,
     '01.06.2026',
     'income',
@@ -3928,9 +5840,9 @@ BEGIN
     'percent', 0, 0,
     9700,
     3300,
-    '[{"id":"1e0114db-2816-44f7-9345-35dbacf6b544","category":"Печать","amount":3300}]'::jsonb,
-    '[{"id":"2c0cf59f-c24b-45a2-b9b7-8643e7760ba9","amount":9700,"date":"01.06.2026","note":"Оплата"},{"id":"734dd973-b0cd-405f-9ace-0d3b1e416db9","amount":300,"date":"01.06.2026","note":"Доп. оплата"}]'::jsonb,
-    10000,
+    '[{"id":"e158fc1a-17a2-4bfb-affe-5dd9c87b33c2","category":"Печать","amount":3300}]'::jsonb,
+    '[{"id":"d26ec582-2219-4ba5-b1e8-4ec663e5501c","amount":9700,"date":"01.06.2026","note":"Полная оплата (100%)"}]'::jsonb,
+    9700,
     'Авито',
     NULL,
     '',
@@ -3957,7 +5869,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -3968,9 +5880,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '8d0e8ec6-0504-49d8-ab27-b2489aa9707a'::uuid,
+    '8abfd456-ca32-4e50-9fa3-40fbf48b770e'::uuid,
     v_admin_id,
-    1075,
+    1111,
     '2026-06-02T09:00:00.000Z'::timestamptz,
     '02.06.2026',
     'income',
@@ -3981,8 +5893,8 @@ BEGIN
     'percent', 0, 0,
     2000,
     200,
-    '[{"id":"0d5b3848-9993-4f95-a48a-4290a72b5da6","category":"Печать","amount":200}]'::jsonb,
-    '[{"id":"1433afcc-f10a-468f-abf5-76d6683e3a65","amount":2000,"date":"02.06.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"5d382e2f-ed91-4d45-ab15-eb927ef9b67f","category":"Печать","amount":200}]'::jsonb,
+    '[{"id":"7712978b-a84c-4441-a0b9-791a9172242e","amount":2000,"date":"02.06.2026","note":"Полная оплата (100%)"}]'::jsonb,
     2000,
     'Авито',
     NULL,
@@ -4010,7 +5922,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4021,9 +5933,115 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'c0ec61dc-0c36-461b-9b02-22d35398c414'::uuid,
+    'ac90f251-48ad-475e-ab3f-6747e71d1f7a'::uuid,
     v_admin_id,
-    1076,
+    1112,
+    '2026-06-04T09:00:00.000Z'::timestamptz,
+    '04.06.2026',
+    'expense',
+    'Авито Продвижение Капсулы',
+    1,
+    535,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    535,
+    0,
+    '[]'::jsonb,
+    '[{"id":"7ddf3808-f167-43a2-9b98-056b1a64e1f7","amount":535,"date":"04.06.2026","note":"Списание"}]'::jsonb,
+    535,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '6c1522a6-ecc7-4e34-a41b-d3cfb2404e3e'::uuid,
+    v_admin_id,
+    1113,
+    '2026-06-05T09:00:00.000Z'::timestamptz,
+    '05.06.2026',
+    'expense',
+    'Обьявления',
+    1,
+    900,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    900,
+    0,
+    '[]'::jsonb,
+    '[{"id":"03bcb814-10da-4c90-828a-6cf613acd64a","amount":900,"date":"05.06.2026","note":"Списание"}]'::jsonb,
+    900,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    'f45ee72d-f495-4b0c-bf6c-b50906b071df'::uuid,
+    v_admin_id,
+    1114,
     '2026-06-10T09:00:00.000Z'::timestamptz,
     '10.06.2026',
     'income',
@@ -4034,8 +6052,8 @@ BEGIN
     'percent', 0, 0,
     5511,
     2400,
-    '[{"id":"607d6852-39f9-4464-9ee6-426043dbb111","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"0167aeb4-8db5-48e6-ac24-8f6b40e66b02","amount":5511,"date":"10.06.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"fbc36b0e-afbd-463b-98fc-a0d269c1ce93","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"4dcf67a6-227a-45b4-8371-dda51531fe11","amount":5511,"date":"10.06.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5511,
     'Авито',
     NULL,
@@ -4063,7 +6081,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4074,9 +6092,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '6d74a10e-67e6-43a5-9ee9-a8deefa244f8'::uuid,
+    '52ebefcb-e1cd-43d2-a1a5-136cfca00855'::uuid,
     v_admin_id,
-    1077,
+    1115,
     '2026-06-11T09:00:00.000Z'::timestamptz,
     '11.06.2026',
     'income',
@@ -4087,9 +6105,9 @@ BEGIN
     'percent', 0, 0,
     1160,
     242,
-    '[{"id":"0ce15eb0-6ff8-4833-9eb4-9b19c9cbeb10","category":"Печать","amount":242}]'::jsonb,
-    '[]'::jsonb,
-    0,
+    '[{"id":"d768542f-d3fa-4ba2-98ad-c5d6ac782ecd","category":"Печать","amount":242}]'::jsonb,
+    '[{"id":"e3b56e6f-b836-4ed8-9a3e-1b71c9bd8334","amount":1160,"date":"11.06.2026","note":"Полная оплата (100%)"}]'::jsonb,
+    1160,
     'Авито',
     NULL,
     '',
@@ -4116,7 +6134,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4127,9 +6145,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '2166a84a-c433-40ec-beec-63929e4f1f70'::uuid,
+    '44e078ae-a127-4567-9d5c-08bbecd61843'::uuid,
     v_admin_id,
-    1078,
+    1116,
     '2026-06-16T09:00:00.000Z'::timestamptz,
     '16.06.2026',
     'income',
@@ -4140,8 +6158,8 @@ BEGIN
     'percent', 0, 0,
     1500,
     100,
-    '[{"id":"0404ca90-539a-4951-bf18-143fc54ee59a","category":"Печать","amount":100}]'::jsonb,
-    '[{"id":"d42e6e9c-b24e-4de2-9695-72e656c1b167","amount":1500,"date":"16.06.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"f0693122-576c-473e-8c55-bb52361edf4e","category":"Печать","amount":100}]'::jsonb,
+    '[{"id":"ef0aff89-3c52-4a81-ad1d-2a26f34a3e95","amount":1500,"date":"16.06.2026","note":"Полная оплата (100%)"}]'::jsonb,
     1500,
     'Авито',
     NULL,
@@ -4169,7 +6187,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4180,9 +6198,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'd0db08cb-27e0-48e9-a5ad-2502d7f600fa'::uuid,
+    'ee8e2992-5c00-4176-9c04-eb59fedb5d3e'::uuid,
     v_admin_id,
-    1079,
+    1117,
     '2026-06-23T09:00:00.000Z'::timestamptz,
     '23.06.2026',
     'income',
@@ -4193,8 +6211,8 @@ BEGIN
     'percent', 0, 0,
     11040,
     5200,
-    '[{"id":"02acc623-6ec7-46c1-9de1-355c4db99cf4","category":"Печать","amount":5200}]'::jsonb,
-    '[{"id":"7b5bca11-5ff9-45f0-897f-baa367c2d718","amount":11040,"date":"23.06.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"62814516-4f04-435e-a8ac-bdf96d2ef8af","category":"Печать","amount":5200}]'::jsonb,
+    '[{"id":"9d079e5e-69a0-4368-aac4-9f1c900f61ea","amount":11040,"date":"23.06.2026","note":"Полная оплата (100%)"}]'::jsonb,
     11040,
     'Авито',
     NULL,
@@ -4222,7 +6240,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4233,9 +6251,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '51904636-c921-4296-ab95-70ac92f69288'::uuid,
+    '5b997810-a97c-4328-bad1-57986eef4663'::uuid,
     v_admin_id,
-    1080,
+    1118,
     '2026-06-23T09:00:00.000Z'::timestamptz,
     '23.06.2026',
     'income',
@@ -4246,8 +6264,8 @@ BEGIN
     'percent', 0, 0,
     3510,
     1190,
-    '[{"id":"4f428ed2-891c-4cb3-89be-cf01fcad4358","category":"Печать","amount":1190}]'::jsonb,
-    '[{"id":"8af1136c-fed4-4c42-b682-f43b4552a121","amount":3510,"date":"23.06.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"38f70940-22d6-4b22-9b06-5d0089cd666f","category":"Печать","amount":1190}]'::jsonb,
+    '[{"id":"bcc7c68c-8421-414f-bc24-9b33a3c9d328","amount":3510,"date":"23.06.2026","note":"Полная оплата (100%)"}]'::jsonb,
     3510,
     'Авито',
     NULL,
@@ -4275,7 +6293,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4286,9 +6304,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'ef88c3e1-8a5b-42bd-9ccb-89906699ae27'::uuid,
+    '07a187ee-e812-4ae2-8c28-d26f4b6b7ba4'::uuid,
     v_admin_id,
-    1081,
+    1119,
     '2026-06-29T09:00:00.000Z'::timestamptz,
     '29.06.2026',
     'income',
@@ -4299,8 +6317,8 @@ BEGIN
     'percent', 0, 0,
     1500,
     500,
-    '[{"id":"9056373b-7c83-40df-80f2-492d88c4eadd","category":"Печать","amount":500}]'::jsonb,
-    '[{"id":"bce33146-cc65-4e64-bcee-ad0e95a616f8","amount":1500,"date":"29.06.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"ea7dfa6a-3042-447a-86c1-040993b39ad3","category":"Печать","amount":500}]'::jsonb,
+    '[{"id":"eb63a03d-997a-405c-9b74-68cf77c14bec","amount":1500,"date":"29.06.2026","note":"Полная оплата (100%)"}]'::jsonb,
     1500,
     'Авито',
     NULL,
@@ -4328,7 +6346,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4339,9 +6357,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'f1ea4bfb-cc56-4dc3-8894-de2d15c83b23'::uuid,
+    'a6371077-343c-44b2-8f47-0c373d019f1a'::uuid,
     v_admin_id,
-    1082,
+    1120,
     '2026-06-30T09:00:00.000Z'::timestamptz,
     '30.06.2026',
     'income',
@@ -4352,8 +6370,8 @@ BEGIN
     'percent', 0, 0,
     5500,
     2000,
-    '[{"id":"9ebc00f8-c905-4769-b67f-24c5f8aebe07","category":"Печать","amount":2000}]'::jsonb,
-    '[{"id":"2b34d1ba-0390-4b2f-92b1-ce90d77195fc","amount":5500,"date":"30.06.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"72b51465-7c4d-4c1d-9324-9b916eb0e948","category":"Печать","amount":2000}]'::jsonb,
+    '[{"id":"ebf5f9c1-fa53-4bf7-800d-d1d3c6abb00b","amount":5500,"date":"30.06.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5500,
     'Авито',
     NULL,
@@ -4381,7 +6399,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4392,9 +6410,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '78d706b4-c49d-422a-bdb8-21f0a692c252'::uuid,
+    'f6d8bcc7-d958-453f-8736-184ea1229006'::uuid,
     v_admin_id,
-    1083,
+    1121,
     '2026-07-06T09:00:00.000Z'::timestamptz,
     '06.07.2026',
     'income',
@@ -4405,8 +6423,8 @@ BEGIN
     'percent', 0, 0,
     11040,
     5200,
-    '[{"id":"b4411941-846d-4e67-8ee4-8f8d613ea93f","category":"Печать","amount":5200}]'::jsonb,
-    '[{"id":"62669323-994f-4851-ba40-2ef5a88f1024","amount":11040,"date":"06.07.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"b56f4b5c-80e4-456e-ae07-dc4f45832495","category":"Печать","amount":5200}]'::jsonb,
+    '[{"id":"1e8d47b5-1903-4ab8-a615-c08d0b374d1c","amount":11040,"date":"06.07.2026","note":"Полная оплата (100%)"}]'::jsonb,
     11040,
     'Авито',
     NULL,
@@ -4434,7 +6452,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4445,9 +6463,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '31a48d69-a256-49b9-947c-efe921f51aed'::uuid,
+    'c11a359b-a006-4b43-b0f9-485e859689b1'::uuid,
     v_admin_id,
-    1084,
+    1122,
     '2026-07-06T09:00:00.000Z'::timestamptz,
     '06.07.2026',
     'income',
@@ -4458,8 +6476,8 @@ BEGIN
     'percent', 0, 0,
     2000,
     300,
-    '[{"id":"5b2bb572-4800-4a50-bf1b-75032a2d863e","category":"Печать","amount":300}]'::jsonb,
-    '[{"id":"a80771c4-5359-45b3-b490-8e3be4ba0334","amount":2000,"date":"06.07.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"30ede585-6044-4413-9583-d5b38cc42f06","category":"Печать","amount":300}]'::jsonb,
+    '[{"id":"0a45817e-e1de-48eb-88f4-bc634144b9ec","amount":2000,"date":"06.07.2026","note":"Полная оплата (100%)"}]'::jsonb,
     2000,
     'Авито',
     NULL,
@@ -4487,7 +6505,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4498,9 +6516,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '801be960-169e-470b-8528-f76aedf0854f'::uuid,
+    '17fb82ba-25cf-4dad-be62-3098dfecec45'::uuid,
     v_admin_id,
-    1085,
+    1123,
     '2026-07-08T09:00:00.000Z'::timestamptz,
     '08.07.2026',
     'income',
@@ -4511,8 +6529,8 @@ BEGIN
     'percent', 0, 0,
     900,
     431,
-    '[{"id":"788f1c6e-686b-40a9-8f00-41cea4c59f1b","category":"Печать","amount":431}]'::jsonb,
-    '[{"id":"caf4ea6b-bdd7-4e6a-867a-bd29f3a0c2cb","amount":900,"date":"08.07.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"3c581ceb-2fb6-4287-b852-ad6aa68d5ab9","category":"Печать","amount":431}]'::jsonb,
+    '[{"id":"0bc889cb-3d33-46bf-ae5e-78654019e9a6","amount":900,"date":"08.07.2026","note":"Полная оплата (100%)"}]'::jsonb,
     900,
     'Авито',
     NULL,
@@ -4540,7 +6558,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4551,9 +6569,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'c9722520-65f9-43fe-8b9c-e7afd80fffab'::uuid,
+    '006eb594-2356-407f-b2ee-796d2ecd335c'::uuid,
     v_admin_id,
-    1086,
+    1124,
     '2026-07-08T09:00:00.000Z'::timestamptz,
     '08.07.2026',
     'income',
@@ -4564,8 +6582,8 @@ BEGIN
     'percent', 0, 0,
     12000,
     3300,
-    '[{"id":"7c17c78b-d6bd-4d74-be39-0a23640215db","category":"Печать","amount":3300}]'::jsonb,
-    '[{"id":"3f4bd3bc-646f-44f9-8c79-76693c765722","amount":6000,"date":"08.07.2026","note":"Предоплата"},{"id":"ea96b86c-e4f4-4996-9542-9567eeeb1ad3","amount":6000,"date":"08.07.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"3571f4c7-bda6-4053-a9c9-a86ce071d15e","category":"Печать","amount":3300}]'::jsonb,
+    '[{"id":"34e4195d-15c1-47e4-8f0b-0773ac4f87b7","amount":6000,"date":"08.07.2026","note":"Предоплата"},{"id":"0b154d24-fd58-4cfc-b6f8-cbf8fcf092ef","amount":6000,"date":"08.07.2026","note":"Окончательный расчет (100%)"}]'::jsonb,
     12000,
     'Авито',
     'Камаева Ольга Андреевна',
@@ -4597,7 +6615,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4608,9 +6626,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '39764c70-c12f-410b-87c8-5d177205fecd'::uuid,
+    '44c57d0e-c4b9-4b41-941c-2bb760bdaac7'::uuid,
     v_admin_id,
-    1087,
+    1125,
     '2026-07-08T09:00:00.000Z'::timestamptz,
     '08.07.2026',
     'income',
@@ -4621,8 +6639,8 @@ BEGIN
     'percent', 0, 0,
     11040,
     5200,
-    '[{"id":"b6fc70db-ec74-44be-8f38-9c5cde43e45e","category":"Печать","amount":5200}]'::jsonb,
-    '[{"id":"d1c082f1-aeb4-4c33-bd6d-ef9d68d566fd","amount":11040,"date":"08.07.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"2f6dd28b-a66c-4c17-9bad-96ecf38b1399","category":"Печать","amount":5200}]'::jsonb,
+    '[{"id":"b05bbf58-5d00-4751-beaf-941c774681d8","amount":11040,"date":"08.07.2026","note":"Полная оплата (100%)"}]'::jsonb,
     11040,
     'Авито',
     NULL,
@@ -4650,7 +6668,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4661,9 +6679,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'a439e325-ef38-4ee4-99d9-8f95c52a2017'::uuid,
+    '0cceef98-94b2-4ce0-9089-f6979553a2f2'::uuid,
     v_admin_id,
-    1088,
+    1126,
     '2026-07-08T09:00:00.000Z'::timestamptz,
     '08.07.2026',
     'income',
@@ -4674,8 +6692,8 @@ BEGIN
     'percent', 0, 0,
     3303,
     1700,
-    '[{"id":"369ea1b5-d645-4c4c-8f13-93f88da6f917","category":"Печать","amount":1700}]'::jsonb,
-    '[{"id":"487ceed6-580e-4f93-8a4f-c800616785a1","amount":3303,"date":"08.07.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"3b341955-2785-4914-9985-c785cb4fe63e","category":"Печать","amount":1700}]'::jsonb,
+    '[{"id":"960e0c19-1089-473a-a21c-0d5d4266a498","amount":3303,"date":"08.07.2026","note":"Полная оплата (100%)"}]'::jsonb,
     3303,
     'Авито',
     NULL,
@@ -4703,7 +6721,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4714,9 +6732,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '57fdda00-de70-415b-ad28-1f7c9cddbc6c'::uuid,
+    'e11201b2-0b60-4c9f-a2a1-075be5257d11'::uuid,
     v_admin_id,
-    1089,
+    1127,
     '2026-07-08T09:00:00.000Z'::timestamptz,
     '08.07.2026',
     'income',
@@ -4727,8 +6745,8 @@ BEGIN
     'percent', 0, 0,
     12411,
     5200,
-    '[{"id":"e94b17aa-3dab-4a3f-aabd-7a75f03dd883","category":"Печать","amount":5200}]'::jsonb,
-    '[{"id":"b6f9ef4b-ded5-4121-b801-01c963eaf3d0","amount":12411,"date":"08.07.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"22c56190-ac27-4c24-8731-c7b06c4e4567","category":"Печать","amount":5200}]'::jsonb,
+    '[{"id":"8e9cc092-26c0-4461-a4b3-859c2dc41711","amount":12411,"date":"08.07.2026","note":"Полная оплата (100%)"}]'::jsonb,
     12411,
     'Авито',
     NULL,
@@ -4756,7 +6774,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4767,9 +6785,62 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '98669b08-6dd2-4816-9c27-17af2527e44c'::uuid,
+    '2c8070fc-f753-42d8-94ec-6d8fd97d1e63'::uuid,
     v_admin_id,
-    1090,
+    1128,
+    '2026-07-10T09:00:00.000Z'::timestamptz,
+    '10.07.2026',
+    'expense',
+    'Авито',
+    1,
+    1200,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    1200,
+    0,
+    '[]'::jsonb,
+    '[{"id":"c0614f9e-5a4e-4a2d-8b09-b2e6f492c26f","amount":1200,"date":"10.07.2026","note":"Списание"}]'::jsonb,
+    1200,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    'f97c0b4a-f687-4a7f-afb2-a2242a73aad7'::uuid,
+    v_admin_id,
+    1129,
     '2026-07-19T09:00:00.000Z'::timestamptz,
     '19.07.2026',
     'income',
@@ -4780,8 +6851,8 @@ BEGIN
     'percent', 0, 0,
     12411,
     5200,
-    '[{"id":"44028285-3261-4bea-9a0f-b1ab15f0bd66","category":"Печать","amount":5200}]'::jsonb,
-    '[{"id":"1955df7e-6f92-4aed-93d1-a8cd13cf2e88","amount":12411,"date":"19.07.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"1dc9905e-1360-496a-8e7a-bb0274d0c8f0","category":"Печать","amount":5200}]'::jsonb,
+    '[{"id":"91a2f47f-669b-4592-8d8d-557ada92c935","amount":12411,"date":"19.07.2026","note":"Полная оплата (100%)"}]'::jsonb,
     12411,
     'Авито',
     NULL,
@@ -4809,7 +6880,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4820,9 +6891,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '95749141-2097-42c1-b563-4a81586f1615'::uuid,
+    'c7017485-1498-4d87-8cb4-10c51591f193'::uuid,
     v_admin_id,
-    1091,
+    1130,
     '2026-07-23T09:00:00.000Z'::timestamptz,
     '23.07.2026',
     'income',
@@ -4833,8 +6904,8 @@ BEGIN
     'percent', 0, 0,
     5497,
     2400,
-    '[{"id":"2c271a1b-e577-47e3-b367-4736246f5ee2","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"3c769599-9b02-4351-a74e-39ca17d0b194","amount":5497,"date":"23.07.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"36ed7601-b951-4484-a9a6-a18af2264bd0","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"bce37b92-4d79-42b3-94ac-6c9417588597","amount":5497,"date":"23.07.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5497,
     'Авито',
     NULL,
@@ -4862,7 +6933,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4873,9 +6944,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '79d97a7c-6fe6-43f0-aebc-07bd41a6121d'::uuid,
+    'baba8061-ad86-47ae-bd45-4ee73c56247b'::uuid,
     v_admin_id,
-    1092,
+    1131,
     '2026-07-24T09:00:00.000Z'::timestamptz,
     '24.07.2026',
     'income',
@@ -4886,8 +6957,8 @@ BEGIN
     'percent', 0, 0,
     3303,
     1700,
-    '[{"id":"3755e617-1872-448d-8487-5577ac2b19ae","category":"Печать","amount":1700}]'::jsonb,
-    '[{"id":"20db00b4-c16d-475d-88e4-66a8bc87fc7d","amount":3303,"date":"24.07.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"795af8dd-6d57-420b-b72d-0bc79827d32f","category":"Печать","amount":1700}]'::jsonb,
+    '[{"id":"68b1dc70-80cf-49ff-8569-dc67237ee845","amount":3303,"date":"24.07.2026","note":"Полная оплата (100%)"}]'::jsonb,
     3303,
     'Авито',
     NULL,
@@ -4915,7 +6986,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4926,9 +6997,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'e34e8e9b-2955-4fe0-a76c-72d23bf91d18'::uuid,
+    '0920d7ff-c516-4c27-9d17-653a00bb0e13'::uuid,
     v_admin_id,
-    1093,
+    1132,
     '2026-07-24T09:00:00.000Z'::timestamptz,
     '24.07.2026',
     'income',
@@ -4939,9 +7010,9 @@ BEGIN
     'percent', 0, 0,
     24000,
     1700,
-    '[{"id":"303fe94b-94b8-4792-8561-7c25eaf26e97","category":"Печать","amount":1700}]'::jsonb,
-    '[]'::jsonb,
-    0,
+    '[{"id":"3d1d05cc-90d1-4105-b7bd-9cdd88e3fe67","category":"Печать","amount":1700}]'::jsonb,
+    '[{"id":"c8c72689-cda8-49fd-944c-771af141574e","amount":24000,"date":"24.07.2026","note":"Полная оплата (100%)"}]'::jsonb,
+    24000,
     'Авито',
     NULL,
     '',
@@ -4968,7 +7039,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -4979,9 +7050,62 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '45f4f62e-39bd-4564-8382-cc01f6df6bbb'::uuid,
+    'a1850a35-20e1-4ea5-8588-374d4b7c46f6'::uuid,
     v_admin_id,
-    1094,
+    1133,
+    '2026-07-28T09:00:00.000Z'::timestamptz,
+    '28.07.2026',
+    'expense',
+    'Авито',
+    1,
+    3913,
+    'percent', 0, 0,
+    'percent', 0, 0,
+    3913,
+    0,
+    '[]'::jsonb,
+    '[{"id":"5b1e2a9b-7002-46e0-be29-ed977a4a1505","amount":3913,"date":"28.07.2026","note":"Списание"}]'::jsonb,
+    3913,
+    'Авито',
+    NULL,
+    '',
+    '[]'::jsonb,
+    '',
+    'Готово',
+    'Реклама / продвижение на Авито'
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    order_number = EXCLUDED.order_number,
+    date = EXCLUDED.date,
+    type = EXCLUDED.type,
+    title = EXCLUDED.title,
+    quantity = EXCLUDED.quantity,
+    amount = EXCLUDED.amount,
+    cost = EXCLUDED.cost,
+    cost_items = EXCLUDED.cost_items,
+    payments = EXCLUDED.payments,
+    payment = EXCLUDED.payment,
+    client = EXCLUDED.client,
+    client_name = EXCLUDED.client_name,
+    contact = EXCLUDED.contact,
+    contacts = EXCLUDED.contacts,
+    deadline = EXCLUDED.deadline,
+    status = EXCLUDED.status,
+    notes = EXCLUDED.notes;
+
+  v_imported_count := v_imported_count + 1;
+
+  INSERT INTO public.orders (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount,
+    amount, cost, cost_items, payments, payment,
+    client, client_name, contact, contacts, deadline,
+    status, notes
+  ) VALUES (
+    '92948c26-65fc-47d0-bd8c-5b3ae098c919'::uuid,
+    v_admin_id,
+    1134,
     '2026-07-29T09:00:00.000Z'::timestamptz,
     '29.07.2026',
     'income',
@@ -4992,9 +7116,9 @@ BEGIN
     'percent', 0, 0,
     10000,
     1700,
-    '[{"id":"551f54ea-22d0-45fd-857b-13de11c0769d","category":"Печать","amount":1700}]'::jsonb,
-    '[]'::jsonb,
-    0,
+    '[{"id":"7c8b19b0-2393-4311-84fb-90f7ad3092ef","category":"Печать","amount":1700}]'::jsonb,
+    '[{"id":"ac2f855b-2a8c-471e-9798-e57a490c8de1","amount":10000,"date":"29.07.2026","note":"Полная оплата (100%)"}]'::jsonb,
+    10000,
     'Авито',
     NULL,
     '',
@@ -5021,7 +7145,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -5032,9 +7156,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '9e2fd63e-3f54-4b0c-9e48-6ea3d0ad0440'::uuid,
+    'd72359c5-fd73-476f-99c8-a0b562db7f4c'::uuid,
     v_admin_id,
-    1095,
+    1135,
     '2026-08-20T09:00:00.000Z'::timestamptz,
     '20.08.2026',
     'income',
@@ -5045,9 +7169,9 @@ BEGIN
     'percent', 0, 0,
     16000,
     2000,
-    '[{"id":"2f59c5ef-f22d-481c-ab6a-adb4f978f5f5","category":"Печать","amount":2000}]'::jsonb,
-    '[{"id":"d9fe7d6f-6aca-463a-8c76-10a6576eb0bc","amount":2000,"date":"20.08.2026","note":"Предоплата"},{"id":"efe0ac6f-47a9-4010-8429-ac0b9caaa7dd","amount":5000,"date":"20.08.2026","note":"Доп. оплата"}]'::jsonb,
-    7000,
+    '[{"id":"f8452a24-ca25-4b46-a88e-ca807e9198e5","category":"Печать","amount":2000}]'::jsonb,
+    '[{"id":"09f35fa6-8ec1-498f-99ed-5b04f458d7d3","amount":2000,"date":"20.08.2026","note":"Предоплата"},{"id":"eaf82019-9e2b-4c57-9f5a-89f76e492fa2","amount":14000,"date":"20.08.2026","note":"Окончательный расчет (100%)"}]'::jsonb,
+    16000,
     'Авито',
     'Павел',
     '89197427042 Павел',
@@ -5074,7 +7198,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -5085,9 +7209,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '741ca8bc-95d0-4ffc-aabf-079620028fe9'::uuid,
+    '94594a54-a6e6-4b54-a67d-f443258cf7df'::uuid,
     v_admin_id,
-    1096,
+    1136,
     '2026-08-20T09:00:00.000Z'::timestamptz,
     '20.08.2026',
     'income',
@@ -5098,8 +7222,8 @@ BEGIN
     'percent', 0, 0,
     11790,
     5200,
-    '[{"id":"7d76d374-8075-4176-8512-77fa21d0db6f","category":"Печать","amount":5200}]'::jsonb,
-    '[{"id":"2aecd5e8-1718-430f-9f3c-cfc4986c4755","amount":11790,"date":"20.08.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"2b46d99b-bf7c-4ebd-a97b-809ced58653b","category":"Печать","amount":5200}]'::jsonb,
+    '[{"id":"1ecd55f0-514b-484d-8a8b-9a1049312a11","amount":11790,"date":"20.08.2026","note":"Полная оплата (100%)"}]'::jsonb,
     11790,
     'Авито',
     NULL,
@@ -5127,7 +7251,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -5138,9 +7262,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '75b3bd69-a549-44f0-94e1-447eb717034d'::uuid,
+    '62eae0ba-5c63-4baa-b271-753c9070de7b'::uuid,
     v_admin_id,
-    1097,
+    1137,
     '2026-08-21T09:00:00.000Z'::timestamptz,
     '21.08.2026',
     'income',
@@ -5151,8 +7275,8 @@ BEGIN
     'percent', 0, 0,
     15200,
     4400,
-    '[{"id":"fe05be8b-7088-45d5-8b1c-0e77ffa371bf","category":"Печать","amount":4400}]'::jsonb,
-    '[{"id":"7d1378ae-8c51-4764-8fce-813686fe6f21","amount":15200,"date":"21.08.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"0a8e0d8d-44f4-4f3c-94da-fd668c9356ae","category":"Печать","amount":4400}]'::jsonb,
+    '[{"id":"ff3e5237-0090-4e8e-9a7c-3ee5d26e8a62","amount":15200,"date":"21.08.2026","note":"Полная оплата (100%)"}]'::jsonb,
     15200,
     'Авито',
     'Морозов Сергей Игоревич',
@@ -5182,7 +7306,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -5193,9 +7317,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    '4c13b934-08f3-4ff6-aa20-20da8c55c025'::uuid,
+    '0bc16b1e-cd75-49bc-8753-32315866457c'::uuid,
     v_admin_id,
-    1098,
+    1138,
     '2026-08-21T09:00:00.000Z'::timestamptz,
     '21.08.2026',
     'income',
@@ -5206,8 +7330,8 @@ BEGIN
     'percent', 0, 0,
     5497,
     2400,
-    '[{"id":"2107326c-43b2-4d6f-b344-6557d5499090","category":"Печать","amount":2400}]'::jsonb,
-    '[{"id":"68e12196-0586-45e3-8d72-4fddbf259abd","amount":5497,"date":"21.08.2026","note":"Оплата"}]'::jsonb,
+    '[{"id":"12ed1236-946d-4281-887b-e6899859da72","category":"Печать","amount":2400}]'::jsonb,
+    '[{"id":"e47362e5-4a77-4f65-8680-e8a3732c7573","amount":5497,"date":"21.08.2026","note":"Полная оплата (100%)"}]'::jsonb,
     5497,
     'Авито',
     NULL,
@@ -5235,7 +7359,7 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   INSERT INTO public.orders (
@@ -5246,9 +7370,9 @@ BEGIN
     client, client_name, contact, contacts, deadline,
     status, notes
   ) VALUES (
-    'd7d05df5-3bea-4551-8692-2b57f4f66dbb'::uuid,
+    '2615496e-fbbc-411c-a41e-c7c15075c6f8'::uuid,
     v_admin_id,
-    1099,
+    1139,
     '2026-09-01T09:00:00.000Z'::timestamptz,
     '01.09.2026',
     'income',
@@ -5260,8 +7384,8 @@ BEGIN
     4000,
     0,
     '[]'::jsonb,
-    '[{"id":"8714606a-d1bb-40d0-ad76-e55c383d7a8c","amount":1000,"date":"01.09.2026","note":"Предоплата"}]'::jsonb,
-    1000,
+    '[{"id":"cf35fd35-b2db-423b-824a-df3b8bfc0fec","amount":1000,"date":"01.09.2026","note":"Предоплата"},{"id":"1e195e74-44b5-4ba9-aba6-fb24dc66ee48","amount":3000,"date":"01.09.2026","note":"Окончательный расчет (100%)"}]'::jsonb,
+    4000,
     'Другое',
     NULL,
     '89993785186',
@@ -5288,14 +7412,14 @@ BEGIN
     deadline = EXCLUDED.deadline,
     status = EXCLUDED.status,
     notes = EXCLUDED.notes;
-  
+
   v_imported_count := v_imported_count + 1;
 
   -- 3. Обновляем счетчик номеров заказов
   INSERT INTO public.order_counters (user_id, next_number)
-  VALUES (v_admin_id, 1100)
+  VALUES (v_admin_id, 1140)
   ON CONFLICT (user_id) DO UPDATE
-  SET next_number = GREATEST(public.order_counters.next_number, 1100);
+  SET next_number = GREATEST(public.order_counters.next_number, 1140);
 
-  RAISE NOTICE 'Успешно импортировано заказов: %! Следующий номер заказа: %', v_imported_count, 1100;
+  RAISE NOTICE 'Успешно импортировано записей: %! Следующий номер заказа: %', v_imported_count, 1140;
 END $$;

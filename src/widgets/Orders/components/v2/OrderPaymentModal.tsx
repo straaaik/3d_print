@@ -23,9 +23,9 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { CockpitButton } from '@/shared/ui/CockpitButton';
-import { Tooltip } from '@/shared/ui/Tooltip';
-import { AnimatedPriceNumber } from '@/shared/ui/AnimatedPriceNumber';
+import { CockpitButton } from '../../../../shared/ui/CockpitButton';
+import { Tooltip } from '../../../../shared/ui/Tooltip';
+import { AnimatedPriceNumber } from '../../../../shared/ui/AnimatedPriceNumber';
 
 function HandDrawnUnderline({
   isSelected,
@@ -428,6 +428,61 @@ function createPaymentItemId(prefix = 'pay'): string {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
+export function applyFullPaymentPreset(
+  items: readonly PaymentItem[],
+  totalOrderAmount: number,
+  todayStr: string,
+  createId: (prefix?: string) => string = createPaymentItemId
+): PaymentItem[] {
+  if (totalOrderAmount <= 0) return [...items];
+
+  const validItems = items.filter((it) => (Number(it.amount) || 0) > 0);
+  const currentPaidSum = roundTo2(
+    validItems.reduce((sum, it) => sum + (Number(it.amount) || 0), 0)
+  );
+  const remainingDebt = roundTo2(Math.max(0, totalOrderAmount - currentPaidSum));
+
+  if (remainingDebt <= 0) {
+    return [...items];
+  }
+
+  if (validItems.length === 0) {
+    return [{
+      id: items[0]?.id || createId('pay-full'),
+      amount: totalOrderAmount,
+      date: todayStr,
+      note: 'Полная оплата (100%)',
+    }];
+  }
+
+  const lastItem = items[items.length - 1];
+  if (lastItem && (Number(lastItem.amount) || 0) <= 0) {
+    const updated = items.map((it, idx) =>
+      idx === items.length - 1
+        ? {
+            ...it,
+            amount: remainingDebt,
+            date: it.date || todayStr,
+            note: it.note?.trim() ? it.note : 'Доплата до 100%',
+          }
+        : it
+    );
+    return updated.filter(
+      (it, idx) => (Number(it.amount) || 0) > 0 || idx === updated.length - 1
+    );
+  }
+
+  const newItem: PaymentItem = {
+    id: createId(`pay-${validItems.length}`),
+    amount: remainingDebt,
+    date: todayStr,
+    note: 'Доплата до 100%',
+  };
+
+  return [...validItems, newItem];
+}
+
+
 type OrderPaymentModalContentProps = Omit<OrderPaymentModalProps, 'isOpen' | 'order'> & {
   order: Order;
 };
@@ -555,15 +610,12 @@ function OrderPaymentModalContent({
 
   // Пресеты
   const handleSetPresetFull = () => {
-    setFocusedIndex(null);
     setHoveredIndex(null);
-    setItems([{
-      id: createPaymentItemId('pay-full'),
-      amount: totalOrderAmount,
-      date: getTodayFormatted(),
-      note: 'Полная оплата (100%)',
-    }]);
+    const updated = applyFullPaymentPreset(items, totalOrderAmount, getTodayFormatted());
+    setItems(updated);
+    setFocusedIndex(updated.length - 1);
   };
+
 
   const handleSetPresetHalf = () => {
     setFocusedIndex(null);
@@ -822,14 +874,14 @@ function OrderPaymentModalContent({
                   type="button"
                   onClick={handleSetPresetFull}
                   className={`py-0.5 text-xs font-mono cursor-pointer ${
-                    isFullyPaid && items.length === 1
+                    isFullyPaid
                       ? 'text-white font-bold'
                       : 'text-[#71717a] hover:text-white'
                   }`}
                 >
                   <span className="relative inline-block">
                     <span>100% Полная</span>
-                    <HandDrawnUnderline isSelected={isFullyPaid && items.length === 1} />
+                    <HandDrawnUnderline isSelected={isFullyPaid} />
                   </span>
                 </button>
               </div>
