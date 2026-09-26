@@ -320,6 +320,7 @@ export class WorkshopScene {
   private filaments: Filament[] = [];
   private printers: Printer[] = [];
   private activePrinterIds: Set<string> = new Set();
+  private selectedPrinterPlacementId: string | null = null;
   private target = new THREE.Vector3(0, 0.7, 0);
   private span = 16;
   private azimuth = Math.PI / 4;
@@ -437,7 +438,7 @@ export class WorkshopScene {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = .9;
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.shadowMap.autoUpdate = false;
     this.prepareEnvironment();
     this.presentation = new ScenePresentation(this.renderer, this.scene, this.camera);
@@ -1084,27 +1085,19 @@ export class WorkshopScene {
   }
 
   private showPrinterInspectionLight(placementMeta: { f: Furniture; s: Slot; p: Placement; pos: THREE.Vector3 }) {
-    const pos = placementMeta.pos;
-    const safeAngle = this.getSafeInspectionAzimuth(pos, placementMeta.f.rotation);
-
-    // 1. Position chamber LED light inside build volume (illuminates print bed, toolhead & interior)
-    this.inspectionChamberLight.position.set(pos.x, pos.y + 0.36, pos.z);
-    this.inspectionChamberLight.intensity = 3.2;
-
-    // 2. Position focused studio spotlight shining directly at the printer
-    const spotDist = 0.65;
-    this.inspectionSpotlight.position.set(
-      pos.x + spotDist * Math.sin(safeAngle),
-      pos.y + 1.35,
-      pos.z + spotDist * Math.cos(safeAngle)
-    );
-    this.inspectionSpotTarget.position.set(pos.x, pos.y + 0.32, pos.z);
-    this.inspectionSpotlight.intensity = 2.8;
-
+    // Внутренние лампы и резкие прожекторы отключены: используется аккуратный контур 3D-модели
+    this.inspectionChamberLight.intensity = 0;
+    this.inspectionSpotlight.intensity = 0;
+    this.selectedPrinterPlacementId = placementMeta.p.id;
+    this.build?.setPrinterOutline?.(placementMeta.p.id, 'selected');
     this.invalidate();
   }
 
   private hidePrinterInspectionLight() {
+    if (this.selectedPrinterPlacementId && this.selected !== this.selectedPrinterPlacementId) {
+      this.build?.setPrinterOutline?.(this.selectedPrinterPlacementId, null);
+      this.selectedPrinterPlacementId = null;
+    }
     if (this.inspectionChamberLight.intensity > 0 || this.inspectionSpotlight.intensity > 0) {
       this.inspectionChamberLight.intensity = 0;
       this.inspectionSpotlight.intensity = 0;
@@ -1153,6 +1146,11 @@ export class WorkshopScene {
     if (this.highlightedFurnitureId) {
       this.build?.setFurnitureBorderColor(this.highlightedFurnitureId, '#d6d6cd');
       this.highlightedFurnitureId = null;
+    }
+
+    if (this.selectedPrinterPlacementId && this.selectedPrinterPlacementId !== id) {
+      this.build?.setPrinterOutline?.(this.selectedPrinterPlacementId, null);
+      this.selectedPrinterPlacementId = null;
     }
 
     if (!id) {
@@ -1209,6 +1207,10 @@ export class WorkshopScene {
         this.highlightedFurnitureId = placementMeta.f.id;
         this.build?.setFurnitureBorderColor(placementMeta.f.id, '#38bdf8');
         this.updateGizmoForPlacement(id);
+        if (isPrinter) {
+          this.selectedPrinterPlacementId = id;
+          this.build?.setPrinterOutline?.(id, 'selected');
+        }
         return;
       }
 
@@ -1425,10 +1427,11 @@ export class WorkshopScene {
     const shadowExtent = Math.hypot(size.x, size.z) * .56 + 2;
     Object.assign(this.key.shadow.camera, { left: -shadowExtent, right: shadowExtent, top: shadowExtent, bottom: -shadowExtent });
     this.key.shadow.camera.updateProjectionMatrix();
-    if (this.selected && !this.edit) {
+    if (this.selected) {
       const placementMeta = this.build.placements.get(this.selected);
       if (placementMeta && placementMeta.p.kind === 'printer') {
-        this.showPrinterInspectionLight(placementMeta);
+        this.selectedPrinterPlacementId = this.selected;
+        this.build?.setPrinterOutline?.(this.selected, 'selected');
       } else {
         this.hidePrinterInspectionLight();
       }
@@ -2768,7 +2771,7 @@ export function getWorkshopShadowConfig(containerWidth: number) {
   return {
     shadowSize,
     radius: 2.5,
-    shadowMapType: THREE.PCFSoftShadowMap,
+    shadowMapType: THREE.PCFShadowMap,
   };
 }
 

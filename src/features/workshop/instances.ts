@@ -33,18 +33,25 @@ export function disposeInstances(group: THREE.Object3D): void {
 }
 
 /** Deduplicate shared GLB resources when releasing an entire scene. */
-export function disposeAssets(objects: THREE.Object3D[]): void {
+export function disposeAssets(objects: (THREE.Object3D | THREE.BufferGeometry | undefined)[]): void {
   const geometries = new Set<THREE.BufferGeometry>();
   const materials = new Set<THREE.Material>();
   const textures = new Set<THREE.Texture>();
-  for (const root of objects) root.traverse(object => {
-    if (!(object instanceof THREE.Mesh)) return;
-    geometries.add(object.geometry);
-    for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
-      materials.add(material);
-      for (const value of Object.values(material)) if (value instanceof THREE.Texture) textures.add(value);
+  for (const root of objects) {
+    if (!root) continue;
+    if (root instanceof THREE.BufferGeometry) {
+      geometries.add(root);
+      continue;
     }
-  });
+    root.traverse(object => {
+      if (!(object instanceof THREE.Mesh)) return;
+      geometries.add(object.geometry);
+      for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+        materials.add(material);
+        for (const value of Object.values(material)) if (value instanceof THREE.Texture) textures.add(value);
+      }
+    });
+  }
   textures.forEach(texture => texture.dispose());
   materials.forEach(material => material.dispose());
   geometries.forEach(geometry => geometry.dispose());

@@ -80,6 +80,7 @@ export function ProductsList({
     setCalcFilamentId,
     setCalcPrinterId,
     setCalcWeight,
+    setCalcDays,
     setCalcHours,
     setCalcMinutes,
     setCalcQuantity,
@@ -320,7 +321,11 @@ export function ProductsList({
     if (filament) setCalcFilamentId(filament.id);
     if (printer) setCalcPrinterId(printer.id);
     setCalcWeight(String(item.weight_g || 0));
-    setCalcHours(String(item.hours || 0));
+    const totalHours = item.hours || 0;
+    const days = Math.floor(totalHours / 24);
+    const remainingHours = totalHours % 24;
+    setCalcDays(days > 0 ? String(days) : '');
+    setCalcHours(String(remainingHours));
     setCalcMinutes(String(item.minutes || 0));
     setCalcQuantity(String(item.quantity || 1));
     setCalcLaborMinutes(String(item.labor_minutes || 0));

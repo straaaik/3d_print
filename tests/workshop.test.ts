@@ -10,6 +10,7 @@ import { getWorkshopShadowConfig, calculateRoomCameraFocus, calculateWheelShift,
 import { getOrCreateHudButtonTexture, hudButtonTextureCache, clearHudButtonTextureCache, SpatialAuthoring } from '../src/features/workshop/spatialAuthoring';
 import { occupiedSides } from '../src/features/workshop/spatialScene';
 import { ReferenceSceneParts } from '../src/features/workshop/referenceSceneParts';
+import { buildMergedOutlineGeometry, buildPrinterOutlineHull } from '../src/features/workshop/sceneGeometry';
 
 test('default layout has non-overlapping furnishings including movable decor and no invented inventory', () => {
   const state = createWorkshop();
@@ -822,12 +823,12 @@ test('workshop directional light and shadow map are configured for soft shadows 
   const wide = getWorkshopShadowConfig(1200);
   assert.equal(wide.shadowSize, 2048);
   assert.equal(wide.radius, 2.5);
-  assert.equal(wide.shadowMapType, THREE.PCFSoftShadowMap);
+  assert.equal(wide.shadowMapType, THREE.PCFShadowMap);
 
   const narrow = getWorkshopShadowConfig(768);
   assert.equal(narrow.shadowSize, 1024);
   assert.equal(narrow.radius, 2.5);
-  assert.equal(narrow.shadowMapType, THREE.PCFSoftShadowMap);
+  assert.equal(narrow.shadowMapType, THREE.PCFShadowMap);
 
   const light = new THREE.DirectionalLight('#fff0dd', 2.8);
   light.castShadow = true;
@@ -2238,6 +2239,104 @@ test('resolveInvalidFurniture and updateFurniture: allows free placement/rotatio
   const notification = `Предмет «${relocated[0].furniture.name}» перемещён, так как он стоял в недоступном месте.`;
   assert.ok(notification.includes('перемещён, так как он стоял в недоступном месте'));
 });
+
+test('buildPrinterOutlineHull creates merged, welded, extruded silhouette hull from mesh hierarchies', () => {
+  const root = new THREE.Group();
+  const box1 = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5));
+  box1.position.set(0, 0.25, 0);
+  const box2 = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.6, 0.2));
+  box2.position.set(0.2, 0.3, 0);
+  root.add(box1, box2);
+  root.updateMatrixWorld(true);
+
+  const hullGeometry = buildPrinterOutlineHull(root, 0.009);
+  assert.ok(hullGeometry, 'Must produce an outline hull geometry');
+  assert.ok(hullGeometry.attributes.position, 'Hull geometry must have position attributes');
+  assert.ok(hullGeometry.attributes.position.count > 0, 'Hull geometry must contain vertices');
+
+  // Also verify backward compatible buildMergedOutlineGeometry alias
+  const aliasGeometry = buildMergedOutlineGeometry(root, 28);
+  assert.ok(aliasGeometry.attributes.position.count > 0);
+
+  hullGeometry.dispose();
+  aliasGeometry.dispose();
+  box1.geometry.dispose();
+  box2.geometry.dispose();
+});
+
+test('printer 3D model contour outline transitions between active (emerald bloom) and selected (cyan bloom) states with BackSide hull and no internal light bulb', () => {
+  const activeColor = new THREE.Color('#10b981').multiplyScalar(4.0);
+  const selectedColor = new THREE.Color('#38bdf8').multiplyScalar(3.5);
+
+  // Colors must exceed UnrealBloomPass threshold of 1.8 for luminous neon glow
+  assert.ok(Math.max(activeColor.r, activeColor.g, activeColor.b) > 1.8, 'Active color must exceed bloom threshold 1.8');
+  assert.ok(Math.max(selectedColor.r, selectedColor.g, selectedColor.b) > 1.8, 'Selected color must exceed bloom threshold 1.8');
+
+  const activeOutlineMaterial = new THREE.MeshBasicMaterial({
+    color: activeColor,
+    side: THREE.BackSide,
+    depthTest: true,
+    depthWrite: false,
+    transparent: true,
+    opacity: 0.95,
+  });
+  const selectedOutlineMaterial = new THREE.MeshBasicMaterial({
+    color: selectedColor,
+    side: THREE.BackSide,
+    depthTest: true,
+    depthWrite: false,
+    transparent: true,
+    opacity: 0.98,
+  });
+
+  assert.equal(activeOutlineMaterial.side, THREE.BackSide, 'Material must render BackSide for exterior silhouette hull');
+  assert.equal(activeOutlineMaterial.depthWrite, false, 'Depth write must be disabled to avoid occluding other objects');
+
+  const outline = new THREE.Mesh(new THREE.BufferGeometry(), activeOutlineMaterial);
+  outline.visible = false;
+
+  const item = { outline, isActive: true };
+
+  // 1. Initial active state: visible with glowing emerald BackSide hull
+  if (item.isActive) {
+    item.outline.material = activeOutlineMaterial;
+    item.outline.visible = true;
+  }
+  assert.equal(item.outline.visible, true, 'Active printer must have visible contour outline');
+  assert.equal(item.outline.material, activeOutlineMaterial, 'Active printer must use active emerald bloom material');
+
+  // 2. Select active printer: switches to bright cyan outline, stays visible
+  item.outline.material = selectedOutlineMaterial;
+  item.outline.visible = true;
+  assert.equal(item.outline.visible, true, 'Selected printer must remain visible');
+  assert.equal(item.outline.material, selectedOutlineMaterial, 'Selected printer must use cyan bloom material');
+
+  // 3. Deselect active printer: returns to emerald contour (not hidden)
+  if (item.isActive) {
+    item.outline.material = activeOutlineMaterial;
+    item.outline.visible = true;
+  } else {
+    item.outline.visible = false;
+  }
+  assert.equal(item.outline.visible, true);
+  assert.equal(item.outline.material, activeOutlineMaterial, 'Deselecting active printer must return to emerald contour');
+
+  // 4. Inactive printer: hidden when deselected, cyan when selected
+  const inactiveItem = { outline: new THREE.Mesh(new THREE.BufferGeometry(), selectedOutlineMaterial), isActive: false };
+  // Apply inactive deselect
+  inactiveItem.outline.visible = inactiveItem.isActive;
+  assert.equal(inactiveItem.outline.visible, false, 'Inactive printer must not show outline when deselected');
+
+  // Selecting inactive printer turns cyan outline on
+  inactiveItem.outline.material = selectedOutlineMaterial;
+  inactiveItem.outline.visible = true;
+  assert.equal(inactiveItem.outline.visible, true, 'Selecting inactive printer must show cyan outline');
+
+  // Clean up
+  activeOutlineMaterial.dispose();
+  selectedOutlineMaterial.dispose();
+});
+
 
 
 

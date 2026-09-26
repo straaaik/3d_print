@@ -368,6 +368,9 @@ export function buildSpatialWorkshop(
     setPlacementHover(id,progress){owner(id)?.build.setPlacementHover(id,progress);},
     setPrinterHover(id,progress){owner(id)?.build.setPrinterHover(id,progress);},
     setFurnitureBorderColor(id,color){owner(id)?.build.setFurnitureBorderColor(id,color);},
+    setPrinterOutline(id, state) {
+      owner(id)?.build.setPrinterOutline?.(id, state);
+    },
     setSelectedRoom(roomId?: string) {
       for (const p of pieces) {
         p.build.setSelectedRoom?.(roomId);

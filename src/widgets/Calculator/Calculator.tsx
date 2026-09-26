@@ -74,6 +74,8 @@ export function Calculator() {
     addSavedCalculation,
     calcWeight: weightG,
     setCalcWeight: setWeightG,
+    calcDays: days,
+    setCalcDays: setDays,
     calcHours: hours,
     setCalcHours: setHours,
     calcMinutes: minutes,
@@ -164,6 +166,7 @@ export function Calculator() {
   // Расчет стоимости
   const result = useMemo(() => calculateCost({
     weightG: parseFloat(weightG) || 0,
+    days: parseInt(days) || 0,
     hours: parseInt(hours) || 0,
     minutes: parseInt(minutes) || 0,
     laborMinutes: parseInt(currentLaborMinutes) || 0,
@@ -183,6 +186,7 @@ export function Calculator() {
     settings,
   }), [
     weightG,
+    days,
     hours,
     minutes,
     currentLaborMinutes,
@@ -209,14 +213,14 @@ export function Calculator() {
     ? (selectedFilament.price / selectedFilament.weight_g)
     : 0;
 
-  const totalPrintHours = (parseInt(hours) || 0) + (parseInt(minutes) || 0) / 60;
+  const totalPrintHours = (parseInt(days) || 0) * 24 + (parseInt(hours) || 0) + (parseInt(minutes) || 0) / 60;
   const powerKwH = selectedPrinter ? (selectedPrinter.power_w * totalPrintHours) / 1000 : 0;
   const electricityAndDeprecPerHour = totalPrintHours > 0
     ? (result.electricityCost + result.depreciationCost) / totalPrintHours
     : 0;
 
   const handleCopyClientMessage = () => {
-    const printHoursVal = (parseInt(hours) || 0) + (parseInt(minutes) || 0) / 60;
+    const printHoursVal = (parseInt(days) || 0) * 24 + (parseInt(hours) || 0) + (parseInt(minutes) || 0) / 60;
     const printDays = Math.floor(printHoursVal / 24);
     const leadTimeDays = Math.max(1, printDays + 2);
 
@@ -263,7 +267,7 @@ export function Calculator() {
       showWarning('Выберите филамент для 3D-печати', 'Внимание');
       return;
     }
-    const printHoursVal = (parseInt(hours) || 0) + (parseInt(minutes) || 0) / 60;
+    const printHoursVal = (parseInt(days) || 0) * 24 + (parseInt(hours) || 0) + (parseInt(minutes) || 0) / 60;
     const printDays = Math.floor(printHoursVal / 24);
     const leadTimeDays = Math.max(1, printDays + 2);
 
@@ -336,7 +340,7 @@ export function Calculator() {
         filament_color: selectedFilament?.color || '#ffffff',
         printer_name: selectedPrinter?.name || 'Не выбран',
         weight_g: parseFloat(weightG) || 0,
-        hours: parseInt(hours) || 0,
+        hours: (parseInt(days) || 0) * 24 + (parseInt(hours) || 0),
         minutes: parseInt(minutes) || 0,
         quantity: parseInt(quantity) || 1,
         base_cost: result.totalBaseCost,
@@ -568,14 +572,26 @@ export function Calculator() {
                       <CustomTooltip
                         title="Время печати и тираж"
                         description="Длительность работы 3D-принтера для изготовления всей партии изделий."
-                        formula="Всего часов = (Часы + Минуты / 60) × Тираж"
+                        formula="Всего часов = ((Дни × 24) + Часы + Минуты / 60) × Тираж"
                         accentColor="cyan"
                         align="left"
                       >
                         <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white shrink-0 cursor-help" />
                       </CustomTooltip>
                     </div>
-                    <div className="mt-1 flex items-baseline gap-1 font-mono text-xl sm:text-2xl font-bold text-white">
+                    <div className="mt-1 flex items-baseline gap-0.5 sm:gap-1 font-mono text-base sm:text-2xl font-bold text-white whitespace-nowrap overflow-hidden">
+                      <input
+                        type="number"
+                        min="0"
+                        max="999"
+                        value={days}
+                        onChange={(e) => setDays(e.target.value)}
+                        placeholder="0"
+                        style={{ width: `${Math.max(1, String(days || '').length) + 0.3}ch` }}
+                        className="bg-transparent focus:outline-none min-w-[1.2ch]"
+                      />
+                      <span className="text-xs sm:text-sm font-normal text-neutral-400 mr-1 sm:mr-2">д</span>
+
                       <input
                         type="number"
                         min="0"
@@ -584,9 +600,9 @@ export function Calculator() {
                         onChange={(e) => setHours(e.target.value)}
                         placeholder="0"
                         style={{ width: `${Math.max(1, String(hours || '').length) + 0.3}ch` }}
-                        className="bg-transparent focus:outline-none min-w-[1.5ch]"
+                        className="bg-transparent focus:outline-none min-w-[1.2ch]"
                       />
-                      <span className="text-sm font-normal text-neutral-400 mr-2.5">ч</span>
+                      <span className="text-xs sm:text-sm font-normal text-neutral-400 mr-1 sm:mr-2">ч</span>
 
                       <input
                         type="number"
@@ -599,9 +615,9 @@ export function Calculator() {
                         }}
                         placeholder="0"
                         style={{ width: `${Math.max(1, String(minutes || '').length) + 0.3}ch` }}
-                        className="bg-transparent focus:outline-none min-w-[1.5ch]"
+                        className="bg-transparent focus:outline-none min-w-[1.2ch]"
                       />
-                      <span className="text-sm font-normal text-neutral-400">мин</span>
+                      <span className="text-xs sm:text-sm font-normal text-neutral-400">мин</span>
                     </div>
                   </div>
 

@@ -1,12 +1,76 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { ReferenceSceneParts } from './referenceSceneParts';
 import { instanceTemplate, disposeAssets, disposeInstances } from './instances';
 import { defaultRoomLabels, slotWorld, roomOrigin, type Room, type Workshop, type Furniture, type Slot, type Placement } from './model';
 import type { Filament, Printer } from '../../shared/types';
 
-export interface Assets { a1: THREE.Group; p1: THREE.Group; spool: THREE.Group; boxes: THREE.Group; plant: THREE.Group; cabinet: THREE.Group; workbench: THREE.Group; filamentRack: THREE.Group; printerRack: THREE.Group; room: THREE.Group }
+export interface Assets {
+  a1: THREE.Group;
+  p1: THREE.Group;
+  spool: THREE.Group;
+  boxes: THREE.Group;
+  plant: THREE.Group;
+  cabinet: THREE.Group;
+  workbench: THREE.Group;
+  filamentRack: THREE.Group;
+  printerRack: THREE.Group;
+  room: THREE.Group;
+  a1Outline?: THREE.BufferGeometry;
+  p1Outline?: THREE.BufferGeometry;
+}
+
+export function buildPrinterOutlineHull(modelGroup: THREE.Group, thickness = 0.009): THREE.BufferGeometry {
+  const t = thickness > 0.5 ? 0.009 : thickness;
+  const geoms: THREE.BufferGeometry[] = [];
+  modelGroup.updateMatrixWorld(true);
+  modelGroup.traverse((child) => {
+    if (child instanceof THREE.Mesh && child.geometry) {
+      if (/nozzle/i.test(child.name)) return;
+      const g = child.geometry.clone();
+      for (const key of Object.keys(g.attributes)) {
+        if (key !== 'position' && key !== 'normal') g.deleteAttribute(key);
+      }
+      if (!g.attributes.normal) {
+        g.computeVertexNormals();
+      }
+      const relMatrix = new THREE.Matrix4().copy(modelGroup.matrixWorld).invert().multiply(child.matrixWorld);
+      g.applyMatrix4(relMatrix);
+      geoms.push(g);
+    }
+  });
+
+  if (geoms.length === 0) return new THREE.BufferGeometry();
+  const merged = mergeGeometries(geoms);
+  geoms.forEach((g) => g.dispose());
+  if (!merged) return new THREE.BufferGeometry();
+
+  const welded = mergeVertices(merged, 0.001);
+  merged.dispose();
+  welded.computeVertexNormals();
+
+  const pos = welded.attributes.position;
+  const norm = welded.attributes.normal;
+  for (let i = 0; i < pos.count; i++) {
+    const nx = norm.getX(i);
+    const ny = norm.getY(i);
+    const nz = norm.getZ(i);
+    pos.setXYZ(
+      i,
+      pos.getX(i) + nx * t,
+      Math.max(0.001, pos.getY(i) + ny * t),
+      pos.getZ(i) + nz * t
+    );
+  }
+  pos.needsUpdate = true;
+  welded.computeBoundingBox();
+  welded.computeBoundingSphere();
+  return welded;
+}
+
+export const buildMergedOutlineGeometry = buildPrinterOutlineHull;
+
 // Shared CPU/GPU templates are leased by mounted scenes, never disposed by an instance.
 let pending: Promise<Assets> | null = null;
 let users=0;
@@ -44,7 +108,9 @@ export function acquireAssets(): Promise<Assets> {
         throw failed.reason;
       }
       const [a1,p1,spool,boxes,plant,cabinet,workbench,filamentRack,printerRack,room]=results.map(r=>(r as PromiseFulfilledResult<THREE.Group>).value);
-      return {a1,p1,spool,boxes,plant,cabinet,workbench,filamentRack,printerRack,room};
+      const a1Outline = buildMergedOutlineGeometry(a1);
+      const p1Outline = buildMergedOutlineGeometry(p1);
+      return {a1,p1,spool,boxes,plant,cabinet,workbench,filamentRack,printerRack,room,a1Outline,p1Outline};
     }).catch(error=>{if(pending===loading)pending=null;throw error;});
     pending=loading;
   }
@@ -68,6 +134,7 @@ export interface SceneBuild {
   setPlacementHover: (placementId: string, progress: number) => void;
   setPrinterHover: (placementId: string, progress: number) => void;
   setFurnitureBorderColor: (id: string, color: string) => void;
+  setPrinterOutline?: (placementId: string, state: 'selected' | 'active' | null) => void;
   setSelected?: (selected: boolean) => void;
   setSelectedRoom?: (roomId?: string) => void;
   dispose: () => void;
@@ -93,6 +160,23 @@ export function buildWorkshop(
   const placementHits=new Map<string,{hit:THREE.Mesh;position:THREE.Vector3;placementId:string}[]>();
   const cube=new THREE.BoxGeometry(1,1,1);
   const hitMaterial=new THREE.MeshBasicMaterial({visible:false});
+  const activeOutlineMaterial = new THREE.MeshBasicMaterial({
+    color: new THREE.Color('#10b981').multiplyScalar(4.0),
+    side: THREE.BackSide,
+    depthTest: true,
+    depthWrite: false,
+    transparent: true,
+    opacity: 0.95,
+  });
+  const selectedOutlineMaterial = new THREE.MeshBasicMaterial({
+    color: new THREE.Color('#38bdf8').multiplyScalar(3.5),
+    side: THREE.BackSide,
+    depthTest: true,
+    depthWrite: false,
+    transparent: true,
+    opacity: 0.98,
+  });
+  const printerOutlines = new Map<string, { outline: THREE.Mesh; isActive: boolean }>();
   const referenceParts=new ReferenceSceneParts({...assets});
   const materials=new Map<string,THREE.MeshStandardMaterial>();
   const material=(color:string)=>{
@@ -208,16 +292,26 @@ export function buildWorkshop(
         owned.add(colorCube);
       }
 
-      // Фоновое свечение в камере для принтеров с активным заказом на печать (также привязано к столу)
+      // Светящийся объемный контур (silhouette hull) 3D-модели принтера
+      const outlineGeom = p.model === 'p1'
+        ? (assets.p1Outline ?? (assets.p1 ? buildPrinterOutlineHull(assets.p1) : undefined))
+        : (assets.a1Outline ?? (assets.a1 ? buildPrinterOutlineHull(assets.a1) : undefined));
       const isActive = activePrinterIds.has(p.entityId) || activePrinterIds.has(p.id);
-      if (isActive) {
-        const chamberLight = new THREE.PointLight('#ffffff', 1.4, 1.2, 2);
-        chamberLight.position.set(s.x, s.y + 0.38, s.z);
+      if (outlineGeom) {
+        const outline = new THREE.Mesh(
+          outlineGeom,
+          isActive ? activeOutlineMaterial : selectedOutlineMaterial
+        );
+        outline.position.set(s.x, s.y, s.z);
+        outline.visible = isActive;
+        outline.renderOrder = 10;
+        outline.userData = { keepSeparate: true, isOutline: true, placementId: p.id };
         if (fGroup) {
-          fGroup.add(chamberLight);
+          fGroup.add(outline);
         } else {
-          owned.add(chamberLight);
+          owned.add(outline);
         }
+        printerOutlines.set(p.id, { outline, isActive });
       }
     }
     else {
@@ -406,6 +500,18 @@ export function buildWorkshop(
     }
     const pPos = positions.get(placementId);
     if (pPos) pPos.copy(pos);
+    const pOutline = printerOutlines.get(placementId);
+    if (pOutline) {
+      const meta = placementsMeta.get(placementId);
+      if (meta) {
+        const fGroup = furnitureGroups.get(meta.f.id);
+        if (fGroup) {
+          fGroup.worldToLocal(pOutline.outline.position.copy(pos));
+        } else {
+          pOutline.outline.position.copy(pos);
+        }
+      }
+    }
   }
   function resetPlacementPreview(placementId: string) {
     const items = placementBindings.get(placementId);
@@ -417,6 +523,10 @@ export function buildWorkshop(
     const meta = placementsMeta.get(placementId);
     const pPos = positions.get(placementId);
     if (meta && pPos) pPos.copy(meta.pos);
+    const pOutline = printerOutlines.get(placementId);
+    if (pOutline && meta) {
+      pOutline.outline.position.set(meta.s.x, meta.s.y, meta.s.z);
+    }
   }
   function setFurnitureBorderColor(id:string, color:string) {
     furnitureBorders.get(id)?.color.set(color);
@@ -432,9 +542,24 @@ export function buildWorkshop(
     setPlacementHover,
     setPrinterHover: setPlacementHover,
     setFurnitureBorderColor,
+    setPrinterOutline: (placementId: string, state: 'selected' | 'active' | null) => {
+      const item = printerOutlines.get(placementId);
+      if (!item) return;
+      if (state === 'selected') {
+        item.outline.material = selectedOutlineMaterial;
+        item.outline.visible = true;
+      } else if (state === 'active' || item.isActive) {
+        item.outline.material = activeOutlineMaterial;
+        item.outline.visible = true;
+      } else {
+        item.outline.visible = false;
+      }
+    },
     setSelected,
     setSelectedRoom,
     dispose: () => {
+      activeOutlineMaterial.dispose();
+      selectedOutlineMaterial.dispose();
       furnitureBorders.forEach((m) => m.dispose());
       disposeInstances(instances);
       disposeAssets([owned]);

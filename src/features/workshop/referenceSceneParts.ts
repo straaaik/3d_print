@@ -6,7 +6,11 @@ export class ReferenceSceneParts {
   private geometries=new Map<string,THREE.BufferGeometry>();
   private materials=new Map<string,THREE.Material>();
   private textures=new Map<string,THREE.Texture>();
-  constructor(private sources:Record<string,THREE.Group>){Object.values(sources).forEach(s=>s.updateMatrixWorld(true));}
+  constructor(private sources: Record<string, THREE.Group | unknown>) {
+    Object.values(sources).forEach(s => {
+      if (s instanceof THREE.Object3D) s.updateMatrixWorld(true);
+    });
+  }
   private material(source:THREE.Material):THREE.Material {
     if(this.materials.has(source.uuid))return this.materials.get(source.uuid)!;
     const result=source.clone();
@@ -23,7 +27,8 @@ export class ReferenceSceneParts {
     this.materials.set(source.uuid,result);return result;
   }
   private find(asset:string,name:string):THREE.Mesh {
-    const item=this.sources[asset].getObjectByName(THREE.PropertyBinding.sanitizeNodeName(name));
+    const group = this.sources[asset] as THREE.Group | undefined;
+    const item = group?.getObjectByName?.(THREE.PropertyBinding.sanitizeNodeName(name));
     if(!(item instanceof THREE.Mesh))throw new Error(`Missing Blender part: ${asset}/${name}`);
     return item;
   }
@@ -39,7 +44,8 @@ export class ReferenceSceneParts {
     mesh.position.fromArray(position);mesh.scale.fromArray(size);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;
   }
   copy(parent:THREE.Group,asset:string,prefix:string,offset:THREE.Vector3){
-    this.sources[asset].traverse(source=>{
+    const group = this.sources[asset] as THREE.Group | undefined;
+    group?.traverse((source: THREE.Object3D) => {
       if(!(source instanceof THREE.Mesh)||!source.name.startsWith(prefix))return;
       const geometry=source.geometry.clone().applyMatrix4(source.matrixWorld).translate(offset.x,offset.y,offset.z);
       const material=Array.isArray(source.material)?source.material.map(m=>this.material(m)):this.material(source.material);

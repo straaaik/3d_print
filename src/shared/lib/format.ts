@@ -16,14 +16,16 @@ export function formatCurrency(amount: number, currency: string = '₽'): string
 }
 
 /**
- * Конвертирует часы и минуты в десятичные часы.
- * Пример: 1 ч 30 мин -> 1.5 ч
+ * Конвертирует дни, часы и минуты в десятичные часы.
+ * Пример: 1 д 1 ч 30 мин -> 26.5 ч
  */
-export function timeToHours(hours: number, minutes: number): number {
+export function timeToHours(hours: number, minutes: number, days?: number): number {
+  const safeDays = Math.max(0, days || 0);
   const safeHours = Math.max(0, hours || 0);
   const safeMinutes = Math.max(0, minutes || 0);
-  return safeHours + safeMinutes / 60;
+  return safeDays * 24 + safeHours + safeMinutes / 60;
 }
+
 
 /**
  * Форматирует ISO-строку даты в понятный локализованный формат.

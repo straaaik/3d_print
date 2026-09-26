@@ -32,6 +32,8 @@ interface DataContextType {
   // Сохранение состояния полей ввода калькулятора между страницами
   calcWeight: string;
   setCalcWeight: (val: string) => void;
+  calcDays: string;
+  setCalcDays: (val: string) => void;
   calcHours: string;
   setCalcHours: (val: string) => void;
   calcMinutes: string;
@@ -138,6 +140,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   // Стейты калькулятора с персистентным сохранением в localStorage
   const [calcWeight, setCalcWeight, resetCalcWeight] = usePersistentState('3d_calc_weight', '');
+  const [calcDays, setCalcDays, resetCalcDays] = usePersistentState('3d_calc_days', '');
   const [calcHours, setCalcHours, resetCalcHours] = usePersistentState('3d_calc_hours', '');
   const [calcMinutes, setCalcMinutes, resetCalcMinutes] = usePersistentState('3d_calc_minutes', '');
   const [calcQuantity, setCalcQuantity, resetCalcQuantity] = usePersistentState('3d_calc_quantity', '1');
@@ -157,6 +160,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const resetCalculator = () => {
     resetCalcWeight();
+    resetCalcDays();
     resetCalcHours();
     resetCalcMinutes();
     resetCalcQuantity();
@@ -573,6 +577,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         settingsSaveRef,
         calcWeight,
         setCalcWeight,
+        calcDays,
+        setCalcDays,
         calcHours,
         setCalcHours,
         calcMinutes,

@@ -216,6 +216,7 @@ export interface DetailedCalculationResult {
 
 export interface CalculateCostParams {
   weightG: number;
+  days?: number;
   hours: number;
   minutes: number;
   laborMinutes: number;
@@ -241,6 +242,7 @@ export interface CalculateCostParams {
 export function calculatePrintCost(params: CalculateCostParams): DetailedCalculationResult {
   const {
     weightG,
+    days = 0,
     hours,
     minutes,
     laborMinutes,
@@ -261,8 +263,9 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
   } = params;
 
   const safeQuantity = Math.max(1, quantity || 1);
-  const printTimeHours = timeToHours(hours, minutes);
+  const printTimeHours = timeToHours(hours, minutes, days);
   const electricityRate = settings?.electricity_rate ?? 4.89;
+
 
   // 1. Материал
   const materialCost = calcMaterialCost(weightG, filament);
