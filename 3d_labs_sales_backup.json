@@ -1,0 +1,3410 @@
+{
+  "version": 2,
+  "exportedAt": "2026-09-26T00:16:35.420Z",
+  "filaments": [],
+  "printers": [],
+  "settings": null,
+  "savedCalculations": [],
+  "collections": [],
+  "orders": [
+    {
+      "id": "280d922c-f9d7-4f51-b691-5833808f32e2",
+      "order_number": 1001,
+      "created_at": "2025-10-10T09:00:00.000Z",
+      "date": "10.10.2025",
+      "type": "income",
+      "title": "Котлы Колонки - 2 статуетки",
+      "quantity": 1,
+      "base_amount": 5000,
+      "amount": 5000,
+      "cost": 1500,
+      "cost_items": [
+        {
+          "id": "49fd7281-394d-4a2e-b150-03da19d5d4aa",
+          "category": "Печать",
+          "amount": 1500
+        }
+      ],
+      "payments": [
+        {
+          "id": "913258e5-3b22-43fb-aeb1-f5060ed7f2fa",
+          "amount": 2500,
+          "date": "10.10.2025",
+          "note": "Предоплата"
+        },
+        {
+          "id": "707790da-4d8d-4b5f-80c0-4315572b787c",
+          "amount": 2500,
+          "date": "10.10.2025",
+          "note": "Оплата"
+        },
+        {
+          "id": "a474e7ca-f4eb-4402-8271-c8193666a458",
+          "amount": 200,
+          "date": "10.10.2025",
+          "note": "Доп. оплата"
+        }
+      ],
+      "payment": 5200,
+      "client": "Авито",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "79188798043",
+          "label": "Телефон"
+        }
+      ],
+      "contact": "79188798043",
+      "deadline": "10.10.2025",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "90062c40-3105-412b-bc32-abb96dee60d0",
+      "order_number": 1002,
+      "created_at": "2025-10-12T09:00:00.000Z",
+      "date": "12.10.2025",
+      "type": "income",
+      "title": "2 фигурки по фото с покраской",
+      "quantity": 2,
+      "base_amount": 21000,
+      "amount": 21000,
+      "cost": 500,
+      "cost_items": [
+        {
+          "id": "df35a447-a0bc-4475-a0e5-fee532577923",
+          "category": "Печать",
+          "amount": 500
+        }
+      ],
+      "payments": [
+        {
+          "id": "b8188d5f-dda8-49ad-a4f4-e2da6753f819",
+          "amount": 10500,
+          "date": "12.10.2025",
+          "note": "Предоплата"
+        }
+      ],
+      "payment": 10500,
+      "client": "Авито",
+      "contacts": [
+        {
+          "type": "avito",
+          "value": "https://www.avito.ru/profile/messenger/channel/u2i-ckdClTkAwUkvT9OxMpn21w",
+          "label": "Авито"
+        },
+        {
+          "type": "phone",
+          "value": "79064755254",
+          "label": "Телефон"
+        }
+      ],
+      "contact": "79064755254 | https://www.avito.ru/profile/messenger/channel/u2i-ckdClTkAwUkvT9OxMpn21w | 7 906 475 5254",
+      "deadline": "",
+      "status": "Готово",
+      "notes": "Не забрали фигурки"
+    },
+    {
+      "id": "7ef09975-6c63-4f41-926d-d8abc8cb1d64",
+      "order_number": 1003,
+      "created_at": "2025-10-13T09:00:00.000Z",
+      "date": "13.10.2025",
+      "type": "income",
+      "title": "Китаец",
+      "quantity": 1,
+      "base_amount": 2500,
+      "amount": 2500,
+      "cost": 200,
+      "cost_items": [
+        {
+          "id": "d90d530e-eb3a-4cc8-9e39-6a30b35c20bb",
+          "category": "Печать",
+          "amount": 200
+        }
+      ],
+      "payments": [
+        {
+          "id": "3e9a9626-0323-4a16-b6c5-78f238118e5b",
+          "amount": 2500,
+          "date": "13.10.2025",
+          "note": "Предоплата"
+        }
+      ],
+      "payment": 2500,
+      "client": "Авито",
+      "contacts": [
+        {
+          "type": "avito",
+          "value": "https://www.avito.ru/profile/messenger/channel/u2i-ngCNpm4pX1V8yVFq3k~oPQ",
+          "label": "Авито"
+        },
+        {
+          "type": "telegram",
+          "value": "@Elephant_freedom",
+          "label": "Telegram"
+        }
+      ],
+      "contact": "@Elephant_freedom | https://www.avito.ru/profile/messenger/channel/u2i-ngCNpm4pX1V8yVFq3k~oPQ",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "166bc3f0-b6da-43fc-a306-a752e63f8bd9",
+      "order_number": 1004,
+      "created_at": "2025-10-13T09:00:00.000Z",
+      "date": "13.10.2025",
+      "type": "income",
+      "title": "Девушка на стуле по фото с покраской",
+      "quantity": 1,
+      "base_amount": 12000,
+      "amount": 12000,
+      "cost": 5000,
+      "cost_items": [
+        {
+          "id": "c7fa4ec4-98fb-4a10-af79-d161f1144049",
+          "category": "Печать",
+          "amount": 5000
+        }
+      ],
+      "payments": [
+        {
+          "id": "06a64e19-a8ed-4a3d-8c68-a908c7c6b402",
+          "amount": 6000,
+          "date": "13.10.2025",
+          "note": "Предоплата"
+        },
+        {
+          "id": "822bda21-25a1-4d9f-bf42-25d5ce32578a",
+          "amount": 6000,
+          "date": "13.10.2025",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 12000,
+      "client": "Авито",
+      "contacts": [
+        {
+          "type": "avito",
+          "value": "https://www.avito.ru/profile/messenger/channel/u2i-jhcG5IF_d2zhf_TXsIoMpA",
+          "label": "Авито"
+        }
+      ],
+      "contact": "https://www.avito.ru/profile/messenger/channel/u2i-jhcG5IF_d2zhf_TXsIoMpA",
+      "deadline": "",
+      "status": "Готово",
+      "notes": "Дата выдачи: 16.11"
+    },
+    {
+      "id": "6125d007-6e47-4fc9-865f-7c5683da90fb",
+      "order_number": 1005,
+      "created_at": "2025-10-14T09:00:00.000Z",
+      "date": "14.10.2025",
+      "type": "income",
+      "title": "Девушка у пруда по фото с покраской",
+      "quantity": 1,
+      "base_amount": 13000,
+      "amount": 13000,
+      "cost": 5000,
+      "cost_items": [
+        {
+          "id": "ecbe796b-9330-42f0-9963-7928028d085c",
+          "category": "Печать",
+          "amount": 5000
+        }
+      ],
+      "payments": [
+        {
+          "id": "ccaf624a-5884-44f2-af16-c65413d3b531",
+          "amount": 6500,
+          "date": "14.10.2025",
+          "note": "Предоплата"
+        },
+        {
+          "id": "22275030-bd10-4b72-959e-b754c7be7a05",
+          "amount": 6500,
+          "date": "14.10.2025",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 13000,
+      "client": "Авито",
+      "contacts": [
+        {
+          "type": "avito",
+          "value": "https://www.avito.ru/profile/messenger/channel/u2i-KtRqlaupyw4sm0kNpri5Ew",
+          "label": "Авито"
+        }
+      ],
+      "contact": "https://www.avito.ru/profile/messenger/channel/u2i-KtRqlaupyw4sm0kNpri5Ew",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "a07a51e9-f038-4272-a0c7-8db8157a0d06",
+      "order_number": 1006,
+      "created_at": "2025-10-20T09:00:00.000Z",
+      "date": "20.10.2025",
+      "type": "income",
+      "title": "Девушка сидит",
+      "quantity": 1,
+      "base_amount": 2500,
+      "amount": 2500,
+      "cost": 1100,
+      "cost_items": [
+        {
+          "id": "af40d6f3-4aec-42f5-b97f-781aba359d94",
+          "category": "Печать",
+          "amount": 1100
+        }
+      ],
+      "payments": [
+        {
+          "id": "6208b77e-1900-4e9d-b777-89a2897907c2",
+          "amount": 1250,
+          "date": "20.10.2025",
+          "note": "Предоплата"
+        },
+        {
+          "id": "ac48eb7d-4e14-4cc6-8346-d641b51ef57e",
+          "amount": 1250,
+          "date": "20.10.2025",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 2500,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "365951a8-6e50-425b-8ff0-53e2ad20b78a",
+      "order_number": 1007,
+      "created_at": "2025-11-13T09:00:00.000Z",
+      "date": "13.11.2025",
+      "type": "income",
+      "title": "Шестеренка",
+      "quantity": 1,
+      "base_amount": 600,
+      "amount": 600,
+      "cost": 10,
+      "cost_items": [
+        {
+          "id": "b90ba465-af01-4c7f-aaa7-ce4cd673d44f",
+          "category": "Печать",
+          "amount": 10
+        }
+      ],
+      "payments": [
+        {
+          "id": "df88187d-0d38-4ef1-aa0e-92729b5ae5ef",
+          "amount": 600,
+          "date": "13.11.2025",
+          "note": "Предоплата"
+        }
+      ],
+      "payment": 600,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "73c6853a-2701-41b2-8069-31ba94020b0c",
+      "order_number": 1008,
+      "created_at": "2025-12-02T09:00:00.000Z",
+      "date": "02.12.2025",
+      "type": "income",
+      "title": "2 фигурки по фото",
+      "quantity": 2,
+      "base_amount": 5000,
+      "amount": 5000,
+      "cost": 500,
+      "cost_items": [
+        {
+          "id": "224069dc-30d8-4f67-aed2-6a8e7ea0d89c",
+          "category": "Печать",
+          "amount": 500
+        }
+      ],
+      "payments": [
+        {
+          "id": "2cfeca40-a06a-4411-8e71-3bd62265e391",
+          "amount": 2500,
+          "date": "02.12.2025",
+          "note": "Предоплата"
+        },
+        {
+          "id": "e9a2e915-616d-446e-9958-f0c1c37577ad",
+          "amount": 2500,
+          "date": "02.12.2025",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5000,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "12.12.2025",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "d73aef5f-3b91-428b-90a4-3d3e372c22b0",
+      "order_number": 1009,
+      "created_at": "2025-12-06T09:00:00.000Z",
+      "date": "06.12.2025",
+      "type": "income",
+      "title": "Звезда ОСД",
+      "quantity": 1,
+      "base_amount": 949,
+      "amount": 949,
+      "cost": 416,
+      "cost_items": [
+        {
+          "id": "f164ab78-6b42-45b0-bb84-d3230dc96414",
+          "category": "Печать",
+          "amount": 416
+        }
+      ],
+      "payments": [
+        {
+          "id": "9e8847a5-64ec-4001-a214-6056078347f4",
+          "amount": 949,
+          "date": "06.12.2025",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 949,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "dcb055de-5bc6-4024-bde3-d224fd228c72",
+      "order_number": 1010,
+      "created_at": "2025-12-08T09:00:00.000Z",
+      "date": "08.12.2025",
+      "type": "income",
+      "title": "Звезда ОСД",
+      "quantity": 1,
+      "base_amount": 949,
+      "amount": 949,
+      "cost": 416,
+      "cost_items": [
+        {
+          "id": "9ef88c83-0992-4482-a554-f65c7332592e",
+          "category": "Печать",
+          "amount": 416
+        }
+      ],
+      "payments": [
+        {
+          "id": "d4b7ca2a-acdc-4ac4-b352-34487ba06c7d",
+          "amount": 949,
+          "date": "08.12.2025",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 949,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "6a7995d8-e208-4247-ae48-7a01bc913a29",
+      "order_number": 1011,
+      "created_at": "2025-12-12T09:00:00.000Z",
+      "date": "12.12.2025",
+      "type": "income",
+      "title": "12 елочных игрушек",
+      "quantity": 12,
+      "base_amount": 1150,
+      "amount": 1150,
+      "cost": 0,
+      "cost_items": [],
+      "payments": [
+        {
+          "id": "e89e8561-976c-418e-9baf-173c2c0eed12",
+          "amount": 1150,
+          "date": "12.12.2025",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 1150,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": "Из листа Заказы"
+    },
+    {
+      "id": "f8af52b8-4c72-47bd-ac61-00c4007898f4",
+      "order_number": 1012,
+      "created_at": "2025-12-13T09:00:00.000Z",
+      "date": "13.12.2025",
+      "type": "income",
+      "title": "Звезда ОСД",
+      "quantity": 1,
+      "base_amount": 3190,
+      "amount": 3190,
+      "cost": 1774,
+      "cost_items": [
+        {
+          "id": "1288e084-830d-4054-8640-24adab246bb4",
+          "category": "Печать",
+          "amount": 1774
+        }
+      ],
+      "payments": [
+        {
+          "id": "1b7e5420-dba7-4283-8026-7e2755188b8f",
+          "amount": 3190,
+          "date": "13.12.2025",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 3190,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "2ab898a8-816c-40d0-a52e-33aeec5f515a",
+      "order_number": 1013,
+      "created_at": "2025-12-14T09:00:00.000Z",
+      "date": "14.12.2025",
+      "type": "income",
+      "title": "Клавиатура",
+      "quantity": 1,
+      "base_amount": 380,
+      "amount": 380,
+      "cost": 0,
+      "cost_items": [],
+      "payments": [
+        {
+          "id": "8bc81ffe-eea9-48a3-add3-8d287b9c031c",
+          "amount": 200,
+          "date": "14.12.2025",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 200,
+      "client": "Авито",
+      "contacts": [
+        {
+          "type": "avito",
+          "value": "https://www.avito.ru/profile/messenger/channel/u2i-AjMMrnHBve2T_hG~ehLspw",
+          "label": "Авито"
+        }
+      ],
+      "contact": "https://www.avito.ru/profile/messenger/channel/u2i-AjMMrnHBve2T_hG~ehLspw",
+      "deadline": "",
+      "status": "Готово",
+      "notes": "Из листа Заказы"
+    },
+    {
+      "id": "5a42d246-788c-415b-a4fa-044fe766a71e",
+      "order_number": 1014,
+      "created_at": "2025-12-15T09:00:00.000Z",
+      "date": "15.12.2025",
+      "type": "income",
+      "title": "Собака копилка",
+      "quantity": 1,
+      "base_amount": 5500,
+      "amount": 5500,
+      "cost": 2500,
+      "cost_items": [
+        {
+          "id": "f7cd2a47-1e96-41ba-a5d6-ba4979250d46",
+          "category": "Печать",
+          "amount": 2500
+        }
+      ],
+      "payments": [
+        {
+          "id": "a0c968a5-345b-42d9-a0cd-29b1ef5df64c",
+          "amount": 2750,
+          "date": "15.12.2025",
+          "note": "Предоплата"
+        },
+        {
+          "id": "19fe866c-c6e5-4569-b606-a289f5115633",
+          "amount": 2750,
+          "date": "15.12.2025",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5500,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "fe969889-7d4a-4d8e-805a-cef5a51255a4",
+      "order_number": 1015,
+      "created_at": "2025-12-16T09:00:00.000Z",
+      "date": "16.12.2025",
+      "type": "income",
+      "title": "Крепежи Михайловск",
+      "quantity": 1,
+      "base_amount": 50,
+      "amount": 50,
+      "cost": 550,
+      "cost_items": [
+        {
+          "id": "fc13ff60-5044-4a02-8f60-1b4ba606596e",
+          "category": "Печать",
+          "amount": 550
+        }
+      ],
+      "payments": [
+        {
+          "id": "84946431-be02-4a10-9dd2-a345d1176cd0",
+          "amount": 550,
+          "date": "16.12.2025",
+          "note": "Оплата"
+        },
+        {
+          "id": "72240fac-c822-43a5-ac74-ca6394f24ac4",
+          "amount": 200,
+          "date": "16.12.2025",
+          "note": "Доп. оплата"
+        }
+      ],
+      "payment": 750,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "a57b4c05-d84f-4cf7-ad6b-76872b09bb1c",
+      "order_number": 1016,
+      "created_at": "2025-12-18T09:00:00.000Z",
+      "date": "18.12.2025",
+      "type": "income",
+      "title": "2 детали + моделировани",
+      "quantity": 2,
+      "base_amount": 600,
+      "amount": 600,
+      "cost": 200,
+      "cost_items": [
+        {
+          "id": "0a769d9f-852b-4432-8376-4bbef1f548fd",
+          "category": "Печать",
+          "amount": 200
+        }
+      ],
+      "payments": [
+        {
+          "id": "7f205550-1de4-4533-9df7-dedfdc3dda02",
+          "amount": 300,
+          "date": "18.12.2025",
+          "note": "Предоплата"
+        },
+        {
+          "id": "5f9a3449-73da-4df6-8cbb-8b1962cd9941",
+          "amount": 300,
+          "date": "18.12.2025",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 600,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "60b34b4e-3003-45c0-a353-aadf4ad514c6",
+      "order_number": 1017,
+      "created_at": "2025-12-18T09:00:00.000Z",
+      "date": "18.12.2025",
+      "type": "income",
+      "title": "60 деталей для кадетки",
+      "quantity": 60,
+      "base_amount": 3550,
+      "amount": 3550,
+      "cost": 800,
+      "cost_items": [
+        {
+          "id": "607e8e8b-ad1e-43d5-958e-75d908254baa",
+          "category": "Печать",
+          "amount": 800
+        }
+      ],
+      "payments": [
+        {
+          "id": "50cac5b5-b129-4034-ba03-1c0397ae8fe2",
+          "amount": 3550,
+          "date": "18.12.2025",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 3550,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "a2a69416-e0ae-40ee-a1ed-56fefc4c9fa7",
+      "order_number": 1018,
+      "created_at": "2025-12-21T09:00:00.000Z",
+      "date": "21.12.2025",
+      "type": "income",
+      "title": "64 детали Михайловск",
+      "quantity": 64,
+      "base_amount": 3200,
+      "amount": 3200,
+      "cost": 2080,
+      "cost_items": [
+        {
+          "id": "5d19c02d-8e55-45ed-a37d-a04a43450eea",
+          "category": "Печать",
+          "amount": 2080
+        }
+      ],
+      "payments": [
+        {
+          "id": "1553a4b2-74b4-47fe-b2b9-e3cd8eeca4dd",
+          "amount": 2000,
+          "date": "21.12.2025",
+          "note": "Предоплата"
+        },
+        {
+          "id": "2a4dbcb8-de71-40f3-a516-2bd655d2c0d2",
+          "amount": 1200,
+          "date": "21.12.2025",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 3200,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "ed4078fb-a0ce-4633-a4cc-635ac3df70c4",
+      "order_number": 1019,
+      "created_at": "2025-12-22T09:00:00.000Z",
+      "date": "22.12.2025",
+      "type": "income",
+      "title": "10 деталей для кадетки + моделирование",
+      "quantity": 10,
+      "base_amount": 1000,
+      "amount": 1000,
+      "cost": 0,
+      "cost_items": [],
+      "payments": [],
+      "payment": 0,
+      "client": "Другое",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "8c8e2d4e-b4ff-4761-8c0f-c91c48e4fa82",
+      "order_number": 1020,
+      "created_at": "2025-12-25T09:00:00.000Z",
+      "date": "25.12.2025",
+      "type": "income",
+      "title": "20 фигурок лошадей",
+      "quantity": 20,
+      "base_amount": 2000,
+      "amount": 2000,
+      "cost": 1000,
+      "cost_items": [
+        {
+          "id": "ad98f2cb-2bac-4adb-9a15-9a6722733b60",
+          "category": "Печать",
+          "amount": 1000
+        }
+      ],
+      "payments": [
+        {
+          "id": "31cf6f5e-aab2-41f1-aab1-5718a0e9b58c",
+          "amount": 2000,
+          "date": "25.12.2025",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 2000,
+      "client": "Другое",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "7ba085c8-5b6b-44b1-b394-00f6e3875588",
+      "order_number": 1021,
+      "created_at": "2026-01-12T09:00:00.000Z",
+      "date": "12.01.2026",
+      "type": "income",
+      "title": "Лондон экспресс",
+      "quantity": 1,
+      "base_amount": 5300,
+      "amount": 5300,
+      "cost": 3148,
+      "cost_items": [
+        {
+          "id": "2c8743c5-234f-4cc2-a296-072d037877f9",
+          "category": "Печать",
+          "amount": 3148
+        }
+      ],
+      "payments": [
+        {
+          "id": "d73b5eef-def6-45a3-b667-2fb178e25bf7",
+          "amount": 5300,
+          "date": "12.01.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5300,
+      "client": "Другое",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "77774a5e-9556-4c94-9fb7-3bcaaf34d4a8",
+      "order_number": 1022,
+      "created_at": "2026-01-19T09:00:00.000Z",
+      "date": "19.01.2026",
+      "type": "income",
+      "title": "Кадетка 30 штук + 10 штук",
+      "quantity": 1,
+      "base_amount": 2500,
+      "amount": 2500,
+      "cost": 623,
+      "cost_items": [
+        {
+          "id": "e8c2e1c1-c09e-4aa9-9048-be8a4cb56ced",
+          "category": "Печать",
+          "amount": 623
+        }
+      ],
+      "payments": [
+        {
+          "id": "f02e32ab-5b48-451e-a559-e925fef86108",
+          "amount": 2500,
+          "date": "19.01.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 2500,
+      "client": "Другое",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "67c4d301-c304-4234-b4e2-1f2f10d4e708",
+      "order_number": 1023,
+      "created_at": "2026-01-20T09:00:00.000Z",
+      "date": "20.01.2026",
+      "type": "income",
+      "title": "Кадетка 50 штук + 10 штук + 5 штук",
+      "quantity": 1,
+      "base_amount": 3250,
+      "amount": 3250,
+      "cost": 810,
+      "cost_items": [
+        {
+          "id": "01747b2d-d835-473e-bb89-57ad7a438dc8",
+          "category": "Печать",
+          "amount": 810
+        }
+      ],
+      "payments": [
+        {
+          "id": "63f63148-af2a-4627-8913-fbba3870df0d",
+          "amount": 3250,
+          "date": "20.01.2026",
+          "note": "Полная оплата"
+        }
+      ],
+      "payment": 3250,
+      "client": "Другое",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "96e42144-d1d4-4699-880c-ebff020af25a",
+      "order_number": 1024,
+      "created_at": "2026-01-28T09:00:00.000Z",
+      "date": "28.01.2026",
+      "type": "income",
+      "title": "Матрешка для Алисы",
+      "quantity": 1,
+      "base_amount": 4489,
+      "amount": 4489,
+      "cost": 2311,
+      "cost_items": [
+        {
+          "id": "cb26ff78-0cc9-49ae-b769-1dc92277aad9",
+          "category": "Печать",
+          "amount": 2311
+        }
+      ],
+      "payments": [
+        {
+          "id": "f2c6afde-c6f5-4a23-b716-676945098786",
+          "amount": 4489,
+          "date": "28.01.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 4489,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "a1983fea-422e-4fd5-9fce-a76cc1964002",
+      "order_number": 1025,
+      "created_at": "2026-01-28T09:00:00.000Z",
+      "date": "28.01.2026",
+      "type": "income",
+      "title": "Матрешка для Алисы",
+      "quantity": 1,
+      "base_amount": 4489,
+      "amount": 4489,
+      "cost": 2311,
+      "cost_items": [
+        {
+          "id": "d0f29b8d-1bb8-45c1-bd30-47e3dfb6fa90",
+          "category": "Печать",
+          "amount": 2311
+        }
+      ],
+      "payments": [
+        {
+          "id": "2e65fe4c-82bb-428e-b07a-95bd3123bc12",
+          "amount": 4489,
+          "date": "28.01.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 4489,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "8de3a9dc-bbee-40a6-91bd-beb64d064c56",
+      "order_number": 1026,
+      "created_at": "2026-01-29T09:00:00.000Z",
+      "date": "29.01.2026",
+      "type": "income",
+      "title": "Чехлы на болты + моделирование",
+      "quantity": 1,
+      "base_amount": 1050,
+      "amount": 1050,
+      "cost": 274,
+      "cost_items": [
+        {
+          "id": "93d9e48e-6082-497a-95b9-cccecde97f2e",
+          "category": "Печать",
+          "amount": 274
+        }
+      ],
+      "payments": [
+        {
+          "id": "7b4d6c42-dcba-4346-a87f-acaf2cfcc6ed",
+          "amount": 500,
+          "date": "29.01.2026",
+          "note": "Предоплата"
+        },
+        {
+          "id": "6d7d0221-81ae-4dfc-8395-bfbb9cc71e3b",
+          "amount": 650,
+          "date": "29.01.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 1150,
+      "client": "Другое",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "34f83f32-55ea-4f3c-b3fd-a1da7ddb8fe7",
+      "order_number": 1027,
+      "created_at": "2026-02-03T09:00:00.000Z",
+      "date": "03.02.2026",
+      "type": "income",
+      "title": "2 детали ABS",
+      "quantity": 2,
+      "base_amount": 1300,
+      "amount": 1300,
+      "cost": 100,
+      "cost_items": [
+        {
+          "id": "888e47c6-b8ce-4201-a63c-b40943e97d57",
+          "category": "Печать",
+          "amount": 100
+        }
+      ],
+      "payments": [
+        {
+          "id": "5c3a5400-8428-4082-ab35-5aad2e84e2b7",
+          "amount": 500,
+          "date": "03.02.2026",
+          "note": "Предоплата"
+        },
+        {
+          "id": "34fc4919-bf3a-400e-b39e-d801e1b2caa5",
+          "amount": 800,
+          "date": "03.02.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 1300,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "de0ad996-68ba-45e5-bcd7-ab1f52508ea2",
+      "order_number": 1028,
+      "created_at": "2026-02-05T09:00:00.000Z",
+      "date": "05.02.2026",
+      "type": "income",
+      "title": "Матрешка",
+      "quantity": 1,
+      "base_amount": 6179,
+      "amount": 6179,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "99c57c0d-6a86-4f07-a753-4a27f273eefd",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "5e2785a1-2ac9-42b0-855e-fd055f94e05f",
+          "amount": 6179,
+          "date": "05.02.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 6179,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "ec921ef1-50e3-4670-8361-ee346dc07bfc",
+      "order_number": 1029,
+      "created_at": "2026-02-05T09:00:00.000Z",
+      "date": "05.02.2026",
+      "type": "income",
+      "title": "Расширенные арки",
+      "quantity": 1,
+      "base_amount": 65000,
+      "amount": 65000,
+      "cost": 25000,
+      "cost_items": [
+        {
+          "id": "4582026e-f05e-4658-a766-a6a1999d7337",
+          "category": "Печать",
+          "amount": 25000
+        }
+      ],
+      "payments": [
+        {
+          "id": "75e802cb-5605-48c7-bc9a-c01794c09683",
+          "amount": 65000,
+          "date": "05.02.2026",
+          "note": "Предоплата"
+        }
+      ],
+      "payment": 65000,
+      "client": "Авито",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "89624479848",
+          "label": "Телефон"
+        }
+      ],
+      "contact": "89624479848 Андрей",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "2db28322-ee29-4008-8750-c05a1e2a94d1",
+      "order_number": 1030,
+      "created_at": "2026-02-07T09:00:00.000Z",
+      "date": "07.02.2026",
+      "type": "income",
+      "title": "Обучение 3d печати",
+      "quantity": 1,
+      "base_amount": 3000,
+      "amount": 3000,
+      "cost": 0,
+      "cost_items": [],
+      "payments": [
+        {
+          "id": "cc862d6c-c720-40fd-a687-f7f334c63d7d",
+          "amount": 3000,
+          "date": "07.02.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 3000,
+      "client": "Другое",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "1c489cbe-9e4b-4b20-a97b-3f65801d5d24",
+      "order_number": 1031,
+      "created_at": "2026-02-07T09:00:00.000Z",
+      "date": "07.02.2026",
+      "type": "income",
+      "title": "спойлер Педжо 207 r/s 2008",
+      "quantity": 1,
+      "base_amount": 15000,
+      "amount": 15000,
+      "cost": 0,
+      "cost_items": [],
+      "payments": [],
+      "payment": 0,
+      "client": "Авито",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "89624499433",
+          "label": "Телефон"
+        }
+      ],
+      "contact": "89624499433 Сергей",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "3d7a215b-9b75-41ba-b322-27b4a026bffd",
+      "order_number": 1032,
+      "created_at": "2026-02-11T09:00:00.000Z",
+      "date": "11.02.2026",
+      "type": "income",
+      "title": "Загулшка в багажник",
+      "quantity": 1,
+      "base_amount": 1500,
+      "amount": 1500,
+      "cost": 82,
+      "cost_items": [
+        {
+          "id": "0816fcae-9e13-4333-87df-a4eabd777990",
+          "category": "Печать",
+          "amount": 82
+        }
+      ],
+      "payments": [
+        {
+          "id": "50fe5d5e-13c6-4876-ad10-5871416c9c69",
+          "amount": 1500,
+          "date": "11.02.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 1500,
+      "client": "Авито",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "89340118686",
+          "label": "Телефон"
+        }
+      ],
+      "contact": "89340118686",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "ce60f712-aa7e-4995-a5e9-3a429797593e",
+      "order_number": 1033,
+      "created_at": "2026-02-18T09:00:00.000Z",
+      "date": "18.02.2026",
+      "type": "income",
+      "title": "Моделирование шляпка на болт",
+      "quantity": 1,
+      "base_amount": 500,
+      "amount": 500,
+      "cost": 0,
+      "cost_items": [],
+      "payments": [],
+      "payment": 0,
+      "client": "Другое",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "82dd6dec-f92e-41c3-b8ca-4ac1217d3b91",
+      "order_number": 1034,
+      "created_at": "2026-02-20T09:00:00.000Z",
+      "date": "20.02.2026",
+      "type": "income",
+      "title": "Матрешка",
+      "quantity": 1,
+      "base_amount": 5421,
+      "amount": 5421,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "4848063c-6a15-4441-98bf-430c88f2d343",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "ca58f660-b0ab-4d06-90f9-0a0c303297c7",
+          "amount": 5421,
+          "date": "20.02.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5421,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "9331a2b9-a160-4ff2-85ad-26b905ec8737",
+      "order_number": 1035,
+      "created_at": "2026-02-24T09:00:00.000Z",
+      "date": "24.02.2026",
+      "type": "income",
+      "title": "Кадетка 30 деталей",
+      "quantity": 1,
+      "base_amount": 1500,
+      "amount": 1500,
+      "cost": 550,
+      "cost_items": [
+        {
+          "id": "2a814af7-0502-4ba9-bfc3-821e97c7056e",
+          "category": "Печать",
+          "amount": 550
+        }
+      ],
+      "payments": [],
+      "payment": 0,
+      "client": "Другое",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "00d6a02d-df21-4d22-952e-d2c85d5958ab",
+      "order_number": 1036,
+      "created_at": "2026-02-27T09:00:00.000Z",
+      "date": "27.02.2026",
+      "type": "income",
+      "title": "Матрешка голубая",
+      "quantity": 1,
+      "base_amount": 5421,
+      "amount": 5421,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "9d53a186-cb83-4c69-8ea5-6dbbb9123750",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "ac319b62-2f00-4f9a-81a3-5f3baa1d8ca8",
+          "amount": 5421,
+          "date": "27.02.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5421,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "cc282575-03f1-4dd0-b5a1-055d188d9130",
+      "order_number": 1037,
+      "created_at": "2026-02-27T09:00:00.000Z",
+      "date": "27.02.2026",
+      "type": "income",
+      "title": "Матрешка тиффани",
+      "quantity": 1,
+      "base_amount": 5421,
+      "amount": 5421,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "a990b7ef-1346-4018-89b6-29b20edfeb94",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "2bb7c3b3-eebe-4e56-a757-ccc12ada81b2",
+          "amount": 5421,
+          "date": "27.02.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5421,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "163c904b-6500-4f4a-a65f-b00e27aaace4",
+      "order_number": 1038,
+      "created_at": "2026-02-28T09:00:00.000Z",
+      "date": "28.02.2026",
+      "type": "income",
+      "title": "Матрешка черная",
+      "quantity": 1,
+      "base_amount": 5421,
+      "amount": 5421,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "c73eec25-8d78-4e4f-be7d-60b3cd04808a",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "f3795361-f622-4fce-bab1-5f63ffcec7f4",
+          "amount": 5421,
+          "date": "28.02.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5421,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "81fd3c9a-8400-44bc-add0-64569263cc38",
+      "order_number": 1039,
+      "created_at": "2026-02-28T09:00:00.000Z",
+      "date": "28.02.2026",
+      "type": "income",
+      "title": "Матрешка черная",
+      "quantity": 1,
+      "base_amount": 5421,
+      "amount": 5421,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "92fb0db9-2ed4-4fd1-9a57-5f388b45c501",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "d1ae49d3-c0b0-4926-90b1-32adf891dbdd",
+          "amount": 5421,
+          "date": "28.02.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5421,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "085e13f0-9f28-4161-98b4-97372ec49b80",
+      "order_number": 1040,
+      "created_at": "2026-03-02T09:00:00.000Z",
+      "date": "02.03.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5421,
+      "amount": 5421,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "1f22ab0c-41b7-4d11-879a-502d9d28ee97",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "12c0f1e7-c6f7-46fa-9dab-d1e06656836a",
+          "amount": 5421,
+          "date": "02.03.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5421,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "bc603931-4b43-4dfe-95a4-0753239e23b3",
+      "order_number": 1041,
+      "created_at": "2026-03-02T09:00:00.000Z",
+      "date": "02.03.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5421,
+      "amount": 5421,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "b027ff4f-f1a9-4060-bbb5-5caf1e80783f",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "2b3c63b9-ffbe-4ec5-bc68-677eb474244f",
+          "amount": 5421,
+          "date": "02.03.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5421,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "02f1403e-70a1-42e7-9bad-13675995f488",
+      "order_number": 1042,
+      "created_at": "2026-03-04T09:00:00.000Z",
+      "date": "04.03.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5421,
+      "amount": 5421,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "bf3d1d1e-25bd-4c10-9b07-3ee35c9fe98e",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "008236e7-cacf-4277-95f0-922f35b5d09b",
+          "amount": 5421,
+          "date": "04.03.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5421,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "e5334298-aba2-4bd7-9634-103987f31643",
+      "order_number": 1043,
+      "created_at": "2026-03-04T09:00:00.000Z",
+      "date": "04.03.2026",
+      "type": "income",
+      "title": "Деталь для машины",
+      "quantity": 1,
+      "base_amount": 1500,
+      "amount": 1500,
+      "cost": 100,
+      "cost_items": [
+        {
+          "id": "c356da51-1a75-4393-bde6-4c39f3ce21db",
+          "category": "Печать",
+          "amount": 100
+        }
+      ],
+      "payments": [
+        {
+          "id": "fbfab11d-e913-482f-b156-9a3a25b9d08f",
+          "amount": 1500,
+          "date": "04.03.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 1500,
+      "client": "Другое",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "69606a52-b60c-4005-ba28-a70695b4ae89",
+      "order_number": 1044,
+      "created_at": "2026-03-04T09:00:00.000Z",
+      "date": "04.03.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5421,
+      "amount": 5421,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "f9d8b984-37a4-40d2-a338-4a2cb7d9c1a3",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "d9dcd0e1-eea8-45c7-8ca7-16fa51a76740",
+          "amount": 5421,
+          "date": "04.03.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5421,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "f33d2974-a9f3-44df-acf1-1c967aa1832d",
+      "order_number": 1045,
+      "created_at": "2026-03-04T09:00:00.000Z",
+      "date": "04.03.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 6311,
+      "amount": 6311,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "efbe38df-dc90-408e-85ee-3fa28f83cd6c",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "77c423c0-2435-44ce-a582-019a6db0c518",
+          "amount": 6311,
+          "date": "04.03.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 6311,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "2beea3e3-532b-445e-a411-f4788de23c2a",
+      "order_number": 1046,
+      "created_at": "2026-03-20T09:00:00.000Z",
+      "date": "20.03.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5603,
+      "amount": 5603,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "c0b3998f-3fb1-423a-870e-1e9d74d49050",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "34ef0e64-11d0-41ed-a413-d0ff7a87de4c",
+          "amount": 5603,
+          "date": "20.03.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5603,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "57031071-dd22-4ede-a577-fad1d758e7d1",
+      "order_number": 1047,
+      "created_at": "2026-04-01T09:00:00.000Z",
+      "date": "01.04.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5603,
+      "amount": 5603,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "406d94f9-791b-4f9e-93c5-1cb9a2251f08",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "3cde4933-ab6f-4485-893a-06194451d28b",
+          "amount": 5603,
+          "date": "01.04.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5603,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "39c34784-10df-4079-ab4f-e9069385bb44",
+      "order_number": 1048,
+      "created_at": "2026-04-02T09:00:00.000Z",
+      "date": "02.04.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5603,
+      "amount": 5603,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "a517d345-d43e-4208-ab71-0ba6f0c91848",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "1b372319-e402-4b08-9dd8-cdb47d8fb21a",
+          "amount": 5603,
+          "date": "02.04.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5603,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "4419e897-3d4d-402d-821f-9d66f7a18126",
+      "order_number": 1049,
+      "created_at": "2026-04-07T09:00:00.000Z",
+      "date": "07.04.2026",
+      "type": "income",
+      "title": "Матрешка черная",
+      "quantity": 1,
+      "base_amount": 5154,
+      "amount": 5154,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "62093bee-0709-411f-9f90-0094c72eb91b",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "45d32aad-11c7-44ba-8f48-ba2a4917ece5",
+          "amount": 5154,
+          "date": "07.04.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5154,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "43b45b14-7404-4a0d-8c5f-69dd146831b8",
+      "order_number": 1050,
+      "created_at": "2026-04-10T09:00:00.000Z",
+      "date": "10.04.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5154,
+      "amount": 5154,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "e6b47f89-2f60-43f9-91e2-404ee3312340",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "d0159b6a-97c1-4fb9-9e01-21b6d664f474",
+          "amount": 5154,
+          "date": "10.04.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5154,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "4a334b6d-235f-461c-8d09-9f488cd3c27a",
+      "order_number": 1051,
+      "created_at": "2026-04-11T09:00:00.000Z",
+      "date": "11.04.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5154,
+      "amount": 5154,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "075906d3-a47f-4c88-a2b4-f960658d50b2",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "49a340c7-cc49-4fc5-97ea-6e8ef431657c",
+          "amount": 5154,
+          "date": "11.04.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5154,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "6b7e6d6f-06b9-4d33-8e8f-c5fcf8e8c7e0",
+      "order_number": 1052,
+      "created_at": "2026-04-12T09:00:00.000Z",
+      "date": "12.04.2026",
+      "type": "income",
+      "title": "Матрешка черная",
+      "quantity": 1,
+      "base_amount": 5154,
+      "amount": 5154,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "feea7ac5-fb24-4e32-9e1c-b593dd120f42",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "a536e7db-1492-4212-bbd2-337ff4b37a46",
+          "amount": 5154,
+          "date": "12.04.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5154,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "f08435b6-a150-4789-8b9f-be1c540288f5",
+      "order_number": 1053,
+      "created_at": "2026-04-15T09:00:00.000Z",
+      "date": "15.04.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5154,
+      "amount": 5154,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "5bae64dc-c1c7-49d8-8c01-7a64f68648fe",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "b28e3531-57e1-4557-8983-8218938e71ad",
+          "amount": 5154,
+          "date": "15.04.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5154,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "37b55b55-6541-4845-a179-670ac8072cb4",
+      "order_number": 1054,
+      "created_at": "2026-04-16T09:00:00.000Z",
+      "date": "16.04.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5154,
+      "amount": 5154,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "116cc989-c165-455c-83bc-3d2f087b6b16",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "d994012a-9380-4efd-99db-80b09359c2ac",
+          "amount": 5154,
+          "date": "16.04.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5154,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "e103ec5a-bd18-45e9-94fe-e1860fb237a4",
+      "order_number": 1055,
+      "created_at": "2026-04-16T09:00:00.000Z",
+      "date": "16.04.2026",
+      "type": "income",
+      "title": "Деталь для мотоцикла",
+      "quantity": 1,
+      "base_amount": 1500,
+      "amount": 1500,
+      "cost": 100,
+      "cost_items": [
+        {
+          "id": "022fe9d9-65d8-4c72-8a76-563be5ce874b",
+          "category": "Печать",
+          "amount": 100
+        }
+      ],
+      "payments": [
+        {
+          "id": "0c1d43be-6804-4a3a-991e-cc02dd27b4d2",
+          "amount": 750,
+          "date": "16.04.2026",
+          "note": "Предоплата"
+        },
+        {
+          "id": "0f17938e-aaa6-4d22-b205-1aa6dc8fe0ad",
+          "amount": 750,
+          "date": "16.04.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 1500,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "e56fc206-0172-4857-a07b-b8c79df50390",
+      "order_number": 1056,
+      "created_at": "2026-04-19T09:00:00.000Z",
+      "date": "19.04.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5542,
+      "amount": 5542,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "0be78cdf-29c2-44ce-a2cb-1f2d6fca1ab2",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "f20cf76a-8fe0-4d53-b7d9-889796ab745b",
+          "amount": 5542,
+          "date": "19.04.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5542,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "f33fe66d-785a-45f5-a837-9b6406713763",
+      "order_number": 1057,
+      "created_at": "2026-04-21T09:00:00.000Z",
+      "date": "21.04.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5154,
+      "amount": 5154,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "0a7cb7c2-c9ba-4870-b570-8ff5694375f0",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "5c28974d-6ef6-4d8f-84e2-c88b3d98908b",
+          "amount": 5154,
+          "date": "21.04.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5154,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "f53b041b-8093-4e0c-99cb-88c426f0e188",
+      "order_number": 1058,
+      "created_at": "2026-04-22T09:00:00.000Z",
+      "date": "22.04.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5154,
+      "amount": 5154,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "f79fb5c8-bb1b-43b8-84ee-624f5feab15a",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "16718b57-1bf8-4389-9d1e-17a4f9163d50",
+          "amount": 5154,
+          "date": "22.04.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5154,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "97bd8b22-a69b-4b92-bf14-9ea0750ebadc",
+      "order_number": 1059,
+      "created_at": "2026-04-22T09:00:00.000Z",
+      "date": "22.04.2026",
+      "type": "income",
+      "title": "Лондон подставки для ручек 15 штук",
+      "quantity": 1,
+      "base_amount": 5700,
+      "amount": 5700,
+      "cost": 2060,
+      "cost_items": [
+        {
+          "id": "b19fa905-0a81-4f61-b182-5b4920a521c6",
+          "category": "Печать",
+          "amount": 2060
+        }
+      ],
+      "payments": [
+        {
+          "id": "ccf688fd-ebef-4d4a-9b46-e83d5ce0affc",
+          "amount": 5700,
+          "date": "22.04.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5700,
+      "client": "Другое",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "a57ce383-1412-4cdd-bd7f-ddd55fbeb943",
+      "order_number": 1060,
+      "created_at": "2026-05-02T09:00:00.000Z",
+      "date": "02.05.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5511,
+      "amount": 5511,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "0a63ad10-0344-4ae6-9c11-821c950a1dbc",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "353c0002-62a6-431a-a487-f63e936d4735",
+          "amount": 5511,
+          "date": "02.05.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5511,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "261263ef-f400-4b9f-af4f-6cf44e503010",
+      "order_number": 1061,
+      "created_at": "2026-05-07T09:00:00.000Z",
+      "date": "07.05.2026",
+      "type": "income",
+      "title": "Матрешка изумрудная",
+      "quantity": 1,
+      "base_amount": 5511,
+      "amount": 5511,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "5d19291e-07e1-42e5-9779-e436d4ce982f",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "8f3142ed-57eb-4568-8c55-2eccdd85254e",
+          "amount": 5511,
+          "date": "07.05.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5511,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "67820960-dab2-4145-9137-764421df6c5f",
+      "order_number": 1062,
+      "created_at": "2026-05-08T09:00:00.000Z",
+      "date": "08.05.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5511,
+      "amount": 5511,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "38199c64-835b-4b8b-bade-2b15f7b3d0d8",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "0739be8d-f1e6-4804-b1b4-85db847b4245",
+          "amount": 5511,
+          "date": "08.05.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5511,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "619a265a-2b6c-4251-a15e-ec510cb60af7",
+      "order_number": 1063,
+      "created_at": "2026-05-08T09:00:00.000Z",
+      "date": "08.05.2026",
+      "type": "income",
+      "title": "Леха",
+      "quantity": 1,
+      "base_amount": 1000,
+      "amount": 1000,
+      "cost": 100,
+      "cost_items": [
+        {
+          "id": "faf7e633-1c01-4771-bfbc-be6c5aa726e2",
+          "category": "Печать",
+          "amount": 100
+        }
+      ],
+      "payments": [
+        {
+          "id": "0d6f282f-6b1a-470e-855c-59b3d2508248",
+          "amount": 1000,
+          "date": "08.05.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 1000,
+      "client": "Другое",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "d59b99eb-59a6-4541-bfdd-9f2a0c23624a",
+      "order_number": 1064,
+      "created_at": "2026-05-08T09:00:00.000Z",
+      "date": "08.05.2026",
+      "type": "income",
+      "title": "Колесо для модельки",
+      "quantity": 1,
+      "base_amount": 800,
+      "amount": 800,
+      "cost": 100,
+      "cost_items": [
+        {
+          "id": "b10873ea-16ee-4de6-8220-0ac9a292538b",
+          "category": "Печать",
+          "amount": 100
+        }
+      ],
+      "payments": [],
+      "payment": 0,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "5bb600de-390c-432e-92c4-77ad88c8ec85",
+      "order_number": 1065,
+      "created_at": "2026-05-12T09:00:00.000Z",
+      "date": "12.05.2026",
+      "type": "income",
+      "title": "Матрешка Слоновая кость с обработкой",
+      "quantity": 1,
+      "base_amount": 12000,
+      "amount": 12000,
+      "cost": 5208,
+      "cost_items": [
+        {
+          "id": "47d5c759-3073-4d04-8d42-70be13870b71",
+          "category": "Печать",
+          "amount": 5208
+        }
+      ],
+      "payments": [
+        {
+          "id": "6a6930f4-8a9a-4e92-a6f0-d6bb3b47a47d",
+          "amount": 6000,
+          "date": "12.05.2026",
+          "note": "Предоплата"
+        },
+        {
+          "id": "8d094b35-9e24-42e6-8de1-9edc24735c04",
+          "amount": 6000,
+          "date": "12.05.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 12000,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "9c3d07ac-9994-458b-bfdd-9b3fa2fc60ec",
+      "order_number": 1066,
+      "created_at": "2026-05-18T09:00:00.000Z",
+      "date": "18.05.2026",
+      "type": "income",
+      "title": "Моделька ягуара",
+      "quantity": 1,
+      "base_amount": 200,
+      "amount": 200,
+      "cost": 40,
+      "cost_items": [
+        {
+          "id": "330ddf81-77da-4744-8763-7742c297d562",
+          "category": "Печать",
+          "amount": 40
+        }
+      ],
+      "payments": [
+        {
+          "id": "02ffc6bc-3fce-4265-a1f6-a0579e53eb86",
+          "amount": 200,
+          "date": "18.05.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 200,
+      "client": "Другое",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "a6172b55-4f1d-47fe-b048-e756beb0696c",
+      "order_number": 1067,
+      "created_at": "2026-05-21T09:00:00.000Z",
+      "date": "21.05.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5511,
+      "amount": 5511,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "48d39723-b4af-47ea-bdfe-41ed656bea4b",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "9aa1f38e-09e3-4cb4-bc3d-e20cc214881a",
+          "amount": 5511,
+          "date": "21.05.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5511,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "6e28457e-c875-41ec-afab-988eddddd822",
+      "order_number": 1068,
+      "created_at": "2026-05-23T09:00:00.000Z",
+      "date": "23.05.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5511,
+      "amount": 5511,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "1ea44856-6954-4ee3-bf2d-8d94dc93844a",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "ef8391bd-9645-407e-8c04-5471a70b65a3",
+          "amount": 5511,
+          "date": "23.05.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5511,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "c569e849-ed02-49d1-b6ba-829626f8afec",
+      "order_number": 1069,
+      "created_at": "2026-05-23T09:00:00.000Z",
+      "date": "23.05.2026",
+      "type": "income",
+      "title": "BWM Обвесы",
+      "quantity": 1,
+      "base_amount": 3500,
+      "amount": 3500,
+      "cost": 1500,
+      "cost_items": [
+        {
+          "id": "df81db1e-d22a-4fda-85d2-d12f922b9591",
+          "category": "Печать",
+          "amount": 1500
+        }
+      ],
+      "payments": [
+        {
+          "id": "0dfab89c-644c-4b1e-8663-822142f172c2",
+          "amount": 3500,
+          "date": "23.05.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 3500,
+      "client": "Авито",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "89064794900",
+          "label": "Телефон"
+        }
+      ],
+      "contact": "89064794900",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "466f4b80-505b-439e-be6a-ae5fea94ed8d",
+      "order_number": 1070,
+      "created_at": "2026-05-23T09:00:00.000Z",
+      "date": "23.05.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5511,
+      "amount": 5511,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "33a67703-d781-4092-895c-d302c3a45e34",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "d59ea70a-76fa-47ba-baed-6ed2635189a8",
+          "amount": 5511,
+          "date": "23.05.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5511,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "27b79d46-008c-4459-817e-b6e2a5ec9a8f",
+      "order_number": 1071,
+      "created_at": "2026-05-25T09:00:00.000Z",
+      "date": "25.05.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5511,
+      "amount": 5511,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "fce29a9c-3806-4751-a365-aefa690c4c4c",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "5a474bb7-90c3-4714-a1fa-91db8eb3c20c",
+          "amount": 5511,
+          "date": "25.05.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5511,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "dff7acf7-6c4d-4413-a401-eb05d72439f2",
+      "order_number": 1072,
+      "created_at": "2026-05-25T09:00:00.000Z",
+      "date": "25.05.2026",
+      "type": "income",
+      "title": "Матрешка черная",
+      "quantity": 1,
+      "base_amount": 5511,
+      "amount": 5511,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "a09501af-30c1-407b-9790-f8b7a4804a8c",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "f528f482-a2c3-4477-ba52-60ef9a2a9472",
+          "amount": 5511,
+          "date": "25.05.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5511,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "95167bf4-92cf-49df-9f07-9ede174e58a7",
+      "order_number": 1073,
+      "created_at": "2026-05-30T09:00:00.000Z",
+      "date": "30.05.2026",
+      "type": "income",
+      "title": "Под колонку для дверной карты",
+      "quantity": 1,
+      "base_amount": 15000,
+      "amount": 15000,
+      "cost": 2000,
+      "cost_items": [
+        {
+          "id": "818a4f9d-83bf-4d4e-a155-023d6f81bef7",
+          "category": "Печать",
+          "amount": 2000
+        }
+      ],
+      "payments": [
+        {
+          "id": "6394be7f-0a39-41c7-948d-30d83e92c667",
+          "amount": 15000,
+          "date": "30.05.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 15000,
+      "client": "Авито",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "89283218745",
+          "label": "Телефон"
+        }
+      ],
+      "contact": "89283218745",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "70ee1a39-6c6a-4f59-a0aa-cd685b49f5c0",
+      "order_number": 1074,
+      "created_at": "2026-06-01T09:00:00.000Z",
+      "date": "01.06.2026",
+      "type": "income",
+      "title": "Для мотоцикла",
+      "quantity": 1,
+      "base_amount": 9700,
+      "amount": 9700,
+      "cost": 3300,
+      "cost_items": [
+        {
+          "id": "1e0114db-2816-44f7-9345-35dbacf6b544",
+          "category": "Печать",
+          "amount": 3300
+        }
+      ],
+      "payments": [
+        {
+          "id": "2c0cf59f-c24b-45a2-b9b7-8643e7760ba9",
+          "amount": 9700,
+          "date": "01.06.2026",
+          "note": "Оплата"
+        },
+        {
+          "id": "734dd973-b0cd-405f-9ace-0d3b1e416db9",
+          "amount": 300,
+          "date": "01.06.2026",
+          "note": "Доп. оплата"
+        }
+      ],
+      "payment": 10000,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "8d0e8ec6-0504-49d8-ab27-b2489aa9707a",
+      "order_number": 1075,
+      "created_at": "2026-06-02T09:00:00.000Z",
+      "date": "02.06.2026",
+      "type": "income",
+      "title": "Приборка для ваз 2109",
+      "quantity": 1,
+      "base_amount": 2000,
+      "amount": 2000,
+      "cost": 200,
+      "cost_items": [
+        {
+          "id": "0d5b3848-9993-4f95-a48a-4290a72b5da6",
+          "category": "Печать",
+          "amount": 200
+        }
+      ],
+      "payments": [
+        {
+          "id": "1433afcc-f10a-468f-abf5-76d6683e3a65",
+          "amount": 2000,
+          "date": "02.06.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 2000,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "c0ec61dc-0c36-461b-9b02-22d35398c414",
+      "order_number": 1076,
+      "created_at": "2026-06-10T09:00:00.000Z",
+      "date": "10.06.2026",
+      "type": "income",
+      "title": "Матрешка белая",
+      "quantity": 1,
+      "base_amount": 5511,
+      "amount": 5511,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "607d6852-39f9-4464-9ee6-426043dbb111",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "0167aeb4-8db5-48e6-ac24-8f6b40e66b02",
+          "amount": 5511,
+          "date": "10.06.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5511,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "6d74a10e-67e6-43a5-9ee9-a8deefa244f8",
+      "order_number": 1077,
+      "created_at": "2026-06-11T09:00:00.000Z",
+      "date": "11.06.2026",
+      "type": "income",
+      "title": "Лондон брелоки",
+      "quantity": 1,
+      "base_amount": 1160,
+      "amount": 1160,
+      "cost": 242,
+      "cost_items": [
+        {
+          "id": "0ce15eb0-6ff8-4833-9eb4-9b19c9cbeb10",
+          "category": "Печать",
+          "amount": 242
+        }
+      ],
+      "payments": [],
+      "payment": 0,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "2166a84a-c433-40ec-beec-63929e4f1f70",
+      "order_number": 1078,
+      "created_at": "2026-06-16T09:00:00.000Z",
+      "date": "16.06.2026",
+      "type": "income",
+      "title": "Кусочек для мотоцикла",
+      "quantity": 1,
+      "base_amount": 1500,
+      "amount": 1500,
+      "cost": 100,
+      "cost_items": [
+        {
+          "id": "0404ca90-539a-4951-bf18-143fc54ee59a",
+          "category": "Печать",
+          "amount": 100
+        }
+      ],
+      "payments": [
+        {
+          "id": "d42e6e9c-b24e-4de2-9695-72e656c1b167",
+          "amount": 1500,
+          "date": "16.06.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 1500,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "d0db08cb-27e0-48e9-a5ad-2502d7f600fa",
+      "order_number": 1079,
+      "created_at": "2026-06-23T09:00:00.000Z",
+      "date": "23.06.2026",
+      "type": "income",
+      "title": "Матрешка МАКС красная",
+      "quantity": 1,
+      "base_amount": 11040,
+      "amount": 11040,
+      "cost": 5200,
+      "cost_items": [
+        {
+          "id": "02acc623-6ec7-46c1-9de1-355c4db99cf4",
+          "category": "Печать",
+          "amount": 5200
+        }
+      ],
+      "payments": [
+        {
+          "id": "7b5bca11-5ff9-45f0-897f-baa367c2d718",
+          "amount": 11040,
+          "date": "23.06.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 11040,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": "Вместе с подвесами"
+    },
+    {
+      "id": "51904636-c921-4296-ab95-70ac92f69288",
+      "order_number": 1080,
+      "created_at": "2026-06-23T09:00:00.000Z",
+      "date": "23.06.2026",
+      "type": "income",
+      "title": "Матрешка подвесы",
+      "quantity": 1,
+      "base_amount": 3510,
+      "amount": 3510,
+      "cost": 1190,
+      "cost_items": [
+        {
+          "id": "4f428ed2-891c-4cb3-89be-cf01fcad4358",
+          "category": "Печать",
+          "amount": 1190
+        }
+      ],
+      "payments": [
+        {
+          "id": "8af1136c-fed4-4c42-b682-f43b4552a121",
+          "amount": 3510,
+          "date": "23.06.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 3510,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "ef88c3e1-8a5b-42bd-9ccb-89906699ae27",
+      "order_number": 1081,
+      "created_at": "2026-06-29T09:00:00.000Z",
+      "date": "29.06.2026",
+      "type": "income",
+      "title": "Штамп для собачницы",
+      "quantity": 1,
+      "base_amount": 1500,
+      "amount": 1500,
+      "cost": 500,
+      "cost_items": [
+        {
+          "id": "9056373b-7c83-40df-80f2-492d88c4eadd",
+          "category": "Печать",
+          "amount": 500
+        }
+      ],
+      "payments": [
+        {
+          "id": "bce33146-cc65-4e64-bcee-ad0e95a616f8",
+          "amount": 1500,
+          "date": "29.06.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 1500,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "f1ea4bfb-cc56-4dc3-8894-de2d15c83b23",
+      "order_number": 1082,
+      "created_at": "2026-06-30T09:00:00.000Z",
+      "date": "30.06.2026",
+      "type": "income",
+      "title": "Накладка под домкрат",
+      "quantity": 1,
+      "base_amount": 5500,
+      "amount": 5500,
+      "cost": 2000,
+      "cost_items": [
+        {
+          "id": "9ebc00f8-c905-4769-b67f-24c5f8aebe07",
+          "category": "Печать",
+          "amount": 2000
+        }
+      ],
+      "payments": [
+        {
+          "id": "2b34d1ba-0390-4b2f-92b1-ce90d77195fc",
+          "amount": 5500,
+          "date": "30.06.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5500,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "78d706b4-c49d-422a-bdb8-21f0a692c252",
+      "order_number": 1083,
+      "created_at": "2026-07-06T09:00:00.000Z",
+      "date": "06.07.2026",
+      "type": "income",
+      "title": "Матрешка МАКС черная",
+      "quantity": 1,
+      "base_amount": 11040,
+      "amount": 11040,
+      "cost": 5200,
+      "cost_items": [
+        {
+          "id": "b4411941-846d-4e67-8ee4-8f8d613ea93f",
+          "category": "Печать",
+          "amount": 5200
+        }
+      ],
+      "payments": [
+        {
+          "id": "62669323-994f-4851-ba40-2ef5a88f1024",
+          "amount": 11040,
+          "date": "06.07.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 11040,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "31a48d69-a256-49b9-947c-efe921f51aed",
+      "order_number": 1084,
+      "created_at": "2026-07-06T09:00:00.000Z",
+      "date": "06.07.2026",
+      "type": "income",
+      "title": "Для микроволновки",
+      "quantity": 1,
+      "base_amount": 2000,
+      "amount": 2000,
+      "cost": 300,
+      "cost_items": [
+        {
+          "id": "5b2bb572-4800-4a50-bf1b-75032a2d863e",
+          "category": "Печать",
+          "amount": 300
+        }
+      ],
+      "payments": [
+        {
+          "id": "a80771c4-5359-45b3-b490-8e3be4ba0334",
+          "amount": 2000,
+          "date": "06.07.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 2000,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "801be960-169e-470b-8528-f76aedf0854f",
+      "order_number": 1085,
+      "created_at": "2026-07-08T09:00:00.000Z",
+      "date": "08.07.2026",
+      "type": "income",
+      "title": "Детали из TPU",
+      "quantity": 1,
+      "base_amount": 900,
+      "amount": 900,
+      "cost": 431,
+      "cost_items": [
+        {
+          "id": "788f1c6e-686b-40a9-8f00-41cea4c59f1b",
+          "category": "Печать",
+          "amount": 431
+        }
+      ],
+      "payments": [
+        {
+          "id": "caf4ea6b-bdd7-4e6a-867a-bd29f3a0c2cb",
+          "amount": 900,
+          "date": "08.07.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 900,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "c9722520-65f9-43fe-8b9c-e7afd80fffab",
+      "order_number": 1086,
+      "created_at": "2026-07-08T09:00:00.000Z",
+      "date": "08.07.2026",
+      "type": "income",
+      "title": "Матрешка МИНИ с покраской красного цвета",
+      "quantity": 1,
+      "base_amount": 12000,
+      "amount": 12000,
+      "cost": 3300,
+      "cost_items": [
+        {
+          "id": "7c17c78b-d6bd-4d74-be39-0a23640215db",
+          "category": "Печать",
+          "amount": 3300
+        }
+      ],
+      "payments": [
+        {
+          "id": "3f4bd3bc-646f-44f9-8c79-76693c765722",
+          "amount": 6000,
+          "date": "08.07.2026",
+          "note": "Предоплата"
+        },
+        {
+          "id": "ea96b86c-e4f4-4996-9542-9567eeeb1ad3",
+          "amount": 6000,
+          "date": "08.07.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 12000,
+      "client": "Авито",
+      "client_name": "Камаева Ольга Андреевна",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "89207616108",
+          "label": "Телефон (из примечания)"
+        }
+      ],
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": "г. Тула, ул. Октябрьская, д. 217, корпус 1\n\nКамаева Ольга Андреевна\n\n89207616108"
+    },
+    {
+      "id": "39764c70-c12f-410b-87c8-5d177205fecd",
+      "order_number": 1087,
+      "created_at": "2026-07-08T09:00:00.000Z",
+      "date": "08.07.2026",
+      "type": "income",
+      "title": "Матрешка МАКС черная",
+      "quantity": 1,
+      "base_amount": 11040,
+      "amount": 11040,
+      "cost": 5200,
+      "cost_items": [
+        {
+          "id": "b6fc70db-ec74-44be-8f38-9c5cde43e45e",
+          "category": "Печать",
+          "amount": 5200
+        }
+      ],
+      "payments": [
+        {
+          "id": "d1c082f1-aeb4-4c33-bd6d-ef9d68d566fd",
+          "amount": 11040,
+          "date": "08.07.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 11040,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "a439e325-ef38-4ee4-99d9-8f95c52a2017",
+      "order_number": 1088,
+      "created_at": "2026-07-08T09:00:00.000Z",
+      "date": "08.07.2026",
+      "type": "income",
+      "title": "Матрешка МИНИ черная",
+      "quantity": 1,
+      "base_amount": 3303,
+      "amount": 3303,
+      "cost": 1700,
+      "cost_items": [
+        {
+          "id": "369ea1b5-d645-4c4c-8f13-93f88da6f917",
+          "category": "Печать",
+          "amount": 1700
+        }
+      ],
+      "payments": [
+        {
+          "id": "487ceed6-580e-4f93-8a4f-c800616785a1",
+          "amount": 3303,
+          "date": "08.07.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 3303,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "57fdda00-de70-415b-ad28-1f7c9cddbc6c",
+      "order_number": 1089,
+      "created_at": "2026-07-08T09:00:00.000Z",
+      "date": "08.07.2026",
+      "type": "income",
+      "title": "Матрешка МАКС черная",
+      "quantity": 1,
+      "base_amount": 12411,
+      "amount": 12411,
+      "cost": 5200,
+      "cost_items": [
+        {
+          "id": "e94b17aa-3dab-4a3f-aabd-7a75f03dd883",
+          "category": "Печать",
+          "amount": 5200
+        }
+      ],
+      "payments": [
+        {
+          "id": "b6f9ef4b-ded5-4121-b801-01c963eaf3d0",
+          "amount": 12411,
+          "date": "08.07.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 12411,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "98669b08-6dd2-4816-9c27-17af2527e44c",
+      "order_number": 1090,
+      "created_at": "2026-07-19T09:00:00.000Z",
+      "date": "19.07.2026",
+      "type": "income",
+      "title": "Матрешка МАКС красная",
+      "quantity": 1,
+      "base_amount": 12411,
+      "amount": 12411,
+      "cost": 5200,
+      "cost_items": [
+        {
+          "id": "44028285-3261-4bea-9a0f-b1ab15f0bd66",
+          "category": "Печать",
+          "amount": 5200
+        }
+      ],
+      "payments": [
+        {
+          "id": "1955df7e-6f92-4aed-93d1-a8cd13cf2e88",
+          "amount": 12411,
+          "date": "19.07.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 12411,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "95749141-2097-42c1-b563-4a81586f1615",
+      "order_number": 1091,
+      "created_at": "2026-07-23T09:00:00.000Z",
+      "date": "23.07.2026",
+      "type": "income",
+      "title": "Матрешка МИДИ черная",
+      "quantity": 1,
+      "base_amount": 5497,
+      "amount": 5497,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "2c271a1b-e577-47e3-b367-4736246f5ee2",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "3c769599-9b02-4351-a74e-39ca17d0b194",
+          "amount": 5497,
+          "date": "23.07.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5497,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "79d97a7c-6fe6-43f0-aebc-07bd41a6121d",
+      "order_number": 1092,
+      "created_at": "2026-07-24T09:00:00.000Z",
+      "date": "24.07.2026",
+      "type": "income",
+      "title": "Матрешка МИНИ красная",
+      "quantity": 1,
+      "base_amount": 3303,
+      "amount": 3303,
+      "cost": 1700,
+      "cost_items": [
+        {
+          "id": "3755e617-1872-448d-8487-5577ac2b19ae",
+          "category": "Печать",
+          "amount": 1700
+        }
+      ],
+      "payments": [
+        {
+          "id": "20db00b4-c16d-475d-88e4-66a8bc87fc7d",
+          "amount": 3303,
+          "date": "24.07.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 3303,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "e34e8e9b-2955-4fe0-a76c-72d23bf91d18",
+      "order_number": 1093,
+      "created_at": "2026-07-24T09:00:00.000Z",
+      "date": "24.07.2026",
+      "type": "income",
+      "title": "Солнеце защитнйы козырек",
+      "quantity": 1,
+      "base_amount": 24000,
+      "amount": 24000,
+      "cost": 1700,
+      "cost_items": [
+        {
+          "id": "303fe94b-94b8-4792-8561-7c25eaf26e97",
+          "category": "Печать",
+          "amount": 1700
+        }
+      ],
+      "payments": [],
+      "payment": 0,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "45f4f62e-39bd-4564-8382-cc01f6df6bbb",
+      "order_number": 1094,
+      "created_at": "2026-07-29T09:00:00.000Z",
+      "date": "29.07.2026",
+      "type": "income",
+      "title": "Накладка на бампер",
+      "quantity": 1,
+      "base_amount": 10000,
+      "amount": 10000,
+      "cost": 1700,
+      "cost_items": [
+        {
+          "id": "551f54ea-22d0-45fd-857b-13de11c0769d",
+          "category": "Печать",
+          "amount": 1700
+        }
+      ],
+      "payments": [],
+      "payment": 0,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "9e2fd63e-3f54-4b0c-9e48-6ea3d0ad0440",
+      "order_number": 1095,
+      "created_at": "2026-08-20T09:00:00.000Z",
+      "date": "20.08.2026",
+      "type": "income",
+      "title": "Спойлер на кампри",
+      "quantity": 1,
+      "base_amount": 16000,
+      "amount": 16000,
+      "cost": 2000,
+      "cost_items": [
+        {
+          "id": "2f59c5ef-f22d-481c-ab6a-adb4f978f5f5",
+          "category": "Печать",
+          "amount": 2000
+        }
+      ],
+      "payments": [
+        {
+          "id": "d9fe7d6f-6aca-463a-8c76-10a6576eb0bc",
+          "amount": 2000,
+          "date": "20.08.2026",
+          "note": "Предоплата"
+        },
+        {
+          "id": "efe0ac6f-47a9-4010-8429-ac0b9caaa7dd",
+          "amount": 5000,
+          "date": "20.08.2026",
+          "note": "Доп. оплата"
+        }
+      ],
+      "payment": 7000,
+      "client": "Авито",
+      "client_name": "Павел",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "89197427042",
+          "label": "Телефон"
+        }
+      ],
+      "contact": "89197427042 Павел",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "741ca8bc-95d0-4ffc-aabf-079620028fe9",
+      "order_number": 1096,
+      "created_at": "2026-08-20T09:00:00.000Z",
+      "date": "20.08.2026",
+      "type": "income",
+      "title": "Матрешка МАКС слоновая кость",
+      "quantity": 1,
+      "base_amount": 11790,
+      "amount": 11790,
+      "cost": 5200,
+      "cost_items": [
+        {
+          "id": "7d76d374-8075-4176-8512-77fa21d0db6f",
+          "category": "Печать",
+          "amount": 5200
+        }
+      ],
+      "payments": [
+        {
+          "id": "2aecd5e8-1718-430f-9f3c-cfc4986c4755",
+          "amount": 11790,
+          "date": "20.08.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 11790,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "75b3bd69-a549-44f0-94e1-447eb717034d",
+      "order_number": 1097,
+      "created_at": "2026-08-21T09:00:00.000Z",
+      "date": "21.08.2026",
+      "type": "income",
+      "title": "Матрешка МИДИ с покраской БЕЛАЯ",
+      "quantity": 1,
+      "base_amount": 15200,
+      "amount": 15200,
+      "cost": 4400,
+      "cost_items": [
+        {
+          "id": "fe05be8b-7088-45d5-8b1c-0e77ffa371bf",
+          "category": "Печать",
+          "amount": 4400
+        }
+      ],
+      "payments": [
+        {
+          "id": "7d1378ae-8c51-4764-8fce-813686fe6f21",
+          "amount": 15200,
+          "date": "21.08.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 15200,
+      "client": "Авито",
+      "client_name": "Морозов Сергей Игоревич",
+      "contacts": [
+        {
+          "type": "avito",
+          "value": "https://www.avito.ru/profile/messenger/channel/u2i-cKZOzTE1EU9LI~ewXaU1EA",
+          "label": "Авито"
+        },
+        {
+          "type": "phone",
+          "value": "89065477094",
+          "label": "Телефон (из примечания)"
+        }
+      ],
+      "contact": "https://www.avito.ru/profile/messenger/channel/u2i-cKZOzTE1EU9LI~ewXaU1EA",
+      "deadline": "",
+      "status": "Готово",
+      "notes": "Лучше СДЭКом наверное: г.Рязань,Ул Гагарина 69\nПолучатель Морозов Сергей Игоревич \nТел :89065477094"
+    },
+    {
+      "id": "4c13b934-08f3-4ff6-aa20-20da8c55c025",
+      "order_number": 1098,
+      "created_at": "2026-08-21T09:00:00.000Z",
+      "date": "21.08.2026",
+      "type": "income",
+      "title": "Матрешка МИДИ черная",
+      "quantity": 1,
+      "base_amount": 5497,
+      "amount": 5497,
+      "cost": 2400,
+      "cost_items": [
+        {
+          "id": "2107326c-43b2-4d6f-b344-6557d5499090",
+          "category": "Печать",
+          "amount": 2400
+        }
+      ],
+      "payments": [
+        {
+          "id": "68e12196-0586-45e3-8d72-4fddbf259abd",
+          "amount": 5497,
+          "date": "21.08.2026",
+          "note": "Оплата"
+        }
+      ],
+      "payment": 5497,
+      "client": "Авито",
+      "contact": "",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    },
+    {
+      "id": "d7d05df5-3bea-4551-8692-2b57f4f66dbb",
+      "order_number": 1099,
+      "created_at": "2026-09-01T09:00:00.000Z",
+      "date": "01.09.2026",
+      "type": "income",
+      "title": "Реснички на фары",
+      "quantity": 1,
+      "base_amount": 4000,
+      "amount": 4000,
+      "cost": 0,
+      "cost_items": [],
+      "payments": [
+        {
+          "id": "8714606a-d1bb-40d0-ad76-e55c383d7a8c",
+          "amount": 1000,
+          "date": "01.09.2026",
+          "note": "Предоплата"
+        }
+      ],
+      "payment": 1000,
+      "client": "Другое",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "89993785186",
+          "label": "Телефон"
+        }
+      ],
+      "contact": "89993785186",
+      "deadline": "",
+      "status": "Готово",
+      "notes": ""
+    }
+  ],
+  "monthlyGoals": {
+    "defaultGoal": 50000,
+    "targetType": "profit",
+    "monthlyGoals": {}
+  }
+}
