@@ -1,0 +1,30 @@
+{
+  "passed": 11,
+  "failed": 0,
+  "checks": [
+    "All ten GLBs and embedded PBR textures load under CSP",
+    "P1 search and focus",
+    "2D view",
+    "3D view",
+    "Overview fits room after printer inspection",
+    "Edit mode with new Blender furniture",
+    "Reload preserves inventory placements",
+    "WebGL context restoration rebuilds HDRI and postprocessing",
+    "Mobile width",
+    "Navigation away/back and scene reconstruction",
+    "No WebGL, texture, CSP or page errors"
+  ],
+  "assets": [
+    "filament-spool.glb",
+    "printer-a1.glb",
+    "printer-p1.glb",
+    "packing-boxes.glb",
+    "plant.glb",
+    "tool-cabinet.glb",
+    "workbench.glb",
+    "filament-rack.glb",
+    "room-module.glb",
+    "printer-rack.glb"
+  ],
+  "errors": []
+}

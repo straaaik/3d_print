@@ -1,6 +1,7 @@
-import { SavedCalculation, ProductCollection, AssemblyPrintedPart, AssemblyHardwareItem } from '../../shared/types';
+import { SavedCalculation, ProductCollection } from '../../shared/types';
 
-export type ProductFilter = 'all' | 'single' | 'assembly' | 'collections' | 'low_stock' | 'bestsellers';
+export type ProductFilter = 'all' | 'single' | 'assembly' | 'collections';
+export type StockFilter = 'all' | 'in_stock' | 'low_stock' | 'out_of_stock';
 
 export type CatalogTableRow =
   | {
@@ -9,6 +10,8 @@ export type CatalogTableRow =
       item: SavedCalculation;
       parentCollectionId?: string;
       parentCollectionName?: string;
+      parentCollectionColor?: string;
+      isPart?: boolean;
       name: string;
       category?: string;
       final_price: number;
@@ -25,6 +28,7 @@ export type CatalogTableRow =
       collection: ProductCollection;
       childItems: SavedCalculation[];
       name: string;
+      color?: string;
       category?: string;
       tags?: string[];
       itemsCount: number;
@@ -59,6 +63,8 @@ export interface SalesStatInfo {
   orderCount: number;
   totalRevenue: number;
   isBestseller: boolean;
+  salesSharePercent: number;
+  totalAllTimeSold: number;
 }
 
 export interface WarehouseMetrics {
@@ -70,5 +76,19 @@ export interface WarehouseMetrics {
   profitMargin: number;
 }
 
-export type SortField = 'name' | 'category' | 'filament' | 'params' | 'stock' | 'cost' | 'price' | 'profit' | 'date' | 'id';
+export type SortField = 'name' | 'category' | 'filament' | 'params' | 'stock' | 'cost' | 'price' | 'profit' | 'date' | 'id' | 'sales';
 export type SortOrder = 'asc' | 'desc';
+
+export function formatProductArticle(row: CatalogTableRow): string {
+  const isCol = row.rowKind === 'collection';
+  const isAsm = row.rowKind === 'product' && row.item?.type === 'assembly';
+  if (row.id.toLowerCase().startsWith('prt-')) {
+    const raw = row.id.slice(4);
+    const shortId = raw.length > 6 ? raw.slice(0, 6).toUpperCase() : raw.toUpperCase();
+    return `#PRT-${shortId}`;
+  }
+  const prefix = isCol ? '#COL-' : isAsm ? '#ASM-' : '#PRD-';
+  const shortId = row.id.length > 8 ? row.id.slice(0, 6).toUpperCase() : row.id.toUpperCase();
+  return `${prefix}${shortId}`;
+}
+

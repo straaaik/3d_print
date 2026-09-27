@@ -1,100 +1,84 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { 
-  Order, 
-  OrderStatus, 
-  ContactItem,
-  ContactType, 
-  CostItem, 
-  SortField, 
-  SortOrder 
+import {
+  Order,
+  OrderStatus,
+  SortField,
+  SortOrder,
+  OrderTypeFilter,
+  PaymentFilter,
+  CostItem,
 } from './types';
-import { 
-  getOrders, 
-  saveOrder, 
-  deleteOrder, 
-  restoreAllOrders, 
-  getSavedCalculations, 
-  updateSavedCalculation 
+import {
+  saveOrder,
+  deleteOrder,
+  deleteOrders,
+  restoreAllOrders,
+  saveMonthlyGoal,
+  saveMonthlyGoalsConfig,
+  MonthlyGoalsConfig
 } from '../../shared/api/db';
 import { useData } from '../../entities/model/DataProvider';
-import { 
-  OrdersSummary 
-} from './components/OrdersSummary';
-import { 
-  OrdersMonthlyGoal 
-} from './components/OrdersMonthlyGoal';
-import { 
-  OrdersFilterBar, 
-  OrderTypeFilter, 
-  PaymentFilter 
-} from './components/OrdersFilterBar';
-import { 
-  OrdersTableModern 
-} from './components/OrdersTableModern';
-import { 
-  OrderDrawer, 
-  DrawerTab 
-} from './components/OrderDrawer';
-import { 
-  OrderFormModal 
-} from './components/OrderFormModal';
-import { 
-  DeleteOrderModal 
+import { useToast } from '../../entities/model/ToastProvider';
+import { useOrderModal } from '../../entities/model/OrderModalContext';
+import {
+  DeleteOrderModal
 } from './components/DeleteOrderModal';
-import { 
-  ClearMonthModal 
+import {
+  ClearMonthModal
 } from './components/ClearMonthModal';
+import {
+  GoalSettingsModal
+} from './components/GoalSettingsModal';
+import {
+  OpenNewMonthModal
+} from './components/OpenNewMonthModal';
+import {
+  OrdersV2View
+} from './components/v2/OrdersV2View';
 
-import { PageHeader } from '../../shared/ui/PageHeader';
-import { Button } from '../../shared/ui/Button';
-import { ordersTheme } from '../../shared/theme';
-import { 
-  roundTo2, 
-  getOrderMonthKey, 
-  formatMonthKeyLabel, 
-  getCurrentRealMonthKey, 
-  calculateOrderFinancials,
+import {
+  roundTo2,
+  getOrderMonthKey,
+  formatMonthKeyLabel,
+  getCurrentRealMonthKey,
   calculateOrdersSummaryKPI
 } from './helpers';
-import { 
-  ShoppingBag, 
-  Plus, 
-  RotateCcw, 
-  Sparkles, 
-  Layers 
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { usePersistentState } from '../../shared/lib/usePersistentState';
 
-export function OrdersTable() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export interface OrdersTableProps {
+  isExpanded?: boolean;
+  onToggleExpand?: (expanded: boolean) => void;
+}
 
-  // Фильтры и поиск
-  const [searchQuery, setSearchQuery] = useState('');
-  const [typeFilter, setTypeFilter] = useState<OrderTypeFilter>('all');
-  const [clientFilter, setClientFilter] = useState('all');
-  const [paymentFilter, setPaymentFilter] = useState<PaymentFilter>('all');
+export function OrdersTable({
+  isExpanded: externalIsExpanded,
+  onToggleExpand: externalOnToggleExpand,
+}: OrdersTableProps = {}) {
+  // Фильтры и поиск с сохранением между сессиями
+  const [searchQuery, setSearchQuery] = usePersistentState('3d_orders_search_query', '');
+  const [typeFilter, setTypeFilter] = usePersistentState<OrderTypeFilter>('3d_orders_type_filter', 'all');
+  const [clientFilter, setClientFilter] = usePersistentState('3d_orders_client_filter', 'all');
+  const [paymentFilter, setPaymentFilter] = usePersistentState<PaymentFilter>('3d_orders_payment_filter', 'all');
 
   // Выбранный месяц ('all' | 'YYYY-MM')
-  const [selectedMonthKey, setSelectedMonthKey] = useState<string>('all');
+  const [selectedMonthKey, setSelectedMonthKey] = usePersistentState<string>('3d_orders_selected_month', 'all');
 
   // Сортировка (по номеру заказа desc по умолчанию)
-  const [sortField, setSortField] = useState<SortField>('order_number');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [sortField, setSortField] = usePersistentState<SortField>('3d_orders_sort_field', 'order_number');
+  const [sortOrder, setSortOrder] = usePersistentState<SortOrder>('3d_orders_sort_order', 'desc');
 
   // Пагинация порциями (Infinite Scroll)
   const ORDERS_CHUNK_SIZE = 25;
   const [visibleCount, setVisibleCount] = useState<number>(ORDERS_CHUNK_SIZE);
 
-  // Состояния Drawer / Модалок
-  const [activeDrawerOrder, setActiveDrawerOrder] = useState<Order | null>(null);
-  const [drawerInitialTab, setDrawerInitialTab] = useState<DrawerTab>('all');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingOrder, setEditingOrder] = useState<Partial<Order> | null>(null);
+  // Состояния Модалок
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [isClearMonthModalOpen, setIsClearMonthModalOpen] = useState(false);
+  const [isOpenNewMonthModalOpen, setIsOpenNewMonthModalOpen] = useState(false);
+  const [openedMonthKeys, setOpenedMonthKeys] = useState<string[]>([]);
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
 
   // Контекстное меню
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; order: Order } | null>(null);
@@ -102,29 +86,67 @@ export function OrdersTable() {
 
   // Стек истории для Alt+Z / Ctrl+Z
   const [historyStack, setHistoryStack] = useState<Order[][]>([]);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const { showSuccess, showWarning, showInfo } = useToast();
+  const {
+    savedCalculations,
+    isOnline,
+    orders,
+    setOrders,
+    monthlyGoals: goalsConfig,
+    setMonthlyGoals: setGoalsConfig,
+  } = useData();
+  const { openOrder } = useOrderModal();
 
-  const { savedCalculations } = useData();
+  // Режим полного экрана (Развёрнутый / Компактный)
+  const [internalIsExpanded, setInternalIsExpanded] = usePersistentState<boolean>('3d_orders_expanded_view', false);
+  const isExpanded = externalIsExpanded !== undefined ? externalIsExpanded : internalIsExpanded;
+  const setIsExpanded = externalOnToggleExpand || setInternalIsExpanded;
 
-  // Загрузка заказов
-  const loadOrders = useCallback(async () => {
-    setIsLoading(true);
-    const data = await getOrders();
-    setOrders(data);
-    setIsLoading(false);
-  }, []);
+  // Сброс фильтров и поиска (по клику на красную кнопку терминала)
+  const handleResetFilters = useCallback(() => {
+    setSearchQuery('');
+    setTypeFilter('all');
+    setClientFilter('all');
+    setPaymentFilter('all');
+    showInfo('Фильтры и поиск сброшены', 'Сброс');
+  }, [setSearchQuery, setTypeFilter, setClientFilter, setPaymentFilter, showInfo]);
 
-  useEffect(() => {
-    loadOrders();
+  const handleToggleExpand = useCallback((expanded: boolean) => {
+    setIsExpanded(expanded);
+  }, [setIsExpanded]);
 
-    const handleRefresh = () => loadOrders();
-    window.addEventListener('saved_calculations_updated', handleRefresh);
-    window.addEventListener('storage', handleRefresh);
-    return () => {
-      window.removeEventListener('saved_calculations_updated', handleRefresh);
-      window.removeEventListener('storage', handleRefresh);
-    };
-  }, [loadOrders]);
+
+  // Цель для текущего выбранного месяца
+  const currentMonthGoal = useMemo(() => {
+    if (selectedMonthKey && selectedMonthKey !== 'all') {
+      if (typeof goalsConfig.monthlyGoals[selectedMonthKey] === 'number') {
+        return goalsConfig.monthlyGoals[selectedMonthKey];
+      }
+    }
+    return goalsConfig.defaultGoal || 0;
+  }, [goalsConfig, selectedMonthKey]);
+
+  const handleSaveGoal = async (newGoal: number, applyToAll: boolean) => {
+    const updatedMonthly = { ...goalsConfig.monthlyGoals };
+    if (applyToAll || selectedMonthKey === 'all') {
+      const updated: MonthlyGoalsConfig = {
+        defaultGoal: newGoal,
+        targetType: 'profit',
+        monthlyGoals: selectedMonthKey !== 'all' ? { ...updatedMonthly, [selectedMonthKey]: newGoal } : updatedMonthly,
+      };
+      setGoalsConfig(updated);
+      await saveMonthlyGoalsConfig(updated);
+    } else {
+      updatedMonthly[selectedMonthKey] = newGoal;
+      const updated: MonthlyGoalsConfig = {
+        ...goalsConfig,
+        targetType: 'profit',
+        monthlyGoals: updatedMonthly,
+      };
+      setGoalsConfig(updated);
+      await saveMonthlyGoal(selectedMonthKey, newGoal);
+    }
+  };
 
   // Проверка черновика из каталога товаров
   useEffect(() => {
@@ -146,15 +168,15 @@ export function OrdersTable() {
         const parsedCost = roundTo2(draft.cost || 0);
 
         const parsedCostItems: CostItem[] = (draft.cost_items && Array.isArray(draft.cost_items) && draft.cost_items.length > 0)
-          ? draft.cost_items.map((ci: any) => ({
-              id: ci.id || (typeof crypto !== 'undefined' ? crypto.randomUUID() : String(Math.random())),
+          ? draft.cost_items.map((ci: Partial<CostItem>) => ({
+              id: ci.id || crypto.randomUUID(),
               category: ci.category || 'Печать',
               amount: roundTo2(ci.amount || 0),
               note: ci.note || undefined,
             }))
           : (parsedCost > 0 ? [{ id: 'init-1', category: 'Печать', amount: parsedCost }] : []);
 
-        setEditingOrder({
+        openOrder({
           date: formattedDate,
           type: 'income',
           title: draft.title || '',
@@ -170,8 +192,8 @@ export function OrdersTable() {
           amount: parsedAmount,
           cost: parsedCost,
           cost_items: parsedCostItems,
-          payments: [parsedAmount],
-          payment: parsedAmount,
+          payments: [0],
+          payment: 0,
           client: 'Авито',
           contacts: [],
           contact: '',
@@ -180,16 +202,14 @@ export function OrdersTable() {
           notes: draft.notes || '',
         });
 
-        setIsModalOpen(true);
-        setToastMessage(`📦 Товар «${draft.title}» загружен в форму заказа!`);
-        setTimeout(() => setToastMessage(null), 3000);
+        showInfo(`Товар «${draft.title}» загружен в форму заказа!`, 'Черновик');
       } catch (err) {
         console.error('Ошибка загрузки черновика заказа:', err);
       }
     }
-  }, []);
+  }, [openOrder, showInfo]);
 
-  // Закрытие контекстного меню при клике вне его или скролле
+  // Закрытие контекстного меню при клике вне его, скролле или Escape
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
@@ -197,36 +217,40 @@ export function OrdersTable() {
       }
     };
     const handleClose = () => setContextMenu(null);
-
-    window.addEventListener('click', handleClickOutside);
-    window.addEventListener('scroll', handleClose);
-    return () => {
-      window.removeEventListener('click', handleClickOutside);
-      window.removeEventListener('scroll', handleClose);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setContextMenu(null);
     };
-  }, []);
+
+    document.addEventListener('mousedown', handleClickOutside, true);
+    window.addEventListener('scroll', handleClose, true);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside, true);
+      window.removeEventListener('scroll', handleClose, true);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [setContextMenu]);
 
   // Сохранение в историю для Undo
-  const pushToHistory = (currentOrders: Order[]) => {
+  const pushToHistory = useCallback((currentOrders: Order[]) => {
     setHistoryStack(prev => [...prev.slice(-25), JSON.parse(JSON.stringify(currentOrders))]);
-  };
+  }, []);
 
   // Undo (Alt+Z)
   const handleUndo = useCallback(async () => {
     if (historyStack.length === 0) {
-      setToastMessage('Нет действий для отмены');
-      setTimeout(() => setToastMessage(null), 2500);
+      showWarning('Нет действий для отмены', 'История');
       return;
     }
 
     const previousState = historyStack[historyStack.length - 1];
+    await restoreAllOrders(previousState);
     setHistoryStack(prev => prev.slice(0, -1));
     setOrders(previousState);
-    await restoreAllOrders(previousState);
+    window.dispatchEvent(new Event('orders_updated'));
 
-    setToastMessage('Изменение отменено (Alt+Z)');
-    setTimeout(() => setToastMessage(null), 2500);
-  }, [historyStack]);
+    showInfo('Изменение отменено (Alt+Z)', 'История');
+  }, [historyStack, setOrders, showWarning, showInfo]);
 
   // Горячие клавиши Alt+Z и Ctrl+Z
   useEffect(() => {
@@ -247,13 +271,22 @@ export function OrdersTable() {
 
   // Месяцы
   const availableMonthKeys = useMemo(() => {
-    const set = new Set<string>();
+    const set = new Set<string>(openedMonthKeys);
     orders.forEach((o: Order) => {
       const key = getOrderMonthKey(o);
       if (key) set.add(key);
     });
+    if (selectedMonthKey && selectedMonthKey !== 'all') {
+      set.add(selectedMonthKey);
+    }
     return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [orders]);
+  }, [orders, openedMonthKeys, selectedMonthKey]);
+
+  const handleOpenNewMonth = (monthKey: string) => {
+    setOpenedMonthKeys(prev => Array.from(new Set([...prev, monthKey])));
+    setSelectedMonthKey(monthKey);
+    showInfo(`Открыт месяц ${formatMonthKeyLabel(monthKey)}`, 'Реестр');
+  };
 
   const handlePrevMonth = () => {
     let currentKey = selectedMonthKey;
@@ -281,7 +314,7 @@ export function OrdersTable() {
     return orders.filter(o => getOrderMonthKey(o) === selectedMonthKey);
   }, [orders, selectedMonthKey]);
 
-  // Вычисляемые KPI для выбранного месяца (через централизованную формулу)
+  // Вычисляемые KPI для выбранного месяца
   const {
     totalIncome,
     totalExpenses,
@@ -297,6 +330,15 @@ export function OrdersTable() {
     return calculateOrdersSummaryKPI(monthFilteredOrders);
   }, [monthFilteredOrders]);
 
+  // Дополнительные счетчики для V2 (печать и ожидание)
+  const printingCount = useMemo(() => {
+    return monthFilteredOrders.filter(o => o.type === 'income' && (o.status === 'Печать' || o.status === 'Ждет печати')).length;
+  }, [monthFilteredOrders]);
+
+  const waitingCount = useMemo(() => {
+    return monthFilteredOrders.filter(o => o.type === 'income' && (o.status === 'Моделирование' || o.status === 'Не в работе' || o.status === 'Ждет печати' || o.status === 'Ждет покраски' || o.status === 'Ждет отправки')).length;
+  }, [monthFilteredOrders]);
+
   // Фильтрация по поиску, вкладкам, каналу и оплате
   const filteredOrders = useMemo(() => {
     return monthFilteredOrders.filter((o) => {
@@ -304,10 +346,12 @@ export function OrdersTable() {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().replace('#', '').trim();
         const matchesTitle = o.title?.toLowerCase().includes(q);
+        const matchesClientName = o.client_name?.toLowerCase().includes(q);
         const matchesClient = o.client?.toLowerCase().includes(q);
         const matchesContact = o.contact?.toLowerCase().includes(q) || o.contacts?.some(c => c.value?.toLowerCase().includes(q));
         const matchesNum = String(o.order_number || '').includes(q);
-        if (!matchesTitle && !matchesClient && !matchesContact && !matchesNum) {
+        const matchesNotes = o.notes?.toLowerCase().includes(q);
+        if (!matchesTitle && !matchesClientName && !matchesClient && !matchesContact && !matchesNum && !matchesNotes) {
           return false;
         }
       }
@@ -334,20 +378,75 @@ export function OrdersTable() {
       if (paymentFilter === 'unpaid') {
         if (o.type !== 'income' || (o.payment || 0) >= (o.amount || 0)) return false;
       }
+      if (paymentFilter === 'partial') {
+        if (o.type !== 'income' || (o.payment || 0) <= 0 || (o.payment || 0) >= (o.amount || 0)) return false;
+      }
 
       return true;
     });
   }, [monthFilteredOrders, searchQuery, typeFilter, clientFilter, paymentFilter]);
 
+  // Общее количество заказов для вкладки "Все" (не зависит от выбранного typeFilter)
+  const allTypeCount = useMemo(() => {
+    return monthFilteredOrders.filter((o) => {
+      // 1. Поиск
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().replace('#', '').trim();
+        const matchesTitle = o.title?.toLowerCase().includes(q);
+        const matchesClientName = o.client_name?.toLowerCase().includes(q);
+        const matchesClient = o.client?.toLowerCase().includes(q);
+        const matchesContact = o.contact?.toLowerCase().includes(q) || o.contacts?.some(c => c.value?.toLowerCase().includes(q));
+        const matchesNum = String(o.order_number || '').includes(q);
+        const matchesNotes = o.notes?.toLowerCase().includes(q);
+        if (!matchesTitle && !matchesClientName && !matchesClient && !matchesContact && !matchesNum && !matchesNotes) {
+          return false;
+        }
+      }
+
+      // 2. Канал клиента
+      if (clientFilter !== 'all' && o.client !== clientFilter) {
+        return false;
+      }
+
+      // 3. Оплата
+      if (paymentFilter === 'paid') {
+        if (o.type === 'income' && (o.payment || 0) < (o.amount || 0)) return false;
+      }
+      if (paymentFilter === 'unpaid') {
+        if (o.type !== 'income' || (o.payment || 0) >= (o.amount || 0)) return false;
+      }
+      if (paymentFilter === 'partial') {
+        if (o.type !== 'income' || (o.payment || 0) <= 0 || (o.payment || 0) >= (o.amount || 0)) return false;
+      }
+
+      return true;
+    }).length;
+  }, [monthFilteredOrders, searchQuery, clientFilter, paymentFilter]);
+
+  // Сброс порции видимых заказов при переключении месяца или фильтров для мгновенного отклика
+  useEffect(() => {
+    queueMicrotask(() => setVisibleCount(ORDERS_CHUNK_SIZE));
+  }, [selectedMonthKey, searchQuery, typeFilter, clientFilter, paymentFilter]);
+
   // Сортировка
   const sortedOrders = useMemo(() => {
     return [...filteredOrders].sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
+      let aValue: unknown;
+      let bValue: unknown;
 
       if (sortField === 'net_profit') {
         aValue = a.type === 'income' ? (a.amount || 0) - (a.cost || 0) : -(a.amount || 0);
         bValue = b.type === 'income' ? (b.amount || 0) - (b.cost || 0) : -(b.amount || 0);
+      } else if (sortField === 'debt') {
+        aValue = a.type === 'income' ? Math.max(0, (a.amount || 0) - (a.payment || 0)) : 0;
+        bValue = b.type === 'income' ? Math.max(0, (b.amount || 0) - (b.payment || 0)) : 0;
+      } else if (sortField === 'payment_status') {
+        const getP = (o: Order) => ((o.payment || 0) >= (o.amount || 0) ? 2 : (o.payment || 0) > 0 ? 1 : 0);
+        aValue = getP(a);
+        bValue = getP(b);
+      } else if (sortField === 'client_name' || sortField === 'client') {
+        aValue = a.client_name || a.contact || (a.type === 'income' ? 'Частный заказчик' : a.client) || '';
+        bValue = b.client_name || b.contact || (b.type === 'income' ? 'Частный заказчик' : b.client) || '';
       } else {
         aValue = a[sortField as keyof Order] ?? '';
         bValue = b[sortField as keyof Order] ?? '';
@@ -358,7 +457,7 @@ export function OrdersTable() {
       }
 
       if (sortField === 'date' || sortField === 'deadline') {
-        const parseDate = (val: any) => {
+        const parseDate = (val: unknown) => {
           if (!val) return 0;
           const str = String(val).trim();
           if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
@@ -401,19 +500,30 @@ export function OrdersTable() {
   // Дублирование
   const handleDuplicateOrder = async (order: Order) => {
     pushToHistory(orders);
-    const maxNum = orders.reduce((max, o) => Math.max(max, o.order_number || 0), 1000);
-    const duplicated: Order = {
+    const duplicated = {
       ...order,
-      id: typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
-      order_number: maxNum + 1,
+      id: undefined,
+      order_number: undefined,
       title: `${order.title} (копия)`,
       created_at: new Date().toISOString(),
     };
     const saved = await saveOrder(duplicated);
     setOrders(prev => [saved, ...prev]);
-    setToastMessage(`Заказ #${saved.order_number} продублирован`);
-    setTimeout(() => setToastMessage(null), 2500);
+    showSuccess(`Заказ #${saved.order_number} продублирован`, 'Заказ');
   };
+
+  // Прямое инлайн-обновление полей заказа из таблицы
+  const handleInlineUpdateOrder = useCallback(async (orderId: string, updates: Partial<Order>) => {
+    const targetOrder = orders.find(o => o.id === orderId);
+    if (!targetOrder) return;
+
+    pushToHistory(orders);
+    const updated: Order = { ...targetOrder, ...updates };
+
+    setOrders(prev => prev.map(o => (o.id === orderId ? updated : o)));
+    await saveOrder(updated);
+    window.dispatchEvent(new Event('orders_updated'));
+  }, [orders, pushToHistory, setOrders]);
 
   // Удаление одной записи
   const handleConfirmDelete = async () => {
@@ -421,443 +531,90 @@ export function OrdersTable() {
     pushToHistory(orders);
     await deleteOrder(orderToDelete.id);
     setOrders(prev => prev.filter(o => o.id !== orderToDelete.id));
-    if (activeDrawerOrder?.id === orderToDelete.id) {
-      setActiveDrawerOrder(null);
-    }
-    setToastMessage(`Запись #${orderToDelete.order_number || ''} удалена (Alt+Z для отмены)`);
-    setTimeout(() => setToastMessage(null), 3000);
+    showInfo(`Запись #${orderToDelete.order_number || ''} удалена (Alt+Z для отмены)`, 'Удаление');
     setOrderToDelete(null);
+    window.dispatchEvent(new Event('orders_updated'));
   };
 
-  // Очистка месяца
+  // Очистка месяца или всех заказов
   const handleConfirmClearMonth = async () => {
-    if (selectedMonthKey === 'all') return;
+    if (selectedMonthKey === 'all') {
+      if (orders.length === 0) return;
+      pushToHistory(orders);
+      await deleteOrders(orders.map(order => order.id));
+      setOrders([]);
+      showInfo('Все записи журнала заказов очищены (Alt+Z для отмены)', 'Очистка');
+      setIsClearMonthModalOpen(false);
+      window.dispatchEvent(new Event('orders_updated'));
+      return;
+    }
+
     const idsToDelete = monthFilteredOrders.map(o => o.id);
     if (idsToDelete.length === 0) return;
 
     pushToHistory(orders);
-    for (const id of idsToDelete) {
-      await deleteOrder(id);
-    }
+    await deleteOrders(idsToDelete);
     setOrders(prev => prev.filter(o => getOrderMonthKey(o) !== selectedMonthKey));
-    setActiveDrawerOrder(null);
-    setToastMessage(`Все записи за ${formatMonthKeyLabel(selectedMonthKey)} очищены`);
-    setTimeout(() => setToastMessage(null), 3000);
+    showInfo(`Все записи за ${formatMonthKeyLabel(selectedMonthKey)} очищены (Alt+Z для отмены)`, 'Очистка месяца');
     setIsClearMonthModalOpen(false);
+    window.dispatchEvent(new Event('orders_updated'));
   };
 
-  // Открытие Drawer с целевой вкладкой
-  const handleOpenDrawer = (order: Order, tab: DrawerTab = 'all') => {
-    setDrawerInitialTab(tab);
-    setActiveDrawerOrder(order);
+  // Открытие модалки редактирования
+  const handleOpenEditModal = (order: Order) => {
+    openOrder(order);
   };
 
-  // Прямое обновление заказа из Drawer
-  const handleUpdateOrder = async (updatedOrder: Order) => {
+  // Открытие модалки создания нового заказа
+  const handleOpenAddModal = () => {
+    openOrder();
+  };
+
+  // Быстрое изменение статуса
+  const handleUpdateStatus = async (order: Order, newStatus: OrderStatus) => {
     pushToHistory(orders);
-    setOrders(prev => prev.map(o => (o.id === updatedOrder.id ? updatedOrder : o)));
-    setActiveDrawerOrder(prev => (prev && prev.id === updatedOrder.id ? updatedOrder : null));
-    await saveOrder(updatedOrder);
+    const updated: Order = { ...order, status: newStatus };
+    setOrders(prev => prev.map(o => (o.id === order.id ? updated : o)));
+    await saveOrder(updated);
+    showSuccess(`Статус заказа #${order.order_number} изменен на «${newStatus}»`, 'Статус');
   };
 
-  // Быстрое переключение типа Доход <-> Расход
+  // Переключение типа (Доход / Расход)
   const handleToggleType = async (order: Order) => {
     pushToHistory(orders);
     const newType = order.type === 'income' ? 'expense' : 'income';
     const updated: Order = { ...order, type: newType };
     setOrders(prev => prev.map(o => (o.id === order.id ? updated : o)));
-    if (activeDrawerOrder?.id === order.id) {
-      setActiveDrawerOrder(updated);
-    }
     await saveOrder(updated);
-  };
-
-  // Смена статуса
-  const handleUpdateStatus = async (order: Order, newStatus: OrderStatus) => {
-    pushToHistory(orders);
-    const updated = { ...order, status: newStatus };
-    setOrders(prev => prev.map(o => (o.id === order.id ? updated : o)));
-    if (activeDrawerOrder?.id === order.id) {
-      setActiveDrawerOrder(updated);
-    }
-    await saveOrder(updated);
-  };
-
-  // Добавление платежа в Drawer
-  const handleAddPayment = async (order: Order, amountNum: number) => {
-    if (!amountNum || amountNum <= 0) return;
-    pushToHistory(orders);
-
-    const cleanAmount = roundTo2(amountNum);
-    const existingPayments = order.payments && order.payments.length > 0 
-      ? order.payments.map(p => roundTo2(p)) 
-      : (order.payment ? [roundTo2(order.payment)] : []);
-    const updatedPayments = [...existingPayments, cleanAmount];
-    const newTotalPayment = roundTo2(updatedPayments.reduce((sum, p) => sum + p, 0));
-
-    const updated: Order = {
-      ...order,
-      payments: updatedPayments,
-      payment: newTotalPayment,
-    };
-
-    setOrders(prev => prev.map(o => (o.id === order.id ? updated : o)));
-    setActiveDrawerOrder(updated);
-    await saveOrder(updated);
-  };
-
-  // Удаление платежа
-  const handleDeletePayment = async (order: Order, indexToDelete: number) => {
-    pushToHistory(orders);
-
-    const existingPayments = order.payments && order.payments.length > 0 
-      ? order.payments.map(p => roundTo2(p)) 
-      : (order.payment ? [roundTo2(order.payment)] : []);
-    const updatedPayments = existingPayments.filter((_, idx) => idx !== indexToDelete);
-    const newTotalPayment = roundTo2(updatedPayments.reduce((sum, p) => sum + p, 0));
-
-    const updated: Order = {
-      ...order,
-      payments: updatedPayments,
-      payment: newTotalPayment,
-    };
-
-    setOrders(prev => prev.map(o => (o.id === order.id ? updated : o)));
-    setActiveDrawerOrder(updated);
-    await saveOrder(updated);
-  };
-
-  // Добавление пункта расхода
-  const handleAddCostItem = async (order: Order, categoryName: string, amountNum: number, note?: string) => {
-    if (!categoryName || !categoryName.trim() || isNaN(amountNum) || amountNum <= 0) return;
-    pushToHistory(orders);
-
-    const cleanAmount = roundTo2(amountNum);
-    const existingItems: CostItem[] = order.cost_items && order.cost_items.length > 0 
-      ? order.cost_items.map(it => ({ ...it, amount: roundTo2(it.amount || 0) }))
-      : (order.cost ? [{ id: 'init-1', category: 'Печать', amount: roundTo2(order.cost) }] : []);
-
-    const newItem: CostItem = {
-      id: typeof crypto !== 'undefined' ? crypto.randomUUID() : Math.random().toString(36).substring(2, 9),
-      category: categoryName.trim(),
-      amount: cleanAmount,
-      note: note ? note.trim() : undefined,
-    };
-
-    const updatedItems = [...existingItems, newItem];
-    const newTotalCost = roundTo2(updatedItems.reduce((acc, item) => acc + (item.amount || 0), 0));
-
-    const updated: Order = {
-      ...order,
-      cost_items: updatedItems,
-      cost: newTotalCost,
-    };
-
-    setOrders(prev => prev.map(o => (o.id === order.id ? updated : o)));
-    setActiveDrawerOrder(updated);
-    await saveOrder(updated);
-  };
-
-  // Обновление пункта расхода
-  const handleUpdateCostItem = async (order: Order, indexToUpdate: number, field: keyof CostItem, value: any) => {
-    pushToHistory(orders);
-
-    const existingItems: CostItem[] = order.cost_items && order.cost_items.length > 0 ? order.cost_items : [];
-    const updatedItems = existingItems.map((item, idx) => {
-      if (idx === indexToUpdate) {
-        return { ...item, [field]: field === 'amount' ? roundTo2(Number(value)) : value };
-      }
-      return item;
-    });
-
-    const newTotalCost = roundTo2(updatedItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0));
-
-    const updated: Order = {
-      ...order,
-      cost_items: updatedItems,
-      cost: newTotalCost,
-    };
-
-    setOrders(prev => prev.map(o => (o.id === order.id ? updated : o)));
-    setActiveDrawerOrder(updated);
-    await saveOrder(updated);
-  };
-
-  // Удаление пункта расхода
-  const handleDeleteCostItem = async (order: Order, indexToDelete: number) => {
-    pushToHistory(orders);
-
-    const existingItems: CostItem[] = order.cost_items && order.cost_items.length > 0 ? order.cost_items : [];
-    const updatedItems = existingItems.filter((_, idx) => idx !== indexToDelete);
-    const newTotalCost = roundTo2(updatedItems.reduce((acc, item) => acc + (item.amount || 0), 0));
-
-    const updated: Order = {
-      ...order,
-      cost_items: updatedItems,
-      cost: newTotalCost,
-    };
-
-    setOrders(prev => prev.map(o => (o.id === order.id ? updated : o)));
-    setActiveDrawerOrder(updated);
-    await saveOrder(updated);
-  };
-
-  // Добавление контакта
-  const handleAddContact = async (order: Order, type: ContactType, val: string) => {
-    if (!val || !val.trim()) return;
-    pushToHistory(orders);
-
-    const existingContacts: ContactItem[] = order.contacts && order.contacts.length > 0 
-      ? order.contacts 
-      : (order.contact ? [{ type: 'other', value: order.contact }] : []);
-
-    const updatedContacts = [...existingContacts, { type, value: val.trim() }];
-    const updated: Order = {
-      ...order,
-      contacts: updatedContacts,
-      contact: updatedContacts.map(c => c.value).join(', '),
-    };
-
-    setOrders(prev => prev.map(o => (o.id === order.id ? updated : o)));
-    setActiveDrawerOrder(updated);
-    await saveOrder(updated);
-  };
-
-  // Удаление контакта
-  const handleDeleteContact = async (order: Order, indexToDelete: number) => {
-    pushToHistory(orders);
-
-    const existingContacts: ContactItem[] = order.contacts && order.contacts.length > 0 
-      ? order.contacts 
-      : (order.contact ? [{ type: 'other', value: order.contact }] : []);
-
-    const updatedContacts = existingContacts.filter((_, idx) => idx !== indexToDelete);
-    const updated: Order = {
-      ...order,
-      contacts: updatedContacts,
-      contact: updatedContacts.map(c => c.value).join(', '),
-    };
-
-    setOrders(prev => prev.map(o => (o.id === order.id ? updated : o)));
-    setActiveDrawerOrder(updated);
-    await saveOrder(updated);
-  };
-
-  // Сохранение заметок
-  const handleSaveNotes = async (order: Order, notesVal: string) => {
-    pushToHistory(orders);
-    const updated: Order = {
-      ...order,
-      notes: notesVal.trim(),
-    };
-    setOrders(prev => prev.map(o => (o.id === order.id ? updated : o)));
-    setActiveDrawerOrder(updated);
-    await saveOrder(updated);
-  };
-
-  // Открытие формы добавления
-  const handleOpenAddModal = () => {
-    let formattedDate = '';
-    const today = new Date();
-    if (selectedMonthKey && selectedMonthKey !== 'all') {
-      const [y, m] = selectedMonthKey.split('-').map(Number);
-      if (today.getFullYear() === y && today.getMonth() + 1 === m) {
-        formattedDate = `${String(today.getDate()).padStart(2, '0')}.${String(m).padStart(2, '0')}.${y}`;
-      } else {
-        formattedDate = `01.${String(m).padStart(2, '0')}.${y}`;
-      }
-    } else {
-      formattedDate = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
-    }
-
-    setEditingOrder({
-      date: formattedDate,
-      type: 'income',
-      title: '',
-      quantity: 1,
-      base_amount: 0,
-      urgency_type: 'percent',
-      urgency_percent: 0,
-      urgency_amount: 0,
-      discount_type: 'percent',
-      discount_percent: 0,
-      discount_amount: 0,
-      amount: 0,
-      cost: 0,
-      cost_items: [],
-      payments: [0],
-      payment: 0,
-      client: 'Авито',
-      contacts: [],
-      contact: '',
-      deadline: '',
-      status: 'Не в работе',
-      notes: '',
-    });
-    setIsModalOpen(true);
-  };
-
-  // Открытие формы редактирования
-  const handleOpenEditModal = (order: Order) => {
-    setEditingOrder({
-      ...order,
-      base_amount: order.base_amount !== undefined ? order.base_amount : roundTo2(order.amount || 0),
-      urgency_type: order.urgency_type || 'percent',
-      urgency_percent: order.urgency_percent || 0,
-      urgency_amount: order.urgency_amount || 0,
-      discount_type: order.discount_type || 'percent',
-      discount_percent: order.discount_percent || 0,
-      discount_amount: order.discount_amount || 0,
-      amount: roundTo2(order.amount || 0),
-      cost: roundTo2(order.cost || 0),
-      payment: roundTo2(order.payment || 0),
-      cost_items: (order.cost_items || []).map(ci => ({
-        ...ci,
-        amount: roundTo2(ci.amount || 0),
-      })),
-    });
-    setIsModalOpen(true);
-  };
-
-  // Сохранение из модального окна
-  const handleSaveModal = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingOrder) return;
-
-    const orderToSave: Order = {
-      ...(editingOrder as Order),
-      base_amount: editingOrder.base_amount !== undefined ? roundTo2(editingOrder.base_amount) : roundTo2(editingOrder.amount || 0),
-      urgency_type: editingOrder.urgency_type || 'percent',
-      urgency_percent: editingOrder.urgency_percent ? roundTo2(editingOrder.urgency_percent) : 0,
-      urgency_amount: editingOrder.urgency_amount ? roundTo2(editingOrder.urgency_amount) : 0,
-      discount_type: editingOrder.discount_type || 'percent',
-      discount_percent: editingOrder.discount_percent ? roundTo2(editingOrder.discount_percent) : 0,
-      discount_amount: editingOrder.discount_amount ? roundTo2(editingOrder.discount_amount) : 0,
-      amount: roundTo2(editingOrder.amount || 0),
-      cost: roundTo2(editingOrder.cost || 0),
-      payment: roundTo2(editingOrder.payment || 0),
-      cost_items: (editingOrder.cost_items || []).map(ci => ({
-        ...ci,
-        amount: roundTo2(ci.amount || 0),
-      })),
-    };
-
-    pushToHistory(orders);
-    const saved = await saveOrder(orderToSave);
-
-    setOrders(prev => {
-      const exists = prev.some(o => o.id === saved.id);
-      if (exists) {
-        return prev.map(o => (o.id === saved.id ? saved : o));
-      }
-      return [saved, ...prev];
-    });
-
-    if (activeDrawerOrder?.id === saved.id) {
-      setActiveDrawerOrder(saved);
-    }
-
-    // Списание со склада при наличии product_id
-    if (editingOrder.product_id) {
-      try {
-        const calcs = await getSavedCalculations();
-        const targetProduct = calcs.find(c => c.id === editingOrder.product_id);
-        if (targetProduct) {
-          const qtyToDeduct = Math.max(1, Number(editingOrder.quantity) || 1);
-          const currentStock = targetProduct.stock_quantity || 0;
-          const newStock = Math.max(0, currentStock - qtyToDeduct);
-
-          await updateSavedCalculation({
-            ...targetProduct,
-            stock_quantity: newStock,
-          });
-
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new Event('saved_calculations_updated'));
-          }
-
-          setToastMessage(`Заказ сохранен! Со склада списано: ${qtyToDeduct} шт`);
-          setTimeout(() => setToastMessage(null), 3000);
-        }
-      } catch (err) {
-        console.error('Ошибка списания товара со склада:', err);
-      }
-    }
-
-    setIsModalOpen(false);
-    setEditingOrder(null);
+    showSuccess(`Тип записи #${order.order_number} изменен на ${newType === 'income' ? '«Доход»' : '«Расход»'}`, 'Тип записи');
   };
 
   return (
-    <div className="space-y-4 select-none relative">
-      {/* Шапка раздела */}
-      <PageHeader
-        icon={ShoppingBag}
-        title="Заказы и Финансы"
-        subtitle={
-          <>
-            Кликните по строке для открытия карточки заказа •{' '}
-            <kbd className="px-1.5 py-0.5 rounded bg-[#242930] text-gray-200 text-[11px] font-mono border border-gray-700">
-              Alt+Z
-            </kbd>{' '}
-            для отмены
-          </>
-        }
-        accentColor={ordersTheme.accentHex}
-        className="p-4 sm:p-5"
-        actions={
-          <div className="flex items-center gap-2">
-            {/* Кнопка отмены Alt+Z */}
-            <Button
-              onClick={handleUndo}
-              disabled={historyStack.length === 0}
-              variant="outline"
-              size="sm"
-              className={`p-2 rounded-xl transition-all flex items-center justify-center shrink-0 ${
-                historyStack.length > 0
-                  ? `${ordersTheme.accent.borderHover} ${ordersTheme.accent.text} hover:${ordersTheme.accent.bgSubtle} cursor-pointer shadow-sm`
-                  : 'border-[#242930] text-gray-600 opacity-40 cursor-not-allowed'
-              }`}
-              title={historyStack.length > 0 ? "Отменить последнее изменение (Alt+Z / Ctrl+Z)" : "Нет действий для отмены"}
-            >
-              <RotateCcw className={`w-4 h-4 ${historyStack.length > 0 ? ordersTheme.accent.text : 'text-gray-600'}`} />
-            </Button>
-
-            {/* Кнопка создания нового заказа */}
-            <Button
-              onClick={handleOpenAddModal}
-              variant="primary"
-              size="sm"
-              className={`${ordersTheme.primaryButton.gradient} ${ordersTheme.primaryButton.text} border-none ${ordersTheme.primaryButton.shadow} cursor-pointer text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl`}
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              Добавить заказ
-            </Button>
-          </div>
-        }
-      />
-
-      {/* Компактный блок «Цель на месяц» с прогресс-баром */}
-      <OrdersMonthlyGoal
-        selectedMonthKey={selectedMonthKey}
-        totalIncome={totalIncome}
-        netProfitTotal={netProfitTotal}
-        incomeOrdersCount={incomeOrdersCount}
-      />
-
-      {/* KPI Сводка за выбранный месяц */}
-      <OrdersSummary
+    <div className="space-y-4">
+      {/* КОНСОЛЬ ЗАКАЗОВ V2 (ЕДИНАЯ ВЕРСИЯ С ИНЛАЙН-РЕДАКТИРОВАНИЕМ) */}
+      <OrdersV2View
+        isOnline={isOnline}
+        orders={orders}
+        sortedOrders={sortedOrders}
+        visibleOrders={visibleOrders}
+        visibleCount={visibleCount}
+        totalOrdersCount={sortedOrders.length}
+        onLoadMore={() => setVisibleCount(prev => Math.min(prev + ORDERS_CHUNK_SIZE, sortedOrders.length))}
+        onShowAll={() => setVisibleCount(sortedOrders.length)}
         totalIncome={totalIncome}
         totalExpenses={totalExpenses}
         netProfitTotal={netProfitTotal}
         totalMarginPercent={totalMarginPercent}
-        unpaidSum={unpaidSum}
+        inProgressCount={inProgressCount}
+        printingCount={printingCount}
+        waitingCount={waitingCount}
+        completedCount={completedCount}
         incomeOrdersCount={incomeOrdersCount}
+        unpaidSum={unpaidSum}
         unpaidOrdersCount={unpaidOrdersCount}
-      />
-
-      {/* Панель фильтров и поиска */}
-      <OrdersFilterBar
+        expenseCount={expenseCount}
+        currentMonthGoal={currentMonthGoal}
+        onOpenGoalModal={() => setIsGoalModalOpen(true)}
         selectedMonthKey={selectedMonthKey}
         setSelectedMonthKey={setSelectedMonthKey}
         availableMonthKeys={availableMonthKeys}
@@ -865,86 +622,42 @@ export function OrdersTable() {
         handleNextMonth={handleNextMonth}
         monthOrdersCount={monthFilteredOrders.length}
         onOpenClearMonthModal={() => setIsClearMonthModalOpen(true)}
+        onOpenNewMonthModal={() => setIsOpenNewMonthModalOpen(true)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        savedCalculations={savedCalculations}
         typeFilter={typeFilter}
         setTypeFilter={setTypeFilter}
         clientFilter={clientFilter}
         setClientFilter={setClientFilter}
         paymentFilter={paymentFilter}
         setPaymentFilter={setPaymentFilter}
-        totalFilteredCount={filteredOrders.length}
-        inProgressCount={inProgressCount}
-        completedCount={completedCount}
-        expenseCount={expenseCount}
-      />
-
-      {/* Оптимизированная таблица заказов */}
-      <OrdersTableModern
-        orders={sortedOrders}
-        visibleOrders={visibleOrders}
-        visibleCount={visibleCount}
-        totalOrdersCount={sortedOrders.length}
-        onLoadMore={() => setVisibleCount(prev => Math.min(prev + ORDERS_CHUNK_SIZE, sortedOrders.length))}
-        onShowAll={() => setVisibleCount(sortedOrders.length)}
+        totalFilteredCount={allTypeCount}
         sortField={sortField}
         sortOrder={sortOrder}
         onSort={handleSort}
-        onOpenDrawer={handleOpenDrawer}
         onOpenEditModal={handleOpenEditModal}
         onOpenAddModal={handleOpenAddModal}
         onUpdateStatus={handleUpdateStatus}
         onToggleType={handleToggleType}
         onDuplicateOrder={handleDuplicateOrder}
         onRequestDelete={(order) => setOrderToDelete(order)}
-        searchQuery={searchQuery}
+        onInlineUpdate={handleInlineUpdateOrder}
+        isExpanded={isExpanded}
+        onToggleExpand={handleToggleExpand}
+        onResetFilters={handleResetFilters}
+        onUndo={handleUndo}
+        canUndo={historyStack.length > 0}
         contextMenu={contextMenu}
         setContextMenu={setContextMenu}
         contextMenuRef={contextMenuRef}
         onCopyContact={(text) => {
           navigator.clipboard.writeText(text);
-          setToastMessage(`Контакт скопирован: ${text}`);
-          setTimeout(() => setToastMessage(null), 2200);
+          showSuccess(`Контакт скопирован: ${text}`, 'Буфер обмена');
         }}
       />
 
-      {/* Боковая панель деталей заказа (Drawer) */}
-      <AnimatePresence>
-        {activeDrawerOrder && (
-          <OrderDrawer
-            key={activeDrawerOrder.id}
-            order={activeDrawerOrder}
-            initialTab={drawerInitialTab}
-            onClose={() => setActiveDrawerOrder(null)}
-            onUpdateOrder={handleUpdateOrder}
-            onOpenEditModal={handleOpenEditModal}
-            onDuplicateOrder={handleDuplicateOrder}
-            onRequestDelete={(order) => setOrderToDelete(order)}
-            onUpdateStatus={handleUpdateStatus}
-            onAddPayment={handleAddPayment}
-            onDeletePayment={handleDeletePayment}
-            onAddCostItem={handleAddCostItem}
-            onUpdateCostItem={handleUpdateCostItem}
-            onDeleteCostItem={handleDeleteCostItem}
-            onAddContact={handleAddContact}
-            onDeleteContact={handleDeleteContact}
-            onSaveNotes={handleSaveNotes}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Модальное окно создания и полного редактирования */}
-      <OrderFormModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setEditingOrder(null);
-        }}
-        order={editingOrder}
-        setOrder={setEditingOrder}
-        onSave={handleSaveModal}
-        savedCalculations={savedCalculations}
-      />
+      {/* МОДАЛЬНЫЕ ОКНА */}
 
       {/* Модальное окно удаления записи */}
       <DeleteOrderModal
@@ -962,20 +675,25 @@ export function OrdersTable() {
         onConfirm={handleConfirmClearMonth}
       />
 
-      {/* Тост уведомление */}
-      <AnimatePresence>
-        {toastMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-6 right-6 z-50 bg-[#16181d] border border-[#FF6B00]/40 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs sm:text-sm font-semibold backdrop-blur-xl"
-          >
-            <RotateCcw className="w-4 h-4 text-[#FF8800]" />
-            <span>{toastMessage}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Модальное окно открытия нового месяца */}
+      <OpenNewMonthModal
+        isOpen={isOpenNewMonthModalOpen}
+        onClose={() => setIsOpenNewMonthModalOpen(false)}
+        onSelectMonth={handleOpenNewMonth}
+        selectedMonthKey={selectedMonthKey}
+        orders={orders}
+      />
+
+      {/* Модальное окно настройки цели на месяц */}
+      <GoalSettingsModal
+        isOpen={isGoalModalOpen}
+        onClose={() => setIsGoalModalOpen(false)}
+        currentGoal={currentMonthGoal}
+        selectedMonthKey={selectedMonthKey}
+        monthLabel={formatMonthKeyLabel(selectedMonthKey)}
+        onSave={handleSaveGoal}
+        currentProfit={netProfitTotal}
+      />
     </div>
   );
 }

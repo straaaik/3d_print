@@ -5,22 +5,22 @@ interface CardProps {
   stepNumber?: string;
   className?: string;
   children: React.ReactNode;
-  headerAction?: React.ReactNode; // Дополнительный элемент в шапке (например, кнопка сброса)
+  headerAction?: React.ReactNode;
 }
 
 export function Card({ title, stepNumber, className = '', children, headerAction }: CardProps) {
   return (
-    <div className={`bg-[#16181d] border border-[#242930] rounded-xl p-4 sm:p-5 ${className}`}>
+    <div className={`bg-neutral-950/90 border border-white/15 rounded-2xl p-4 sm:p-5 shadow-xl backdrop-blur-md ${className}`}>
       {(title || stepNumber) && (
-        <div className="flex items-center justify-between gap-4 mb-4 select-none">
+        <div className="flex items-center justify-between gap-4 mb-4 select-none border-b border-white/10 pb-3">
           <div className="flex items-center gap-2">
             {stepNumber && (
-              <span className="text-primary font-mono text-xl font-bold shrink-0">
+              <span className="text-cyan-400 font-mono text-sm font-bold shrink-0 bg-cyan-950/60 border border-cyan-500/30 px-2 py-0.5 rounded-lg">
                 {stepNumber}
               </span>
             )}
             {title && (
-              <h2 className="text-white text-lg font-bold tracking-wide">
+              <h2 className="text-white text-sm sm:text-base font-bold tracking-wide font-mono uppercase">
                 {title}
               </h2>
             )}

@@ -1,27 +1,31 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  User as UserIcon, 
-  ShieldCheck, 
-  Settings, 
-  LogOut, 
-  ChevronDown, 
-  Edit3, 
-  KeyRound, 
-  Shield
+import { PageTransitionLink as Link } from '../../shared/ui/page-transition/PageTransitionLink';
+import { usePathname } from 'next/navigation';
+import { usePageRouter as useRouter } from '../../shared/ui/page-transition/PageTransitionLink';
+import { motion, AnimatePresence } from 'motion/react';
+import {
+
+  ShieldCheck,
+  Settings,
+  LogOut,
+  ChevronDown,
+  Edit3,
+  Sparkles,
+  LayoutGrid
 } from 'lucide-react';
 import { useAuth } from '../../entities/model/AuthProvider';
 import { EditProfileModal } from './EditProfileModal';
 import { Modal } from '../../shared/ui/Modal';
-import { Button } from '../../shared/ui/Button';
+import { CockpitButton } from '../../shared/ui/CockpitButton';
+import { usePixelCurtain } from '../../shared/ui/PixelCurtain';
 
 export function UserProfileMenu() {
   const { currentUser, isAdmin, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const { navigate: curtainNavigate } = usePixelCurtain();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -29,7 +33,6 @@ export function UserProfileMenu() {
 
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Закрытие дропдауна при клике вне меню
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -57,77 +60,89 @@ export function UserProfileMenu() {
   };
 
   return (
-    <div className="relative select-none" ref={menuRef}>
-      {/* Кнопка-триггер пользователя в правом верхнем углу */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-[#16181d] border border-[#242930] hover:border-purple-600/50 hover:bg-[#1a1d24] transition-all shadow-xl shadow-black/40 cursor-pointer backdrop-blur-xl group"
+    <div className="relative select-none font-mono" ref={menuRef}>
+      {/* Кнопка-триггер профиля */}
+      <div
+        className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-neutral-900 border border-white/10 hover:border-white/20 hover:bg-neutral-800 shadow-md cursor-pointer backdrop-blur-xl group"
       >
-        {/* Аватар */}
+        <Link
+          href="/settings?section=profile"
+          aria-label="Открыть профиль"
+          aria-current={pathname === '/settings' ? 'page' : undefined}
+          onClick={(event) => {
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            event.preventDefault();
+            setIsOpen(false);
+            curtainNavigate('/settings?section=profile');
+          }}
+          className="flex items-center gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white/60"
+        >
         <div
-          className="w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs text-white shadow-md shrink-0 transition-transform group-hover:scale-105"
-          style={{ backgroundColor: currentUser.avatar_color || '#8B5CF6' }}
+          className="w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs text-neutral-950 shadow-sm shrink-0 "
+          style={{ backgroundColor: currentUser.avatar_color || '#06B6D4' }}
         >
           {initial}
         </div>
 
-        {/* Имя и роль */}
         <div className="flex flex-col items-start text-left leading-tight hidden sm:flex">
-          <span className="text-xs font-bold text-white group-hover:text-purple-300 transition-colors max-w-[120px] truncate">
+          <span className="text-xs font-bold text-white max-w-[120px] truncate">
             {currentUser.name}
           </span>
-          <span className="text-[10px] text-gray-400 font-medium">
+          <span className="text-[10px] text-neutral-400 font-mono">
             {isAdmin ? 'Администратор' : 'Пользователь'}
           </span>
         </div>
 
-        {/* Бейдж для мобильных или компактный */}
         {isAdmin && (
-          <span className="sm:hidden text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-purple-950/80 text-purple-300 border border-purple-700/50">
+          <span className="sm:hidden text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-purple-950/80 text-purple-300 border border-purple-700/50">
             ADM
           </span>
         )}
 
-        {/* Стрелка */}
-        <ChevronDown
-          className={`w-3.5 h-3.5 text-gray-400 group-hover:text-white transition-transform duration-200 ${
-            isOpen ? 'rotate-180 text-purple-400' : ''
-          }`}
-        />
-      </button>
+        </Link>
+        <button
+          type="button"
+          aria-label="Меню пользователя"
+          aria-expanded={isOpen}
+          onClick={() => setIsOpen(!isOpen)}
+          onKeyDown={(event) => { if (event.key === 'Escape') setIsOpen(false); }}
+          className="flex min-h-8 min-w-8 items-center justify-center rounded-lg hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-white/60 cursor-pointer"
+        >
+          <motion.span animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.15 }}><ChevronDown className="w-3 h-3 text-neutral-400" /></motion.span>
+        </button>
+      </div>
 
       {/* Выпадающее меню */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+            initial={{ opacity: 0, y: 6, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            exit={{ opacity: 0, y: 6, scale: 0.96 }}
             transition={{ duration: 0.15, ease: 'easeOut' }}
-            className="absolute right-0 mt-2 w-64 rounded-2xl bg-[#14161d] border border-[#242930] p-2 shadow-2xl shadow-black/80 backdrop-blur-2xl z-50 overflow-hidden"
+            className="absolute right-0 mt-2 w-64 rounded-2xl bg-neutral-950 border border-white/15 p-2 shadow-2xl backdrop-blur-2xl z-50 overflow-hidden font-mono text-xs"
           >
             {/* Блок пользователя в шапке меню */}
-            <div className="p-3 bg-[#0d0e12] border border-[#242930] rounded-xl mb-1.5 flex items-center gap-3">
+            <div className="p-2.5 bg-neutral-900 border border-white/10 rounded-xl mb-1.5 flex items-center gap-2.5">
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center font-extrabold text-base text-white shadow-md shrink-0"
-                style={{ backgroundColor: currentUser.avatar_color || '#8B5CF6' }}
+                className="w-9 h-9 rounded-xl flex items-center justify-center font-extrabold text-sm text-neutral-950 shadow-md shrink-0"
+                style={{ backgroundColor: currentUser.avatar_color || '#06B6D4' }}
               >
                 {initial}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-bold text-white truncate">
+                <div className="text-xs font-bold text-white truncate font-sans">
                   {currentUser.name}
                 </div>
-                <div className="text-[11px] text-gray-400 truncate">
+                <div className="text-[10px] text-neutral-400 truncate font-mono">
                   {currentUser.email}
                 </div>
                 <div className="mt-1">
                   <span
-                    className={`inline-block px-1.5 py-0.2 rounded text-[9px] font-extrabold ${
+                    className={`inline-block px-1.5 py-0.2 rounded text-[9px] font-mono font-bold ${
                       isAdmin
                         ? 'bg-purple-950/80 text-purple-300 border border-purple-700/60'
-                        : 'bg-blue-950/80 text-blue-300 border border-blue-700/60'
+                        : 'bg-cyan-950/80 text-cyan-300 border border-cyan-700/60'
                     }`}
                   >
                     {isAdmin ? 'АДМИНИСТРАТОР' : 'ПОЛЬЗОВАТЕЛЬ'}
@@ -138,20 +153,32 @@ export function UserProfileMenu() {
 
             {/* Пункты меню */}
             <div className="space-y-0.5">
-              {/* Редактировать профиль */}
+              {pathname !== '/' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    curtainNavigate('/');
+                  }}
+                  className="w-full px-2.5 py-1.5 rounded-lg text-xs font-mono text-neutral-300 hover:text-white hover:bg-white/10 flex items-center gap-2 cursor-pointer"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Главный хаб (Меню)</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => {
                   setIsOpen(false);
                   setIsEditModalOpen(true);
                 }}
-                className="w-full px-3 py-2 rounded-xl text-xs font-semibold text-gray-300 hover:text-white hover:bg-purple-600/15 hover:border-purple-600/30 border border-transparent flex items-center gap-2.5 transition-all cursor-pointer"
+                className="w-full px-2.5 py-1.5 rounded-lg text-xs font-mono text-neutral-300 hover:text-white hover:bg-white/10 flex items-center gap-2 cursor-pointer"
               >
-                <Edit3 className="w-4 h-4 text-purple-400" />
+                <Edit3 className="w-3.5 h-3.5 text-cyan-400" />
                 <span>Редактировать профиль</span>
               </button>
 
-              {/* Панель администратора (только для админов) */}
               {isAdmin && (
                 <button
                   type="button"
@@ -159,37 +186,52 @@ export function UserProfileMenu() {
                     setIsOpen(false);
                     router.push('/admin');
                   }}
-                  className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-all cursor-pointer border ${
+                  className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-mono flex items-center gap-2 cursor-pointer ${
                     pathname === '/admin'
-                      ? 'bg-purple-950/60 text-purple-300 border-purple-700/50'
-                      : 'text-gray-300 hover:text-white hover:bg-purple-600/15 hover:border-purple-600/30 border-transparent'
+                      ? 'bg-white/15 text-white font-bold'
+                      : 'text-neutral-300 hover:text-white hover:bg-white/10'
                   }`}
                 >
-                  <ShieldCheck className="w-4 h-4 text-purple-400" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
                   <span>Панель администратора</span>
                 </button>
               )}
 
-              {/* Настройки */}
               <button
                 type="button"
                 onClick={() => {
                   setIsOpen(false);
                   router.push('/settings');
                 }}
-                className={`w-full px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-all cursor-pointer border ${
+                className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-mono flex items-center gap-2 cursor-pointer ${
                   pathname === '/settings'
-                    ? 'bg-gray-800 text-white border-gray-700'
-                    : 'text-gray-300 hover:text-white hover:bg-white/5 border-transparent'
+                    ? 'bg-white/15 text-white font-bold'
+                    : 'text-neutral-300 hover:text-white hover:bg-white/10'
                 }`}
               >
-                <Settings className="w-4 h-4 text-gray-400" />
+                <Settings className="w-3.5 h-3.5 text-neutral-400" />
                 <span>Настройки приложения</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  router.push('/about');
+                }}
+                className={`w-full px-2.5 py-1.5 rounded-lg text-xs font-mono flex items-center gap-2 cursor-pointer ${
+                  pathname === '/about'
+                    ? 'bg-white/15 text-white font-bold'
+                    : 'text-neutral-300 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                <span>О системе (Визитка)</span>
               </button>
             </div>
 
             {/* Разделитель */}
-            <div className="my-1.5 border-t border-[#242930]" />
+            <div className="my-1.5 border-t border-white/10" />
 
             {/* Кнопка выхода */}
             <button
@@ -198,47 +240,36 @@ export function UserProfileMenu() {
                 setIsOpen(false);
                 setIsLogoutModalOpen(true);
               }}
-              className="w-full px-3 py-2 rounded-xl text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 flex items-center gap-2.5 transition-all cursor-pointer"
+              className="w-full px-2.5 py-1.5 rounded-lg text-xs font-mono text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 flex items-center gap-2 cursor-pointer"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-3.5 h-3.5" />
               <span>Выйти из аккаунта</span>
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Модальное окно редактирования профиля */}
       <EditProfileModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
       />
 
-      {/* Модальное окно подтверждения выхода */}
       <Modal
         isOpen={isLogoutModalOpen}
         onClose={() => setIsLogoutModalOpen(false)}
-        title="Выход из аккаунта"
-        variant="error"
+        title="Выход из системы"
+        subtitle="Завершение сеанса"
         maxWidth="sm"
-      >
-        <div className="space-y-3">
-          <p className="text-gray-300 text-xs sm:text-sm leading-relaxed">
-            Вы действительно хотите выйти из системы 3D Labs?
-          </p>
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsLogoutModalOpen(false)}
-            >
-              Отмена
-            </Button>
-            <Button
-              variant="danger"
-              onClick={handleConfirmLogout}
-            >
-              Выйти
-            </Button>
+        footer={
+          <div className="flex w-full justify-end">
+            <CockpitButton type="button" onClick={handleConfirmLogout}>Выйти</CockpitButton>
           </div>
+        }
+      >
+        <div className="space-y-3 font-mono text-xs">
+          <p className="text-neutral-300 leading-relaxed font-sans">
+            Вы действительно хотите выйти из системы?
+          </p>
         </div>
       </Modal>
     </div>

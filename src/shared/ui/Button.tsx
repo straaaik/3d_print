@@ -14,19 +14,19 @@ export function Button({
   children,
   ...props
 }: ButtonProps) {
-  const baseStyles = 'inline-flex items-center justify-center font-semibold rounded-lg transition-all focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed';
-  
+  const baseStyles = 'inline-flex items-center justify-center font-mono font-bold focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer select-none';
+
   const variants = {
-    primary: 'bg-primary text-[#0d0e12] hover:bg-[#0ba0c7] active:scale-[0.98]',
-    secondary: 'bg-[#242930] text-white hover:bg-secondary active:scale-[0.98]',
-    danger: 'bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 active:scale-[0.98]',
-    outline: 'border border-[#242930] text-gray-300 hover:border-secondary hover:text-white active:scale-[0.98]',
+    primary: 'bg-white text-neutral-950 hover:bg-neutral-200 shadow-sm rounded-xl',
+    secondary: 'bg-white/10 text-white hover:bg-white/15 border border-white/15 rounded-xl',
+    danger: 'bg-rose-950/60 text-rose-300 border border-rose-800/40 hover:bg-rose-900/80 rounded-xl',
+    outline: 'border border-white/15 text-neutral-300 hover:text-white hover:bg-white/10 rounded-xl',
   };
 
   const sizes = {
     sm: 'px-3 py-1.5 text-xs',
-    md: 'px-5 py-2.5 text-sm',
-    lg: 'px-6 py-3.5 text-base',
+    md: 'px-4 py-2 text-xs sm:text-sm',
+    lg: 'px-5 py-2.5 text-sm sm:text-base',
   };
 
   return (

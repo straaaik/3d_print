@@ -1,0 +1,16 @@
+/* Dev-only controls are not part of the product UI baseline. */
+nextjs-portal,
+[aria-label='Open Next.js Dev Tools'] {
+  display: none !important;
+}
+
+/* Motion writes the infinite hub levitation to inline transforms. Freeze only
+   that decorative offset so two screenshots can be compared deterministically. */
+a[href='/orders'] > div,
+a[href='/stats'] > div,
+a[href='/calculator'] > div,
+a[href='/products'] > div,
+a[href='/filaments'] > div,
+a[href='/printers'] > div {
+  transform: translateY(0) !important;
+}

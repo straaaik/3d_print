@@ -1,18 +1,18 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronDown, Search, Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 
 export interface SelectOption {
   value: string;
   label: string;
-  color?: string; // Необязательное свойство для показа круглого индикатора цвета
-  badgeStyle?: string; // Кастомные стили бейджа
-  icon?: React.ComponentType<{ className?: string }>; // Иконка опции
-  iconColor?: string; // Цвет иконки
-  description?: string; // Дополнительное описание опции
+  color?: string;
+  badgeStyle?: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  iconColor?: string;
+  description?: string;
 }
 
 export interface CustomSelectProps {
@@ -26,12 +26,12 @@ export interface CustomSelectProps {
   className?: string;
   buttonClassName?: string;
   dropdownClassName?: string;
-  isSearchable?: boolean; // Флаг поддержки поиска в списке
-  dropdownPosition?: 'top' | 'bottom' | 'auto'; // Направление выпадающего списка
-  variant?: 'default' | 'badge' | 'compact' | 'ghost'; // Вариант отображения кнопки
-  size?: 'xs' | 'sm' | 'md' | 'lg'; // Размер
-  dropdownWidth?: number | string; // Ширина выпадающего меню
-  align?: 'left' | 'right'; // Выравнивание меню относительно кнопки
+  isSearchable?: boolean;
+  dropdownPosition?: 'top' | 'bottom' | 'auto';
+  variant?: 'default' | 'badge' | 'compact' | 'ghost';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
+  dropdownWidth?: number | string;
+  align?: 'left' | 'right';
   showChevron?: boolean;
   disabled?: boolean;
   isModified?: boolean;
@@ -66,17 +66,15 @@ export function Select({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Находим активную опцию
   const selectedOption = options.find((opt) => opt.value === value);
   const SelectedIcon = selectedOption?.icon;
 
-  // Динамический расчет фиксированных координат портала поверх всех контейнеров
-  const updateCoords = () => {
+  const updateCoords = useCallback(() => {
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       const spaceBelow = window.innerHeight - rect.bottom;
       const spaceAbove = rect.top;
-      
+
       let openTop = false;
       if (dropdownPosition === 'top') {
         openTop = true;
@@ -84,8 +82,8 @@ export function Select({
         openTop = true;
       }
 
-      let targetWidth = typeof dropdownWidth === 'number' 
-        ? dropdownWidth 
+      const targetWidth = typeof dropdownWidth === 'number'
+        ? dropdownWidth
         : (dropdownWidth ? parseInt(String(dropdownWidth), 10) || rect.width : Math.max(rect.width, variant === 'compact' || variant === 'badge' ? 170 : 220));
 
       let left = rect.left;
@@ -109,7 +107,12 @@ export function Select({
         isTop: openTop,
       });
     }
-  };
+  }, [align, dropdownPosition, dropdownWidth, variant]);
+
+  const closeSelect = useCallback(() => {
+    setIsOpen(false);
+    setSearchQuery('');
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -121,16 +124,8 @@ export function Select({
       window.removeEventListener('resize', updateCoords);
       window.removeEventListener('scroll', updateCoords, true);
     };
-  }, [isOpen]);
+  }, [isOpen, updateCoords]);
 
-  // Сброс строки поиска при закрытии/открытии списка
-  useEffect(() => {
-    if (!isOpen) {
-      setSearchQuery('');
-    }
-  }, [isOpen]);
-
-  // Закрытие по клику вне кнопки и портала
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
@@ -138,33 +133,30 @@ export function Select({
         containerRef.current && !containerRef.current.contains(target) &&
         dropdownRef.current && !dropdownRef.current.contains(target)
       ) {
-        setIsOpen(false);
+        closeSelect();
       }
     };
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
+  }, [closeSelect, isOpen]);
 
-  // Закрытие по клавише Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsOpen(false);
+      if (e.key === 'Escape') closeSelect();
     };
     if (isOpen) {
       window.addEventListener('keydown', handleKeyDown);
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  }, [closeSelect, isOpen]);
 
-  // Фильтрация опций по поисковому запросу
   const filteredOptions = options.filter((opt) =>
     opt.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (opt.description && opt.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  // Стили кнопки в зависимости от варианта и размера
   const getSizeStyles = () => {
     switch (size) {
       case 'xs':
@@ -172,9 +164,9 @@ export function Select({
       case 'sm':
         return 'h-8 min-h-[32px] px-2.5 py-1.5 text-xs rounded-xl';
       case 'lg':
-        return 'h-11 min-h-[44px] px-4 py-2.5 text-sm sm:text-base rounded-2xl';
+        return 'h-11 min-h-[44px] px-4 py-2.5 text-sm rounded-2xl';
       default:
-        return 'h-9 min-h-[36px] px-3 py-2 text-xs sm:text-sm rounded-xl';
+        return 'h-9 min-h-[36px] px-3 py-2 text-xs rounded-xl';
     }
   };
 
@@ -184,77 +176,74 @@ export function Select({
     }
 
     if (variant === 'badge') {
-      return 'bg-[#0d0e12] border border-[#242930] hover:border-[#FF6B00]/50 text-gray-200 font-semibold';
+      return 'bg-neutral-900 border border-white/15 hover:border-cyan-400 text-neutral-200 font-semibold';
     }
 
     if (variant === 'compact') {
-      return 'bg-[#0d0e12] hover:bg-[#16181d] border border-[#242930] hover:border-gray-600 focus:border-[#FF6B00] text-gray-200 font-medium shadow-sm';
+      return 'bg-neutral-900 hover:bg-neutral-800 border border-white/15 hover:border-white/25 focus:border-cyan-400 text-neutral-200 font-medium shadow-sm';
     }
 
     if (variant === 'ghost') {
-      return 'bg-transparent hover:bg-[#16181d] border border-transparent hover:border-[#242930] text-gray-300 hover:text-white';
+      return 'bg-transparent hover:bg-white/5 border border-transparent hover:border-white/10 text-neutral-300 hover:text-white';
     }
 
-    return 'bg-[#14161d] border border-[#242930] hover:border-[#FF6B00]/50 focus:border-[#FF6B00] text-white shadow-sm';
+    return 'bg-neutral-900 border border-white/15 hover:border-white/25 focus:border-cyan-400 text-white shadow-sm';
   };
 
   return (
-    <div ref={containerRef} className={`flex flex-col gap-1.5 relative ${variant === 'compact' || variant === 'badge' ? 'inline-block w-auto' : 'w-full'} ${className}`}>
+    <div ref={containerRef} className={`flex flex-col gap-1.5 relative font-mono text-xs ${variant === 'compact' || variant === 'badge' ? 'inline-block w-auto' : 'w-full'} ${className}`}>
       {label && (
-        <span className="text-gray-300 text-xs sm:text-sm font-medium select-none">
+        <span className="text-neutral-400 text-xs font-mono uppercase tracking-wider select-none">
           {label}
         </span>
       )}
-      
+
       <div className="relative inline-block w-full">
-        {/* Кнопка открытия/закрытия списка */}
         <button
           ref={buttonRef}
           type="button"
           disabled={disabled}
           onClick={(e) => {
             e.stopPropagation();
-            if (!disabled) setIsOpen(!isOpen);
+            if (!disabled) {
+              if (isOpen) closeSelect();
+              else setIsOpen(true);
+            }
           }}
-          className={`w-full flex items-center justify-between gap-1.5 focus:outline-none transition-all cursor-pointer select-none ${getSizeStyles()} ${getVariantButtonStyles()} ${
+          className={`w-full flex items-center justify-between gap-1.5 focus:outline-none cursor-pointer select-none font-mono ${getSizeStyles()} ${getVariantButtonStyles()} ${
             isModified ? '!border-amber-500/70 shadow-[0_0_10px_rgba(245,158,11,0.15)] bg-amber-500/[0.03]' : ''
           } ${
-            error ? 'border-rose-500' : ''
-          } ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${buttonClassName}`}
+            error ? '!border-rose-500' : ''
+          } ${disabled ? 'opacity-40 cursor-not-allowed' : ''} ${buttonClassName}`}
         >
           <div className="flex items-center gap-1.5 overflow-hidden min-w-0 flex-1">
-            {/* Круглый индикатор цвета */}
             {selectedOption?.color && (
-              <div 
+              <div
                 className="w-2.5 h-2.5 rounded-full border border-black/20 shadow-inner shrink-0"
                 style={{ backgroundColor: selectedOption.color }}
               />
             )}
-            
-            {/* Иконка выбранной опции */}
+
             {SelectedIcon && (
-              <SelectedIcon className={`w-3.5 h-3.5 shrink-0 ${selectedOption?.iconColor || (variant === 'badge' ? '' : 'text-[#FF8800]')}`} />
+              <SelectedIcon className={`w-3.5 h-3.5 shrink-0 ${selectedOption?.iconColor || (variant === 'badge' ? '' : 'text-cyan-400')}`} />
             )}
-            
-            {/* Текст выбранной опции */}
-            <span className="truncate text-left">
+
+            <span className="truncate text-left font-mono">
               {selectedOption ? selectedOption.label : placeholder}
             </span>
           </div>
 
-          {/* Анимированная стрелочка */}
           {showChevron && (
             <motion.div
               animate={{ rotate: isOpen ? 180 : 0 }}
               transition={{ duration: 0.15 }}
-              className="text-gray-400 hover:text-white shrink-0 flex items-center ml-0.5 opacity-70"
+              className="text-neutral-400 hover:text-white shrink-0 flex items-center ml-0.5"
             >
               <ChevronDown size={size === 'xs' ? 12 : 14} />
             </motion.div>
           )}
         </button>
 
-        {/* Портал выпадающего списка прямо в document.body поверх всей таблицы */}
         {isOpen && coords && typeof window !== 'undefined' && createPortal(
           <div
             ref={dropdownRef}
@@ -274,31 +263,29 @@ export function Select({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: coords.isTop ? 6 : -6, scale: 0.96 }}
                 transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-                className={`bg-[#16181d] border border-[#242930] rounded-xl shadow-2xl shadow-black/80 max-h-[80vh] overflow-x-hidden overflow-y-auto p-1 focus:outline-none flex flex-col backdrop-blur-xl custom-scrollbar ${dropdownClassName}`}
+                className={`bg-neutral-950 border border-white/15 rounded-xl shadow-2xl max-h-[80vh] overflow-x-hidden overflow-y-auto p-1 focus:outline-none flex flex-col backdrop-blur-2xl scrollbar-none font-mono text-xs ${dropdownClassName}`}
               >
-                {/* Поле ввода для поиска */}
                 {isSearchable && (
-                  <div className="p-1 border-b border-[#242930] mb-1 sticky top-0 bg-[#16181d] z-10 flex items-center gap-1.5">
+                  <div className="p-1 border-b border-white/10 mb-1 sticky top-0 bg-neutral-950 z-10 flex items-center gap-1.5">
                     <div className="relative w-full flex items-center">
-                      <Search size={12} className="absolute left-2.5 text-[#9ca3af]" />
+                      <Search size={12} className="absolute left-2.5 text-neutral-500" />
                       <input
                         ref={searchInputRef}
                         type="text"
                         placeholder="Поиск..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-[#0d0e12] border border-[#242930] focus:border-[#FF6B00] focus:outline-none rounded-lg px-2 py-1 pl-7 text-xs text-white placeholder-[#6b7280]"
+                        className="w-full bg-neutral-900 border border-white/15 focus:border-cyan-400 focus:outline-none rounded-lg px-2 py-1 pl-7 text-xs text-white placeholder-neutral-500 font-mono"
                         autoFocus
                       />
                     </div>
                   </div>
                 )}
 
-                {/* Элементы списка */}
-                <div className="overflow-x-hidden overflow-y-auto flex-1 max-h-[75vh] space-y-0.5 custom-scrollbar">
+                <div className="overflow-x-hidden overflow-y-auto flex-1 max-h-[75vh] space-y-0.5 scrollbar-none">
                   {filteredOptions.length === 0 ? (
-                    <li className="px-3 py-2 text-[#9ca3af] text-xs select-none text-center">
-                      Ничего не найдено
+                    <li className="px-3 py-2 text-neutral-500 text-xs select-none text-center font-mono">
+                      [ Ничего не найдено ]
                     </li>
                   ) : (
                     filteredOptions.map((opt) => {
@@ -310,26 +297,24 @@ export function Select({
                           key={opt.value}
                           onClick={() => {
                             onChange(opt.value);
-                            setIsOpen(false);
+                            closeSelect();
                           }}
-                          className={`flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg cursor-pointer transition-colors select-none whitespace-nowrap gap-2 ${
+                          className={`flex items-center justify-between px-2.5 py-1.5 text-xs rounded-lg cursor-pointer select-none whitespace-nowrap gap-2 font-mono ${
                             isSelected
-                              ? (opt.badgeStyle 
-                                  ? `${opt.badgeStyle} font-bold border` 
-                                  : 'bg-[#FF6B00]/20 text-[#FF8800] font-bold border border-[#FF6B00]/30 shadow-sm')
-                              : 'text-gray-300 hover:bg-[#242930] hover:text-white'
+                              ? (opt.badgeStyle
+                                  ? `${opt.badgeStyle} font-bold border`
+                                  : 'bg-white/15 text-white font-bold border border-white/20 shadow-sm')
+                              : 'text-neutral-300 hover:bg-white/10 hover:text-white'
                           }`}
                         >
                           <div className="flex items-center gap-2 min-w-0 flex-1">
-                            {/* Индикатор цвета */}
                             {opt.color && (
-                              <div 
-                                className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0 shadow-inner" 
+                              <div
+                                className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0 shadow-inner"
                                 style={{ backgroundColor: opt.color }}
                               />
                             )}
-                            
-                            {/* Иконка опции */}
+
                             {OptionIcon && (
                               <OptionIcon className={`w-3.5 h-3.5 shrink-0 ${opt.iconColor || ''}`} />
                             )}
@@ -337,16 +322,15 @@ export function Select({
                             <div className="min-w-0 flex-1">
                               <span className="truncate block font-medium">{opt.label}</span>
                               {opt.description && (
-                                <span className="text-[10px] text-gray-400 block truncate font-normal">
+                                <span className="text-[10px] text-neutral-500 block truncate font-normal">
                                   {opt.description}
                                 </span>
                               )}
                             </div>
                           </div>
 
-                          {/* Галочка выбранного элемента */}
                           {isSelected && (
-                            <Check className="w-3.5 h-3.5 text-[#FF8800] shrink-0 ml-1" />
+                            <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0 ml-1" />
                           )}
                         </li>
                       );
@@ -360,8 +344,8 @@ export function Select({
         )}
       </div>
 
-      {error && <span className="text-rose-400 text-xs mt-0.5">{error}</span>}
-      {hint && !error && <span className="text-gray-400 text-xs mt-0.5 leading-relaxed">{hint}</span>}
+      {error && <span className="text-rose-400 text-xs font-mono mt-0.5">{error}</span>}
+      {hint && !error && <span className="text-neutral-500 text-xs font-mono mt-0.5 leading-relaxed">{hint}</span>}
     </div>
   );
 }

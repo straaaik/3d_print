@@ -11,7 +11,6 @@ export interface TabConfig {
   shortLabel: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
   changedCount: number;
-  badgeColor?: string;
 }
 
 interface SettingsTabsProps {
@@ -32,7 +31,6 @@ export function SettingsTabs({
       shortLabel: 'Основные',
       icon: Zap,
       changedCount: changesMap.general,
-      badgeColor: 'text-sky-400',
     },
     {
       id: 'labor',
@@ -40,7 +38,6 @@ export function SettingsTabs({
       shortLabel: 'Мастер',
       icon: Wrench,
       changedCount: changesMap.labor,
-      badgeColor: 'text-emerald-400',
     },
     {
       id: 'pricing',
@@ -48,7 +45,6 @@ export function SettingsTabs({
       shortLabel: 'Наценки',
       icon: Percent,
       changedCount: changesMap.pricing,
-      badgeColor: 'text-amber-400',
     },
     {
       id: 'materials',
@@ -56,7 +52,6 @@ export function SettingsTabs({
       shortLabel: 'Материалы',
       icon: Layers,
       changedCount: changesMap.materials,
-      badgeColor: 'text-purple-400',
     },
     {
       id: 'data',
@@ -64,12 +59,11 @@ export function SettingsTabs({
       shortLabel: 'Бэкап',
       icon: Database,
       changedCount: changesMap.data,
-      badgeColor: 'text-indigo-400',
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 p-1.5 bg-[#16181d] border border-[#242930] rounded-2xl select-none shadow-inner overflow-hidden">
+    <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 p-1.5 bg-neutral-950/80 border border-white/10 rounded-2xl select-none font-mono text-xs">
       {tabs.map((tab, idx) => {
         const isActive = activeTab === tab.id;
         const Icon = tab.icon;
@@ -81,25 +75,23 @@ export function SettingsTabs({
             key={tab.id}
             type="button"
             onClick={() => onSelectTab(tab.id)}
-            className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer min-w-0 relative ${
+            className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-2 rounded-xl text-xs font-mono font-semibold cursor-pointer min-w-0 ${
               isLastOnMobile ? 'col-span-2 sm:col-span-1' : ''
             } ${
               isActive
-                ? 'bg-gradient-to-r from-[#28303d] to-[#1f2530] text-white shadow-md border border-[#3d4757]/60'
-                : 'text-gray-400 hover:text-white hover:bg-[#1f232b]'
+                ? 'bg-white/15 text-white border border-white/20 font-bold shadow-sm'
+                : 'text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent'
             }`}
           >
             <Icon
-              size={15}
-              className={`shrink-0 transition-colors ${
-                isActive ? (tab.badgeColor || 'text-primary') : 'text-gray-400'
-              }`}
+              size={14}
+              className={`shrink-0 ${isActive ? 'text-cyan-400' : 'text-neutral-500'}`}
             />
             <span className="truncate hidden lg:inline">{tab.label}</span>
             <span className="truncate inline lg:hidden">{tab.shortLabel}</span>
 
             {hasChanges && (
-              <span className="flex items-center justify-center min-w-[17px] h-[17px] px-1 text-[10px] font-mono font-bold rounded-full bg-amber-500 text-black shadow-sm shrink-0 animate-in zoom-in-50">
+              <span className="flex items-center justify-center min-w-[16px] h-[16px] px-1 text-[10px] font-mono font-bold rounded-full bg-amber-400 text-neutral-950 shadow-sm shrink-0">
                 {tab.changedCount}
               </span>
             )}

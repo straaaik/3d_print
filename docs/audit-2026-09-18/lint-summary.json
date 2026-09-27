@@ -1,0 +1,411 @@
+{
+  "command": "npm run lint -- --format json --output-file audit-eslint.json",
+  "rawErrors": 42.0,
+  "rawWarnings": 53.0,
+  "rootErrors": 26.0,
+  "rootWarnings": 41.0,
+  "findings": [
+    {
+      "file": "G:\\3d\\3D Labs\\src\\features\\design-sandbox\\DesignSandboxWorkspace.tsx",
+      "line": 6,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\features\\design-sandbox\\DesignSandboxWorkspace.tsx",
+      "line": 7,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\features\\design-sandbox\\DesignSandboxWorkspace.tsx",
+      "line": 13,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\features\\design-sandbox\\DesignSandboxWorkspace.tsx",
+      "line": 14,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\features\\design-sandbox\\DesignSandboxWorkspace.tsx",
+      "line": 15,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\features\\design-sandbox\\DesignSandboxWorkspace.tsx",
+      "line": 16,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\features\\design-sandbox\\DesignSandboxWorkspace.tsx",
+      "line": 19,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\features\\design-sandbox\\DesignSandboxWorkspace.tsx",
+      "line": 24,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\features\\design-sandbox\\DesignSandboxWorkspace.tsx",
+      "line": 41,
+      "severity": 2,
+      "rule": "react-hooks/set-state-in-effect"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\features\\design-sandbox\\components\\CustomizableOrderDrawer.tsx",
+      "line": 5,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\features\\design-sandbox\\components\\CustomizableOrderDrawer.tsx",
+      "line": 5,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\features\\design-sandbox\\components\\CustomizableOrderDrawer.tsx",
+      "line": 5,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\features\\design-sandbox\\components\\CustomizableOrderDrawer.tsx",
+      "line": 5,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\features\\design-sandbox\\components\\CustomizableOrderDrawer.tsx",
+      "line": 5,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\features\\design-sandbox\\components\\SandboxControls.tsx",
+      "line": 84,
+      "severity": 2,
+      "rule": "react-hooks/set-state-in-effect"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\api\\db.ts",
+      "line": 618,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\api\\db.ts",
+      "line": 668,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\api\\db.ts",
+      "line": 1581,
+      "severity": 2,
+      "rule": "prefer-const"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\api\\db.ts",
+      "line": 1588,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\ui\\CockpitButton.tsx",
+      "line": 51,
+      "severity": 2,
+      "rule": "@typescript-eslint/no-explicit-any"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\ui\\CockpitModal.tsx",
+      "line": 114,
+      "severity": 2,
+      "rule": "react-hooks/set-state-in-effect"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\ui\\ColorPicker.tsx",
+      "line": 4,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\ui\\ColorPicker.tsx",
+      "line": 4,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\ui\\ColorPicker.tsx",
+      "line": 38,
+      "severity": 2,
+      "rule": "react-hooks/set-state-in-effect"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\ui\\Modal.tsx",
+      "line": 137,
+      "severity": 2,
+      "rule": "react-hooks/set-state-in-effect"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\ui\\PixelCurtain.tsx",
+      "line": 39,
+      "severity": 2,
+      "rule": "react-hooks/refs"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\ui\\RoundDeleteModal.tsx",
+      "line": 90,
+      "severity": 2,
+      "rule": "@typescript-eslint/no-explicit-any"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\ui\\RoundDeleteModal.tsx",
+      "line": 119,
+      "severity": 2,
+      "rule": "react-hooks/set-state-in-effect"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\ui\\RoundDeleteModal.tsx",
+      "line": 154,
+      "severity": 2,
+      "rule": "react-hooks/set-state-in-effect"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\ui\\color-picker\\CockpitMatrixPicker.tsx",
+      "line": 37,
+      "severity": 2,
+      "rule": "react-hooks/set-state-in-effect"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\ui\\color-picker\\CockpitMatrixPicker.tsx",
+      "line": 44,
+      "severity": 2,
+      "rule": "react-hooks/set-state-in-effect"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\ui\\color-picker\\ColorPickerTrigger.tsx",
+      "line": 35,
+      "severity": 2,
+      "rule": "react-hooks/set-state-in-effect"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\ui\\color-picker\\IsometricSpoolPicker.tsx",
+      "line": 33,
+      "severity": 2,
+      "rule": "react-hooks/set-state-in-effect"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\ui\\color-picker\\IsometricSpoolPicker.tsx",
+      "line": 39,
+      "severity": 2,
+      "rule": "react-hooks/set-state-in-effect"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\shared\\ui\\page-transition\\PageTransitionProvider.tsx",
+      "line": 191,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\ModalsShowcase\\ModalsShowcase.tsx",
+      "line": 6,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\ModalsShowcase\\ModalsShowcase.tsx",
+      "line": 10,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\ModalsShowcase\\ModalsShowcase.tsx",
+      "line": 24,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\ModalsShowcase\\ModalsShowcase.tsx",
+      "line": 81,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\ModalsShowcase\\ModalsShowcase.tsx",
+      "line": 81,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\ModalsShowcase\\ModalsShowcase.tsx",
+      "line": 82,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\ModalsShowcase\\ModalsShowcase.tsx",
+      "line": 82,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\ModalsShowcase\\ModalsShowcase.tsx",
+      "line": 683,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\ModalsShowcase\\ModalsShowcase.tsx",
+      "line": 721,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\ModalsShowcase\\ModalsShowcase.tsx",
+      "line": 783,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\Orders\\components\\v2\\OrderPaymentModal.tsx",
+      "line": 13,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\Orders\\components\\v2\\OrderPaymentModal.tsx",
+      "line": 15,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\Orders\\components\\v2\\OrderPaymentModal.tsx",
+      "line": 508,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\ProductsList\\components\\v2\\AssemblyPartDrawer.tsx",
+      "line": 73,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\ProductsList\\components\\v2\\CollectionExpandedRow.tsx",
+      "line": 136,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\ProductsList\\components\\v2\\ProductRowDrawer.tsx",
+      "line": 20,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\ProductsList\\components\\v2\\ProductsV2Table.tsx",
+      "line": 32,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\ProductsList\\components\\v2\\ProductsV2Table.tsx",
+      "line": 33,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\ProductsList\\components\\v2\\ProductsV2Table.tsx",
+      "line": 47,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\src\\widgets\\SettingsForm\\components\\ReceiptTemplateTab.tsx",
+      "line": 9,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\tests\\hub-icon-preferences.test.ts",
+      "line": 34,
+      "severity": 2,
+      "rule": "@typescript-eslint/no-explicit-any"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\tests\\products-search.test.tsx",
+      "line": 557,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\tests\\products-search.test.tsx",
+      "line": 558,
+      "severity": 1,
+      "rule": "@typescript-eslint/no-unused-vars"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\tests\\products-v2.test.tsx",
+      "line": 216,
+      "severity": 2,
+      "rule": "@typescript-eslint/no-explicit-any"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\tests\\products-v2.test.tsx",
+      "line": 216,
+      "severity": 2,
+      "rule": "@typescript-eslint/no-explicit-any"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\tests\\products-v2.test.tsx",
+      "line": 216,
+      "severity": 2,
+      "rule": "@typescript-eslint/no-explicit-any"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\tests\\products-v2.test.tsx",
+      "line": 217,
+      "severity": 2,
+      "rule": "@typescript-eslint/no-explicit-any"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\tests\\products-v2.test.tsx",
+      "line": 218,
+      "severity": 2,
+      "rule": "@typescript-eslint/no-explicit-any"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\tests\\receipt-template.test.ts",
+      "line": 75,
+      "severity": 2,
+      "rule": "@typescript-eslint/no-require-imports"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\tests\\receipt-template.test.ts",
+      "line": 76,
+      "severity": 2,
+      "rule": "@typescript-eslint/no-require-imports"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\tests\\receipt-template.test.ts",
+      "line": 185,
+      "severity": 2,
+      "rule": "@typescript-eslint/no-require-imports"
+    },
+    {
+      "file": "G:\\3d\\3D Labs\\tests\\receipt-template.test.ts",
+      "line": 186,
+      "severity": 2,
+      "rule": "@typescript-eslint/no-require-imports"
+    }
+  ]
+}

@@ -7,6 +7,7 @@ export interface Printer {
   price: number;
   lifespan_hours: number;
   color?: string; // цветная метка принтера
+  model_3d?: 'a1' | 'p1';
 }
 
 export interface Filament {
@@ -47,6 +48,14 @@ export interface AssemblyHardwareItem {
   price_per_unit: number;
 }
 
+export interface AssemblyElectronicsItem {
+  id: string;
+  name: string;
+  quantity: number;
+  cost_per_unit: number;
+  price_per_unit: number;
+}
+
 export interface CustomCostItem {
   id: string;
   name: string;
@@ -63,6 +72,7 @@ export interface ProductCollection {
   category?: string;
   tags?: string[];
   description?: string;
+  color?: string;
 }
 
 export interface SavedCalculation {
@@ -80,7 +90,7 @@ export interface SavedCalculation {
   quantity: number;
   base_cost: number;
   final_price: number;
-  
+
   // Привязка к коллекции
   collection_id?: string;
   collection_name?: string;
@@ -88,6 +98,7 @@ export interface SavedCalculation {
   // Состав сборки (для type === 'assembly')
   assembly_parts?: AssemblyPrintedPart[];
   assembly_hardware?: AssemblyHardwareItem[];
+  assembly_electronics?: AssemblyElectronicsItem[];
   assembly_labor_minutes?: number;
   assembly_labor_cost?: number;
 
@@ -140,25 +151,25 @@ export interface Settings {
   default_defect_percent: number;
 }
 
-export type OrderStatus = 
-  | 'Не в работе' 
-  | 'Моделирование' 
-  | 'Ждет печати' 
-  | 'Печать' 
-  | 'Ждет покраски' 
-  | 'Покраска' 
-  | 'Ждет отправки' 
-  | 'Отправлен' 
+export type OrderStatus =
+  | 'Не в работе'
+  | 'Моделирование'
+  | 'Ждет печати'
+  | 'Печать'
+  | 'Ждет покраски'
+  | 'Покраска'
+  | 'Ждет отправки'
+  | 'Отправлен'
   | 'Готово';
 
-export type ContactType = 
-  | 'phone' 
-  | 'telegram' 
-  | 'whatsapp' 
-  | 'avito' 
-  | 'vk' 
-  | 'instagram' 
-  | 'email' 
+export type ContactType =
+  | 'phone'
+  | 'telegram'
+  | 'whatsapp'
+  | 'avito'
+  | 'vk'
+  | 'instagram'
+  | 'email'
   | 'other';
 
 export interface ContactItem {
@@ -172,6 +183,13 @@ export interface CostItem {
   category: string; // Наименование расхода (печать, упаковка, работа руками, покраска, доставка, брак/тесты или пользовательский пункт)
   amount: number;   // Сумма расхода в ₽
   note?: string;    // Дополнительное примечание
+}
+
+export interface PaymentItem {
+  id: string;
+  amount: number;
+  date: string;
+  note?: string;
 }
 
 export interface Order {
@@ -193,11 +211,12 @@ export interface Order {
   amount: number;
   cost: number;
   cost_items?: CostItem[]; // Детализированный список пунктов расхода
-  payments?: number[]; // Список отдельных транзакций оплаты
+  payments?: (number | PaymentItem)[]; // Список отдельных транзакций оплаты (число или транзакция с датой)
   payment: number; // Сумма всех транзакций оплаты
-  client: string;
+  client: string; // Канал продаж / Источник (Авито, Telegram, Сайт и т.д.) или категория расхода
+  client_name?: string; // Имя клиента / Заказчика (напр. «Иван Иванов», «ИП Алексеев»)
   contacts?: ContactItem[]; // Список контактов клиента (телефон, телеграм, whatsapp и др.)
-  contact: string; // Основной контакт для обратной совместимости
+  contact: string; // Основной контакт / имя для обратной совместимости
   deadline: string;
   status: OrderStatus;
   notes: string;

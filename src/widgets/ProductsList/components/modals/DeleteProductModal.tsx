@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Modal } from '../../../../shared/ui/Modal';
-import { Button } from '../../../../shared/ui/Button';
+import { CockpitDeleteModal } from '../../../../shared/ui/CockpitDeleteModal';
 
 interface DeleteProductModalProps {
   item: { id: string; name: string; type?: string } | null;
@@ -23,28 +22,18 @@ export function DeleteProductModal({ item, onClose, onConfirm }: DeleteProductMo
     }
   };
 
+  const itemTypeLabel = item.type === 'assembly' ? 'сборку' : 'товар';
+
   return (
-    <Modal isOpen={Boolean(item)} onClose={onClose} title="Подтверждение удаления" maxWidth="sm">
-      <div className="space-y-4 pt-1 text-xs text-gray-300">
-        <p>
-          Вы действительно хотите удалить {item.type === 'assembly' ? 'сборку' : 'товар'}{' '}
-          <strong className="text-white font-semibold">«{item.name}»</strong>?
-        </p>
-        <div className="flex justify-end gap-2 pt-2 border-t border-[#242930]">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isDeleting}>
-            Отмена
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            disabled={isDeleting}
-            onClick={handleConfirm}
-            className="bg-red-600 hover:bg-red-500 text-white font-bold border-none"
-          >
-            {isDeleting ? 'Удаление...' : 'Да, удалить'}
-          </Button>
-        </div>
-      </div>
-    </Modal>
+    <CockpitDeleteModal
+      isOpen={Boolean(item)}
+      onClose={onClose}
+      onConfirm={handleConfirm}
+      isDeleting={isDeleting}
+      title="Удаление из каталога"
+      itemName={`«${item.name}»`}
+      itemDetails={item.type === 'assembly' ? 'Сборное изделие' : 'Печатная деталь'}
+      description={`Вы действительно хотите безвозвратно удалить ${itemTypeLabel} «${item.name}»?`}
+    />
   );
 }

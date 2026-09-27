@@ -1,34 +1,83 @@
 @import "tailwindcss";
 
+:root {
+  /* ==========================================================================
+     ГЛАВНЫЙ ЦВЕТ СВЕТЛОГО ТЕКСТА И ЧЕКА (THEME ACCENT / BONE / SAND)
+     Измените это значение ниже, чтобы мгновенно сменить цвет во всём приложении:
+     ========================================================================== */
+  --cockpit-accent-color: #D2CCBB;
+
+  /* ==========================================================================
+     ГЛАВНОЕ СКРУГЛЕНИЕ ИНТЕРФЕЙСА (GLOBAL BORDER RADIUS)
+     Измените это значение ниже, чтобы мгновенно сменить скругления во всём приложении:
+     ========================================================================== */
+  --cockpit-radius: 4px;
+
+  /* ==========================================================================
+     РАЗМЫТИЕ ФОНА ДЛЯ МОДАЛЬНЫХ ОКОН (MODAL BACKDROP BLUR)
+     Измените это значение ниже, чтобы мгновенно сменить степень размытия во всём приложении:
+     ========================================================================== */
+  --cockpit-modal-blur: 4px;
+
+  --background: #0a0a0a;
+  --foreground: var(--cockpit-accent-color);
+}
+
 @theme {
+  --blur-sm: var(--cockpit-modal-blur);
+  --blur-cockpit-modal: var(--cockpit-modal-blur);
+
   --color-primary: #0CB4E0;
   --color-secondary: #537D8E;
   --color-tertiary: #FEB63D;
   --color-neutral-accent: #72787B;
   
+  --color-sand: var(--cockpit-accent-color);
+  --color-receipt: var(--cockpit-accent-color);
+  --color-white: var(--cockpit-accent-color);
+
+  /* Гармоничные светлые оттенки текста и бейджей, привязанные к главному цвету */
+  --color-neutral-100: color-mix(in srgb, var(--cockpit-accent-color) 96%, black);
+  --color-neutral-200: color-mix(in srgb, var(--cockpit-accent-color) 88%, black);
+  --color-neutral-300: color-mix(in srgb, var(--cockpit-accent-color) 78%, black);
+  --color-neutral-400: color-mix(in srgb, var(--cockpit-accent-color) 62%, black);
+
+  --color-zinc-100: color-mix(in srgb, var(--cockpit-accent-color) 96%, black);
+  --color-zinc-200: color-mix(in srgb, var(--cockpit-accent-color) 88%, black);
+  --color-zinc-300: color-mix(in srgb, var(--cockpit-accent-color) 78%, black);
+  --color-zinc-400: color-mix(in srgb, var(--cockpit-accent-color) 62%, black);
+
   --font-sans: var(--font-inter), sans-serif;
   --font-mono: var(--font-jetbrains-mono), monospace;
-}
 
-:root {
-  --background: #0d0e12;
-  --foreground: #f8fafc;
+  /* Единая система скруглений (управляется через переменную --cockpit-radius) */
+  --radius: var(--cockpit-radius);
+  --radius-xs: var(--cockpit-radius);
+  --radius-sm: var(--cockpit-radius);
+  --radius-md: var(--cockpit-radius);
+  --radius-lg: var(--cockpit-radius);
+  --radius-xl: var(--cockpit-radius);
+  --radius-2xl: var(--cockpit-radius);
+  --radius-3xl: var(--cockpit-radius);
+  --radius-4xl: var(--cockpit-radius);
+  --radius-full: 9999px;
 }
 
 html {
   scrollbar-gutter: stable;
+  background-color: #0a0a0a;
 }
 
 body {
-  background-color: var(--background);
+  background-color: #0a0a0a;
   color: var(--foreground);
   font-family: var(--font-sans);
-  background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-  background-size: 24px 24px;
-  background-position: center;
   min-height: 100vh;
+}
+
+/* Фоновая обертка */
+.bg-dot-grid {
+  background-color: transparent;
 }
 
 /* Стили для кастомных полей ввода и карточек */
@@ -38,18 +87,63 @@ input, select, textarea {
 
 /* Кастомный скроллбар */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0d0e12;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #242930;
-  border-radius: 4px;
+  background: #20232a;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #537D8E;
+  background: #353b47;
+}
+
+/* Вертикальная полоса прокрутки в виде полосок / штрихов (Cockpit Segmented Striped Scrollbar) */
+.segmented-scrollbar::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 0px;
+}
+.segmented-scrollbar::-webkit-scrollbar-track,
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.segmented-scrollbar::-webkit-scrollbar-thumb,
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.6) 0px,
+    rgba(255, 255, 255, 0.6) 3px,
+    transparent 3px,
+    transparent 6px
+  );
+  border-radius: 1px;
+}
+.segmented-scrollbar::-webkit-scrollbar-thumb:hover,
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.95) 0px,
+    rgba(255, 255, 255, 0.95) 3px,
+    transparent 3px,
+    transparent 6px
+  );
+}
+
+/* Скрытие полосы прокрутки с полным сохранением функции скролла (для выпадающих списков, фильтров и т.д.) */
+.no-scrollbar,
+.scrollbar-none {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.no-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 /* Оптимизация производительности длинных таблиц */
@@ -63,7 +157,7 @@ input, select, textarea {
   scroll-behavior: smooth;
 }
 
-/* Отключение дефолтных стрелок (spinner buttons) у всех полей input type=number */
+/* Отключение дефолтных стрелок у всех полей input type=number */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -75,3 +169,31 @@ input[type="number"] {
   appearance: textfield;
 }
 
+/* Order-form palette, scoped to catalog, equipment and system dialog shells.
+   Order dialogs and controls elsewhere retain their existing appearance. */
+.cockpit-form-modal :is(input, textarea):not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]):not([class~="bg-transparent"]),
+.cockpit-form-modal [data-number-counter-control],
+.cockpit-form-modal button[aria-haspopup="listbox"] {
+  background-color: rgb(20 20 22 / 90%);
+  border-color: #26262b;
+  font-family: var(--font-mono);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.cockpit-form-modal :is(input, textarea)::placeholder {
+  color: #52525b;
+}
+
+.cockpit-form-modal :is(label, span).uppercase {
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+}
+
+.cockpit-form-modal :is(input, textarea):focus,
+.cockpit-form-modal [data-number-counter-control]:focus-within,
+.cockpit-form-modal button[aria-haspopup="listbox"]:focus-visible {
+  border-color: color-mix(in srgb, var(--cockpit-accent-color) 40%, transparent);
+  --tw-ring-shadow: 0 0 #0000;
+}

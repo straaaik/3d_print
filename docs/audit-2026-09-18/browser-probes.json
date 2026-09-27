@@ -1,0 +1,293 @@
+{
+  "routes": [
+    {
+      "path": "/",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/",
+      "errors": [],
+      "overflow": {
+        "viewport": 1440,
+        "width": 1434
+      },
+      "readiness": "OPERATIONS HUB visible"
+    },
+    {
+      "path": "/calculator",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/calculator",
+      "errors": [],
+      "overflow": {
+        "viewport": 1440,
+        "width": 1434
+      }
+    },
+    {
+      "path": "/orders",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/orders",
+      "errors": [],
+      "overflow": {
+        "viewport": 1440,
+        "width": 1434
+      }
+    },
+    {
+      "path": "/products",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/products",
+      "errors": [],
+      "overflow": {
+        "viewport": 1440,
+        "width": 1434
+      }
+    },
+    {
+      "path": "/filaments",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/filaments",
+      "errors": [],
+      "overflow": {
+        "viewport": 1440,
+        "width": 1434
+      }
+    },
+    {
+      "path": "/printers",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/printers",
+      "errors": [],
+      "overflow": {
+        "viewport": 1440,
+        "width": 1434
+      }
+    },
+    {
+      "path": "/stats",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/stats",
+      "errors": [],
+      "overflow": {
+        "viewport": 1440,
+        "width": 1434
+      }
+    },
+    {
+      "path": "/settings",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/settings",
+      "errors": [],
+      "overflow": {
+        "viewport": 1440,
+        "width": 1434
+      }
+    },
+    {
+      "path": "/admin",
+      "viewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "status": 200,
+      "url": "http://localhost:3000/admin",
+      "errors": [],
+      "overflow": {
+        "viewport": 1440,
+        "width": 1434
+      }
+    },
+    {
+      "path": "/",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/",
+      "errors": [],
+      "overflow": {
+        "viewport": 390,
+        "width": 384
+      },
+      "readiness": "OPERATIONS HUB visible"
+    },
+    {
+      "path": "/calculator",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/calculator",
+      "errors": [],
+      "overflow": {
+        "viewport": 390,
+        "width": 384
+      }
+    },
+    {
+      "path": "/orders",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/orders",
+      "errors": [],
+      "overflow": {
+        "viewport": 390,
+        "width": 384
+      }
+    },
+    {
+      "path": "/products",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/products",
+      "errors": [],
+      "overflow": {
+        "viewport": 390,
+        "width": 384
+      }
+    },
+    {
+      "path": "/filaments",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/filaments",
+      "errors": [],
+      "overflow": {
+        "viewport": 390,
+        "width": 384
+      }
+    },
+    {
+      "path": "/printers",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/printers",
+      "errors": [],
+      "overflow": {
+        "viewport": 390,
+        "width": 384
+      }
+    },
+    {
+      "path": "/stats",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/stats",
+      "errors": [],
+      "overflow": {
+        "viewport": 390,
+        "width": 384
+      }
+    },
+    {
+      "path": "/settings",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/settings",
+      "errors": [],
+      "overflow": {
+        "viewport": 390,
+        "width": 384
+      }
+    },
+    {
+      "path": "/admin",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "status": 200,
+      "url": "http://localhost:3000/admin",
+      "errors": [],
+      "overflow": {
+        "viewport": 390,
+        "width": 384
+      }
+    }
+  ],
+  "checks": [
+    {
+      "name": "escape-closes-parent-dialog",
+      "before": {
+        "dialogs": 1,
+        "listboxes": 1
+      },
+      "after": {
+        "dialogs": 0,
+        "listboxes": 0
+      },
+      "defectReproduced": true
+    },
+    {
+      "name": "guest-route",
+      "path": "/login",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login"
+    },
+    {
+      "name": "guest-route",
+      "path": "/about",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/about"
+    },
+    {
+      "name": "guest-route",
+      "path": "/calculator",
+      "status": 200,
+      "finalUrl": "http://localhost:3000/login"
+    }
+  ],
+  "harnessNotes": [
+    "Initial home route probe incorrectly expected a main landmark. Rechecked both home viewports using visible OPERATIONS HUB as the existing route test does."
+  ]
+}

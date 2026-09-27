@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { SavedCalculation, ProductCollection } from '../../../../shared/types';
 import { Modal } from '../../../../shared/ui/Modal';
-import { Button } from '../../../../shared/ui/Button';
-import { Package, Layers, Check } from 'lucide-react';
+import { CockpitButton } from '../../../../shared/ui/CockpitButton';
+import { ModalDropdown } from '../../../../shared/ui/ModalDropdown';
 
 interface MoveProductModalProps {
   movingProduct: SavedCalculation | null;
@@ -17,6 +17,24 @@ interface MoveProductModalProps {
 
 export function MoveProductModal({
   movingProduct,
+  isBatchMoveOpen,
+  ...props
+}: MoveProductModalProps) {
+  if (!movingProduct && !isBatchMoveOpen) return null;
+
+  const sessionKey = movingProduct?.id ?? 'batch';
+  return (
+    <MoveProductModalForm
+      key={sessionKey}
+      movingProduct={movingProduct}
+      isBatchMoveOpen={isBatchMoveOpen}
+      {...props}
+    />
+  );
+}
+
+function MoveProductModalForm({
+  movingProduct,
   selectedIds,
   isBatchMoveOpen,
   collections,
@@ -26,18 +44,10 @@ export function MoveProductModal({
   onSaveBatch,
 }: MoveProductModalProps) {
   const isOpen = Boolean(movingProduct) || isBatchMoveOpen;
-  const [targetCollectionId, setTargetCollectionId] = useState<string>('none');
+  const [targetCollectionId, setTargetCollectionId] = useState<string>(
+    () => movingProduct?.collection_id || 'none'
+  );
   const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    if (movingProduct) {
-      setTargetCollectionId(movingProduct.collection_id || 'none');
-    } else if (isBatchMoveOpen) {
-      setTargetCollectionId('none');
-    }
-  }, [movingProduct, isBatchMoveOpen]);
-
-  if (!isOpen) return null;
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -57,81 +67,35 @@ export function MoveProductModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={
-        movingProduct
-          ? `Коллекция для «${movingProduct.name}»`
-          : `Перемещение выбранных товаров (${selectedIds.length} шт)`
-      }
+      title="Перемещение в коллекцию"
+      subtitle={movingProduct ? movingProduct.name : `${selectedIds.length} поз.`}
       maxWidth="md"
-    >
-      <div className="space-y-4 pt-1">
-        <label className="block text-xs font-semibold text-gray-300">
-          Выберите целевую коллекцию:
-        </label>
-
-        <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
-          {/* Вариант: Без коллекции */}
-          <div
-            onClick={() => setTargetCollectionId('none')}
-            className={`p-3 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition-all ${
-              targetCollectionId === 'none'
-                ? 'bg-amber-500/20 border-amber-500 text-white font-semibold'
-                : 'bg-[#141720] border-[#242930] text-gray-400 hover:text-white'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Package size={16} className={targetCollectionId === 'none' ? 'text-amber-400' : 'text-gray-500'} />
-              <div>
-                <span className="font-bold block">Без коллекции (Общий каталог)</span>
-                <span className="text-[11px] text-gray-400">Сделать самостоятельной позицией</span>
-              </div>
-            </div>
-            {targetCollectionId === 'none' && <Check size={16} className="text-amber-400" />}
-          </div>
-
-          {/* Список существующих коллекций */}
-          {collections.map((col) => {
-            const isSelected = targetCollectionId === col.id;
-            const childCount = savedCalculations.filter((c) => c.collection_id === col.id).length;
-            return (
-              <div
-                key={col.id}
-                onClick={() => setTargetCollectionId(col.id)}
-                className={`p-3 rounded-xl border flex items-center justify-between text-xs cursor-pointer transition-all ${
-                  isSelected
-                    ? 'bg-amber-500/20 border-amber-500 text-white font-semibold'
-                    : 'bg-[#141720] border-[#242930] text-gray-400 hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Layers size={16} className={isSelected ? 'text-amber-400' : 'text-gray-500'} />
-                  <div>
-                    <span className="font-bold block">{col.name}</span>
-                    <span className="text-[11px] text-gray-400">
-                      {col.category || 'Разное'} • {childCount} вариантов
-                    </span>
-                  </div>
-                </div>
-                {isSelected && <Check size={16} className="text-amber-400" />}
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="flex justify-end gap-2 pt-3 border-t border-[#242930]">
-          <Button type="button" variant="outline" size="sm" onClick={onClose} disabled={isSaving}>
-            Отмена
-          </Button>
-          <Button
+      footer={
+        <div className="flex justify-end gap-2 w-full font-mono text-xs">
+          <CockpitButton
             type="button"
-            size="sm"
             disabled={isSaving}
             onClick={handleSave}
-            className="bg-amber-500 hover:bg-amber-600 text-black font-bold border-none"
           >
             {isSaving ? 'Сохранение...' : 'Применить'}
-          </Button>
+          </CockpitButton>
         </div>
+      }
+    >
+      <div className="space-y-4">
+        <ModalDropdown
+          label="Куда переместить"
+          ariaLabel="Куда переместить товар"
+          value={targetCollectionId}
+          onChange={setTargetCollectionId}
+          options={[
+            { value: 'none', label: 'Без коллекции', subtext: 'Оставить в общем каталоге' },
+            ...collections.map((col) => ({ value: col.id, label: col.name, subtext: 'Товаров: ' + savedCalculations.filter((c) => c.collection_id === col.id).length })),
+          ]}
+          searchable
+          usePortal
+        />
+        <p className="text-[11px] leading-relaxed text-neutral-500">Товар сохранит цену, настройки печати и файлы.</p>
       </div>
     </Modal>
   );

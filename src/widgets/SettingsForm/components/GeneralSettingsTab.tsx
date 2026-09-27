@@ -6,7 +6,6 @@ import { Input } from '../../../shared/ui/Input';
 import { Select } from '../../../shared/ui/Select';
 import { QuickStepper } from './QuickStepper';
 import { Printer } from '../../../shared/types';
-import { Zap, Coins, Cpu, ShieldCheck, HelpCircle } from 'lucide-react';
 
 interface GeneralSettingsTabProps {
   currency: string;
@@ -25,6 +24,10 @@ interface GeneralSettingsTabProps {
   minOrderPrice: string;
   setMinOrderPrice: (val: string) => void;
   isMinOrderPriceChanged: boolean;
+
+  defaultGoal?: string;
+  setDefaultGoal?: (val: string) => void;
+  isDefaultGoalChanged?: boolean;
 }
 
 const POPULAR_CURRENCIES = [
@@ -56,6 +59,9 @@ export function GeneralSettingsTab({
   minOrderPrice,
   setMinOrderPrice,
   isMinOrderPriceChanged,
+  defaultGoal,
+  setDefaultGoal,
+  isDefaultGoalChanged,
 }: GeneralSettingsTabProps) {
   const defaultPrinterOptions = [
     { value: '', label: 'Не выбран (ручной выбор в калькуляторе)' },
@@ -69,15 +75,14 @@ export function GeneralSettingsTab({
   const selectedPrinter = printers.find((p) => p.id === defaultPrinterId);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 font-mono text-xs">
       {/* 1. Валюта мастерской */}
       <Card
         title="Валюта расчетов и отображения"
-        stepNumber="💰"
-        className="border-[#242930] bg-[#16181d]"
+        stepNumber="CFG 01"
       >
         <div className="flex flex-col gap-4">
-          <p className="text-xs text-gray-400 leading-relaxed">
+          <p className="text-xs text-neutral-400 font-sans leading-relaxed">
             Основной символ валюты, используемый для цен, себестоимости филаментов, электричества и заказов во всей системе.
           </p>
 
@@ -89,23 +94,23 @@ export function GeneralSettingsTab({
                   key={cur.symbol}
                   type="button"
                   onClick={() => setCurrency(cur.symbol)}
-                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all cursor-pointer select-none ${
+                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 cursor-pointer select-none font-mono ${
                     isSelected
-                      ? 'bg-primary/15 border-primary text-white shadow-md shadow-primary/10'
-                      : 'bg-[#12141a] border-[#242930] text-gray-300 hover:border-gray-600 hover:bg-[#1a1d24]'
+                      ? 'bg-white/15 border-white/30 text-white font-bold shadow-sm'
+                      : 'bg-neutral-900 border-white/10 text-neutral-300 hover:border-white/20 hover:bg-white/5'
                   }`}
                 >
-                  <span className="text-lg font-bold font-mono">{cur.symbol}</span>
-                  <span className="text-[11px] font-medium text-gray-300">{cur.label}</span>
-                  <span className="text-[9px] text-gray-400">{cur.desc}</span>
+                  <span className="text-base font-bold">{cur.symbol}</span>
+                  <span className="text-[11px] font-medium text-neutral-300 font-sans">{cur.label}</span>
+                  <span className="text-[9px] text-neutral-500 font-sans">{cur.desc}</span>
                 </button>
               );
             })}
           </div>
 
           <div className="flex items-center gap-3 pt-1">
-            <span className="text-xs text-gray-400 whitespace-nowrap">Свой символ валюты:</span>
-            <div className="w-32">
+            <span className="text-xs text-neutral-400 whitespace-nowrap uppercase">Свой символ:</span>
+            <div className="w-28">
               <Input
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
@@ -115,7 +120,7 @@ export function GeneralSettingsTab({
               />
             </div>
             {isCurrencyChanged && (
-              <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/20">
+              <span className="text-[10px] text-amber-400 font-bold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/40 font-mono">
                 изменено
               </span>
             )}
@@ -124,20 +129,19 @@ export function GeneralSettingsTab({
       </Card>
 
       {/* 2. Электроэнергия и Оборудование по умолчанию */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Тариф на электричество */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card
           title="Тариф электроэнергии"
-          stepNumber="⚡"
-          className="border-[#242930] bg-[#16181d] flex flex-col justify-between"
+          stepNumber="CFG 02"
+          className="flex flex-col justify-between"
         >
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             <div className="flex items-start justify-between gap-2">
-              <p className="text-xs text-gray-400 leading-relaxed">
+              <p className="text-xs text-neutral-400 font-sans leading-relaxed">
                 Стоимость 1 кВт·ч для учета энергопотребления стола и экструдера принтера в себестоимости печати.
               </p>
               {isElectricityRateChanged && (
-                <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 shrink-0">
+                <span className="text-[10px] text-amber-400 font-bold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/40 shrink-0 font-mono">
                   изменено
                 </span>
               )}
@@ -155,17 +159,17 @@ export function GeneralSettingsTab({
             />
 
             <div className="space-y-1.5 pt-1">
-              <span className="text-[11px] font-medium text-gray-400">Быстрый выбор тарифа:</span>
+              <span className="text-[11px] font-mono text-neutral-400 uppercase">Быстрый выбор:</span>
               <div className="grid grid-cols-2 gap-1.5">
                 {ELECTRICITY_PRESETS.map((p) => (
                   <button
                     key={p.rate}
                     type="button"
                     onClick={() => setElectricityRate(p.rate.toString())}
-                    className={`px-2.5 py-1.5 rounded-lg text-xs font-mono border transition-all cursor-pointer text-left flex items-center justify-between ${
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-mono border cursor-pointer text-left flex items-center justify-between ${
                       parseFloat(electricityRate) === p.rate
-                        ? 'bg-sky-500/20 border-sky-500/50 text-sky-300 font-bold'
-                        : 'bg-[#12141a] border-[#242930] text-gray-400 hover:text-gray-200 hover:border-gray-600'
+                        ? 'bg-cyan-950/60 border-cyan-500/50 text-cyan-300 font-bold'
+                        : 'bg-neutral-900 border-white/10 text-neutral-400 hover:text-neutral-200 hover:border-white/20'
                     }`}
                   >
                     <span>{p.label}</span>
@@ -177,19 +181,18 @@ export function GeneralSettingsTab({
           </div>
         </Card>
 
-        {/* Принтер по умолчанию */}
         <Card
           title="Принтер по умолчанию"
-          stepNumber="🖨️"
-          className="border-[#242930] bg-[#16181d] flex flex-col justify-between"
+          stepNumber="CFG 03"
+          className="flex flex-col justify-between"
         >
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             <div className="flex items-start justify-between gap-2">
-              <p className="text-xs text-gray-400 leading-relaxed">
+              <p className="text-xs text-neutral-400 font-sans leading-relaxed">
                 Принтер, который будет автоматически подставляться при создании нового расчета стоимости.
               </p>
               {isDefaultPrinterChanged && (
-                <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20 shrink-0">
+                <span className="text-[10px] text-amber-400 font-bold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/40 shrink-0 font-mono">
                   изменено
                 </span>
               )}
@@ -204,21 +207,21 @@ export function GeneralSettingsTab({
             />
 
             {selectedPrinter ? (
-              <div className="p-3 rounded-xl bg-[#12141a] border border-[#242930] flex items-center gap-3">
+              <div className="p-3 rounded-xl bg-neutral-900 border border-white/10 flex items-center gap-3">
                 <div
-                  className="w-4 h-4 rounded-full border border-white/20 shrink-0"
+                  className="w-3.5 h-3.5 rounded-full border border-white/20 shrink-0"
                   style={{ backgroundColor: selectedPrinter.color || '#00e676' }}
                 />
                 <div className="flex flex-col min-w-0">
-                  <span className="text-xs font-bold text-white truncate">{selectedPrinter.name}</span>
-                  <span className="text-[11px] text-gray-400 font-mono">
+                  <span className="text-xs font-bold text-white truncate font-sans">{selectedPrinter.name}</span>
+                  <span className="text-[10px] text-neutral-400 font-mono">
                     Мощность: {selectedPrinter.power_w ?? 250} Вт • Амортизация: {(selectedPrinter.price / (selectedPrinter.lifespan_hours || 2000)).toFixed(1)} {currency}/ч
                   </span>
                 </div>
               </div>
             ) : (
-              <div className="p-3 rounded-xl bg-[#12141a]/60 border border-dashed border-[#242930] text-center text-xs text-gray-500">
-                Принтер по умолчанию не выбран
+              <div className="p-3 rounded-xl bg-neutral-900/50 border border-dashed border-white/10 text-center text-xs text-neutral-500 font-mono">
+                [ Принтер по умолчанию не выбран ]
               </div>
             )}
           </div>
@@ -228,29 +231,24 @@ export function GeneralSettingsTab({
       {/* 3. Минимальная стоимость заказа */}
       <Card
         title="Минимальная стоимость заказа (Порог чека)"
-        stepNumber="🛡️"
-        className="border-[#242930] bg-[#16181d]"
+        stepNumber="CFG 04"
       >
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
           <div className="md:col-span-7 flex flex-col gap-2">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-white">Автоматическое округление до минимума</span>
+              <span className="text-xs font-bold text-white font-mono uppercase">Автоматическое округление до минимума</span>
               {isMinOrderPriceChanged && (
-                <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                <span className="text-[10px] text-amber-400 font-bold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/40 font-mono">
                   изменено
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-400 leading-relaxed">
+            <p className="text-xs text-neutral-400 font-sans leading-relaxed">
               Защищает мастерскую от нерентабельной мелкой печати. Если расчетная розничная цена заказа ниже этого значения, калькулятор автоматически повысит итоговую цену до минимального чека.
             </p>
-            <div className="text-[11px] text-sky-400/90 flex items-center gap-1.5 mt-1">
-              <HelpCircle size={13} className="shrink-0" />
-              <span>Установите <strong>0</strong>, если хотите рассчитывать без ограничения минимального чека.</span>
-            </div>
           </div>
 
-          <div className="md:col-span-5 bg-[#12141a] p-4 rounded-xl border border-[#242930] flex flex-col gap-3">
+          <div className="md:col-span-5 bg-neutral-900 p-4 rounded-xl border border-white/10 flex flex-col gap-3">
             <QuickStepper
               label={`Порог минимального чека, ${currency}`}
               value={parseFloat(minOrderPrice) || 0}
@@ -265,6 +263,44 @@ export function GeneralSettingsTab({
           </div>
         </div>
       </Card>
+
+      {/* 5. Финансовая цель по умолчанию */}
+      {defaultGoal !== undefined && setDefaultGoal && (
+        <Card
+          title="Финансовая цель по умолчанию (План прибыли)"
+          stepNumber="CFG 05"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+            <div className="md:col-span-7 flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-white font-mono uppercase">Целевая чистая прибыль для всех месяцев</span>
+                {isDefaultGoalChanged && (
+                  <span className="text-[10px] text-amber-400 font-bold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/40 font-mono">
+                    изменено
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-neutral-400 font-sans leading-relaxed">
+                Базовая планка чистой прибыли для всех месяцев. Если в журнале заказов для выбранного месяца не установлена индивидуальная цель, система рассчитывает прогресс по этой сумме.
+              </p>
+            </div>
+
+            <div className="md:col-span-5 bg-neutral-900 p-4 rounded-xl border border-white/10 flex flex-col gap-3">
+              <QuickStepper
+                label={`Целевая прибыль в месяц, ${currency}`}
+                value={parseFloat(defaultGoal) || 0}
+                onChange={(val) => setDefaultGoal(val.toString())}
+                min={0}
+                max={2000000}
+                step={5000}
+                presets={[0, 50000, 100000, 150000, 200000, 300000]}
+                suffix={` ${currency}`}
+                isModified={isDefaultGoalChanged}
+              />
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

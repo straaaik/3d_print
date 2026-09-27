@@ -1,0 +1,22 @@
+{
+  "ui": {
+    "background": "#08111F",
+    "panel": "#101B2B",
+    "panelSecondary": "#152235",
+    "border": "rgba(255,255,255,0.08)",
+    "accent": "#2F7BFF",
+    "success": "#25D27D",
+    "warning": "#F5C542",
+    "text": "#F4F7FB",
+    "muted": "#8593A8"
+  },
+  "scene": {
+    "floor": "#8D9299",
+    "wall": "#59616D",
+    "graphite": "#171B22",
+    "lightBody": "#D7DADD",
+    "wood": "#B9895A",
+    "warmEmission": "#FFD59A",
+    "selection": "#2F7BFF"
+  }
+}

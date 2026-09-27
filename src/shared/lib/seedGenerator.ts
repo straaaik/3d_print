@@ -1,14 +1,13 @@
-import { 
-  Printer, 
-  Filament, 
-  Settings, 
-  SavedCalculation, 
-  Order, 
-  OrderStatus, 
-  ContactItem, 
-  ContactType, 
-  CostItem, 
-  AssemblyPrintedPart, 
+import {
+  Printer,
+  Filament,
+  Settings,
+  SavedCalculation,
+  Order,
+  OrderStatus,
+  ContactItem,
+  CostItem,
+  AssemblyPrintedPart,
   AssemblyHardwareItem,
   ProductCollection
 } from '../types';
@@ -580,7 +579,7 @@ export function generateRandomSeedData(options: SeedOptions = {}): SeedDataResul
       const f = randomChoice(filaments);
       const p = randomChoice(printers);
       const partHours = part.hours + part.minutes / 60;
-      
+
       const partFilCost = (f.price / f.weight_g) * part.weight_g;
       const partElec = (p.power_w / 1000) * partHours * settings.electricity_rate;
       const partDeprec = (p.price / p.lifespan_hours) * partHours;
@@ -816,9 +815,36 @@ export function generateRandomSeedData(options: SeedOptions = {}): SeedDataResul
       const clientChannel = randomChoice(CLIENT_CHANNELS);
       const qty = randomChoice([1, 1, 1, 2, 2, 3, 5, 10]);
 
-      let unitAmount = matchedProduct ? matchedProduct.final_price : randomInt(70, 350) * 20;
-      let unitCost = matchedProduct ? matchedProduct.base_cost : Math.round(unitAmount * randomFloat(0.35, 0.55));
-      const amount = Math.round(unitAmount * qty);
+      const unitAmount = matchedProduct ? matchedProduct.final_price : randomInt(70, 350) * 20;
+      const unitCost = matchedProduct ? matchedProduct.base_cost : Math.round(unitAmount * randomFloat(0.35, 0.55));
+      // Модификаторы: базовая стоимость, скидка и срочность
+      const baseAmount = Math.round(unitAmount * qty);
+      let discountPercent: number | undefined = undefined;
+      let discountAmount: number | undefined = undefined;
+      let urgencyPercent: number | undefined = undefined;
+      let urgencyAmount: number | undefined = undefined;
+
+      const hasModifier = Math.random() < 0.45;
+      if (hasModifier) {
+        const modType = Math.random();
+        if (modType < 0.45) {
+          // Скидка
+          discountPercent = randomChoice([5, 10, 15, 20]);
+          discountAmount = Math.round((baseAmount * discountPercent) / 100);
+        } else if (modType < 0.8) {
+          // Срочность
+          urgencyPercent = randomChoice([15, 20, 25, 30]);
+          urgencyAmount = Math.round((baseAmount * urgencyPercent) / 100);
+        } else {
+          // И скидка, и срочность
+          discountPercent = randomChoice([5, 10]);
+          discountAmount = Math.round((baseAmount * discountPercent) / 100);
+          urgencyPercent = randomChoice([20, 25]);
+          urgencyAmount = Math.round((baseAmount * urgencyPercent) / 100);
+        }
+      }
+
+      const amount = Math.round(baseAmount + (urgencyAmount || 0) - (discountAmount || 0));
       const cost = Math.round(unitCost * qty);
 
       // Детализация расходов
@@ -882,6 +908,11 @@ export function generateRandomSeedData(options: SeedOptions = {}): SeedDataResul
         type: 'income',
         title,
         quantity: qty,
+        base_amount: baseAmount,
+        discount_percent: discountPercent,
+        discount_amount: discountAmount,
+        urgency_percent: urgencyPercent,
+        urgency_amount: urgencyAmount,
         amount,
         cost,
         cost_items: costItems,

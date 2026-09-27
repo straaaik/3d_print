@@ -1,472 +1,201 @@
 {
   "printers": [
     {
-      "id": "725c0c60-128f-41e2-b4b5-b27f882e2244",
-      "name": "Elegoo Neptune 4 Pro",
-      "power_w": 400,
-      "price": 31100,
-      "lifespan_hours": 4000,
-      "color": "#ec4899",
-      "created_at": "2026-05-03T08:18:22.035Z"
-    },
-    {
-      "id": "80b1992a-9b67-4c86-b123-02fdb4005816",
-      "name": "Creality K1 Max",
-      "power_w": 1000,
-      "price": 83000,
-      "lifespan_hours": 5000,
-      "color": "#6366f1",
-      "created_at": "2026-03-27T08:27:11.035Z"
-    },
-    {
-      "id": "8ab06762-96b7-4b9c-9221-a208205184b2",
+      "id": "2f9d3cea-c84e-4af8-a4b8-5515e42f1d5e",
       "name": "Voron 2.4 R2 350",
       "power_w": 650,
-      "price": 130000,
+      "price": 136300,
       "lifespan_hours": 7500,
       "color": "#a855f7",
-      "created_at": "2026-05-30T11:38:45.035Z"
+      "created_at": "2026-05-01T14:34:44.026Z"
     },
     {
-      "id": "0fab6358-6e5f-4950-8ada-30c60727d78a",
+      "id": "29c02e3f-e161-420d-b3b8-8a3c6f8fe37b",
+      "name": "Flashforge Adventurer 5M Pro",
+      "power_w": 350,
+      "price": 45400,
+      "lifespan_hours": 4500,
+      "color": "#14b8a6",
+      "created_at": "2026-03-11T06:30:26.026Z"
+    },
+    {
+      "id": "1c8dab2d-e9cd-4448-94a8-3bfd897c0290",
+      "name": "Bambu Lab A1 Combo",
+      "power_w": 300,
+      "price": 54400,
+      "lifespan_hours": 4500,
+      "color": "#f59e0b",
+      "created_at": "2026-06-10T06:07:35.026Z"
+    },
+    {
+      "id": "ab417481-de20-4542-8b3e-41f5d330ece9",
       "name": "Bambu Lab X1-Carbon",
       "power_w": 350,
-      "price": 139000,
+      "price": 146000,
       "lifespan_hours": 6000,
       "color": "#10b981",
-      "created_at": "2026-03-25T08:10:26.035Z"
-    },
-    {
-      "id": "81471942-86a8-46c5-a954-3df5066987c9",
-      "name": "Creality K1C",
-      "power_w": 350,
-      "price": 50600,
-      "lifespan_hours": 4500,
-      "color": "#8b5cf6",
-      "created_at": "2026-03-29T07:23:13.035Z"
+      "created_at": "2026-03-14T14:24:26.026Z"
     }
   ],
   "filaments": [
     {
-      "id": "c82f2285-ae93-4e97-8c06-96326d6d9de0",
-      "name": "Polymaker ASA UV-стойкий Оливковый хаки",
-      "weight_g": 1000,
-      "price": 2350,
-      "color": "#65a30d",
-      "created_at": "2026-06-06T16:46:44.035Z"
-    },
-    {
-      "id": "8e7640d0-bea2-4361-9d88-d762e589a0d4",
-      "name": "Bambu Lab Glow PLA (Светящийся) Оранжевый огонь",
-      "weight_g": 1000,
-      "price": 2100,
-      "color": "#f97316",
-      "created_at": "2026-06-24T10:39:54.035Z"
-    },
-    {
-      "id": "91194b4f-19ca-496f-8718-ec505d283cf4",
-      "name": "eSun PA12-CF Нейлон Карбон Черный матовый",
-      "weight_g": 750,
-      "price": 5100,
-      "color": "#1e2022",
-      "created_at": "2026-06-16T09:47:50.035Z"
-    },
-    {
-      "id": "7bb25e98-dfeb-4a6b-94a2-c4d81ced0886",
-      "name": "Bestfilament PA12-CF Нейлон Карбон Оливковый хаки",
-      "weight_g": 750,
-      "price": 4100,
-      "color": "#65a30d",
-      "created_at": "2026-03-25T08:07:30.035Z"
-    },
-    {
-      "id": "4d7461ba-06ff-4bc8-926d-d65b61c7b205",
-      "name": "Bambu Lab TPU 95A Эластомер Серый графит",
-      "weight_g": 1000,
-      "price": 2650,
-      "color": "#4b5563",
-      "created_at": "2026-05-31T17:36:23.036Z"
-    },
-    {
-      "id": "81d52c82-8e42-48b3-bbec-c9b7d9ce9473",
-      "name": "REC 3D Glow PLA (Светящийся) Белый жемчуг",
-      "weight_g": 1000,
-      "price": 2400,
-      "color": "#f8fafc",
-      "created_at": "2026-04-08T08:39:49.036Z"
-    },
-    {
-      "id": "08e8107d-081c-4797-96b2-9c6709c9f5c2",
-      "name": "Eryone PLA Matte Розовый неон",
+      "id": "f48f79a3-b2e2-4752-8579-9862353a9d9b",
+      "name": "REC 3D PLA Basic Красный сигнал",
       "weight_g": 1000,
       "price": 1500,
-      "color": "#ec4899",
-      "created_at": "2026-06-11T17:35:10.036Z"
+      "color": "#ef4444",
+      "created_at": "2026-06-19T09:06:21.026Z"
     },
     {
-      "id": "b72cb300-5d4a-4814-8440-7a676d7316ec",
-      "name": "REC 3D ASA UV-стойкий Небесно-голубой",
+      "id": "d67d6ea1-8a9c-4d90-a0c8-5e75bf312c69",
+      "name": "FDplast ABS Pro Фиолетовый баклажан",
+      "weight_g": 1000,
+      "price": 1300,
+      "color": "#8b5cf6",
+      "created_at": "2026-07-04T14:48:56.026Z"
+    },
+    {
+      "id": "8c6590d2-6b96-426b-a97b-928d6d825d89",
+      "name": "Bestfilament Glow PLA (Светящийся) Белый жемчуг",
       "weight_g": 1000,
       "price": 2150,
-      "color": "#38bdf8",
-      "created_at": "2026-07-15T06:48:14.036Z"
+      "color": "#f8fafc",
+      "created_at": "2026-06-15T08:49:55.026Z"
     },
     {
-      "id": "109a03a9-1f0f-4d06-974e-ec83a6842d9c",
-      "name": "REC 3D TPU 95A Эластомер Фиолетовый баклажан",
+      "id": "a4721ef8-1fc3-47d9-aa9d-b03100c846b3",
+      "name": "Polymaker Silk PLA Шелковый Солнечный желтый",
       "weight_g": 1000,
-      "price": 3100,
-      "color": "#8b5cf6",
-      "created_at": "2026-04-04T07:49:54.036Z"
+      "price": 2150,
+      "color": "#eab308",
+      "created_at": "2026-04-06T07:19:27.026Z"
     },
     {
-      "id": "a83b7c44-86b0-481b-8888-7ebe4d628c12",
-      "name": "eSun Glow PLA (Светящийся) Шелковое золото",
+      "id": "3902e616-1ca8-404c-96f5-e13c0ddb2be7",
+      "name": "REC 3D PETG Standard Синий океан",
       "weight_g": 1000,
-      "price": 2300,
-      "color": "#d97706",
-      "created_at": "2026-03-22T06:51:12.036Z"
+      "price": 1400,
+      "color": "#2563eb",
+      "created_at": "2026-05-24T08:49:24.026Z"
     },
     {
-      "id": "02325527-34e9-4672-96f3-3f58e8101dd4",
-      "name": "Bestfilament PETG-CF (Углеволокно) Шелковое золото",
-      "weight_g": 1000,
-      "price": 3900,
-      "color": "#d97706",
-      "created_at": "2026-07-16T16:01:27.036Z"
-    },
-    {
-      "id": "d7680f3c-3841-41cb-b63b-e7571b6c85b3",
-      "name": "FDplast PLA Matte Оранжевый огонь",
-      "weight_g": 1000,
-      "price": 1800,
-      "color": "#f97316",
-      "created_at": "2026-05-08T07:09:09.036Z"
-    },
-    {
-      "id": "89c5d3c3-498f-415c-bac2-4486a027a148",
-      "name": "Sunlu PLA Matte Небесно-голубой",
-      "weight_g": 1000,
-      "price": 1550,
-      "color": "#38bdf8",
-      "created_at": "2026-04-07T06:03:49.036Z"
-    },
-    {
-      "id": "36318d6e-46d2-496f-bd1a-9d3e1f1bcc94",
-      "name": "FDplast PA12-CF Нейлон Карбон Черный матовый",
+      "id": "b6227fb9-8550-4e1a-add5-9601776c8aa7",
+      "name": "Kingroon PA12-CF Нейлон Карбон Красный сигнал",
       "weight_g": 750,
-      "price": 5250,
+      "price": 4650,
+      "color": "#ef4444",
+      "created_at": "2026-06-20T18:33:35.026Z"
+    },
+    {
+      "id": "ec5a06cf-7729-4c8c-9974-7757c99027e5",
+      "name": "Kingroon Wood PLA (Древесный) Прозрачный Clear",
+      "weight_g": 1000,
+      "price": 2150,
+      "color": "#cbd5e1",
+      "created_at": "2026-06-21T08:42:55.026Z"
+    },
+    {
+      "id": "2c7e5ba2-16fc-4866-acbe-375a5b6238bf",
+      "name": "Kingroon PA12-CF Нейлон Карбон Серый графит",
+      "weight_g": 750,
+      "price": 5300,
+      "color": "#4b5563",
+      "created_at": "2026-05-12T18:06:03.026Z"
+    },
+    {
+      "id": "b3519cc2-6afb-4353-9ee8-f21deed2c309",
+      "name": "Eryone TPU 95A Эластомер Красный сигнал",
+      "weight_g": 1000,
+      "price": 3050,
+      "color": "#ef4444",
+      "created_at": "2026-06-14T16:58:41.026Z"
+    },
+    {
+      "id": "846e88bc-4c9c-492b-a2fe-8c22e40dcdd6",
+      "name": "Sunlu Wood PLA (Древесный) Белый жемчуг",
+      "weight_g": 1000,
+      "price": 2600,
+      "color": "#f8fafc",
+      "created_at": "2026-05-06T14:31:32.026Z"
+    },
+    {
+      "id": "5b18b930-55ba-4dc6-af6e-558d46f22aab",
+      "name": "Bambu Lab Glow PLA (Светящийся) Розовый неон",
+      "weight_g": 1000,
+      "price": 2050,
+      "color": "#ec4899",
+      "created_at": "2026-07-01T18:25:04.026Z"
+    },
+    {
+      "id": "33032732-42d1-40d7-86a9-75d99a17a322",
+      "name": "Sunlu ASA UV-стойкий Красный сигнал",
+      "weight_g": 1000,
+      "price": 2250,
+      "color": "#ef4444",
+      "created_at": "2026-08-02T15:46:13.026Z"
+    },
+    {
+      "id": "615fa1ef-0b0c-4721-940f-959736f0780c",
+      "name": "Polymaker Silk PLA Шелковый Черный матовый",
+      "weight_g": 1000,
+      "price": 2050,
       "color": "#1e2022",
-      "created_at": "2026-06-13T16:51:43.036Z"
+      "created_at": "2026-07-08T08:16:40.026Z"
     }
   ],
   "settings": {
-    "id": "bbf2f81a-0f88-4409-acb2-8c51dc82f852",
-    "updated_at": "2026-08-19T08:01:09.035Z",
+    "id": "8742ab0d-1bc7-4610-b8a6-d13ffcd12337",
+    "updated_at": "2026-08-31T22:03:26.026Z",
     "currency": "₽",
-    "electricity_rate": 4.63,
-    "default_printer_id": "725c0c60-128f-41e2-b4b5-b27f882e2244",
-    "labor_rate_per_hour": 680,
+    "electricity_rate": 4.59,
+    "default_printer_id": "2f9d3cea-c84e-4af8-a4b8-5515e42f1d5e",
+    "labor_rate_per_hour": 760,
     "labor_time_minutes": 15,
     "default_markup_percent": 100,
     "default_defect_percent": 7
   },
   "savedCalculations": [
     {
-      "id": "b3742c9c-88e4-4ab4-8cb7-08a5d7fb7e65",
-      "name": "Док-станция iPhone MagSafe + Apple Watch",
+      "id": "6246978b-c255-4726-b2f7-9c324f7a884a",
+      "name": "Шестерня редуктора коническая M1.5 Z=28",
       "type": "single",
-      "filament_name": "REC 3D TPU 95A Эластомер Фиолетовый баклажан",
-      "filament_color": "#8b5cf6",
-      "printer_name": "Bambu Lab X1-Carbon",
-      "filament_id": "109a03a9-1f0f-4d06-974e-ec83a6842d9c",
-      "printer_id": "0fab6358-6e5f-4950-8ada-30c60727d78a",
-      "weight_g": 119,
-      "hours": 5,
-      "minutes": 0,
+      "filament_name": "Polymaker Silk PLA Шелковый Черный матовый",
+      "filament_color": "#1e2022",
+      "printer_name": "Bambu Lab A1 Combo",
+      "filament_id": "615fa1ef-0b0c-4721-940f-959736f0780c",
+      "printer_id": "1c8dab2d-e9cd-4448-94a8-3bfd897c0290",
+      "weight_g": 54,
+      "hours": 2,
+      "minutes": 50,
       "quantity": 1,
-      "base_cost": 697.33,
-      "final_price": 1390,
-      "labor_minutes": 15,
-      "category": "Гаджеты и Игры",
-      "tags": [
-        "apple",
-        "magsafe",
-        "док-станция",
-        "гаджет"
-      ],
-      "stock_quantity": 5,
-      "created_at": "2026-07-02T10:26:45.036Z"
-    },
-    {
-      "id": "14cc0b8d-b2af-4553-925f-c4eed56ff32e",
-      "name": "Кронштейн шагового двигателя NEMA 17 усиленный",
-      "type": "single",
-      "filament_name": "Polymaker ASA UV-стойкий Оливковый хаки",
-      "filament_color": "#65a30d",
-      "printer_name": "Elegoo Neptune 4 Pro",
-      "filament_id": "c82f2285-ae93-4e97-8c06-96326d6d9de0",
-      "printer_id": "725c0c60-128f-41e2-b4b5-b27f882e2244",
-      "weight_g": 43,
-      "hours": 1,
-      "minutes": 55,
-      "quantity": 1,
-      "base_cost": 297.87,
-      "final_price": 600,
+      "base_cost": 349.27,
+      "final_price": 700,
       "labor_minutes": 15,
       "category": "Инженерия и Техника",
       "tags": [
-        "nema17",
-        "кронштейн",
-        "чпу",
-        "3d-принтер"
+        "инженерия",
+        "шестерня",
+        "редуктор",
+        "pa-cf"
       ],
-      "stock_quantity": 7,
-      "created_at": "2026-04-21T16:28:07.036Z"
+      "stock_quantity": 4,
+      "created_at": "2026-07-22T10:15:15.026Z"
     },
     {
-      "id": "6b65ab67-849a-4f33-ae8d-a51822bea7d7",
-      "name": "Подвесной держатель Mac Mini под столешницу",
-      "type": "single",
-      "filament_name": "Polymaker ASA UV-стойкий Оливковый хаки",
-      "filament_color": "#65a30d",
-      "printer_name": "Creality K1C",
-      "filament_id": "c82f2285-ae93-4e97-8c06-96326d6d9de0",
-      "printer_id": "81471942-86a8-46c5-a954-3df5066987c9",
-      "weight_g": 108,
-      "hours": 4,
-      "minutes": 40,
-      "quantity": 1,
-      "base_cost": 505.8,
-      "final_price": 1010,
-      "labor_minutes": 15,
-      "category": "Гаджеты и Игры",
-      "tags": [
-        "macmini",
-        "под_стол",
-        "органайзер"
-      ],
-      "stock_quantity": 3,
-      "created_at": "2026-05-24T15:18:29.036Z"
-    },
-    {
-      "id": "08bac96d-014c-4053-a0fe-c9969f7e5c75",
-      "name": "Клипса обшивки двери (комплект 10 шт)",
-      "type": "single",
-      "filament_name": "eSun PA12-CF Нейлон Карбон Черный матовый",
-      "filament_color": "#1e2022",
-      "printer_name": "Voron 2.4 R2 350",
-      "filament_id": "91194b4f-19ca-496f-8718-ec505d283cf4",
-      "printer_id": "8ab06762-96b7-4b9c-9221-a208205184b2",
-      "weight_g": 22,
-      "hours": 1,
-      "minutes": 10,
-      "quantity": 1,
-      "base_cost": 355.47,
-      "final_price": 710,
-      "labor_minutes": 15,
-      "category": "Авто / Мото",
-      "tags": [
-        "авто",
-        "petg",
-        "клипсы"
-      ],
-      "stock_quantity": 2,
-      "created_at": "2026-06-24T18:08:32.036Z"
-    },
-    {
-      "id": "dbf9a37a-6991-4927-b2cb-11032871974c",
-      "name": "Подиум под датчик 52мм в стойку",
-      "type": "single",
-      "filament_name": "REC 3D TPU 95A Эластомер Фиолетовый баклажан",
-      "filament_color": "#8b5cf6",
-      "printer_name": "Bambu Lab X1-Carbon",
-      "filament_id": "109a03a9-1f0f-4d06-974e-ec83a6842d9c",
-      "printer_id": "0fab6358-6e5f-4950-8ada-30c60727d78a",
-      "weight_g": 88,
-      "hours": 3,
-      "minutes": 50,
-      "quantity": 1,
-      "base_cost": 563.56,
-      "final_price": 1130,
-      "labor_minutes": 15,
-      "category": "Авто / Мото",
-      "tags": [
-        "авто",
-        "тюнинг",
-        "asa"
-      ],
-      "stock_quantity": 3,
-      "created_at": "2026-04-30T11:54:06.036Z"
-    },
-    {
-      "id": "8bfe5e85-d2b2-4af2-a700-be998dc4ce9f",
-      "name": "Угловой фиксатор 90° для столярной струбцины",
-      "type": "single",
-      "filament_name": "eSun Glow PLA (Светящийся) Шелковое золото",
-      "filament_color": "#d97706",
-      "printer_name": "Bambu Lab X1-Carbon",
-      "filament_id": "a83b7c44-86b0-481b-8888-7ebe4d628c12",
-      "printer_id": "0fab6358-6e5f-4950-8ada-30c60727d78a",
-      "weight_g": 104,
-      "hours": 3,
-      "minutes": 10,
-      "quantity": 1,
-      "base_cost": 509.93,
-      "final_price": 1020,
-      "labor_minutes": 15,
-      "category": "Фурнитура",
-      "tags": [
-        "столярка",
-        "инструмент",
-        "уголок"
-      ],
-      "stock_quantity": 2,
-      "created_at": "2026-06-13T13:05:44.036Z"
-    },
-    {
-      "id": "bc7a2baf-d67d-47b2-8b5b-42107c954222",
-      "name": "Геометрическое кашпо Origami для суккулентов",
-      "type": "single",
-      "filament_name": "REC 3D ASA UV-стойкий Небесно-голубой",
-      "filament_color": "#38bdf8",
-      "printer_name": "Elegoo Neptune 4 Pro",
-      "filament_id": "b72cb300-5d4a-4814-8440-7a676d7316ec",
-      "printer_id": "725c0c60-128f-41e2-b4b5-b27f882e2244",
-      "weight_g": 97,
-      "hours": 4,
-      "minutes": 20,
-      "quantity": 1,
-      "base_cost": 437.79,
-      "final_price": 880,
-      "labor_minutes": 15,
-      "category": "Декор и Дом",
-      "tags": [
-        "декор",
-        "кашпо",
-        "дом",
-        "origami"
-      ],
-      "stock_quantity": 8,
-      "created_at": "2026-05-14T13:34:47.036Z"
-    },
-    {
-      "id": "6d4bd144-e3f4-448f-a2a8-8211df109a86",
-      "name": "Крепление регистратора на зеркало заднего вида",
-      "type": "single",
-      "filament_name": "Bambu Lab TPU 95A Эластомер Серый графит",
-      "filament_color": "#4b5563",
-      "printer_name": "Creality K1 Max",
-      "filament_id": "4d7461ba-06ff-4bc8-926d-d65b61c7b205",
-      "printer_id": "80b1992a-9b67-4c86-b123-02fdb4005816",
-      "weight_g": 31,
-      "hours": 1,
-      "minutes": 40,
-      "quantity": 1,
-      "base_cost": 295.76,
-      "final_price": 590,
-      "labor_minutes": 15,
-      "category": "Авто / Мото",
-      "tags": [
-        "авто",
-        "petg",
-        "крепление",
-        "гаджет"
-      ],
-      "stock_quantity": 1,
-      "created_at": "2026-06-23T16:54:38.036Z"
-    },
-    {
-      "id": "66e2701c-fdfe-4da2-bc15-f15d9a7acb98",
-      "name": "Кондуктор-шаблон для врезки петель 35мм",
-      "type": "single",
-      "filament_name": "eSun PA12-CF Нейлон Карбон Черный матовый",
-      "filament_color": "#1e2022",
-      "printer_name": "Elegoo Neptune 4 Pro",
-      "filament_id": "91194b4f-19ca-496f-8718-ec505d283cf4",
-      "printer_id": "725c0c60-128f-41e2-b4b5-b27f882e2244",
-      "weight_g": 81,
-      "hours": 2,
-      "minutes": 45,
-      "quantity": 1,
-      "base_cost": 787.68,
-      "final_price": 1580,
-      "labor_minutes": 15,
-      "category": "Фурнитура",
-      "tags": [
-        "шаблон",
-        "мебель",
-        "инструмент"
-      ],
-      "stock_quantity": 7,
-      "created_at": "2026-05-23T14:48:19.036Z"
-    },
-    {
-      "id": "4ec8ee6e-c79b-4d1d-9740-11916f33630e",
-      "name": "Грипсы эргономичные для геймпада DualSense",
-      "type": "single",
-      "filament_name": "FDplast PLA Matte Оранжевый огонь",
-      "filament_color": "#f97316",
-      "printer_name": "Bambu Lab X1-Carbon",
-      "filament_id": "d7680f3c-3841-41cb-b63b-e7571b6c85b3",
-      "printer_id": "0fab6358-6e5f-4950-8ada-30c60727d78a",
-      "weight_g": 40,
-      "hours": 1,
-      "minutes": 45,
-      "quantity": 1,
-      "base_cost": 293.45,
-      "final_price": 590,
-      "labor_minutes": 15,
-      "category": "Гаджеты и Игры",
-      "tags": [
-        "ps5",
-        "dualsense",
-        "игры",
-        "tpu"
-      ],
-      "stock_quantity": 2,
-      "created_at": "2026-06-03T11:10:38.036Z"
-    },
-    {
-      "id": "efcceba4-7f3c-4882-bc56-c887f873b7d7",
-      "name": "Защитный кейс для 4-х аккумуляторов 18650 с защелкой",
-      "type": "single",
-      "filament_name": "Bambu Lab Glow PLA (Светящийся) Оранжевый огонь",
-      "filament_color": "#f97316",
-      "printer_name": "Creality K1C",
-      "filament_id": "8e7640d0-bea2-4361-9d88-d762e589a0d4",
-      "printer_id": "81471942-86a8-46c5-a954-3df5066987c9",
-      "weight_g": 51,
-      "hours": 2,
-      "minutes": 10,
-      "quantity": 1,
-      "base_cost": 314.42,
-      "final_price": 630,
-      "labor_minutes": 15,
-      "category": "Разное",
-      "tags": [
-        "кейс",
-        "18650",
-        "аккумуляторы"
-      ],
-      "stock_quantity": 7,
-      "created_at": "2026-07-19T06:51:30.036Z"
-    },
-    {
-      "id": "082046fb-dfbe-4b00-b7cd-17aa38cf522e",
+      "id": "d80f483d-0584-479a-abd5-6de2d2b9833b",
       "name": "Заглушка противотуманной фары VAG",
       "type": "single",
-      "filament_name": "FDplast PA12-CF Нейлон Карбон Черный матовый",
-      "filament_color": "#1e2022",
-      "printer_name": "Creality K1C",
-      "filament_id": "36318d6e-46d2-496f-bd1a-9d3e1f1bcc94",
-      "printer_id": "81471942-86a8-46c5-a954-3df5066987c9",
-      "weight_g": 46,
+      "filament_name": "Sunlu Wood PLA (Древесный) Белый жемчуг",
+      "filament_color": "#f8fafc",
+      "printer_name": "Bambu Lab A1 Combo",
+      "filament_id": "846e88bc-4c9c-492b-a2fe-8c22e40dcdd6",
+      "printer_id": "1c8dab2d-e9cd-4448-94a8-3bfd897c0290",
+      "weight_g": 48,
       "hours": 2,
       "minutes": 15,
       "quantity": 1,
-      "base_cost": 545.51,
-      "final_price": 1090,
+      "base_cost": 355.96,
+      "final_price": 710,
       "labor_minutes": 15,
       "category": "Авто / Мото",
       "tags": [
@@ -476,49 +205,75 @@
         "vag"
       ],
       "stock_quantity": 8,
-      "created_at": "2026-07-07T16:46:18.036Z"
+      "created_at": "2026-06-02T14:27:10.027Z"
     },
     {
-      "id": "00bf5869-a66b-4e9a-98ea-98a4f74da7cb",
-      "name": "Светильник-ночник «Полигональная Луна» 16см",
+      "id": "10d41fd8-b15e-4faa-9257-e858059c3b18",
+      "name": "Док-станция iPhone MagSafe + Apple Watch",
       "type": "single",
-      "filament_name": "Sunlu PLA Matte Небесно-голубой",
-      "filament_color": "#38bdf8",
-      "printer_name": "Creality K1 Max",
-      "filament_id": "89c5d3c3-498f-415c-bac2-4486a027a148",
-      "printer_id": "80b1992a-9b67-4c86-b123-02fdb4005816",
-      "weight_g": 187,
-      "hours": 8,
-      "minutes": 45,
+      "filament_name": "Sunlu Wood PLA (Древесный) Белый жемчуг",
+      "filament_color": "#f8fafc",
+      "printer_name": "Flashforge Adventurer 5M Pro",
+      "filament_id": "846e88bc-4c9c-492b-a2fe-8c22e40dcdd6",
+      "printer_id": "29c02e3f-e161-420d-b3b8-8a3c6f8fe37b",
+      "weight_g": 153,
+      "hours": 5,
+      "minutes": 0,
       "quantity": 1,
-      "base_cost": 678.91,
+      "base_cost": 678.22,
       "final_price": 1360,
       "labor_minutes": 15,
-      "category": "Декор и Дом",
+      "category": "Гаджеты и Игры",
       "tags": [
-        "декор",
-        "ночник",
-        "светильник",
-        "подарок"
+        "apple",
+        "magsafe",
+        "док-станция",
+        "гаджет"
       ],
-      "stock_quantity": 8,
-      "created_at": "2026-07-19T12:06:28.036Z"
+      "stock_quantity": 6,
+      "created_at": "2026-07-16T07:34:25.027Z"
     },
     {
-      "id": "5d2c3ab0-8974-4dc3-bed1-e37b28f5d144",
+      "id": "79f0a1a3-a11c-469f-9675-244d537bffd9",
+      "name": "Переходник системы аспирации ЧПУ 100мм -> 50мм",
+      "type": "single",
+      "filament_name": "REC 3D PETG Standard Синий океан",
+      "filament_color": "#2563eb",
+      "printer_name": "Flashforge Adventurer 5M Pro",
+      "filament_id": "3902e616-1ca8-404c-96f5-e13c0ddb2be7",
+      "printer_id": "29c02e3f-e161-420d-b3b8-8a3c6f8fe37b",
+      "weight_g": 146,
+      "hours": 5,
+      "minutes": 10,
+      "quantity": 1,
+      "base_cost": 473.36,
+      "final_price": 950,
+      "labor_minutes": 15,
+      "category": "Инженерия и Техника",
+      "tags": [
+        "чпу",
+        "адаптер",
+        "мастерская",
+        "petg"
+      ],
+      "stock_quantity": 3,
+      "created_at": "2026-06-29T14:21:19.027Z"
+    },
+    {
+      "id": "7811ea87-d695-4ace-a7cd-eadb39602aa7",
       "name": "Настольная подставка для наушников DeskStand",
       "type": "single",
-      "filament_name": "FDplast PA12-CF Нейлон Карбон Черный матовый",
-      "filament_color": "#1e2022",
-      "printer_name": "Elegoo Neptune 4 Pro",
-      "filament_id": "36318d6e-46d2-496f-bd1a-9d3e1f1bcc94",
-      "printer_id": "725c0c60-128f-41e2-b4b5-b27f882e2244",
-      "weight_g": 154,
+      "filament_name": "Bambu Lab Glow PLA (Светящийся) Розовый неон",
+      "filament_color": "#ec4899",
+      "printer_name": "Flashforge Adventurer 5M Pro",
+      "filament_id": "5b18b930-55ba-4dc6-af6e-558d46f22aab",
+      "printer_id": "29c02e3f-e161-420d-b3b8-8a3c6f8fe37b",
+      "weight_g": 190,
       "hours": 6,
       "minutes": 30,
       "quantity": 1,
-      "base_cost": 1390.42,
-      "final_price": 2780,
+      "base_cost": 688.11,
+      "final_price": 1380,
       "labor_minutes": 15,
       "category": "Гаджеты и Игры",
       "tags": [
@@ -527,21 +282,249 @@
         "подставка",
         "рабочее_место"
       ],
-      "stock_quantity": 4,
-      "created_at": "2026-07-18T08:01:16.036Z"
+      "stock_quantity": 6,
+      "created_at": "2026-05-21T18:46:18.027Z"
     },
     {
-      "id": "e9784826-f512-4b59-b75b-8937aea09d1f",
+      "id": "af1cefc1-1b96-40c7-8509-dd44fe690d24",
+      "name": "Защитный кейс для 4-х аккумуляторов 18650 с защелкой",
+      "type": "single",
+      "filament_name": "Bambu Lab Glow PLA (Светящийся) Розовый неон",
+      "filament_color": "#ec4899",
+      "printer_name": "Flashforge Adventurer 5M Pro",
+      "filament_id": "5b18b930-55ba-4dc6-af6e-558d46f22aab",
+      "printer_id": "29c02e3f-e161-420d-b3b8-8a3c6f8fe37b",
+      "weight_g": 61,
+      "hours": 2,
+      "minutes": 10,
+      "quantity": 1,
+      "base_cost": 350.92,
+      "final_price": 700,
+      "labor_minutes": 15,
+      "category": "Разное",
+      "tags": [
+        "кейс",
+        "18650",
+        "аккумуляторы"
+      ],
+      "stock_quantity": 8,
+      "created_at": "2026-05-05T08:06:19.027Z"
+    },
+    {
+      "id": "da488746-8183-4e6e-96d3-f4df3d2fe58e",
+      "name": "Светильник-ночник «Полигональная Луна» 16см",
+      "type": "single",
+      "filament_name": "Eryone TPU 95A Эластомер Красный сигнал",
+      "filament_color": "#ef4444",
+      "printer_name": "Bambu Lab A1 Combo",
+      "filament_id": "b3519cc2-6afb-4353-9ee8-f21deed2c309",
+      "printer_id": "1c8dab2d-e9cd-4448-94a8-3bfd897c0290",
+      "weight_g": 211,
+      "hours": 8,
+      "minutes": 45,
+      "quantity": 1,
+      "base_cost": 1004.67,
+      "final_price": 2010,
+      "labor_minutes": 15,
+      "category": "Декор и Дом",
+      "tags": [
+        "декор",
+        "ночник",
+        "светильник",
+        "подарок"
+      ],
+      "stock_quantity": 1,
+      "created_at": "2026-06-13T13:39:42.027Z"
+    },
+    {
+      "id": "999f6b58-c845-417b-b238-df38ed277334",
+      "name": "Дизайнерская ваза Спираль Spiral Vase",
+      "type": "single",
+      "filament_name": "Polymaker Silk PLA Шелковый Черный матовый",
+      "filament_color": "#1e2022",
+      "printer_name": "Bambu Lab A1 Combo",
+      "filament_id": "615fa1ef-0b0c-4721-940f-959736f0780c",
+      "printer_id": "1c8dab2d-e9cd-4448-94a8-3bfd897c0290",
+      "weight_g": 100,
+      "hours": 2,
+      "minutes": 10,
+      "quantity": 1,
+      "base_cost": 440.57,
+      "final_price": 880,
+      "labor_minutes": 15,
+      "category": "Декор и Дом",
+      "tags": [
+        "ваза",
+        "декор",
+        "vase_mode",
+        "silk"
+      ],
+      "stock_quantity": 7,
+      "created_at": "2026-06-22T12:24:24.027Z"
+    },
+    {
+      "id": "ca81ee1c-4ad2-4ecf-adfd-9bf58ba617e3",
+      "name": "Ручка-барашек M8 эргономичная (набор 5 шт)",
+      "type": "single",
+      "filament_name": "Bestfilament Glow PLA (Светящийся) Белый жемчуг",
+      "filament_color": "#f8fafc",
+      "printer_name": "Voron 2.4 R2 350",
+      "filament_id": "8c6590d2-6b96-426b-a97b-928d6d825d89",
+      "printer_id": "2f9d3cea-c84e-4af8-a4b8-5515e42f1d5e",
+      "weight_g": 68,
+      "hours": 2,
+      "minutes": 20,
+      "quantity": 1,
+      "base_cost": 399.26,
+      "final_price": 800,
+      "labor_minutes": 15,
+      "category": "Фурнитура",
+      "tags": [
+        "ручки",
+        "фурнитура",
+        "m8"
+      ],
+      "stock_quantity": 6,
+      "created_at": "2026-07-06T16:55:14.027Z"
+    },
+    {
+      "id": "a4a011d6-6336-466e-8abd-cd3824b16621",
+      "name": "Настенный органайзер для ключей с магнитами",
+      "type": "single",
+      "filament_name": "Bambu Lab Glow PLA (Светящийся) Розовый неон",
+      "filament_color": "#ec4899",
+      "printer_name": "Bambu Lab X1-Carbon",
+      "filament_id": "5b18b930-55ba-4dc6-af6e-558d46f22aab",
+      "printer_id": "ab417481-de20-4542-8b3e-41f5d330ece9",
+      "weight_g": 66,
+      "hours": 2,
+      "minutes": 30,
+      "quantity": 1,
+      "base_cost": 404.16,
+      "final_price": 810,
+      "labor_minutes": 15,
+      "category": "Декор и Дом",
+      "tags": [
+        "декор",
+        "дом",
+        "органайзер"
+      ],
+      "stock_quantity": 4,
+      "created_at": "2026-06-25T17:13:47.027Z"
+    },
+    {
+      "id": "54766300-b2df-4d7d-8554-2ea92c02475e",
+      "name": "Органайзер ящика мастерской Gridfinity 3x4",
+      "type": "single",
+      "filament_name": "Kingroon Wood PLA (Древесный) Прозрачный Clear",
+      "filament_color": "#cbd5e1",
+      "printer_name": "Bambu Lab X1-Carbon",
+      "filament_id": "ec5a06cf-7729-4c8c-9974-7757c99027e5",
+      "printer_id": "ab417481-de20-4542-8b3e-41f5d330ece9",
+      "weight_g": 132,
+      "hours": 5,
+      "minutes": 20,
+      "quantity": 1,
+      "base_cost": 641.7,
+      "final_price": 1280,
+      "labor_minutes": 15,
+      "category": "Разное",
+      "tags": [
+        "gridfinity",
+        "мастерская",
+        "органайзер"
+      ],
+      "stock_quantity": 3,
+      "created_at": "2026-05-30T07:24:17.027Z"
+    },
+    {
+      "id": "84b09be5-805e-4a24-939a-e58770274102",
+      "name": "Подвесной держатель Mac Mini под столешницу",
+      "type": "single",
+      "filament_name": "Bestfilament Glow PLA (Светящийся) Белый жемчуг",
+      "filament_color": "#f8fafc",
+      "printer_name": "Flashforge Adventurer 5M Pro",
+      "filament_id": "8c6590d2-6b96-426b-a97b-928d6d825d89",
+      "printer_id": "29c02e3f-e161-420d-b3b8-8a3c6f8fe37b",
+      "weight_g": 131,
+      "hours": 4,
+      "minutes": 40,
+      "quantity": 1,
+      "base_cost": 549.76,
+      "final_price": 1100,
+      "labor_minutes": 15,
+      "category": "Гаджеты и Игры",
+      "tags": [
+        "macmini",
+        "под_стол",
+        "органайзер"
+      ],
+      "stock_quantity": 4,
+      "created_at": "2026-08-12T14:07:18.027Z"
+    },
+    {
+      "id": "ee960a9e-8320-49e9-8e3b-d3aa4a16ebba",
+      "name": "Кондуктор-шаблон для врезки петель 35мм",
+      "type": "single",
+      "filament_name": "Sunlu Wood PLA (Древесный) Белый жемчуг",
+      "filament_color": "#f8fafc",
+      "printer_name": "Voron 2.4 R2 350",
+      "filament_id": "846e88bc-4c9c-492b-a2fe-8c22e40dcdd6",
+      "printer_id": "2f9d3cea-c84e-4af8-a4b8-5515e42f1d5e",
+      "weight_g": 66,
+      "hours": 2,
+      "minutes": 45,
+      "quantity": 1,
+      "base_cost": 435.87,
+      "final_price": 870,
+      "labor_minutes": 15,
+      "category": "Фурнитура",
+      "tags": [
+        "шаблон",
+        "мебель",
+        "инструмент"
+      ],
+      "stock_quantity": 7,
+      "created_at": "2026-08-06T15:13:55.027Z"
+    },
+    {
+      "id": "cb725ee2-30f6-4847-8619-a2ea4180162f",
+      "name": "Крепление регистратора на зеркало заднего вида",
+      "type": "single",
+      "filament_name": "Bambu Lab Glow PLA (Светящийся) Розовый неон",
+      "filament_color": "#ec4899",
+      "printer_name": "Bambu Lab A1 Combo",
+      "filament_id": "5b18b930-55ba-4dc6-af6e-558d46f22aab",
+      "printer_id": "1c8dab2d-e9cd-4448-94a8-3bfd897c0290",
+      "weight_g": 40,
+      "hours": 1,
+      "minutes": 40,
+      "quantity": 1,
+      "base_cost": 301.75,
+      "final_price": 600,
+      "labor_minutes": 15,
+      "category": "Авто / Мото",
+      "tags": [
+        "авто",
+        "petg",
+        "крепление",
+        "гаджет"
+      ],
+      "stock_quantity": 1,
+      "created_at": "2026-06-11T17:30:58.027Z"
+    },
+    {
+      "id": "8f4d5907-142d-40e6-978c-3e70552d9f4a",
       "name": "Модульный держатель катушки филамента Pro (на подшипниках)",
       "type": "assembly",
-      "filament_name": "REC 3D TPU 95A Эластомер Фиолетовый баклажан",
-      "printer_name": "Creality K1C",
+      "filament_name": "Kingroon Wood PLA (Древесный) Прозрачный Clear",
+      "printer_name": "Bambu Lab A1 Combo",
       "weight_g": 205,
       "hours": 8,
       "minutes": 0,
       "quantity": 1,
-      "base_cost": 1201,
-      "final_price": 2315,
+      "base_cost": 1295,
+      "final_price": 2491,
       "category": "Инженерия и Техника",
       "tags": [
         "сборка",
@@ -549,86 +532,86 @@
         "подшипники",
         "инструмент"
       ],
-      "stock_quantity": 1,
+      "stock_quantity": 4,
       "assembly_parts": [
         {
-          "id": "ddbbe1a7-53ed-42a5-a6b7-fc8e2c653edc",
+          "id": "ca093eee-92d1-42ae-9f78-ec74f43e2b95",
           "name": "Левая стойка корпуса",
           "weight_g": 65,
           "hours": 2,
           "minutes": 30,
           "quantity": 1,
-          "filament_id": "109a03a9-1f0f-4d06-974e-ec83a6842d9c",
-          "filament_name": "REC 3D TPU 95A Эластомер Фиолетовый баклажан",
-          "filament_color": "#8b5cf6",
-          "printer_id": "81471942-86a8-46c5-a954-3df5066987c9",
-          "printer_name": "Creality K1C",
-          "base_cost": 245.35,
-          "final_price": 540
+          "filament_id": "ec5a06cf-7729-4c8c-9974-7757c99027e5",
+          "filament_name": "Kingroon Wood PLA (Древесный) Прозрачный Clear",
+          "filament_color": "#cbd5e1",
+          "printer_id": "1c8dab2d-e9cd-4448-94a8-3bfd897c0290",
+          "printer_name": "Bambu Lab A1 Combo",
+          "base_cost": 182.09,
+          "final_price": 400
         },
         {
-          "id": "0544da10-ff1d-44e4-adc5-c5460556322a",
+          "id": "481de244-9471-44a0-b1dc-e66703594d19",
           "name": "Правая стойка корпуса",
           "weight_g": 65,
           "hours": 2,
           "minutes": 30,
           "quantity": 1,
-          "filament_id": "b72cb300-5d4a-4814-8440-7a676d7316ec",
-          "filament_name": "REC 3D ASA UV-стойкий Небесно-голубой",
-          "filament_color": "#38bdf8",
-          "printer_id": "81471942-86a8-46c5-a954-3df5066987c9",
-          "printer_name": "Creality K1C",
-          "base_cost": 180.51,
-          "final_price": 400
+          "filament_id": "2c7e5ba2-16fc-4866-acbe-375a5b6238bf",
+          "filament_name": "Kingroon PA12-CF Нейлон Карбон Серый графит",
+          "filament_color": "#4b5563",
+          "printer_id": "29c02e3f-e161-420d-b3b8-8a3c6f8fe37b",
+          "printer_name": "Flashforge Adventurer 5M Pro",
+          "base_cost": 513,
+          "final_price": 1130
         },
         {
-          "id": "a6e7d2d5-b31f-4bd6-a185-4b09a9dec4bb",
+          "id": "7cfb7e5f-5647-40a8-8537-8cccb9bd9ee8",
           "name": "Вращающийся вал катушки",
           "weight_g": 45,
           "hours": 1,
           "minutes": 45,
           "quantity": 1,
-          "filament_id": "a83b7c44-86b0-481b-8888-7ebe4d628c12",
-          "filament_name": "eSun Glow PLA (Светящийся) Шелковое золото",
-          "filament_color": "#d97706",
-          "printer_id": "80b1992a-9b67-4c86-b123-02fdb4005816",
-          "printer_name": "Creality K1 Max",
-          "base_cost": 147.69,
-          "final_price": 320
+          "filament_id": "f48f79a3-b2e2-4752-8579-9862353a9d9b",
+          "filament_name": "REC 3D PLA Basic Красный сигнал",
+          "filament_color": "#ef4444",
+          "printer_id": "1c8dab2d-e9cd-4448-94a8-3bfd897c0290",
+          "printer_name": "Bambu Lab A1 Combo",
+          "base_cost": 95.62,
+          "final_price": 210
         },
         {
-          "id": "a074864c-4f05-4f25-b685-55fe650147fb",
+          "id": "8e48f576-c148-426d-9fef-c20e841da0e5",
           "name": "Фиксирующие гайки конусы (2 шт)",
           "weight_g": 30,
           "hours": 1,
           "minutes": 15,
           "quantity": 1,
-          "filament_id": "91194b4f-19ca-496f-8718-ec505d283cf4",
-          "filament_name": "eSun PA12-CF Нейлон Карбон Черный матовый",
-          "filament_color": "#1e2022",
-          "printer_id": "0fab6358-6e5f-4950-8ada-30c60727d78a",
-          "printer_name": "Bambu Lab X1-Carbon",
-          "base_cost": 246.73,
-          "final_price": 540
+          "filament_id": "846e88bc-4c9c-492b-a2fe-8c22e40dcdd6",
+          "filament_name": "Sunlu Wood PLA (Древесный) Белый жемчуг",
+          "filament_color": "#f8fafc",
+          "printer_id": "29c02e3f-e161-420d-b3b8-8a3c6f8fe37b",
+          "printer_name": "Flashforge Adventurer 5M Pro",
+          "base_cost": 97.25,
+          "final_price": 210
         }
       ],
       "assembly_hardware": [
         {
-          "id": "6db7f7e0-c662-480d-a5be-7cac140b029c",
+          "id": "85347dd8-7218-4614-9612-87dde67fbd1d",
           "name": "Подшипник 608RS",
           "quantity": 2,
           "cost_per_unit": 45,
           "price_per_unit": 80
         },
         {
-          "id": "a5c23655-6025-4a36-90fe-4c6e5396bdde",
+          "id": "2f013658-0a6f-414a-8d20-b3d00c7029c0",
           "name": "Винты M4x25 и гайки с нейлоном",
           "quantity": 4,
           "cost_per_unit": 6,
           "price_per_unit": 12
         },
         {
-          "id": "0be3ac26-1378-461c-9553-09b6b034f95a",
+          "id": "dd71fb29-077e-40fe-9553-c9741f3698c0",
           "name": "Силиконовые демпферные ножки",
           "quantity": 4,
           "cost_per_unit": 10,
@@ -636,21 +619,21 @@
         }
       ],
       "assembly_labor_minutes": 20,
-      "assembly_labor_cost": 227,
-      "created_at": "2026-06-26T06:11:17.036Z"
+      "assembly_labor_cost": 253,
+      "created_at": "2026-06-18T13:58:30.027Z"
     },
     {
-      "id": "0a245189-57d3-4a52-8065-dd91ad07e793",
+      "id": "369cf4a0-fa9e-467b-9636-3b475e88d1b7",
       "name": "Артикулированная подвижная фигурка «Меха-Дракон»",
       "type": "assembly",
-      "filament_name": "Sunlu PLA Matte Небесно-голубой",
-      "printer_name": "Bambu Lab X1-Carbon",
+      "filament_name": "Polymaker Silk PLA Шелковый Черный матовый",
+      "printer_name": "Bambu Lab A1 Combo",
       "weight_g": 290,
       "hours": 11,
       "minutes": 20,
       "quantity": 1,
-      "base_cost": 1376,
-      "final_price": 2580,
+      "base_cost": 1395,
+      "final_price": 2570,
       "category": "Декор и Дом",
       "tags": [
         "сборка",
@@ -658,79 +641,79 @@
         "игрушка",
         "подвижный"
       ],
-      "stock_quantity": 3,
+      "stock_quantity": 4,
       "assembly_parts": [
         {
-          "id": "4e173c46-5da7-4130-86c8-0dccbd8982e3",
+          "id": "40931c43-8c35-4cfa-90a6-893e376f4460",
           "name": "Голова и челюсть дракона",
           "weight_g": 50,
           "hours": 2,
           "minutes": 0,
           "quantity": 1,
-          "filament_id": "89c5d3c3-498f-415c-bac2-4486a027a148",
-          "filament_name": "Sunlu PLA Matte Небесно-голубой",
-          "filament_color": "#38bdf8",
-          "printer_id": "0fab6358-6e5f-4950-8ada-30c60727d78a",
-          "printer_name": "Bambu Lab X1-Carbon",
-          "base_cost": 133.43,
-          "final_price": 290
+          "filament_id": "615fa1ef-0b0c-4721-940f-959736f0780c",
+          "filament_name": "Polymaker Silk PLA Шелковый Черный матовый",
+          "filament_color": "#1e2022",
+          "printer_id": "1c8dab2d-e9cd-4448-94a8-3bfd897c0290",
+          "printer_name": "Bambu Lab A1 Combo",
+          "base_cost": 135.9,
+          "final_price": 300
         },
         {
-          "id": "05f300f8-e1f2-48d4-90c0-54822ea9ddac",
+          "id": "253849e4-bd22-4771-a56b-71d975bc233f",
           "name": "Сегменты тела (8 звеньев)",
           "weight_g": 120,
           "hours": 4,
           "minutes": 30,
           "quantity": 1,
-          "filament_id": "4d7461ba-06ff-4bc8-926d-d65b61c7b205",
-          "filament_name": "Bambu Lab TPU 95A Эластомер Серый графит",
-          "filament_color": "#4b5563",
-          "printer_id": "81471942-86a8-46c5-a954-3df5066987c9",
-          "printer_name": "Creality K1C",
-          "base_cost": 394.69,
-          "final_price": 870
+          "filament_id": "33032732-42d1-40d7-86a9-75d99a17a322",
+          "filament_name": "Sunlu ASA UV-стойкий Красный сигнал",
+          "filament_color": "#ef4444",
+          "printer_id": "ab417481-de20-4542-8b3e-41f5d330ece9",
+          "printer_name": "Bambu Lab X1-Carbon",
+          "base_cost": 406.07,
+          "final_price": 890
         },
         {
-          "id": "46716ac2-3516-476b-98af-e66de80e01d0",
+          "id": "8e7c8401-bf9c-48bb-9e95-852452e89c55",
           "name": "Крылья шарнирные (пара)",
           "weight_g": 75,
           "hours": 3,
           "minutes": 10,
           "quantity": 1,
-          "filament_id": "89c5d3c3-498f-415c-bac2-4486a027a148",
-          "filament_name": "Sunlu PLA Matte Небесно-голубой",
-          "filament_color": "#38bdf8",
-          "printer_id": "8ab06762-96b7-4b9c-9221-a208205184b2",
-          "printer_name": "Voron 2.4 R2 350",
-          "base_cost": 189.7,
-          "final_price": 420
+          "filament_id": "3902e616-1ca8-404c-96f5-e13c0ddb2be7",
+          "filament_name": "REC 3D PETG Standard Синий океан",
+          "filament_color": "#2563eb",
+          "printer_id": "29c02e3f-e161-420d-b3b8-8a3c6f8fe37b",
+          "printer_name": "Flashforge Adventurer 5M Pro",
+          "base_cost": 149.14,
+          "final_price": 330
         },
         {
-          "id": "2b74b99a-d569-4943-834b-c329d45694d1",
+          "id": "66590a44-6685-4ad3-a4d7-ae164c8f6553",
           "name": "Хвост с наконечником",
           "weight_g": 45,
           "hours": 1,
           "minutes": 40,
           "quantity": 1,
-          "filament_id": "4d7461ba-06ff-4bc8-926d-d65b61c7b205",
-          "filament_name": "Bambu Lab TPU 95A Эластомер Серый графит",
-          "filament_color": "#4b5563",
-          "printer_id": "80b1992a-9b67-4c86-b123-02fdb4005816",
-          "printer_name": "Creality K1 Max",
-          "base_cost": 162.36,
-          "final_price": 360
+          "filament_id": "846e88bc-4c9c-492b-a2fe-8c22e40dcdd6",
+          "filament_name": "Sunlu Wood PLA (Древесный) Белый жемчуг",
+          "filament_color": "#f8fafc",
+          "printer_id": "ab417481-de20-4542-8b3e-41f5d330ece9",
+          "printer_name": "Bambu Lab X1-Carbon",
+          "base_cost": 168.24,
+          "final_price": 370
         }
       ],
       "assembly_hardware": [
         {
-          "id": "216f5a62-c232-4ac4-b34c-7b00e3936169",
+          "id": "cf036a90-8190-4b97-97bf-031432e52942",
           "name": "Латунные соединительные штифты 2мм",
           "quantity": 12,
           "cost_per_unit": 8,
           "price_per_unit": 15
         },
         {
-          "id": "cccdcaa9-7a89-46db-a153-2264f817ae95",
+          "id": "72737e2e-4382-4d1d-89c0-ad35306bcd5a",
           "name": "Магниты неодимовые 5x2мм для крыльев",
           "quantity": 4,
           "cost_per_unit": 15,
@@ -738,21 +721,21 @@
         }
       ],
       "assembly_labor_minutes": 30,
-      "assembly_labor_cost": 340,
-      "created_at": "2026-05-29T16:55:59.036Z"
+      "assembly_labor_cost": 380,
+      "created_at": "2026-06-23T10:43:07.027Z"
     },
     {
-      "id": "5d523e3c-10c3-4be4-aef3-f688c07c5763",
+      "id": "08dfded1-7665-4468-a65f-f11842263369",
       "name": "Поворотный настольный кронштейн монитора VESA 75/100",
       "type": "assembly",
-      "filament_name": "Bambu Lab Glow PLA (Светящийся) Оранжевый огонь",
-      "printer_name": "Elegoo Neptune 4 Pro",
+      "filament_name": "Kingroon Wood PLA (Древесный) Прозрачный Clear",
+      "printer_name": "Voron 2.4 R2 350",
       "weight_g": 330,
       "hours": 12,
       "minutes": 30,
       "quantity": 1,
-      "base_cost": 1383,
-      "final_price": 2663,
+      "base_cost": 1499,
+      "final_price": 2877,
       "category": "Гаджеты и Игры",
       "tags": [
         "сборка",
@@ -760,71 +743,71 @@
         "монитор",
         "кронштейн"
       ],
-      "stock_quantity": 4,
+      "stock_quantity": 1,
       "assembly_parts": [
         {
-          "id": "f9d4e511-631e-46fe-8dfa-1d04e8e1cf44",
+          "id": "b9815a4e-3534-4778-be02-1ec0c4c82091",
           "name": "Базовая струбцина к столу (усиленная)",
           "weight_g": 140,
           "hours": 5,
           "minutes": 20,
           "quantity": 1,
-          "filament_id": "8e7640d0-bea2-4361-9d88-d762e589a0d4",
-          "filament_name": "Bambu Lab Glow PLA (Светящийся) Оранжевый огонь",
-          "filament_color": "#f97316",
-          "printer_id": "725c0c60-128f-41e2-b4b5-b27f882e2244",
-          "printer_name": "Elegoo Neptune 4 Pro",
-          "base_cost": 362.61,
-          "final_price": 800
+          "filament_id": "ec5a06cf-7729-4c8c-9974-7757c99027e5",
+          "filament_name": "Kingroon Wood PLA (Древесный) Прозрачный Clear",
+          "filament_color": "#cbd5e1",
+          "printer_id": "2f9d3cea-c84e-4af8-a4b8-5515e42f1d5e",
+          "printer_name": "Voron 2.4 R2 350",
+          "base_cost": 434.53,
+          "final_price": 960
         },
         {
-          "id": "a8232686-5309-4600-91ca-f773b8a09e54",
+          "id": "af7914c7-d68b-42c2-af5b-3d33bb057aa2",
           "name": "Основное колено штанги",
           "weight_g": 110,
           "hours": 4,
           "minutes": 10,
           "quantity": 1,
-          "filament_id": "8e7640d0-bea2-4361-9d88-d762e589a0d4",
-          "filament_name": "Bambu Lab Glow PLA (Светящийся) Оранжевый огонь",
-          "filament_color": "#f97316",
-          "printer_id": "81471942-86a8-46c5-a954-3df5066987c9",
-          "printer_name": "Creality K1C",
-          "base_cost": 298.83,
-          "final_price": 660
+          "filament_id": "8c6590d2-6b96-426b-a97b-928d6d825d89",
+          "filament_name": "Bestfilament Glow PLA (Светящийся) Белый жемчуг",
+          "filament_color": "#f8fafc",
+          "printer_id": "ab417481-de20-4542-8b3e-41f5d330ece9",
+          "printer_name": "Bambu Lab X1-Carbon",
+          "base_cost": 361.81,
+          "final_price": 800
         },
         {
-          "id": "7190147c-79b9-4466-9b7c-07d482a42cb5",
+          "id": "c63f8b01-c20d-4766-ad7f-51808523e530",
           "name": "Поворотная пластина VESA 75/100",
           "weight_g": 80,
           "hours": 3,
           "minutes": 0,
           "quantity": 1,
-          "filament_id": "4d7461ba-06ff-4bc8-926d-d65b61c7b205",
-          "filament_name": "Bambu Lab TPU 95A Эластомер Серый графит",
-          "filament_color": "#4b5563",
-          "printer_id": "0fab6358-6e5f-4950-8ada-30c60727d78a",
-          "printer_name": "Bambu Lab X1-Carbon",
-          "base_cost": 300.68,
-          "final_price": 660
+          "filament_id": "ec5a06cf-7729-4c8c-9974-7757c99027e5",
+          "filament_name": "Kingroon Wood PLA (Древесный) Прозрачный Clear",
+          "filament_color": "#cbd5e1",
+          "printer_id": "2f9d3cea-c84e-4af8-a4b8-5515e42f1d5e",
+          "printer_name": "Voron 2.4 R2 350",
+          "base_cost": 247.24,
+          "final_price": 540
         }
       ],
       "assembly_hardware": [
         {
-          "id": "2dfba18e-dc69-47e5-a8b6-04dd1285cb9f",
+          "id": "0286d19e-6660-48b0-acc3-b3dcfbc03a4f",
           "name": "Болт M8x60 с барашковой гайкой",
           "quantity": 2,
           "cost_per_unit": 35,
           "price_per_unit": 60
         },
         {
-          "id": "cced5564-b52b-4643-aa35-e2aff94efe18",
+          "id": "ed100034-eef4-4e49-8a68-207ee01df354",
           "name": "Винты VESA M4x12",
           "quantity": 4,
           "cost_per_unit": 5,
           "price_per_unit": 10
         },
         {
-          "id": "e0892bb5-e367-4dbb-ab04-e2b9c7d177aa",
+          "id": "63da8367-d135-408b-af2f-3d1572ceaece",
           "name": "Фторопластовые упорные шайбы",
           "quantity": 4,
           "cost_per_unit": 12,
@@ -832,152 +815,262 @@
         }
       ],
       "assembly_labor_minutes": 25,
-      "assembly_labor_cost": 283,
-      "created_at": "2026-05-30T07:52:15.036Z"
+      "assembly_labor_cost": 317,
+      "created_at": "2026-07-07T14:02:54.027Z"
     }
   ],
   "orders": [
     {
-      "id": "057c9716-4110-46e5-9586-67e76c5731b7",
-      "order_number": 1041,
-      "created_at": "2026-08-19T11:09:46.036Z",
-      "date": "19.08.2026",
-      "type": "income",
-      "title": "Набор геометрических кашпо Origami (4 шт)",
-      "quantity": 2,
-      "amount": 9080,
-      "cost": 3814,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 2975
-        },
-        {
-          "category": "Упаковка",
-          "amount": 572
-        },
-        {
-          "category": "Работа руками",
-          "amount": 534
-        }
-      ],
-      "payments": [
-        4500
-      ],
-      "payment": 4500,
-      "client": "Авито",
-      "contact": "+7 (938) 556-23-91",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (938) 556-23-91",
-          "label": "Телефон"
-        },
-        {
-          "type": "telegram",
-          "value": "@_16",
-          "label": "Telegram"
-        }
-      ],
-      "deadline": "22.08.2026",
-      "status": "Печать",
-      "notes": "Предоплата на карту Сбера, остаток при получении в руки."
-    },
-    {
-      "id": "c36b7c6d-783d-438f-ab57-99502cedb03e",
-      "order_number": 1040,
-      "created_at": "2026-08-18T14:47:33.036Z",
-      "date": "18.08.2026",
-      "type": "income",
-      "title": "Срочная печать прототипа детали дрона",
-      "quantity": 10,
-      "amount": 30800,
-      "cost": 16320,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 10771
-        },
-        {
-          "category": "Упаковка",
-          "amount": 1469
-        },
-        {
-          "category": "Работа руками",
-          "amount": 2285
-        }
-      ],
-      "payments": [
-        15400
-      ],
-      "payment": 15400,
-      "client": "Telegram",
-      "contact": "+7 (940) 371-48-43",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (940) 371-48-43",
-          "label": "Телефон"
-        }
-      ],
-      "deadline": "24.08.2026",
-      "status": "Моделирование",
-      "notes": "Предоплата на карту Сбера, остаток при получении в руки."
-    },
-    {
-      "id": "5bc537ee-6848-4945-9900-477eb0fbf29e",
+      "id": "9daa670d-c09c-4363-bb4b-0131bb7eab4d",
       "order_number": 1039,
-      "created_at": "2026-08-18T12:15:06.036Z",
-      "date": "18.08.2026",
+      "created_at": "2026-09-01T08:34:03.027Z",
+      "date": "01.09.2026",
       "type": "income",
-      "title": "Кронштейн шагового двигателя NEMA 17 усиленный",
-      "quantity": 3,
-      "amount": 1800,
-      "cost": 894,
+      "title": "Светильник-ночник «Полигональная Луна» 16см",
+      "quantity": 2,
+      "amount": 4020,
+      "cost": 2009,
       "cost_items": [
         {
           "category": "Печать",
-          "amount": 679
+          "amount": 1426
         },
         {
           "category": "Упаковка",
-          "amount": 89
+          "amount": 221
         },
         {
           "category": "Работа руками",
-          "amount": 107
+          "amount": 221
         }
       ],
       "payments": [
-        900
+        2000
       ],
-      "payment": 900,
-      "client": "Instagram",
-      "contact": "+7 (977) 395-44-57",
+      "payment": 2000,
+      "client": "TikTok",
+      "contact": "+7 (927) 949-13-94",
       "contacts": [
         {
           "type": "phone",
-          "value": "+7 (977) 395-44-57",
+          "value": "+7 (927) 949-13-94",
+          "label": "Телефон"
+        }
+      ],
+      "deadline": "03.09.2026",
+      "status": "Печать",
+      "notes": "Срочный заказ, изготовление за 24 часа.",
+      "product_id": "da488746-8183-4e6e-96d3-f4df3d2fe58e"
+    },
+    {
+      "id": "7fc73325-40eb-47dd-a41e-785a0aa70b43",
+      "order_number": 1038,
+      "created_at": "2026-08-31T15:23:03.027Z",
+      "date": "31.08.2026",
+      "type": "income",
+      "title": "Ремонтный кронштейн бокового зеркала BMW E39",
+      "quantity": 5,
+      "amount": 33600,
+      "cost": 13105,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 10091
+        },
+        {
+          "category": "Упаковка",
+          "amount": 1835
+        },
+        {
+          "category": "Работа руками",
+          "amount": 2228
+        }
+      ],
+      "payments": [
+        16800
+      ],
+      "payment": 16800,
+      "client": "ВКонтакте",
+      "contact": "+7 (935) 357-25-57",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (935) 357-25-57",
           "label": "Телефон"
         },
         {
           "type": "telegram",
-          "value": "@_84",
+          "value": "@techlab_96",
           "label": "Telegram"
         }
       ],
-      "deadline": "20.08.2026",
-      "status": "Моделирование",
-      "notes": "Заполнение 100%, максимальная прочность для авто.",
-      "product_id": "14cc0b8d-b2af-4553-925f-c4eed56ff32e"
+      "deadline": "02.09.2026",
+      "status": "Печать",
+      "notes": "Самовывоз по готовности, предупредить за 1 час."
     },
     {
-      "id": "d4c29b96-e13f-4725-807e-d41f9d0a924f",
-      "order_number": 1038,
-      "created_at": "2026-08-18T09:44:10.036Z",
-      "date": "18.08.2026",
+      "id": "747f8225-aaea-4a8c-aafb-e45716e4c751",
+      "order_number": 1037,
+      "created_at": "2026-08-31T09:48:46.027Z",
+      "date": "31.08.2026",
+      "type": "income",
+      "title": "Подвесной держатель Mac Mini под столешницу",
+      "quantity": 1,
+      "amount": 1100,
+      "cost": 550,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 369
+        },
+        {
+          "category": "Упаковка",
+          "amount": 83
+        },
+        {
+          "category": "Работа руками",
+          "amount": 55
+        }
+      ],
+      "payments": [
+        600
+      ],
+      "payment": 600,
+      "client": "TikTok",
+      "contact": "+7 (922) 452-60-88",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (922) 452-60-88",
+          "label": "Телефон"
+        }
+      ],
+      "deadline": "04.09.2026",
+      "status": "Ждет покраски",
+      "notes": "Печать соплом 0.6мм с высотой слоя 0.24мм для ускорения.",
+      "product_id": "84b09be5-805e-4a24-939a-e58770274102"
+    },
+    {
+      "id": "e446b73d-c6b4-41fc-8c49-0f6e5444acde",
+      "order_number": 1036,
+      "created_at": "2026-08-30T07:49:46.027Z",
+      "date": "30.08.2026",
+      "type": "income",
+      "title": "Заглушка противотуманной фары VAG",
+      "quantity": 1,
+      "amount": 710,
+      "cost": 356,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 281
+        },
+        {
+          "category": "Упаковка",
+          "amount": 46
+        },
+        {
+          "category": "Работа руками",
+          "amount": 43
+        }
+      ],
+      "payments": [],
+      "payment": 0,
+      "client": "Другое",
+      "contact": "+7 (947) 826-48-32",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (947) 826-48-32",
+          "label": "Телефон"
+        }
+      ],
+      "deadline": "03.09.2026",
+      "status": "Печать",
+      "notes": "Покраска в матовый графит. Клиент оплатил 50% предоплату.",
+      "product_id": "d80f483d-0584-479a-abd5-6de2d2b9833b"
+    },
+    {
+      "id": "9e26d23d-e302-4315-a6d6-49a1381db677",
+      "order_number": 1035,
+      "created_at": "2026-08-28T17:59:52.027Z",
+      "date": "28.08.2026",
+      "type": "income",
+      "title": "Подвесной держатель Mac Mini под столешницу",
+      "quantity": 1,
+      "amount": 1100,
+      "cost": 550,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 402
+        },
+        {
+          "category": "Упаковка",
+          "amount": 72
+        },
+        {
+          "category": "Работа руками",
+          "amount": 88
+        }
+      ],
+      "payments": [
+        1100
+      ],
+      "payment": 1100,
+      "client": "Instagram",
+      "contact": "+7 (918) 715-29-90",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (918) 715-29-90",
+          "label": "Телефон"
+        },
+        {
+          "type": "telegram",
+          "value": "@_50",
+          "label": "Telegram"
+        }
+      ],
+      "deadline": "03.09.2026",
+      "status": "Готово",
+      "notes": "Покраска в матовый графит. Клиент оплатил 50% предоплату.",
+      "product_id": "84b09be5-805e-4a24-939a-e58770274102"
+    },
+    {
+      "id": "9b2771d2-8862-43ac-8b27-0a8961d43890",
+      "order_number": 1034,
+      "created_at": "2026-08-26T18:27:32.027Z",
+      "date": "26.08.2026",
       "type": "expense",
       "title": "Пленка стрейч и воздушно-пузырьковая упаковочная",
+      "quantity": 1,
+      "amount": 11400,
+      "cost": 11400,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 11400
+        }
+      ],
+      "payments": [
+        11400
+      ],
+      "payment": 11400,
+      "client": "Другое",
+      "contact": "",
+      "contacts": [],
+      "deadline": "26.08.2026",
+      "status": "Готово",
+      "notes": "Оплата по карте Ozon"
+    },
+    {
+      "id": "d9352793-8a70-4f34-afa4-9cf9a169ec98",
+      "order_number": 1033,
+      "created_at": "2026-08-26T06:54:19.027Z",
+      "date": "26.08.2026",
+      "type": "expense",
+      "title": "Закупка филамента eSun PETG (4 катушки)",
       "quantity": 1,
       "amount": 3200,
       "cost": 3200,
@@ -994,310 +1087,44 @@
       "client": "Другое",
       "contact": "",
       "contacts": [],
-      "deadline": "18.08.2026",
+      "deadline": "26.08.2026",
       "status": "Готово",
       "notes": "СДЭК Маркет"
     },
     {
-      "id": "f004ee5e-1d6d-4b8e-bb8e-c33550134c43",
-      "order_number": 1037,
-      "created_at": "2026-08-18T06:03:10.036Z",
-      "date": "18.08.2026",
-      "type": "income",
-      "title": "Партия сувенирных брелоков с логотипом (30 шт)",
-      "quantity": 2,
-      "amount": 7800,
-      "cost": 2730,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 2048
-        },
-        {
-          "category": "Упаковка",
-          "amount": 328
-        },
-        {
-          "category": "Работа руками",
-          "amount": 519
-        }
-      ],
-      "payments": [
-        3900
-      ],
-      "payment": 3900,
-      "client": "Instagram",
-      "contact": "+7 (928) 208-23-40",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (928) 208-23-40",
-          "label": "Телефон"
-        },
-        {
-          "type": "telegram",
-          "value": "@_59",
-          "label": "Telegram"
-        }
-      ],
-      "deadline": "24.08.2026",
-      "status": "Печать",
-      "notes": "Клиент постоянный, скидка 10% учтена в итоговой стоимости."
-    },
-    {
-      "id": "aad56f9c-0ab0-49ae-b2f9-92627a926aed",
-      "order_number": 1036,
-      "created_at": "2026-08-17T15:41:39.036Z",
-      "date": "17.08.2026",
-      "type": "income",
-      "title": "Держатель катушек филамента на подшипниках",
-      "quantity": 1,
-      "amount": 5700,
-      "cost": 2850,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 1966
-        },
-        {
-          "category": "Упаковка",
-          "amount": 314
-        },
-        {
-          "category": "Работа руками",
-          "amount": 485
-        }
-      ],
-      "payments": [],
-      "payment": 0,
-      "client": "YouTube",
-      "contact": "+7 (988) 632-72-20",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (988) 632-72-20",
-          "label": "Телефон"
-        }
-      ],
-      "deadline": "20.08.2026",
-      "status": "Ждет печати",
-      "notes": "Упаковать в двойную пупырку для бережной отправки Почтой."
-    },
-    {
-      "id": "328c4cad-e5e9-4566-8693-af86c276b7a4",
-      "order_number": 1035,
-      "created_at": "2026-08-17T06:14:05.036Z",
-      "date": "17.08.2026",
-      "type": "income",
-      "title": "Настольная подставка для наушников DeskStand",
-      "quantity": 1,
-      "amount": 2780,
-      "cost": 1390,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 931
-        },
-        {
-          "category": "Упаковка",
-          "amount": 181
-        },
-        {
-          "category": "Работа руками",
-          "amount": 181
-        }
-      ],
-      "payments": [
-        1400
-      ],
-      "payment": 1400,
-      "client": "TikTok",
-      "contact": "+7 (916) 922-34-80",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (916) 922-34-80",
-          "label": "Телефон"
-        },
-        {
-          "type": "telegram",
-          "value": "@_74",
-          "label": "Telegram"
-        }
-      ],
-      "deadline": "21.08.2026",
-      "status": "Моделирование",
-      "notes": "Срочный заказ, изготовление за 24 часа.",
-      "product_id": "5d2c3ab0-8974-4dc3-bed1-e37b28f5d144"
-    },
-    {
-      "id": "f13715f7-ef0b-43cb-96aa-039c63aa1d8b",
-      "order_number": 1034,
-      "created_at": "2026-08-16T12:54:42.036Z",
-      "date": "16.08.2026",
-      "type": "income",
-      "title": "Защитный кейс для 4-х аккумуляторов 18650 с защелкой",
-      "quantity": 2,
-      "amount": 1260,
-      "cost": 629,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 459
-        },
-        {
-          "category": "Упаковка",
-          "amount": 82
-        },
-        {
-          "category": "Работа руками",
-          "amount": 107
-        }
-      ],
-      "payments": [],
-      "payment": 0,
-      "client": "TikTok",
-      "contact": "+7 (961) 407-66-61",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (961) 407-66-61",
-          "label": "Телефон"
-        },
-        {
-          "type": "telegram",
-          "value": "@_74",
-          "label": "Telegram"
-        }
-      ],
-      "deadline": "22.08.2026",
-      "status": "Ждет отправки",
-      "notes": "Упаковать в двойную пупырку для бережной отправки Почтой.",
-      "product_id": "efcceba4-7f3c-4882-bc56-c887f873b7d7"
-    },
-    {
-      "id": "58ece210-7a4b-407a-8b00-e80ff5d0a301",
-      "order_number": 1033,
-      "created_at": "2026-08-16T09:39:24.036Z",
-      "date": "16.08.2026",
-      "type": "income",
-      "title": "Подиум под датчик 52мм в стойку",
-      "quantity": 3,
-      "amount": 3390,
-      "cost": 1691,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 1234
-        },
-        {
-          "category": "Упаковка",
-          "amount": 186
-        },
-        {
-          "category": "Работа руками",
-          "amount": 186
-        }
-      ],
-      "payments": [
-        3390
-      ],
-      "payment": 3390,
-      "client": "Instagram",
-      "contact": "+7 (971) 930-28-91",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (971) 930-28-91",
-          "label": "Телефон"
-        }
-      ],
-      "deadline": "18.08.2026",
-      "status": "Готово",
-      "notes": "Печать соплом 0.6мм с высотой слоя 0.24мм для ускорения.",
-      "product_id": "dbf9a37a-6991-4927-b2cb-11032871974c"
-    },
-    {
-      "id": "90fc904c-d928-4c09-9e08-ccad44c41b61",
+      "id": "ccd1be00-a6cf-4dac-80f7-b43d37b56b45",
       "order_number": 1032,
-      "created_at": "2026-08-15T06:56:29.036Z",
-      "date": "15.08.2026",
+      "created_at": "2026-08-23T18:23:23.027Z",
+      "date": "23.08.2026",
       "type": "income",
-      "title": "Док-станция iPhone MagSafe + Apple Watch",
-      "quantity": 3,
-      "amount": 4170,
-      "cost": 2092,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 1381
-        },
-        {
-          "category": "Упаковка",
-          "amount": 272
-        },
-        {
-          "category": "Работа руками",
-          "amount": 230
-        }
-      ],
-      "payments": [
-        2100
-      ],
-      "payment": 2100,
-      "client": "Instagram",
-      "contact": "+7 (988) 724-93-65",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (988) 724-93-65",
-          "label": "Телефон"
-        },
-        {
-          "type": "telegram",
-          "value": "@_91",
-          "label": "Telegram"
-        }
-      ],
-      "deadline": "19.08.2026",
-      "status": "Покраска",
-      "notes": "Печать соплом 0.6мм с высотой слоя 0.24мм для ускорения.",
-      "product_id": "b3742c9c-88e4-4ab4-8cb7-08a5d7fb7e65"
-    },
-    {
-      "id": "1fb60fd9-7aea-41ab-8437-7b4741eae1b8",
-      "order_number": 1031,
-      "created_at": "2026-08-13T13:46:09.036Z",
-      "date": "13.08.2026",
-      "type": "income",
-      "title": "Кастомная шестерня для мясорубки Kenwood",
+      "title": "Настенный органайзер для ключей с магнитами",
       "quantity": 2,
-      "amount": 5800,
-      "cost": 3132,
+      "amount": 1620,
+      "cost": 808,
       "cost_items": [
         {
           "category": "Печать",
-          "amount": 2474
+          "amount": 549
         },
         {
           "category": "Упаковка",
-          "amount": 251
+          "amount": 89
         },
         {
           "category": "Работа руками",
-          "amount": 626
+          "amount": 154
         }
       ],
       "payments": [
-        2900
+        1620
       ],
-      "payment": 2900,
-      "client": "Telegram",
-      "contact": "+7 (954) 592-59-99",
+      "payment": 1620,
+      "client": "TikTok",
+      "contact": "+7 (995) 778-29-39",
       "contacts": [
         {
           "type": "phone",
-          "value": "+7 (954) 592-59-99",
+          "value": "+7 (995) 778-29-39",
           "label": "Телефон"
         },
         {
@@ -1306,719 +1133,294 @@
           "label": "Telegram"
         }
       ],
-      "deadline": "19.08.2026",
-      "status": "Ждет отправки",
-      "notes": "Покраска в матовый графит. Клиент оплатил 50% предоплату."
-    },
-    {
-      "id": "fb2eb267-217e-4628-a6ae-a1295c89d005",
-      "order_number": 1030,
-      "created_at": "2026-08-11T17:21:58.036Z",
-      "date": "11.08.2026",
-      "type": "income",
-      "title": "Угловой фиксатор 90° для столярной струбцины",
-      "quantity": 1,
-      "amount": 1020,
-      "cost": 510,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 372
-        },
-        {
-          "category": "Упаковка",
-          "amount": 71
-        },
-        {
-          "category": "Работа руками",
-          "amount": 61
-        }
-      ],
-      "payments": [
-        1020
-      ],
-      "payment": 1020,
-      "client": "YouTube",
-      "contact": "+7 (945) 124-54-22",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (945) 124-54-22",
-          "label": "Телефон"
-        }
-      ],
-      "deadline": "16.08.2026",
+      "deadline": "29.08.2026",
       "status": "Готово",
-      "notes": "Заполнение 100%, максимальная прочность для авто.",
-      "product_id": "8bfe5e85-d2b2-4af2-a700-be998dc4ce9f"
+      "notes": "Предоплата на карту Сбера, остаток при получении в руки.",
+      "product_id": "a4a011d6-6336-466e-8abd-cd3824b16621"
     },
     {
-      "id": "8c4b9de6-f859-4c7f-9ad6-78b4666e3f6f",
-      "order_number": 1029,
-      "created_at": "2026-08-10T09:37:28.036Z",
-      "date": "10.08.2026",
+      "id": "ed1974ee-3a79-48bd-a7d8-d9d1ab9893f1",
+      "order_number": 1031,
+      "created_at": "2026-08-23T17:25:41.027Z",
+      "date": "23.08.2026",
       "type": "income",
-      "title": "Модульный держатель катушки филамента Pro (на подшипниках)",
-      "quantity": 2,
-      "amount": 4630,
-      "cost": 2402,
+      "title": "Настенный органайзер для ключей с магнитами",
+      "quantity": 10,
+      "amount": 8100,
+      "cost": 4042,
       "cost_items": [
         {
           "category": "Печать",
-          "amount": 1777
+          "amount": 3032
         },
         {
           "category": "Упаковка",
-          "amount": 192
+          "amount": 404
         },
         {
           "category": "Работа руками",
-          "amount": 408
+          "amount": 728
         }
       ],
       "payments": [
-        4630
+        8100
       ],
-      "payment": 4630,
+      "payment": 8100,
       "client": "ВКонтакте",
-      "contact": "+7 (954) 200-99-57",
+      "contact": "+7 (942) 271-79-89",
       "contacts": [
         {
           "type": "phone",
-          "value": "+7 (954) 200-99-57",
+          "value": "+7 (942) 271-79-89",
           "label": "Телефон"
         },
         {
           "type": "telegram",
-          "value": "@_90",
+          "value": "@_36",
           "label": "Telegram"
         }
       ],
-      "deadline": "15.08.2026",
+      "deadline": "26.08.2026",
       "status": "Готово",
       "notes": "Пластик PETG черный, 4 периметра, заполнение 40% гироид. Отправить СДЭКом до ПВЗ.",
-      "product_id": "e9784826-f512-4b59-b75b-8937aea09d1f"
+      "product_id": "a4a011d6-6336-466e-8abd-cd3824b16621"
     },
     {
-      "id": "7b058adb-07ce-46ae-862b-6246826737d6",
-      "order_number": 1028,
-      "created_at": "2026-08-10T08:36:06.036Z",
-      "date": "10.08.2026",
-      "type": "expense",
-      "title": "Коробки картонные для отправки 200x200x200 (30 шт)",
-      "quantity": 1,
-      "amount": 10000,
-      "cost": 10000,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 10000
-        }
-      ],
-      "payments": [
-        10000
-      ],
-      "payment": 10000,
-      "client": "Другое",
-      "contact": "",
-      "contacts": [],
-      "deadline": "10.08.2026",
-      "status": "Готово",
-      "notes": "Материалы для мастерской"
-    },
-    {
-      "id": "46c831de-1e7a-419b-8a31-87b5d6133d46",
-      "order_number": 1027,
-      "created_at": "2026-08-09T08:34:17.036Z",
-      "date": "09.08.2026",
-      "type": "income",
-      "title": "Модульный держатель катушки филамента Pro (на подшипниках)",
-      "quantity": 1,
-      "amount": 2315,
-      "cost": 1201,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 877
-        },
-        {
-          "category": "Упаковка",
-          "amount": 96
-        },
-        {
-          "category": "Работа руками",
-          "amount": 228
-        }
-      ],
-      "payments": [
-        2315
-      ],
-      "payment": 2315,
-      "client": "YouTube",
-      "contact": "+7 (942) 135-23-18",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (942) 135-23-18",
-          "label": "Телефон"
-        }
-      ],
-      "deadline": "12.08.2026",
-      "status": "Готово",
-      "notes": "Отправка через Авито Доставку (Boxberry).",
-      "product_id": "e9784826-f512-4b59-b75b-8937aea09d1f"
-    },
-    {
-      "id": "314accbc-ce42-48be-b77e-370f1eab9979",
-      "order_number": 1026,
-      "created_at": "2026-08-08T08:11:54.036Z",
-      "date": "08.08.2026",
-      "type": "income",
-      "title": "Светильник-ночник «Полигональная Луна» 16см",
-      "quantity": 2,
-      "amount": 2720,
-      "cost": 1358,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 1059
-        },
-        {
-          "category": "Упаковка",
-          "amount": 149
-        },
-        {
-          "category": "Работа руками",
-          "amount": 163
-        }
-      ],
-      "payments": [
-        2720
-      ],
-      "payment": 2720,
-      "client": "Авито",
-      "contact": "+7 (948) 228-72-62",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (948) 228-72-62",
-          "label": "Телефон"
-        }
-      ],
-      "deadline": "14.08.2026",
-      "status": "Готово",
-      "notes": "Печать соплом 0.6мм с высотой слоя 0.24мм для ускорения.",
-      "product_id": "00bf5869-a66b-4e9a-98ea-98a4f74da7cb"
-    },
-    {
-      "id": "3020b284-613e-46ba-8429-06ef9fa430ba",
-      "order_number": 1025,
-      "created_at": "2026-08-04T07:08:57.036Z",
-      "date": "04.08.2026",
-      "type": "income",
-      "title": "Грипсы эргономичные для геймпада DualSense",
-      "quantity": 1,
-      "amount": 590,
-      "cost": 293,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 223
-        },
-        {
-          "category": "Упаковка",
-          "amount": 29
-        },
-        {
-          "category": "Работа руками",
-          "amount": 32
-        }
-      ],
-      "payments": [
-        590
-      ],
-      "payment": 590,
-      "client": "ВКонтакте",
-      "contact": "+7 (929) 314-73-22",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (929) 314-73-22",
-          "label": "Телефон"
-        }
-      ],
-      "deadline": "08.08.2026",
-      "status": "Готово",
-      "notes": "Клиент постоянный, скидка 10% учтена в итоговой стоимости.",
-      "product_id": "4ec8ee6e-c79b-4d1d-9740-11916f33630e"
-    },
-    {
-      "id": "be5e8c04-8f2b-478e-a7f6-e2e22fb9ed2c",
-      "order_number": 1024,
-      "created_at": "2026-07-29T09:51:25.036Z",
-      "date": "29.07.2026",
-      "type": "income",
-      "title": "Поворотный настольный кронштейн монитора VESA 75/100",
-      "quantity": 5,
-      "amount": 13315,
-      "cost": 6915,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 5325
-        },
-        {
-          "category": "Упаковка",
-          "amount": 899
-        },
-        {
-          "category": "Работа руками",
-          "amount": 968
-        }
-      ],
-      "payments": [
-        13315
-      ],
-      "payment": 13315,
-      "client": "ВКонтакте",
-      "contact": "+7 (936) 824-39-50",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (936) 824-39-50",
-          "label": "Телефон"
-        }
-      ],
-      "deadline": "31.07.2026",
-      "status": "Готово",
-      "notes": "Срочный заказ, изготовление за 24 часа.",
-      "product_id": "5d523e3c-10c3-4be4-aef3-f688c07c5763"
-    },
-    {
-      "id": "58178afc-61de-4223-a705-2ec44e0ccddc",
-      "order_number": 1023,
-      "created_at": "2026-07-26T10:57:26.036Z",
-      "date": "26.07.2026",
-      "type": "income",
-      "title": "Крепление под стол Mac mini M2 (2 шт)",
-      "quantity": 2,
-      "amount": 3320,
-      "cost": 1760,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 1250
-        },
-        {
-          "category": "Упаковка",
-          "amount": 211
-        },
-        {
-          "category": "Работа руками",
-          "amount": 264
-        }
-      ],
-      "payments": [
-        3320
-      ],
-      "payment": 3320,
-      "client": "Другое",
-      "contact": "+7 (996) 190-53-29",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (996) 190-53-29",
-          "label": "Телефон"
-        },
-        {
-          "type": "telegram",
-          "value": "@_28",
-          "label": "Telegram"
-        }
-      ],
-      "deadline": "29.07.2026",
-      "status": "Готово",
-      "notes": "Отправка через Авито Доставку (Boxberry)."
-    },
-    {
-      "id": "843d061b-870d-4199-a082-29d886ce8f87",
-      "order_number": 1022,
-      "created_at": "2026-07-23T16:54:37.036Z",
-      "date": "23.07.2026",
-      "type": "income",
-      "title": "Срочная печать прототипа детали дрона",
-      "quantity": 2,
-      "amount": 12480,
-      "cost": 6490,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 5062
-        },
-        {
-          "category": "Упаковка",
-          "amount": 974
-        },
-        {
-          "category": "Работа руками",
-          "amount": 779
-        }
-      ],
-      "payments": [
-        12480
-      ],
-      "payment": 12480,
-      "client": "Другое",
-      "contact": "+7 (912) 406-74-43",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (912) 406-74-43",
-          "label": "Телефон"
-        },
-        {
-          "type": "telegram",
-          "value": "@_65",
-          "label": "Telegram"
-        }
-      ],
-      "deadline": "29.07.2026",
-      "status": "Готово",
-      "notes": "Отправка через Авито Доставку (Boxberry)."
-    },
-    {
-      "id": "00aa661d-f93d-4f74-b2f7-10746d89b672",
-      "order_number": 1021,
-      "created_at": "2026-07-22T18:20:10.036Z",
-      "date": "22.07.2026",
+      "id": "5abf5c07-69bd-457b-a32c-6d25eaa0acf6",
+      "order_number": 1030,
+      "created_at": "2026-08-22T16:38:59.027Z",
+      "date": "22.08.2026",
       "type": "income",
       "title": "Артикулированная подвижная фигурка «Меха-Дракон»",
       "quantity": 1,
-      "amount": 2580,
-      "cost": 1376,
+      "amount": 2570,
+      "cost": 1395,
       "cost_items": [
         {
           "category": "Печать",
-          "amount": 936
+          "amount": 1074
         },
         {
           "category": "Упаковка",
-          "amount": 193
+          "amount": 112
         },
         {
           "category": "Работа руками",
-          "amount": 206
+          "amount": 251
         }
       ],
       "payments": [
-        2580
+        2570
       ],
-      "payment": 2580,
-      "client": "Авито",
-      "contact": "+7 (926) 993-54-35",
+      "payment": 2570,
+      "client": "YouTube",
+      "contact": "+7 (917) 530-91-26",
       "contacts": [
         {
           "type": "phone",
-          "value": "+7 (926) 993-54-35",
+          "value": "+7 (917) 530-91-26",
           "label": "Телефон"
         }
       ],
-      "deadline": "24.07.2026",
+      "deadline": "26.08.2026",
       "status": "Готово",
-      "notes": "Клиент постоянный, скидка 10% учтена в итоговой стоимости.",
-      "product_id": "0a245189-57d3-4a52-8065-dd91ad07e793"
+      "notes": "Заполнение 100%, максимальная прочность для авто.",
+      "product_id": "369cf4a0-fa9e-467b-9636-3b475e88d1b7"
     },
     {
-      "id": "d25db06a-a374-403d-9f80-7fddb2ab2c80",
-      "order_number": 1020,
-      "created_at": "2026-07-22T09:37:53.036Z",
-      "date": "22.07.2026",
-      "type": "expense",
-      "title": "Коробки картонные для отправки 200x200x200 (30 шт)",
-      "quantity": 1,
-      "amount": 16500,
-      "cost": 16500,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 16500
-        }
-      ],
-      "payments": [
-        16500
-      ],
-      "payment": 16500,
-      "client": "Другое",
-      "contact": "",
-      "contacts": [],
-      "deadline": "22.07.2026",
-      "status": "Готово",
-      "notes": "СДЭК Маркет"
-    },
-    {
-      "id": "eebbee3b-f6be-4457-8b72-68572082eac0",
-      "order_number": 1019,
-      "created_at": "2026-07-18T07:02:16.036Z",
-      "date": "18.07.2026",
+      "id": "de115c89-6e1b-41b9-9865-dddfd468c0e7",
+      "order_number": 1029,
+      "created_at": "2026-08-21T07:50:44.027Z",
+      "date": "21.08.2026",
       "type": "income",
-      "title": "Крепление регистратора на зеркало заднего вида",
-      "quantity": 5,
-      "amount": 2950,
-      "cost": 1479,
+      "title": "Ручка-барашек M8 эргономичная (набор 5 шт)",
+      "quantity": 2,
+      "amount": 1600,
+      "cost": 799,
       "cost_items": [
         {
           "category": "Печать",
-          "amount": 1094
+          "amount": 615
         },
         {
           "category": "Упаковка",
-          "amount": 148
+          "amount": 112
         },
         {
           "category": "Работа руками",
-          "amount": 177
+          "amount": 112
         }
       ],
       "payments": [
-        2950
+        1600
       ],
-      "payment": 2950,
+      "payment": 1600,
       "client": "ВКонтакте",
-      "contact": "+7 (957) 665-51-35",
+      "contact": "+7 (939) 261-25-72",
       "contacts": [
         {
           "type": "phone",
-          "value": "+7 (957) 665-51-35",
-          "label": "Телефон"
-        }
-      ],
-      "deadline": "23.07.2026",
-      "status": "Готово",
-      "notes": "Предоплата на карту Сбера, остаток при получении в руки.",
-      "product_id": "6d4bd144-e3f4-448f-a2a8-8211df109a86"
-    },
-    {
-      "id": "feaacbe1-215d-467c-bd76-2a79d53fe54b",
-      "order_number": 1018,
-      "created_at": "2026-07-15T08:47:11.036Z",
-      "date": "15.07.2026",
-      "type": "expense",
-      "title": "Изопропиловый спирт 99.9% 5л для обезжиривания",
-      "quantity": 1,
-      "amount": 5900,
-      "cost": 5900,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 5900
-        }
-      ],
-      "payments": [
-        5900
-      ],
-      "payment": 5900,
-      "client": "Другое",
-      "contact": "",
-      "contacts": [],
-      "deadline": "15.07.2026",
-      "status": "Готово",
-      "notes": "Материалы для мастерской"
-    },
-    {
-      "id": "1d3b6153-718e-44d9-bef3-42324b6a8288",
-      "order_number": 1017,
-      "created_at": "2026-07-14T07:03:02.036Z",
-      "date": "14.07.2026",
-      "type": "income",
-      "title": "Кронштейн шагового двигателя NEMA 17 усиленный",
-      "quantity": 2,
-      "amount": 1200,
-      "cost": 596,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 465
-        },
-        {
-          "category": "Упаковка",
-          "amount": 60
-        },
-        {
-          "category": "Работа руками",
-          "amount": 107
-        }
-      ],
-      "payments": [
-        1200
-      ],
-      "payment": 1200,
-      "client": "Telegram",
-      "contact": "+7 (956) 798-55-34",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (956) 798-55-34",
+          "value": "+7 (939) 261-25-72",
           "label": "Телефон"
         },
         {
           "type": "telegram",
-          "value": "@_78",
+          "value": "@_19",
           "label": "Telegram"
         }
       ],
-      "deadline": "17.07.2026",
+      "deadline": "27.08.2026",
       "status": "Готово",
-      "notes": "Клиент постоянный, скидка 10% учтена в итоговой стоимости.",
-      "product_id": "14cc0b8d-b2af-4553-925f-c4eed56ff32e"
+      "notes": "Самовывоз по готовности, предупредить за 1 час.",
+      "product_id": "ca81ee1c-4ad2-4ecf-adfd-9bf58ba617e3"
     },
     {
-      "id": "9ae7dcd7-f9a9-4d9d-ad83-fe727588b300",
-      "order_number": 1016,
-      "created_at": "2026-07-13T18:02:36.036Z",
-      "date": "13.07.2026",
-      "type": "income",
-      "title": "Грипсы эргономичные для геймпада DualSense",
-      "quantity": 5,
-      "amount": 2950,
-      "cost": 1467,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 998
-        },
-        {
-          "category": "Упаковка",
-          "amount": 161
-        },
-        {
-          "category": "Работа руками",
-          "amount": 220
-        }
-      ],
-      "payments": [
-        2950
-      ],
-      "payment": 2950,
-      "client": "Авито",
-      "contact": "+7 (945) 512-70-85",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (945) 512-70-85",
-          "label": "Телефон"
-        },
-        {
-          "type": "telegram",
-          "value": "@_66",
-          "label": "Telegram"
-        }
-      ],
-      "deadline": "19.07.2026",
-      "status": "Готово",
-      "notes": "Печать соплом 0.6мм с высотой слоя 0.24мм для ускорения.",
-      "product_id": "4ec8ee6e-c79b-4d1d-9740-11916f33630e"
-    },
-    {
-      "id": "26dbbfcf-2d2b-4baa-94e0-59d0f054b28d",
-      "order_number": 1015,
-      "created_at": "2026-07-13T07:04:51.036Z",
-      "date": "13.07.2026",
-      "type": "income",
-      "title": "Подиум под датчик 52мм в стойку",
-      "quantity": 2,
-      "amount": 2260,
-      "cost": 1127,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 823
-        },
-        {
-          "category": "Упаковка",
-          "amount": 169
-        },
-        {
-          "category": "Работа руками",
-          "amount": 180
-        }
-      ],
-      "payments": [
-        2260
-      ],
-      "payment": 2260,
-      "client": "Авито",
-      "contact": "+7 (941) 325-38-53",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (941) 325-38-53",
-          "label": "Телефон"
-        }
-      ],
-      "deadline": "19.07.2026",
-      "status": "Готово",
-      "notes": "Отправка через Авито Доставку (Boxberry).",
-      "product_id": "dbf9a37a-6991-4927-b2cb-11032871974c"
-    },
-    {
-      "id": "238eaa80-b6c7-46e5-b85c-db745d0c6b88",
-      "order_number": 1014,
-      "created_at": "2026-07-07T10:03:42.036Z",
-      "date": "07.07.2026",
+      "id": "e9a451ab-2d47-49d6-83c4-4b8252586d8d",
+      "order_number": 1028,
+      "created_at": "2026-08-18T14:27:25.027Z",
+      "date": "18.08.2026",
       "type": "income",
       "title": "Печать партии корпусов приборов (10 шт)",
       "quantity": 1,
-      "amount": 3100,
-      "cost": 1147,
+      "amount": 6280,
+      "cost": 3077,
       "cost_items": [
         {
           "category": "Печать",
-          "amount": 814
+          "amount": 2246
         },
         {
           "category": "Упаковка",
-          "amount": 161
+          "amount": 369
         },
         {
           "category": "Работа руками",
-          "amount": 149
+          "amount": 369
         }
       ],
       "payments": [
-        3100
+        6280
       ],
-      "payment": 3100,
+      "payment": 6280,
       "client": "Другое",
-      "contact": "+7 (933) 109-66-70",
+      "contact": "+7 (974) 196-12-80",
       "contacts": [
         {
           "type": "phone",
-          "value": "+7 (933) 109-66-70",
+          "value": "+7 (974) 196-12-80",
           "label": "Телефон"
         }
       ],
-      "deadline": "09.07.2026",
+      "deadline": "22.08.2026",
       "status": "Готово",
-      "notes": "Самовывоз по готовности, предупредить за 1 час."
+      "notes": "Срочный заказ, изготовление за 24 часа."
     },
     {
-      "id": "89610a06-e4aa-4a88-8028-60f2d5f116ff",
-      "order_number": 1013,
-      "created_at": "2026-07-01T15:18:07.036Z",
-      "date": "01.07.2026",
+      "id": "8d7bbf56-9d75-4971-a301-97beb94e1b5e",
+      "order_number": 1027,
+      "created_at": "2026-08-17T15:08:10.027Z",
+      "date": "17.08.2026",
       "type": "income",
-      "title": "Светильник-ночник «Полигональная Луна» 16см",
-      "quantity": 1,
-      "amount": 1360,
-      "cost": 679,
+      "title": "Ремонтный кронштейн бокового зеркала BMW E39",
+      "quantity": 2,
+      "amount": 3160,
+      "cost": 1580,
       "cost_items": [
         {
           "category": "Печать",
-          "amount": 455
+          "amount": 1138
         },
         {
           "category": "Упаковка",
-          "amount": 75
+          "amount": 174
+        },
+        {
+          "category": "Работа руками",
+          "amount": 158
+        }
+      ],
+      "payments": [
+        3160
+      ],
+      "payment": 3160,
+      "client": "TikTok",
+      "contact": "+7 (937) 271-10-54",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (937) 271-10-54",
+          "label": "Телефон"
+        },
+        {
+          "type": "telegram",
+          "value": "@_11",
+          "label": "Telegram"
+        }
+      ],
+      "deadline": "19.08.2026",
+      "status": "Готово",
+      "notes": "Печать соплом 0.6мм с высотой слоя 0.24мм для ускорения."
+    },
+    {
+      "id": "74d43d06-e6b6-4d8e-877b-5cd9e27973d6",
+      "order_number": 1026,
+      "created_at": "2026-08-17T09:33:26.027Z",
+      "date": "17.08.2026",
+      "type": "income",
+      "title": "Док-станция iPhone MagSafe + Apple Watch",
+      "quantity": 1,
+      "amount": 1360,
+      "cost": 678,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 454
+        },
+        {
+          "category": "Упаковка",
+          "amount": 81
+        },
+        {
+          "category": "Работа руками",
+          "amount": 108
+        }
+      ],
+      "payments": [
+        1360
+      ],
+      "payment": 1360,
+      "client": "ВКонтакте",
+      "contact": "+7 (944) 300-30-86",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (944) 300-30-86",
+          "label": "Телефон"
+        }
+      ],
+      "deadline": "23.08.2026",
+      "status": "Готово",
+      "notes": "Отправка через Авито Доставку (Boxberry).",
+      "product_id": "10d41fd8-b15e-4faa-9257-e858059c3b18"
+    },
+    {
+      "id": "65d88e34-d5fd-48e5-8a87-6a70409dca19",
+      "order_number": 1025,
+      "created_at": "2026-08-14T18:48:25.027Z",
+      "date": "14.08.2026",
+      "type": "income",
+      "title": "Док-станция iPhone MagSafe + Apple Watch",
+      "quantity": 1,
+      "amount": 1360,
+      "cost": 678,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 468
+        },
+        {
+          "category": "Упаковка",
+          "amount": 61
         },
         {
           "category": "Работа руками",
@@ -2029,510 +1431,941 @@
         1360
       ],
       "payment": 1360,
-      "client": "ВКонтакте",
-      "contact": "+7 (982) 502-75-84",
+      "client": "Instagram",
+      "contact": "+7 (943) 266-86-38",
       "contacts": [
         {
           "type": "phone",
-          "value": "+7 (982) 502-75-84",
-          "label": "Телефон"
-        }
-      ],
-      "deadline": "06.07.2026",
-      "status": "Готово",
-      "notes": "Печать соплом 0.6мм с высотой слоя 0.24мм для ускорения.",
-      "product_id": "00bf5869-a66b-4e9a-98ea-98a4f74da7cb"
-    },
-    {
-      "id": "e554243f-4ca8-45d9-b01b-962d008e71ce",
-      "order_number": 1012,
-      "created_at": "2026-06-28T15:32:23.036Z",
-      "date": "28.06.2026",
-      "type": "expense",
-      "title": "Адгезивный клей для 3D-печати The3D (2 флакона)",
-      "quantity": 1,
-      "amount": 7600,
-      "cost": 7600,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 7600
-        }
-      ],
-      "payments": [
-        7600
-      ],
-      "payment": 7600,
-      "client": "Другое",
-      "contact": "",
-      "contacts": [],
-      "deadline": "28.06.2026",
-      "status": "Готово",
-      "notes": "СДЭК Маркет"
-    },
-    {
-      "id": "c9d77e01-3f81-44cc-a7c3-8f5feab7696c",
-      "order_number": 1011,
-      "created_at": "2026-06-28T12:51:31.036Z",
-      "date": "28.06.2026",
-      "type": "income",
-      "title": "Кронштейн шагового двигателя NEMA 17 усиленный",
-      "quantity": 1,
-      "amount": 600,
-      "cost": 298,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 229
-        },
-        {
-          "category": "Упаковка",
-          "amount": 27
-        },
-        {
-          "category": "Работа руками",
-          "amount": 45
-        }
-      ],
-      "payments": [
-        600
-      ],
-      "payment": 600,
-      "client": "ВКонтакте",
-      "contact": "+7 (932) 170-12-26",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (932) 170-12-26",
-          "label": "Телефон"
-        }
-      ],
-      "deadline": "30.06.2026",
-      "status": "Готово",
-      "notes": "Покраска в матовый графит. Клиент оплатил 50% предоплату.",
-      "product_id": "14cc0b8d-b2af-4553-925f-c4eed56ff32e"
-    },
-    {
-      "id": "fe08d580-486f-4f7b-9222-f0cee24d61a2",
-      "order_number": 1010,
-      "created_at": "2026-06-26T17:07:10.036Z",
-      "date": "26.06.2026",
-      "type": "income",
-      "title": "Настольная подставка для наушников DeskStand",
-      "quantity": 2,
-      "amount": 5560,
-      "cost": 2781,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 1835
-        },
-        {
-          "category": "Упаковка",
-          "amount": 334
-        },
-        {
-          "category": "Работа руками",
-          "amount": 445
-        }
-      ],
-      "payments": [
-        5560
-      ],
-      "payment": 5560,
-      "client": "Другое",
-      "contact": "+7 (970) 443-80-59",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (970) 443-80-59",
+          "value": "+7 (943) 266-86-38",
           "label": "Телефон"
         },
         {
           "type": "telegram",
-          "value": "@_76",
+          "value": "@_22",
           "label": "Telegram"
         }
       ],
-      "deadline": "01.07.2026",
+      "deadline": "16.08.2026",
       "status": "Готово",
-      "notes": "Срочный заказ, изготовление за 24 часа.",
-      "product_id": "5d2c3ab0-8974-4dc3-bed1-e37b28f5d144"
+      "notes": "Предоплата на карту Сбера, остаток при получении в руки.",
+      "product_id": "10d41fd8-b15e-4faa-9257-e858059c3b18"
     },
     {
-      "id": "37e0069d-6cb3-401c-9379-049cc06dfdb7",
-      "order_number": 1009,
-      "created_at": "2026-06-21T09:59:04.036Z",
-      "date": "21.06.2026",
+      "id": "a82652fe-b1ca-423c-8f80-72d6160ec0f9",
+      "order_number": 1024,
+      "created_at": "2026-08-13T18:52:53.027Z",
+      "date": "13.08.2026",
       "type": "income",
-      "title": "Геометрическое кашпо Origami для суккулентов",
-      "quantity": 5,
-      "amount": 4400,
-      "cost": 2189,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 1598
-        },
-        {
-          "category": "Упаковка",
-          "amount": 219
-        },
-        {
-          "category": "Работа руками",
-          "amount": 328
-        }
-      ],
-      "payments": [
-        4400
-      ],
-      "payment": 4400,
-      "client": "Другое",
-      "contact": "+7 (944) 427-71-28",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (944) 427-71-28",
-          "label": "Телефон"
-        },
-        {
-          "type": "telegram",
-          "value": "@_15",
-          "label": "Telegram"
-        }
-      ],
-      "deadline": "24.06.2026",
-      "status": "Готово",
-      "notes": "Пластик PETG черный, 4 периметра, заполнение 40% гироид. Отправить СДЭКом до ПВЗ.",
-      "product_id": "bc7a2baf-d67d-47b2-8b5b-42107c954222"
-    },
-    {
-      "id": "3e74114c-e8c8-4f9d-976b-19a80f8bbaaa",
-      "order_number": 1008,
-      "created_at": "2026-06-18T09:18:16.036Z",
-      "date": "18.06.2026",
-      "type": "income",
-      "title": "Насадка циклона для строительного пылесоса",
-      "quantity": 5,
-      "amount": 14500,
-      "cost": 6525,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 5024
-        },
-        {
-          "category": "Упаковка",
-          "amount": 653
-        },
-        {
-          "category": "Работа руками",
-          "amount": 718
-        }
-      ],
-      "payments": [
-        14500
-      ],
-      "payment": 14500,
-      "client": "YouTube",
-      "contact": "+7 (913) 537-98-67",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (913) 537-98-67",
-          "label": "Телефон"
-        },
-        {
-          "type": "telegram",
-          "value": "@_13",
-          "label": "Telegram"
-        }
-      ],
-      "deadline": "22.06.2026",
-      "status": "Готово",
-      "notes": "Пластик PETG черный, 4 периметра, заполнение 40% гироид. Отправить СДЭКом до ПВЗ."
-    },
-    {
-      "id": "0e0d0ae5-1293-47b1-a647-d37b99f085e0",
-      "order_number": 1007,
-      "created_at": "2026-06-18T09:11:08.036Z",
-      "date": "18.06.2026",
-      "type": "income",
-      "title": "Артикулированный дракон 45см (Silk Gold)",
+      "title": "Шестерни привода штор (набор 4 шт)",
       "quantity": 10,
-      "amount": 66200,
-      "cost": 33760,
+      "amount": 43600,
+      "cost": 19180,
       "cost_items": [
         {
           "category": "Печать",
-          "amount": 26670
+          "amount": 13042
         },
         {
           "category": "Упаковка",
-          "amount": 5064
+          "amount": 2302
         },
         {
           "category": "Работа руками",
-          "amount": 4051
+          "amount": 2493
         }
       ],
       "payments": [
-        66200
+        43600
       ],
-      "payment": 66200,
-      "client": "ВКонтакте",
-      "contact": "+7 (989) 510-85-94",
-      "contacts": [
-        {
-          "type": "phone",
-          "value": "+7 (989) 510-85-94",
-          "label": "Телефон"
-        }
-      ],
-      "deadline": "22.06.2026",
-      "status": "Готово",
-      "notes": "Упаковать в двойную пупырку для бережной отправки Почтой."
-    },
-    {
-      "id": "960cf27b-b52c-43bd-ae41-41d164b0f8ca",
-      "order_number": 1006,
-      "created_at": "2026-06-07T16:06:31.036Z",
-      "date": "07.06.2026",
-      "type": "income",
-      "title": "Модульный держатель катушки филамента Pro (на подшипниках)",
-      "quantity": 2,
-      "amount": 4630,
-      "cost": 2402,
-      "cost_items": [
-        {
-          "category": "Печать",
-          "amount": 1633
-        },
-        {
-          "category": "Упаковка",
-          "amount": 192
-        },
-        {
-          "category": "Работа руками",
-          "amount": 288
-        }
-      ],
-      "payments": [
-        4630
-      ],
-      "payment": 4630,
+      "payment": 43600,
       "client": "Telegram",
-      "contact": "+7 (965) 183-87-42",
+      "contact": "+7 (998) 174-76-93",
       "contacts": [
         {
           "type": "phone",
-          "value": "+7 (965) 183-87-42",
+          "value": "+7 (998) 174-76-93",
           "label": "Телефон"
-        },
-        {
-          "type": "telegram",
-          "value": "@_47",
-          "label": "Telegram"
         }
       ],
-      "deadline": "11.06.2026",
+      "deadline": "16.08.2026",
       "status": "Готово",
-      "notes": "Самовывоз по готовности, предупредить за 1 час.",
-      "product_id": "e9784826-f512-4b59-b75b-8937aea09d1f"
+      "notes": "Самовывоз по готовности, предупредить за 1 час."
     },
     {
-      "id": "baecaabe-36e3-4538-be02-a5eb137a83fb",
-      "order_number": 1005,
-      "created_at": "2026-06-07T11:12:18.036Z",
-      "date": "07.06.2026",
+      "id": "b76c3b51-aa3f-47c8-8499-aad11f89f01b",
+      "order_number": 1023,
+      "created_at": "2026-08-12T13:24:56.027Z",
+      "date": "12.08.2026",
+      "type": "income",
+      "title": "Кастомная шестерня для мясорубки Kenwood",
+      "quantity": 1,
+      "amount": 5860,
+      "cost": 3047,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 2011
+        },
+        {
+          "category": "Упаковка",
+          "amount": 396
+        },
+        {
+          "category": "Работа руками",
+          "amount": 579
+        }
+      ],
+      "payments": [
+        5860
+      ],
+      "payment": 5860,
+      "client": "Другое",
+      "contact": "+7 (942) 431-82-30",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (942) 431-82-30",
+          "label": "Телефон"
+        }
+      ],
+      "deadline": "15.08.2026",
+      "status": "Готово",
+      "notes": "Срочный заказ, изготовление за 24 часа."
+    },
+    {
+      "id": "d399b97f-6059-47c5-8570-3da99b9e19ec",
+      "order_number": 1022,
+      "created_at": "2026-08-07T10:01:46.027Z",
+      "date": "07.08.2026",
+      "type": "income",
+      "title": "Кронштейн эхолота на транец лодки",
+      "quantity": 1,
+      "amount": 5620,
+      "cost": 2810,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 2136
+        },
+        {
+          "category": "Упаковка",
+          "amount": 365
+        },
+        {
+          "category": "Работа руками",
+          "amount": 422
+        }
+      ],
+      "payments": [
+        5620
+      ],
+      "payment": 5620,
+      "client": "YouTube",
+      "contact": "+7 (948) 513-87-95",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (948) 513-87-95",
+          "label": "Телефон"
+        }
+      ],
+      "deadline": "09.08.2026",
+      "status": "Готово",
+      "notes": "Самовывоз по готовности, предупредить за 1 час."
+    },
+    {
+      "id": "5c914c4c-4549-4d7c-abba-5bf84363ee75",
+      "order_number": 1021,
+      "created_at": "2026-08-06T10:15:07.027Z",
+      "date": "06.08.2026",
       "type": "expense",
       "title": "Заказ сопел из закаленной стали 0.4 и 0.6 мм",
       "quantity": 1,
-      "amount": 9000,
-      "cost": 9000,
+      "amount": 11000,
+      "cost": 11000,
       "cost_items": [
         {
           "category": "Печать",
-          "amount": 9000
+          "amount": 11000
         }
       ],
       "payments": [
-        9000
+        11000
       ],
-      "payment": 9000,
+      "payment": 11000,
       "client": "Другое",
       "contact": "",
       "contacts": [],
-      "deadline": "07.06.2026",
+      "deadline": "06.08.2026",
       "status": "Готово",
-      "notes": "СДЭК Маркет"
+      "notes": "Материалы для мастерской"
     },
     {
-      "id": "b14e6978-a5df-44b0-b233-4222db9a7402",
-      "order_number": 1004,
-      "created_at": "2026-06-03T13:41:00.036Z",
-      "date": "03.06.2026",
+      "id": "e34719c5-ec9b-4971-bf17-d5e1763c0408",
+      "order_number": 1020,
+      "created_at": "2026-07-26T16:29:59.027Z",
+      "date": "26.07.2026",
       "type": "income",
-      "title": "Док-станция iPhone MagSafe + Apple Watch",
-      "quantity": 3,
-      "amount": 4170,
-      "cost": 2092,
+      "title": "Переходник системы аспирации ЧПУ 100мм -> 50мм",
+      "quantity": 1,
+      "amount": 950,
+      "cost": 473,
       "cost_items": [
         {
           "category": "Печать",
-          "amount": 1443
+          "amount": 369
         },
         {
           "category": "Упаковка",
-          "amount": 188
+          "amount": 38
         },
         {
           "category": "Работа руками",
-          "amount": 272
+          "amount": 66
         }
       ],
       "payments": [
-        4170
+        950
       ],
-      "payment": 4170,
-      "client": "Telegram",
-      "contact": "+7 (963) 486-51-10",
+      "payment": 950,
+      "client": "ВКонтакте",
+      "contact": "+7 (973) 844-14-65",
       "contacts": [
         {
           "type": "phone",
-          "value": "+7 (963) 486-51-10",
+          "value": "+7 (973) 844-14-65",
           "label": "Телефон"
         },
         {
           "type": "telegram",
-          "value": "@_94",
+          "value": "@_62",
           "label": "Telegram"
         }
       ],
-      "deadline": "05.06.2026",
+      "deadline": "30.07.2026",
       "status": "Готово",
-      "notes": "Заполнение 100%, максимальная прочность для авто.",
-      "product_id": "b3742c9c-88e4-4ab4-8cb7-08a5d7fb7e65"
+      "notes": "Отправка через Авито Доставку (Boxberry).",
+      "product_id": "79f0a1a3-a11c-469f-9675-244d537bffd9"
     },
     {
-      "id": "970c2132-3963-4d28-8bfd-fb844c491ea7",
-      "order_number": 1003,
-      "created_at": "2026-06-02T11:55:20.036Z",
-      "date": "02.06.2026",
+      "id": "6f91186f-2bf1-4f22-bab0-7d744dc167ff",
+      "order_number": 1019,
+      "created_at": "2026-07-26T06:57:08.027Z",
+      "date": "26.07.2026",
       "type": "expense",
-      "title": "Коробки картонные для отправки 200x200x200 (30 шт)",
+      "title": "Набор латунных резьбовых втулок M3, M4, M5 (300 шт)",
       "quantity": 1,
-      "amount": 9800,
-      "cost": 9800,
+      "amount": 12800,
+      "cost": 12800,
       "cost_items": [
         {
           "category": "Печать",
-          "amount": 9800
+          "amount": 12800
         }
       ],
       "payments": [
-        9800
+        12800
       ],
-      "payment": 9800,
+      "payment": 12800,
       "client": "Другое",
       "contact": "",
       "contacts": [],
-      "deadline": "02.06.2026",
+      "deadline": "26.07.2026",
       "status": "Готово",
-      "notes": "СДЭК Маркет"
+      "notes": "Оплата по карте Ozon"
     },
     {
-      "id": "757aa9d5-4c08-45db-9fbc-965916e95abd",
-      "order_number": 1002,
-      "created_at": "2026-05-26T17:37:13.036Z",
-      "date": "26.05.2026",
+      "id": "aa9b8639-a5f8-4671-a55c-5ae33c945569",
+      "order_number": 1018,
+      "created_at": "2026-07-23T17:27:10.027Z",
+      "date": "23.07.2026",
+      "type": "income",
+      "title": "Док-станция iPhone MagSafe + Apple Watch",
+      "quantity": 1,
+      "amount": 1360,
+      "cost": 678,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 488
+        },
+        {
+          "category": "Упаковка",
+          "amount": 81
+        },
+        {
+          "category": "Работа руками",
+          "amount": 68
+        }
+      ],
+      "payments": [
+        1360
+      ],
+      "payment": 1360,
+      "client": "TikTok",
+      "contact": "+7 (995) 160-91-19",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (995) 160-91-19",
+          "label": "Телефон"
+        },
+        {
+          "type": "telegram",
+          "value": "@fpv_60",
+          "label": "Telegram"
+        }
+      ],
+      "deadline": "27.07.2026",
+      "status": "Готово",
+      "notes": "Самовывоз по готовности, предупредить за 1 час.",
+      "product_id": "10d41fd8-b15e-4faa-9257-e858059c3b18"
+    },
+    {
+      "id": "ffa6b29d-6cfe-4ec3-b587-ea250e9244e9",
+      "order_number": 1017,
+      "created_at": "2026-07-18T08:30:53.027Z",
+      "date": "18.07.2026",
+      "type": "expense",
+      "title": "Заказ сопел из закаленной стали 0.4 и 0.6 мм",
+      "quantity": 1,
+      "amount": 11700,
+      "cost": 11700,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 11700
+        }
+      ],
+      "payments": [
+        11700
+      ],
+      "payment": 11700,
+      "client": "Другое",
+      "contact": "",
+      "contacts": [],
+      "deadline": "18.07.2026",
+      "status": "Готово",
+      "notes": "Чек в бухгалтерии"
+    },
+    {
+      "id": "df9e5db4-0219-4f79-aacb-561bd076c9a6",
+      "order_number": 1016,
+      "created_at": "2026-07-08T10:45:35.027Z",
+      "date": "08.07.2026",
       "type": "income",
       "title": "Защитный кейс для 4-х аккумуляторов 18650 с защелкой",
       "quantity": 1,
-      "amount": 630,
-      "cost": 314,
+      "amount": 700,
+      "cost": 351,
       "cost_items": [
         {
           "category": "Печать",
-          "amount": 207
+          "amount": 267
         },
         {
           "category": "Упаковка",
-          "amount": 41
+          "amount": 32
         },
         {
           "category": "Работа руками",
-          "amount": 44
+          "amount": 39
         }
       ],
       "payments": [
-        630
+        700
       ],
-      "payment": 630,
-      "client": "Другое",
-      "contact": "+7 (920) 199-95-48",
+      "payment": 700,
+      "client": "YouTube",
+      "contact": "+7 (912) 319-70-21",
       "contacts": [
         {
           "type": "phone",
-          "value": "+7 (920) 199-95-48",
+          "value": "+7 (912) 319-70-21",
           "label": "Телефон"
-        },
-        {
-          "type": "telegram",
-          "value": "@_66",
-          "label": "Telegram"
         }
       ],
-      "deadline": "31.05.2026",
+      "deadline": "13.07.2026",
       "status": "Готово",
-      "notes": "Упаковать в двойную пупырку для бережной отправки Почтой.",
-      "product_id": "efcceba4-7f3c-4882-bc56-c887f873b7d7"
+      "notes": "Печать соплом 0.6мм с высотой слоя 0.24мм для ускорения.",
+      "product_id": "af1cefc1-1b96-40c7-8509-dd44fe690d24"
     },
     {
-      "id": "0227aa48-27cf-4548-b28f-bc715d157f49",
-      "order_number": 1001,
-      "created_at": "2026-05-23T13:09:33.036Z",
-      "date": "23.05.2026",
+      "id": "d8c45de6-7efa-436f-97a3-2298820003f5",
+      "order_number": 1015,
+      "created_at": "2026-07-08T07:31:48.027Z",
+      "date": "08.07.2026",
       "type": "income",
-      "title": "Держатель катушек филамента на подшипниках",
+      "title": "Комплект органайзеров Gridfinity в мастерскую",
       "quantity": 2,
-      "amount": 11200,
-      "cost": 5376,
+      "amount": 12200,
+      "cost": 6466,
       "cost_items": [
         {
           "category": "Печать",
-          "amount": 3817
+          "amount": 4332
         },
         {
           "category": "Упаковка",
-          "amount": 806
+          "amount": 647
         },
         {
           "category": "Работа руками",
-          "amount": 914
+          "amount": 1099
         }
       ],
       "payments": [
-        11200
+        12200
       ],
-      "payment": 11200,
-      "client": "YouTube",
-      "contact": "+7 (911) 857-42-56",
+      "payment": 12200,
+      "client": "ВКонтакте",
+      "contact": "+7 (973) 350-12-38",
       "contacts": [
         {
           "type": "phone",
-          "value": "+7 (911) 857-42-56",
+          "value": "+7 (973) 350-12-38",
           "label": "Телефон"
         },
         {
           "type": "telegram",
-          "value": "@_59",
+          "value": "@_11",
           "label": "Telegram"
         }
       ],
-      "deadline": "29.05.2026",
+      "deadline": "12.07.2026",
       "status": "Готово",
-      "notes": "Отправка через Авито Доставку (Boxberry)."
+      "notes": "Срочный заказ, изготовление за 24 часа."
+    },
+    {
+      "id": "452febfb-c261-4b5d-9334-cd75f32d202f",
+      "order_number": 1014,
+      "created_at": "2026-07-07T16:59:46.027Z",
+      "date": "07.07.2026",
+      "type": "expense",
+      "title": "Набор латунных резьбовых втулок M3, M4, M5 (300 шт)",
+      "quantity": 1,
+      "amount": 2700,
+      "cost": 2700,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 2700
+        }
+      ],
+      "payments": [
+        2700
+      ],
+      "payment": 2700,
+      "client": "Другое",
+      "contact": "",
+      "contacts": [],
+      "deadline": "07.07.2026",
+      "status": "Готово",
+      "notes": "СДЭК Маркет"
+    },
+    {
+      "id": "a00cd8fd-f1ef-4a6d-b98a-8b37ce5a8163",
+      "order_number": 1013,
+      "created_at": "2026-06-27T14:11:18.027Z",
+      "date": "27.06.2026",
+      "type": "expense",
+      "title": "Закупка филамента eSun PETG (4 катушки)",
+      "quantity": 1,
+      "amount": 3100,
+      "cost": 3100,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 3100
+        }
+      ],
+      "payments": [
+        3100
+      ],
+      "payment": 3100,
+      "client": "Другое",
+      "contact": "",
+      "contacts": [],
+      "deadline": "27.06.2026",
+      "status": "Готово",
+      "notes": "Материалы для мастерской"
+    },
+    {
+      "id": "a8a25063-9a79-43f0-8f5f-2b2630755592",
+      "order_number": 1012,
+      "created_at": "2026-06-20T10:35:04.027Z",
+      "date": "20.06.2026",
+      "type": "income",
+      "title": "Защитный кейс для 4-х аккумуляторов 18650 с защелкой",
+      "quantity": 1,
+      "amount": 700,
+      "cost": 351,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 249
+        },
+        {
+          "category": "Упаковка",
+          "amount": 42
+        },
+        {
+          "category": "Работа руками",
+          "amount": 67
+        }
+      ],
+      "payments": [
+        700
+      ],
+      "payment": 700,
+      "client": "Instagram",
+      "contact": "+7 (928) 985-51-67",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (928) 985-51-67",
+          "label": "Телефон"
+        }
+      ],
+      "deadline": "22.06.2026",
+      "status": "Готово",
+      "notes": "Отправка через Авито Доставку (Boxberry).",
+      "product_id": "af1cefc1-1b96-40c7-8509-dd44fe690d24"
+    },
+    {
+      "id": "5850efaa-bd9b-4144-a127-7d41019a650c",
+      "order_number": 1011,
+      "created_at": "2026-06-19T10:26:41.027Z",
+      "date": "19.06.2026",
+      "type": "expense",
+      "title": "Запасные зубчатые ремни Gates 2GT и ролики",
+      "quantity": 1,
+      "amount": 5800,
+      "cost": 5800,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 5800
+        }
+      ],
+      "payments": [
+        5800
+      ],
+      "payment": 5800,
+      "client": "Другое",
+      "contact": "",
+      "contacts": [],
+      "deadline": "19.06.2026",
+      "status": "Готово",
+      "notes": "Оплата по карте Ozon"
+    },
+    {
+      "id": "c9bc8d1f-66e3-435e-bbb1-1b6ccc3aadfa",
+      "order_number": 1010,
+      "created_at": "2026-06-18T16:46:22.027Z",
+      "date": "18.06.2026",
+      "type": "income",
+      "title": "Крепление регистратора на зеркало заднего вида",
+      "quantity": 3,
+      "amount": 1800,
+      "cost": 905,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 652
+        },
+        {
+          "category": "Упаковка",
+          "amount": 100
+        },
+        {
+          "category": "Работа руками",
+          "amount": 109
+        }
+      ],
+      "payments": [
+        1800
+      ],
+      "payment": 1800,
+      "client": "ВКонтакте",
+      "contact": "+7 (952) 579-17-40",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (952) 579-17-40",
+          "label": "Телефон"
+        }
+      ],
+      "deadline": "20.06.2026",
+      "status": "Готово",
+      "notes": "Срочный заказ, изготовление за 24 часа.",
+      "product_id": "cb725ee2-30f6-4847-8619-a2ea4180162f"
+    },
+    {
+      "id": "6e5281e2-1694-4414-8dfe-b8aeca44e69f",
+      "order_number": 1009,
+      "created_at": "2026-06-17T08:04:53.027Z",
+      "date": "17.06.2026",
+      "type": "income",
+      "title": "Крепление под стол Mac mini M2 (2 шт)",
+      "quantity": 3,
+      "amount": 10860,
+      "cost": 5973,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 4539
+        },
+        {
+          "category": "Упаковка",
+          "amount": 657
+        },
+        {
+          "category": "Работа руками",
+          "amount": 956
+        }
+      ],
+      "payments": [
+        10860
+      ],
+      "payment": 10860,
+      "client": "ВКонтакте",
+      "contact": "+7 (981) 589-61-42",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (981) 589-61-42",
+          "label": "Телефон"
+        }
+      ],
+      "deadline": "19.06.2026",
+      "status": "Готово",
+      "notes": "Покраска в матовый графит. Клиент оплатил 50% предоплату."
+    },
+    {
+      "id": "36667cd3-46fe-4cdd-a4e9-dfee09af160c",
+      "order_number": 1008,
+      "created_at": "2026-06-16T12:18:22.027Z",
+      "date": "16.06.2026",
+      "type": "income",
+      "title": "Настенный органайзер для ключей с магнитами",
+      "quantity": 2,
+      "amount": 1620,
+      "cost": 808,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 622
+        },
+        {
+          "category": "Упаковка",
+          "amount": 121
+        },
+        {
+          "category": "Работа руками",
+          "amount": 81
+        }
+      ],
+      "payments": [
+        1620
+      ],
+      "payment": 1620,
+      "client": "Telegram",
+      "contact": "+7 (920) 463-79-33",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (920) 463-79-33",
+          "label": "Телефон"
+        }
+      ],
+      "deadline": "18.06.2026",
+      "status": "Готово",
+      "notes": "Клиент постоянный, скидка 10% учтена в итоговой стоимости.",
+      "product_id": "a4a011d6-6336-466e-8abd-cd3824b16621"
+    },
+    {
+      "id": "2175fa20-3e2d-408f-b2ec-423661b9c142",
+      "order_number": 1007,
+      "created_at": "2026-06-15T16:42:31.027Z",
+      "date": "15.06.2026",
+      "type": "income",
+      "title": "Док-станция iPhone MagSafe + Apple Watch",
+      "quantity": 1,
+      "amount": 1360,
+      "cost": 678,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 461
+        },
+        {
+          "category": "Упаковка",
+          "amount": 75
+        },
+        {
+          "category": "Работа руками",
+          "amount": 75
+        }
+      ],
+      "payments": [
+        1360
+      ],
+      "payment": 1360,
+      "client": "Telegram",
+      "contact": "+7 (915) 184-42-15",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (915) 184-42-15",
+          "label": "Телефон"
+        }
+      ],
+      "deadline": "19.06.2026",
+      "status": "Готово",
+      "notes": "Клиент постоянный, скидка 10% учтена в итоговой стоимости.",
+      "product_id": "10d41fd8-b15e-4faa-9257-e858059c3b18"
+    },
+    {
+      "id": "edde2d74-9d33-4537-b2bf-281192f381a1",
+      "order_number": 1006,
+      "created_at": "2026-06-15T07:28:19.027Z",
+      "date": "15.06.2026",
+      "type": "income",
+      "title": "Переходник системы аспирации ЧПУ 100мм -> 50мм",
+      "quantity": 1,
+      "amount": 950,
+      "cost": 473,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 350
+        },
+        {
+          "category": "Упаковка",
+          "amount": 43
+        },
+        {
+          "category": "Работа руками",
+          "amount": 76
+        }
+      ],
+      "payments": [
+        950
+      ],
+      "payment": 950,
+      "client": "YouTube",
+      "contact": "+7 (969) 251-21-44",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (969) 251-21-44",
+          "label": "Телефон"
+        }
+      ],
+      "deadline": "18.06.2026",
+      "status": "Готово",
+      "notes": "Самовывоз по готовности, предупредить за 1 час.",
+      "product_id": "79f0a1a3-a11c-469f-9675-244d537bffd9"
+    },
+    {
+      "id": "41a813e4-f3a1-44c1-b277-53fa0e6cbf5c",
+      "order_number": 1005,
+      "created_at": "2026-06-14T17:56:21.027Z",
+      "date": "14.06.2026",
+      "type": "income",
+      "title": "Дизайнерская ваза Спираль Spiral Vase",
+      "quantity": 1,
+      "amount": 880,
+      "cost": 441,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 300
+        },
+        {
+          "category": "Упаковка",
+          "amount": 44
+        },
+        {
+          "category": "Работа руками",
+          "amount": 57
+        }
+      ],
+      "payments": [
+        880
+      ],
+      "payment": 880,
+      "client": "Telegram",
+      "contact": "+7 (928) 588-26-25",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (928) 588-26-25",
+          "label": "Телефон"
+        },
+        {
+          "type": "telegram",
+          "value": "@_68",
+          "label": "Telegram"
+        }
+      ],
+      "deadline": "16.06.2026",
+      "status": "Готово",
+      "notes": "Предоплата на карту Сбера, остаток при получении в руки.",
+      "product_id": "999f6b58-c845-417b-b238-df38ed277334"
+    },
+    {
+      "id": "5b9982f0-3070-4d5d-9e2b-8903c7a85a90",
+      "order_number": 1004,
+      "created_at": "2026-06-14T10:30:22.027Z",
+      "date": "14.06.2026",
+      "type": "income",
+      "title": "Настенный органайзер для ключей с магнитами",
+      "quantity": 1,
+      "amount": 810,
+      "cost": 404,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 315
+        },
+        {
+          "category": "Упаковка",
+          "amount": 44
+        },
+        {
+          "category": "Работа руками",
+          "amount": 65
+        }
+      ],
+      "payments": [
+        810
+      ],
+      "payment": 810,
+      "client": "Другое",
+      "contact": "+7 (917) 989-60-40",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (917) 989-60-40",
+          "label": "Телефон"
+        }
+      ],
+      "deadline": "19.06.2026",
+      "status": "Готово",
+      "notes": "Предоплата на карту Сбера, остаток при получении в руки.",
+      "product_id": "a4a011d6-6336-466e-8abd-cd3824b16621"
+    },
+    {
+      "id": "8086c6ad-a1cf-4033-b59c-dda1fcad2c6e",
+      "order_number": 1003,
+      "created_at": "2026-06-12T17:49:52.027Z",
+      "date": "12.06.2026",
+      "type": "income",
+      "title": "Светильник-ночник «Полигональная Луна» 16см",
+      "quantity": 5,
+      "amount": 10050,
+      "cost": 5023,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 3466
+        },
+        {
+          "category": "Упаковка",
+          "amount": 553
+        },
+        {
+          "category": "Работа руками",
+          "amount": 553
+        }
+      ],
+      "payments": [
+        10050
+      ],
+      "payment": 10050,
+      "client": "Instagram",
+      "contact": "+7 (956) 486-89-10",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (956) 486-89-10",
+          "label": "Телефон"
+        }
+      ],
+      "deadline": "14.06.2026",
+      "status": "Готово",
+      "notes": "Упаковать в двойную пупырку для бережной отправки Почтой.",
+      "product_id": "da488746-8183-4e6e-96d3-f4df3d2fe58e"
+    },
+    {
+      "id": "d2c19dbe-5a41-4179-8f36-c8e7e4b26b31",
+      "order_number": 1002,
+      "created_at": "2026-06-09T13:36:58.027Z",
+      "date": "09.06.2026",
+      "type": "expense",
+      "title": "Набор латунных резьбовых втулок M3, M4, M5 (300 шт)",
+      "quantity": 1,
+      "amount": 15200,
+      "cost": 15200,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 15200
+        }
+      ],
+      "payments": [
+        15200
+      ],
+      "payment": 15200,
+      "client": "Другое",
+      "contact": "",
+      "contacts": [],
+      "deadline": "09.06.2026",
+      "status": "Готово",
+      "notes": "СДЭК Маркет"
+    },
+    {
+      "id": "74ce537b-9346-4413-ba19-92c6d9f0be0a",
+      "order_number": 1001,
+      "created_at": "2026-06-07T15:30:03.027Z",
+      "date": "07.06.2026",
+      "type": "income",
+      "title": "Изготовление мастер-модели по STL клиента",
+      "quantity": 2,
+      "amount": 8880,
+      "cost": 3374,
+      "cost_items": [
+        {
+          "category": "Печать",
+          "amount": 2497
+        },
+        {
+          "category": "Упаковка",
+          "amount": 405
+        },
+        {
+          "category": "Работа руками",
+          "amount": 540
+        }
+      ],
+      "payments": [
+        8880
+      ],
+      "payment": 8880,
+      "client": "Telegram",
+      "contact": "+7 (936) 229-83-30",
+      "contacts": [
+        {
+          "type": "phone",
+          "value": "+7 (936) 229-83-30",
+          "label": "Телефон"
+        }
+      ],
+      "deadline": "12.06.2026",
+      "status": "Готово",
+      "notes": "Предоплата на карту Сбера, остаток при получении в руки."
     }
   ]
 }

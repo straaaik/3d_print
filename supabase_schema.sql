@@ -13,7 +13,8 @@ create table if not exists public.profiles (
   is_active boolean not null default true,
   last_login_at timestamp with time zone,
   registration_key_used text,
-  avatar_color text
+  avatar_color text,
+  model_3d text not null default 'a1' check (model_3d in ('a1', 'p1'))
 );
 
 -- 2. Таблица регистрационных ключей (приглашений)
@@ -71,7 +72,8 @@ create table if not exists public.settings (
   material_multipliers jsonb default '{"pla_petg": 100, "abs_asa": 120, "tpu_flex": 140, "nylon_cf": 170}'::jsonb,
   default_markup_percent numeric default 100,
   default_defect_percent numeric default 5,
-  default_urgency_percent numeric default 25
+  default_urgency_percent numeric default 25,
+  unique (user_id)
 );
 
 -- 6. Таблица коллекций товаров
@@ -82,7 +84,8 @@ create table if not exists public.collections (
   name text not null,
   category text,
   tags jsonb default '[]'::jsonb,
-  description text
+  description text,
+  color text
 );
 
 -- 7. Таблица сохраненных расчетов (изделий)
@@ -113,6 +116,7 @@ create table if not exists public.saved_calculations (
   collection_name text,
   assembly_parts jsonb,
   assembly_hardware jsonb,
+  assembly_electronics jsonb default '[]'::jsonb,
   assembly_labor_minutes integer,
   assembly_labor_cost numeric,
   custom_cost_items jsonb,
@@ -122,7 +126,7 @@ create table if not exists public.saved_calculations (
   urgency_amount numeric,
   category text,
   tags jsonb,
-  stock_quantity integer,
+  stock_quantity integer check (coalesce(stock_quantity, 0) >= 0),
   stl_url text,
   stl_file_name text,
   stl_file_data text
@@ -151,12 +155,26 @@ create table if not exists public.orders (
   payments jsonb default '[]'::jsonb,
   payment numeric default 0,
   client text default 'Авито',
+  client_name text,
   contact text,
   contacts jsonb default '[]'::jsonb,
   deadline text,
   status text default 'Готово',
   notes text,
-  product_id uuid
+  product_id uuid,
+  unique (user_id, order_number),
+  check (
+    type in ('income', 'expense')
+    and quantity > 0
+    and coalesce(base_amount, 0) >= 0
+    and coalesce(amount, 0) >= 0
+    and coalesce(cost, 0) >= 0
+    and coalesce(payment, 0) >= 0
+    and coalesce(discount_percent, 0) between 0 and 100
+    and coalesce(discount_amount, 0) >= 0
+    and coalesce(urgency_percent, 0) >= 0
+    and coalesce(urgency_amount, 0) >= 0
+  )
 );
 
 -- 9. Таблица целей по прибыли (индивидуальная для каждого пользователя и каждого месяца + общая 'default')
@@ -170,6 +188,12 @@ create table if not exists public.monthly_goals (
   unique (user_id, month_key)
 );
 
+-- 10. Атомарные счётчики номеров заказов. Прямой доступ клиентам закрыт.
+create table if not exists public.order_counters (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  next_number bigint not null check (next_number > 0)
+);
+
 -- =========================================================================
 -- КОМАНДЫ МИГРАЦИИ ДЛЯ СУЩЕСТВУЮЩИХ ТАБЛИЦ (если таблицы создавались ранее)
 -- =========================================================================
@@ -177,8 +201,11 @@ alter table public.printers add column if not exists user_id uuid default auth.u
 alter table public.filaments add column if not exists user_id uuid default auth.uid() references auth.users(id) on delete cascade;
 alter table public.settings add column if not exists user_id uuid default auth.uid() references auth.users(id) on delete cascade;
 alter table public.collections add column if not exists user_id uuid default auth.uid() references auth.users(id) on delete cascade;
+alter table public.collections add column if not exists color text;
 alter table public.saved_calculations add column if not exists user_id uuid default auth.uid() references auth.users(id) on delete cascade;
+alter table public.saved_calculations add column if not exists assembly_electronics jsonb default '[]'::jsonb;
 alter table public.orders add column if not exists user_id uuid default auth.uid() references auth.users(id) on delete cascade;
+alter table public.orders add column if not exists client_name text;
 alter table public.monthly_goals add column if not exists user_id uuid default auth.uid() references auth.users(id) on delete cascade;
 
 -- Индексы для быстрой фильтрации по пользователю
@@ -193,6 +220,56 @@ create index if not exists idx_saved_calc_user on public.saved_calculations(user
 create index if not exists idx_orders_user on public.orders(user_id);
 create index if not exists idx_monthly_goals_user on public.monthly_goals(user_id);
 create index if not exists idx_monthly_goals_user_month on public.monthly_goals(user_id, month_key);
+
+with ranked_settings as (
+  select id, row_number() over (partition by user_id order by updated_at desc nulls last, id desc) as row_num
+  from public.settings where user_id is not null
+)
+delete from public.settings s using ranked_settings r
+where s.id = r.id and r.row_num > 1;
+
+with ranked_orders as (
+  select id, user_id, order_number,
+    row_number() over (partition by user_id, order_number order by created_at, id) as duplicate_num,
+    greatest(coalesce(max(order_number) over (partition by user_id), 1000), 1000) as max_num
+  from public.orders where user_id is not null
+), to_renumber as (
+  select id, user_id, max_num,
+    row_number() over (partition by user_id order by id) as offset_num
+  from ranked_orders where order_number is null or duplicate_num > 1
+)
+update public.orders o set order_number = r.max_num + r.offset_num
+from to_renumber r where o.id = r.id;
+
+create unique index if not exists uq_settings_user_id on public.settings(user_id);
+create unique index if not exists uq_orders_user_order_number on public.orders(user_id, order_number)
+  where user_id is not null and order_number is not null;
+
+alter table public.printers drop constraint if exists printers_positive_values;
+alter table public.printers add constraint printers_positive_values
+  check (power_w > 0 and price >= 0 and lifespan_hours > 0) not valid;
+alter table public.filaments drop constraint if exists filaments_positive_values;
+alter table public.filaments add constraint filaments_positive_values
+  check (weight_g > 0 and price >= 0) not valid;
+alter table public.saved_calculations drop constraint if exists saved_calculations_valid_values;
+alter table public.saved_calculations add constraint saved_calculations_valid_values
+  check (
+    weight_g >= 0 and hours >= 0 and minutes >= 0 and quantity > 0
+    and base_cost >= 0 and final_price >= 0 and coalesce(stock_quantity, 0) >= 0
+    and coalesce(discount_percent, 0) between 0 and 100
+    and coalesce(discount_amount, 0) >= 0 and coalesce(urgency_percent, 0) >= 0
+    and coalesce(urgency_amount, 0) >= 0
+  ) not valid;
+alter table public.orders drop constraint if exists orders_valid_financial_values;
+alter table public.orders add constraint orders_valid_financial_values
+  check (
+    type in ('income', 'expense') and quantity > 0
+    and coalesce(base_amount, 0) >= 0 and coalesce(amount, 0) >= 0
+    and coalesce(cost, 0) >= 0 and coalesce(payment, 0) >= 0
+    and coalesce(discount_percent, 0) between 0 and 100
+    and coalesce(discount_amount, 0) >= 0 and coalesce(urgency_percent, 0) >= 0
+    and coalesce(urgency_amount, 0) >= 0
+  ) not valid;
 
 -- =========================================================================
 -- БЕЗОПАСНОСТЬ (RLS - Row Level Security)
@@ -246,81 +323,878 @@ create policy "Users own orders" on public.orders
 create policy "Users own monthly goals" on public.monthly_goals
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
--- Политики для профилей
+-- Безопасная проверка административной роли без рекурсивного RLS.
+create or replace function public.is_current_user_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = auth.uid() and role = 'admin' and is_active = true
+  );
+$$;
+
+revoke all on function public.is_current_user_admin() from public;
+grant execute on function public.is_current_user_admin() to authenticated;
+
+-- Пользователь видит только свой профиль; администратор — список пользователей.
 drop policy if exists "Read profiles" on public.profiles;
 drop policy if exists "Users can update own profile" on public.profiles;
 drop policy if exists "Users can insert own profile" on public.profiles;
+drop policy if exists "Profiles select own or admin" on public.profiles;
+drop policy if exists "Profiles update own safe fields" on public.profiles;
+drop policy if exists "Admins delete profiles" on public.profiles;
 
-create policy "Read profiles" on public.profiles
-  for select using (auth.uid() is not null);
+create policy "Profiles select own or admin" on public.profiles
+  for select to authenticated
+  using (id = auth.uid() or public.is_current_user_admin());
 
-create policy "Users can update own profile" on public.profiles
-  for update using (auth.uid() = id) with check (auth.uid() = id);
+create policy "Profiles update own safe fields" on public.profiles
+  for update to authenticated
+  using (id = auth.uid()) with check (id = auth.uid());
 
-create policy "Users can insert own profile" on public.profiles
-  for insert with check (true);
+create policy "Admins delete profiles" on public.profiles
+  for delete to authenticated
+  using (public.is_current_user_admin() and id <> auth.uid());
 
--- Автоматический триггер создания профиля при регистрации в auth.users
-create or replace function public.handle_new_user()
-returns trigger as $$
+revoke all on public.profiles from anon;
+revoke insert, update, delete on public.profiles from authenticated;
+grant select on public.profiles to authenticated;
+grant update (name, email, avatar_color, last_login_at) on public.profiles to authenticated;
+grant delete on public.profiles to authenticated;
+
+create or replace function public.admin_update_profile(
+  target_user_id uuid,
+  new_role text default null,
+  new_is_active boolean default null
+)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
 begin
+  if not public.is_current_user_admin() then raise exception 'FORBIDDEN'; end if;
+  if new_role is not null and new_role not in ('admin', 'user') then raise exception 'INVALID_ROLE'; end if;
+  if target_user_id = auth.uid() and (new_role = 'user' or new_is_active = false) then
+    raise exception 'CANNOT_LOCK_CURRENT_ADMIN';
+  end if;
+  update public.profiles
+  set role = coalesce(new_role, role), is_active = coalesce(new_is_active, is_active)
+  where id = target_user_id;
+  if not found then raise exception 'PROFILE_NOT_FOUND'; end if;
+end;
+$$;
+
+revoke all on function public.admin_update_profile(uuid, text, boolean) from public;
+grant execute on function public.admin_update_profile(uuid, text, boolean) to authenticated;
+
+-- Анонимная проверка не раскрывает сами ключи и данные их владельцев.
+create or replace function public.validate_registration_key(p_key text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select exists (
+    select 1 from public.registration_keys
+    where key = upper(trim(p_key)) and is_used = false
+      and (expires_at is null or expires_at > now())
+  );
+$$;
+
+revoke all on function public.validate_registration_key(text) from public;
+grant execute on function public.validate_registration_key(text) to anon, authenticated;
+
+-- Ключ погашается атомарно в той же транзакции, что и auth.users.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  claimed_role text;
+  claimed_key text := upper(trim(coalesce(new.raw_user_meta_data->>'registration_key_used', '')));
+begin
+  update public.registration_keys
+  set is_used = true, used_by_email = new.email, used_by_user_id = new.id, used_at = now()
+  where key = claimed_key and is_used = false
+    and (expires_at is null or expires_at > now())
+  returning role_to_grant into claimed_role;
+
+  if claimed_role is null then raise exception 'INVALID_REGISTRATION_KEY'; end if;
+
   insert into public.profiles (id, email, name, role, is_active, avatar_color, registration_key_used)
   values (
     new.id,
-    new.email,
-    coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)),
-    coalesce(new.raw_user_meta_data->>'role', 'user'),
+    coalesce(new.email, ''),
+    coalesce(nullif(new.raw_user_meta_data->>'name', ''), split_part(coalesce(new.email, ''), '@', 1), 'Пользователь'),
+    claimed_role,
     true,
-    coalesce(new.raw_user_meta_data->>'avatar_color', '#8B5CF6'),
-    new.raw_user_meta_data->>'registration_key_used'
+    coalesce(nullif(new.raw_user_meta_data->>'avatar_color', ''), '#8B5CF6'),
+    claimed_key
   )
   on conflict (id) do update set
-    email = excluded.email,
-    name = coalesce(excluded.name, public.profiles.name),
-    role = coalesce(excluded.role, public.profiles.role);
+    email = excluded.email, name = excluded.name, avatar_color = excluded.avatar_color;
   return new;
 end;
-$$ language plpgsql security definer;
+$$;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
 
--- Политики для регистрационных ключей
 drop policy if exists "Anyone can read keys for validation" on public.registration_keys;
 drop policy if exists "Anyone can update keys" on public.registration_keys;
 drop policy if exists "Admins manage keys insert" on public.registration_keys;
 drop policy if exists "Admins manage keys delete" on public.registration_keys;
+drop policy if exists "Admins manage registration keys" on public.registration_keys;
 
--- Чтение для валидации ключа при регистрации (доступно всем, включая анонимный запрос регистрации)
-create policy "Anyone can read keys for validation" on public.registration_keys
-  for select using (true);
+create policy "Admins manage registration keys" on public.registration_keys
+  for all to authenticated
+  using (public.is_current_user_admin())
+  with check (public.is_current_user_admin());
 
--- Погашение ключа при регистрации
-create policy "Anyone can update keys" on public.registration_keys
-  for update using (true);
+revoke all on public.registration_keys from anon;
+grant select, insert, update, delete on public.registration_keys to authenticated;
 
--- Создание и удаление ключей доступно авторизованным администраторам
-create policy "Admins manage keys insert" on public.registration_keys
-  for insert with check (
-    exists (
-      select 1 from public.profiles
-      where id = auth.uid() and role = 'admin' and is_active = true
-    )
+-- Первый admin-ключ создаётся вручную со случайным значением в SQL Editor.
+-- Никогда не храните действующий мастер-ключ в репозитории.
+
+alter table public.order_counters enable row level security;
+revoke all on public.order_counters from anon, authenticated;
+
+insert into public.order_counters (user_id, next_number)
+select user_id, greatest(coalesce(max(order_number), 1000) + 1, 1001)
+from public.orders where user_id is not null group by user_id
+on conflict (user_id) do update
+set next_number = greatest(public.order_counters.next_number, excluded.next_number);
+
+create or replace function public.allocate_order_number()
+returns bigint
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare allocated_number bigint;
+begin
+  if auth.uid() is null then raise exception 'UNAUTHENTICATED'; end if;
+  insert into public.order_counters as counters (user_id, next_number)
+  values (auth.uid(), 1002)
+  on conflict (user_id) do update set next_number = counters.next_number + 1
+  returning next_number - 1 into allocated_number;
+  return allocated_number;
+end;
+$$;
+
+revoke all on function public.allocate_order_number() from public;
+grant execute on function public.allocate_order_number() to authenticated;
+
+create or replace function public.save_order_with_inventory(p_order jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  current_user_id uuid := auth.uid();
+  saved_order public.orders%rowtype;
+  old_order public.orders%rowtype;
+  order_record public.orders%rowtype;
+  requested_id uuid;
+  inventory_delta numeric;
+begin
+  if current_user_id is null then raise exception 'UNAUTHENTICATED'; end if;
+  begin requested_id := nullif(p_order->>'id', '')::uuid;
+  exception when others then requested_id := null; end;
+  requested_id := coalesce(requested_id, gen_random_uuid());
+
+  select * into old_order from public.orders
+  where id = requested_id and user_id = current_user_id for update;
+
+  order_record := jsonb_populate_record(
+    null::public.orders,
+    p_order - 'id' - 'user_id' - 'created_at' - 'order_number'
   );
+  order_record.id := requested_id;
+  order_record.user_id := current_user_id;
+  order_record.created_at := coalesce(old_order.created_at, nullif(p_order->>'created_at', '')::timestamptz, now());
+  if old_order.id is not null then
+    order_record.order_number := old_order.order_number;
+  else
+    order_record.order_number := nullif(p_order->>'order_number', '')::bigint;
+    if order_record.order_number is null or exists (
+      select 1 from public.orders
+      where user_id = current_user_id and order_number = order_record.order_number
+    ) then
+      order_record.order_number := public.allocate_order_number();
+    else
+      insert into public.order_counters as counters (user_id, next_number)
+      values (current_user_id, order_record.order_number + 1)
+      on conflict (user_id) do update
+        set next_number = greatest(counters.next_number, excluded.next_number);
+    end if;
+  end if;
 
-create policy "Admins manage keys delete" on public.registration_keys
-  for delete using (
-    exists (
-      select 1 from public.profiles
-      where id = auth.uid() and role = 'admin' and is_active = true
+  if old_order.id is not null and old_order.type = 'income' and old_order.product_id is not null then
+    update public.saved_calculations
+    set stock_quantity = coalesce(stock_quantity, 0) + greatest(coalesce(old_order.quantity, 0), 0)::integer
+    where id = old_order.product_id and user_id = current_user_id;
+  end if;
+
+  if order_record.type = 'income' and order_record.product_id is not null then
+    inventory_delta := greatest(coalesce(order_record.quantity, 0), 0);
+    update public.saved_calculations
+    set stock_quantity = coalesce(stock_quantity, 0) - inventory_delta::integer
+    where id = order_record.product_id and user_id = current_user_id
+      and coalesce(stock_quantity, 0) >= inventory_delta;
+    if not found then raise exception 'INSUFFICIENT_STOCK'; end if;
+  end if;
+
+  insert into public.orders as target (
+    id, user_id, order_number, created_at, date, type, title, quantity,
+    base_amount, urgency_type, urgency_percent, urgency_amount,
+    discount_type, discount_percent, discount_amount, amount, cost,
+    cost_items, payments, payment, client, client_name, contact, contacts, deadline,
+    status, notes, product_id
+  ) values (
+    order_record.id, order_record.user_id, order_record.order_number, order_record.created_at,
+    order_record.date, order_record.type, order_record.title, order_record.quantity,
+    order_record.base_amount, order_record.urgency_type, order_record.urgency_percent, order_record.urgency_amount,
+    order_record.discount_type, order_record.discount_percent, order_record.discount_amount,
+    order_record.amount, order_record.cost, coalesce(order_record.cost_items, '[]'::jsonb),
+    coalesce(order_record.payments, '[]'::jsonb), order_record.payment, order_record.client,
+    order_record.client_name, order_record.contact, coalesce(order_record.contacts, '[]'::jsonb), order_record.deadline,
+    order_record.status, order_record.notes, order_record.product_id
+  )
+  on conflict (id) do update set
+    order_number = excluded.order_number, date = excluded.date, type = excluded.type,
+    title = excluded.title, quantity = excluded.quantity, base_amount = excluded.base_amount,
+    urgency_type = excluded.urgency_type, urgency_percent = excluded.urgency_percent,
+    urgency_amount = excluded.urgency_amount, discount_type = excluded.discount_type,
+    discount_percent = excluded.discount_percent, discount_amount = excluded.discount_amount,
+    amount = excluded.amount, cost = excluded.cost, cost_items = excluded.cost_items,
+    payments = excluded.payments, payment = excluded.payment, client = excluded.client,
+    client_name = excluded.client_name, contact = excluded.contact, contacts = excluded.contacts, deadline = excluded.deadline,
+    status = excluded.status, notes = excluded.notes, product_id = excluded.product_id
+  where target.user_id = current_user_id
+  returning target.* into saved_order;
+
+  if saved_order.id is null then raise exception 'ORDER_FORBIDDEN'; end if;
+  return to_jsonb(saved_order);
+end;
+$$;
+
+revoke all on function public.save_order_with_inventory(jsonb) from public;
+grant execute on function public.save_order_with_inventory(jsonb) to authenticated;
+
+create or replace function public.delete_orders_atomic(p_ids uuid[])
+returns integer
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare deleted_count integer;
+begin
+  if auth.uid() is null then raise exception 'UNAUTHENTICATED'; end if;
+  update public.saved_calculations product
+  set stock_quantity = coalesce(product.stock_quantity, 0) + returned.quantity::integer
+  from (
+    select product_id, sum(quantity) as quantity
+    from public.orders
+    where user_id = auth.uid() and id = any(p_ids)
+      and type = 'income' and product_id is not null
+    group by product_id
+  ) returned
+  where product.id = returned.product_id and product.user_id = auth.uid();
+  delete from public.orders where user_id = auth.uid() and id = any(p_ids);
+  get diagnostics deleted_count = row_count;
+  return deleted_count;
+end;
+$$;
+
+revoke all on function public.delete_orders_atomic(uuid[]) from public;
+grant execute on function public.delete_orders_atomic(uuid[]) to authenticated;
+
+create or replace function public.restore_orders_snapshot(p_orders jsonb)
+returns integer
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  item jsonb;
+  restored_count integer := 0;
+  existing_ids uuid[];
+begin
+  if auth.uid() is null then raise exception 'UNAUTHENTICATED'; end if;
+  if jsonb_typeof(p_orders) <> 'array' then raise exception 'INVALID_ORDER_SNAPSHOT'; end if;
+  select coalesce(array_agg(id), array[]::uuid[]) into existing_ids
+  from public.orders where user_id = auth.uid();
+  perform public.delete_orders_atomic(existing_ids);
+  for item in select value from jsonb_array_elements(p_orders)
+  loop
+    perform public.save_order_with_inventory(item);
+    restored_count := restored_count + 1;
+  end loop;
+  return restored_count;
+end;
+$$;
+
+revoke all on function public.restore_orders_snapshot(jsonb) from public;
+grant execute on function public.restore_orders_snapshot(jsonb) to authenticated;
+
+create or replace function public.restore_saved_calculations_snapshot(p_items jsonb)
+returns integer language plpgsql security definer set search_path = public, pg_temp as $$
+declare restored_count integer;
+begin
+  if auth.uid() is null then raise exception 'UNAUTHENTICATED'; end if;
+  if jsonb_typeof(p_items) <> 'array' then raise exception 'INVALID_CALCULATION_SNAPSHOT'; end if;
+  delete from public.saved_calculations where user_id = auth.uid();
+  insert into public.saved_calculations
+  select (jsonb_populate_record(null::public.saved_calculations, (item - 'user_id') || jsonb_build_object('user_id', auth.uid()))).*
+  from jsonb_array_elements(p_items) as source(item);
+  get diagnostics restored_count = row_count;
+  return restored_count;
+end;
+$$;
+revoke all on function public.restore_saved_calculations_snapshot(jsonb) from public;
+grant execute on function public.restore_saved_calculations_snapshot(jsonb) to authenticated;
+
+create or replace function public.restore_collections_snapshot(p_items jsonb)
+returns integer language plpgsql security definer set search_path = public, pg_temp as $$
+declare restored_count integer;
+begin
+  if auth.uid() is null then raise exception 'UNAUTHENTICATED'; end if;
+  if jsonb_typeof(p_items) <> 'array' then raise exception 'INVALID_COLLECTION_SNAPSHOT'; end if;
+  delete from public.collections where user_id = auth.uid();
+  insert into public.collections
+  select (jsonb_populate_record(null::public.collections, (item - 'user_id') || jsonb_build_object('user_id', auth.uid()))).*
+  from jsonb_array_elements(p_items) as source(item);
+  get diagnostics restored_count = row_count;
+  return restored_count;
+end;
+$$;
+revoke all on function public.restore_collections_snapshot(jsonb) from public;
+grant execute on function public.restore_collections_snapshot(jsonb) to authenticated;
+
+-- Полная замена снимка выполняется одной транзакцией. Любая ошибка приведения
+-- типов, ограничения или вставки откатывает все удаления этой функции.
+create or replace function public.restore_database_snapshot(p_snapshot jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_user_id uuid := auth.uid();
+  section_name text;
+  workshop_printers jsonb;
+  workshop_filaments jsonb;
+begin
+  if current_user_id is null then raise exception 'UNAUTHENTICATED'; end if;
+  if jsonb_typeof(p_snapshot) is distinct from 'object' then raise exception 'INVALID_DATABASE_SNAPSHOT'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('restore_database_snapshot:' || current_user_id::text, 0));
+  -- Preserve spatial links when inventory records are replaced with the same IDs.
+  perform pg_advisory_xact_lock(hashtextextended('workshop:' || current_user_id::text, 0));
+  select coalesce(jsonb_agg(to_jsonb(p)), '[]'::jsonb) into workshop_printers
+    from public.workshop_printer_placements p where p.user_id = current_user_id;
+  select coalesce(jsonb_agg(to_jsonb(p)), '[]'::jsonb) into workshop_filaments
+    from public.workshop_filament_placements p where p.user_id = current_user_id;
+
+
+  foreach section_name in array array[
+    'printers', 'filaments', 'settings', 'collections',
+    'saved_calculations', 'orders', 'monthly_goals'
+  ]
+  loop
+    if p_snapshot ? section_name and jsonb_typeof(p_snapshot->section_name) <> 'array' then
+      raise exception 'INVALID_DATABASE_SNAPSHOT_SECTION: %', section_name;
+    end if;
+  end loop;
+
+  if p_snapshot ? 'monthly_goals' then
+    delete from public.monthly_goals where user_id = current_user_id;
+  end if;
+  if p_snapshot ? 'orders' then
+    delete from public.orders where user_id = current_user_id;
+  end if;
+  if p_snapshot ? 'saved_calculations' then
+    delete from public.saved_calculations where user_id = current_user_id;
+  end if;
+  if p_snapshot ? 'collections' then
+    delete from public.collections where user_id = current_user_id;
+  end if;
+  if p_snapshot ? 'settings' then
+    delete from public.settings where user_id = current_user_id;
+  end if;
+  if p_snapshot ? 'filaments' then
+    delete from public.filaments where user_id = current_user_id;
+  end if;
+  if p_snapshot ? 'printers' then
+    delete from public.printers where user_id = current_user_id;
+  end if;
+
+  if p_snapshot ? 'printers' then
+    insert into public.printers
+    select (jsonb_populate_record(
+      null::public.printers,
+      (item - 'user_id') || jsonb_build_object(
+        'id', coalesce(nullif(item->>'id', '')::uuid, gen_random_uuid()),
+        'user_id', current_user_id,
+        'created_at', coalesce(nullif(item->>'created_at', '')::timestamptz, now())
+      )
+    )).*
+    from jsonb_array_elements(p_snapshot->'printers') as source(item);
+  end if;
+
+  if p_snapshot ? 'filaments' then
+    insert into public.filaments
+    select (jsonb_populate_record(
+      null::public.filaments,
+      (item - 'user_id') || jsonb_build_object(
+        'id', coalesce(nullif(item->>'id', '')::uuid, gen_random_uuid()),
+        'user_id', current_user_id,
+        'created_at', coalesce(nullif(item->>'created_at', '')::timestamptz, now())
+      )
+    )).*
+    from jsonb_array_elements(p_snapshot->'filaments') as source(item);
+  end if;
+
+  if p_snapshot ? 'settings' then
+    if exists (
+      select 1 from jsonb_array_elements(p_snapshot->'settings') as source(item)
+      where nullif(item->>'default_printer_id', '') is not null
+        and not exists (
+          select 1 from public.printers
+          where id = (item->>'default_printer_id')::uuid and user_id = current_user_id
+        )
+    ) then raise exception 'PRINTER_FORBIDDEN'; end if;
+    insert into public.settings
+    select (jsonb_populate_record(
+      null::public.settings,
+      (item - 'user_id') || jsonb_build_object(
+        'id', coalesce(nullif(item->>'id', '')::uuid, gen_random_uuid()),
+        'user_id', current_user_id,
+        'updated_at', coalesce(nullif(item->>'updated_at', '')::timestamptz, now())
+      )
+    )).*
+    from jsonb_array_elements(p_snapshot->'settings') as source(item);
+  end if;
+
+  if p_snapshot ? 'collections' then
+    insert into public.collections
+    select (jsonb_populate_record(
+      null::public.collections,
+      (item - 'user_id') || jsonb_build_object(
+        'id', coalesce(nullif(item->>'id', '')::uuid, gen_random_uuid()),
+        'user_id', current_user_id,
+        'created_at', coalesce(nullif(item->>'created_at', '')::timestamptz, now())
+      )
+    )).*
+    from jsonb_array_elements(p_snapshot->'collections') as source(item);
+  end if;
+
+  if p_snapshot ? 'saved_calculations' then
+    insert into public.saved_calculations
+    select (jsonb_populate_record(
+      null::public.saved_calculations,
+      (item - 'user_id') || jsonb_build_object(
+        'id', coalesce(nullif(item->>'id', '')::uuid, gen_random_uuid()),
+        'user_id', current_user_id,
+        'created_at', coalesce(nullif(item->>'created_at', '')::timestamptz, now())
+      )
+    )).*
+    from jsonb_array_elements(p_snapshot->'saved_calculations') as source(item);
+  end if;
+
+  if p_snapshot ? 'orders' then
+    insert into public.orders
+    select (jsonb_populate_record(
+      null::public.orders,
+      jsonb_build_object('quantity', 1) || (item - 'user_id') || jsonb_build_object(
+        'id', coalesce(nullif(item->>'id', '')::uuid, gen_random_uuid()),
+        'user_id', current_user_id,
+        'created_at', coalesce(nullif(item->>'created_at', '')::timestamptz, now())
+      )
+    )).*
+    from jsonb_array_elements(p_snapshot->'orders') as source(item);
+
+    insert into public.order_counters as counters (user_id, next_number)
+    values (
+      current_user_id,
+      greatest(
+        coalesce((select max(order_number) + 1 from public.orders where user_id = current_user_id), 1001),
+        1001
+      )
     )
-  );
+    on conflict (user_id) do update set next_number = excluded.next_number;
+  end if;
 
--- =========================================================================
--- СТАРТОВЫЙ КЛЮЧ ДЛЯ СОЗДАНИЯ ПЕРВОГО АДМИНИСТРАТОРА
--- =========================================================================
-insert into public.registration_keys (key, role_to_grant, note)
-values ('3DLAB-SETUP-ADMIN-KEY', 'admin', 'Стартовый мастер-ключ для регистрации первого Администратора. Удалите после создания аккаунта.')
-on conflict (key) do nothing;
+  if p_snapshot ? 'monthly_goals' then
+    insert into public.monthly_goals
+    select (jsonb_populate_record(
+      null::public.monthly_goals,
+      (item - 'user_id') || jsonb_build_object(
+        'id', coalesce(nullif(item->>'id', '')::uuid, gen_random_uuid()),
+        'user_id', current_user_id,
+        'created_at', coalesce(nullif(item->>'created_at', '')::timestamptz, now()),
+        'updated_at', coalesce(nullif(item->>'updated_at', '')::timestamptz, now())
+      )
+    )).*
+    from jsonb_array_elements(p_snapshot->'monthly_goals') as source(item);
+  end if;
+
+  if p_snapshot ? 'printers' then
+    insert into public.workshop_printer_placements
+    select p.* from jsonb_populate_recordset(null::public.workshop_printer_placements, workshop_printers) p
+    where exists(select 1 from public.printers i where i.id=p.printer_id and i.user_id=current_user_id);
+  end if;
+  if p_snapshot ? 'filaments' then
+    insert into public.workshop_filament_placements
+    select p.* from jsonb_populate_recordset(null::public.workshop_filament_placements, workshop_filaments) p
+    where exists(select 1 from public.filaments i where i.id=p.filament_id and i.user_id=current_user_id);
+  end if;
+  if p_snapshot ? 'printers' or p_snapshot ? 'filaments' then
+    update public.workshop_revisions set revision=revision+1 where user_id=current_user_id;
+  end if;
+end;
+$$;
+
+revoke all on function public.restore_database_snapshot(jsonb) from public;
+grant execute on function public.restore_database_snapshot(jsonb) to authenticated;
+
+
+-- Workshop schema (2026-09-23)
+-- Workshop v1. Run in Supabase Dashboard > SQL Editor after the canonical schema.
+-- No inventory records are created, copied or deleted by these RPCs.
+begin;
+
+create unique index if not exists printers_id_owner_unique on public.printers(id, user_id);
+create unique index if not exists filaments_id_owner_unique on public.filaments(id, user_id);
+
+create table if not exists public.workshop_revisions (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  revision bigint not null check (revision > 0)
+);
+create table if not exists public.workshop_rooms (
+  id uuid primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null,
+  width_m numeric not null check (width_m between 4 and 40),
+  depth_m numeric not null check (depth_m between 4 and 40),
+  sort_order integer not null,
+  camera_x numeric, camera_y numeric, camera_z numeric, camera_span numeric,
+  unique (id, user_id),
+  check ((camera_x is null and camera_y is null and camera_z is null and camera_span is null)
+    or (camera_x is not null and camera_y is not null and camera_z is not null and camera_span is not null
+      and camera_x between -100000 and 100000 and camera_y between -100000 and 100000
+      and camera_z between -100000 and 100000 and camera_span > 0 and camera_span < 100000))
+);
+alter table public.workshop_rooms add column if not exists camera_azimuth numeric check (camera_azimuth between -1000 and 1000);
+alter table public.workshop_rooms add column if not exists camera_top boolean;
+create table if not exists public.workshop_furniture (
+  id uuid primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  room_id uuid not null,
+  name text not null,
+  kind text not null check (kind in ('table', 'printer_rack', 'filament_rack')),
+  x numeric not null check (x between -100000 and 100000),
+  z numeric not null check (z between -100000 and 100000),
+  rotation integer not null check (rotation in (0, 90, 180, 270)),
+  width numeric not null check (width > 0 and width < 100000),
+  depth numeric not null check (depth > 0 and depth < 100000),
+  height numeric not null check (height > 0 and height < 100000),
+  levels integer not null check (levels > 0),
+  columns integer not null check (columns > 0),
+  sort_order integer not null,
+  unique (id, user_id),
+  foreign key (room_id, user_id) references public.workshop_rooms(id, user_id) on delete cascade
+);
+create table if not exists public.workshop_slots (
+  id uuid primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  furniture_id uuid not null,
+  kind text not null check (kind in ('printer', 'filament')),
+  slot_index integer not null check (slot_index >= 0),
+  x numeric not null check (x between -100000 and 100000),
+  y numeric not null check (y between -100000 and 100000),
+  z numeric not null check (z between -100000 and 100000),
+  sort_order integer not null,
+  unique (id, user_id, kind),
+  unique (furniture_id, kind, slot_index),
+  foreign key (furniture_id, user_id) references public.workshop_furniture(id, user_id) on delete cascade
+);
+create table if not exists public.workshop_printer_placements (
+  id uuid primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  printer_id uuid not null,
+  slot_id uuid not null unique,
+  kind text not null default 'printer' check (kind = 'printer'),
+  model text not null check (model in ('a1', 'p1')),
+  sort_order integer not null,
+  unique (printer_id, user_id),
+  foreign key (printer_id, user_id) references public.printers(id, user_id) on delete cascade,
+  foreign key (slot_id, user_id, kind) references public.workshop_slots(id, user_id, kind) on delete cascade
+);
+create table if not exists public.workshop_filament_placements (
+  id uuid primary key,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  filament_id uuid not null,
+  slot_id uuid not null unique,
+  kind text not null default 'filament' check (kind = 'filament'),
+  model text not null check (model in ('a1', 'p1')),
+  sort_order integer not null,
+  unique (filament_id, user_id),
+  foreign key (filament_id, user_id) references public.filaments(id, user_id) on delete cascade,
+  foreign key (slot_id, user_id, kind) references public.workshop_slots(id, user_id, kind) on delete cascade
+);
+
+create index if not exists workshop_rooms_owner on public.workshop_rooms(user_id);
+create index if not exists workshop_furniture_owner on public.workshop_furniture(user_id);
+create index if not exists workshop_furniture_room on public.workshop_furniture(room_id, user_id);
+create index if not exists workshop_slots_owner on public.workshop_slots(user_id);
+create index if not exists workshop_printers_owner on public.workshop_printer_placements(user_id);
+create index if not exists workshop_filaments_owner on public.workshop_filament_placements(user_id);
+
+do $$
+declare table_name text;
+begin
+  foreach table_name in array array['workshop_revisions', 'workshop_rooms', 'workshop_furniture',
+    'workshop_slots', 'workshop_printer_placements', 'workshop_filament_placements'] loop
+    execute format('alter table public.%I enable row level security', table_name);
+    execute format('revoke all on public.%I from public, anon, authenticated', table_name);
+    execute format('grant select, insert, update, delete on public.%I to authenticated', table_name);
+    execute format('drop policy if exists workshop_owner on public.%I', table_name);
+    execute format('create policy workshop_owner on public.%I for all to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id)', table_name);
+  end loop;
+end;
+$$;
+
+alter table public.workshop_rooms add column if not exists spatial_metadata jsonb not null default '{}'::jsonb
+  check (jsonb_typeof(spatial_metadata) = 'object');
+
+-- Validate before replacing normalized rows, inside the same CAS transaction.
+create or replace function public.validate_workshop_spatial(rooms jsonb)
+returns void language plpgsql immutable security invoker set search_path = '' as $$
+declare room jsonb; label jsonb; link jsonb; cursor_id text; visited text[]; parent jsonb;
+begin
+  if jsonb_typeof(rooms) is distinct from 'array' then
+    raise exception 'INVALID_WORKSHOP_SPATIAL' using errcode = '22023';
+  end if;
+  if jsonb_array_length(rooms)>50 then
+    raise exception 'INVALID_WORKSHOP_SPATIAL: room count' using errcode='22023';
+  end if;
+  for room in select value from jsonb_array_elements(rooms) loop
+    if jsonb_typeof(room->'width') is distinct from 'number' or jsonb_typeof(room->'depth') is distinct from 'number' then
+      raise exception 'INVALID_WORKSHOP_SPATIAL: dimensions' using errcode='22023';
+    end if;
+    if (room->>'width')::numeric not between 4 and 40 or (room->>'depth')::numeric not between 4 and 40 then
+      raise exception 'INVALID_WORKSHOP_SPATIAL: dimensions' using errcode='22023';
+    end if;
+    if room ? 'attachment' then
+      link := room->'attachment';
+      if jsonb_typeof(link) is distinct from 'object'
+        or jsonb_typeof(link->'roomId') is distinct from 'string'
+        or coalesce(link->>'side','') not in ('north','east','south','west')
+        or not exists(select 1 from jsonb_array_elements(rooms) r where r->>'id'=link->>'roomId') then
+        raise exception 'INVALID_WORKSHOP_SPATIAL: attachment' using errcode = '22023';
+      end if;
+      visited := array[room->>'id'];
+      cursor_id := link->>'roomId';
+      while cursor_id is not null loop
+        if cursor_id = any(visited) then
+          raise exception 'INVALID_WORKSHOP_SPATIAL: cycle' using errcode = '22023';
+        end if;
+        visited := array_append(visited,cursor_id);
+        select r into parent from jsonb_array_elements(rooms) r where r->>'id'=cursor_id;
+        cursor_id := parent#>>'{attachment,roomId}';
+      end loop;
+    end if;
+    if room ? 'labels' then
+      if jsonb_typeof(room->'labels') is distinct from 'array' then
+        raise exception 'INVALID_WORKSHOP_SPATIAL: labels' using errcode = '22023';
+      end if;
+      if jsonb_array_length(room->'labels') > 100 or exists (
+        select 1 from jsonb_array_elements(room->'labels') l group by l->>'id' having count(*)>1
+      ) then raise exception 'INVALID_WORKSHOP_SPATIAL: labels' using errcode = '22023'; end if;
+      for label in select value from jsonb_array_elements(room->'labels') loop
+        if jsonb_typeof(label) is distinct from 'object'
+          or jsonb_typeof(label->'id') is distinct from 'string' or length(label->>'id') not between 1 and 128
+          or jsonb_typeof(label->'text') is distinct from 'string' or (length(btrim(label->>'text')) = 0 or length(label->>'text') > 120 or (label->>'text') ~ '[[:cntrl:]]')
+          or coalesce(label->>'color','') !~ '^#[0-9a-fA-F]{6}$'
+          or coalesce(label->>'surface','') not in ('floor','north','east','south','west')
+          or jsonb_typeof(label->'u') is distinct from 'number' or jsonb_typeof(label->'v') is distinct from 'number'
+          or jsonb_typeof(label->'size') is distinct from 'number'
+          or (label ? 'rotation' and jsonb_typeof(label->'rotation') is distinct from 'number') then
+          raise exception 'INVALID_WORKSHOP_SPATIAL: label shape' using errcode = '22023';
+        end if;
+        if (label->>'u')::numeric not between 0 and 1 or (label->>'v')::numeric not between 0 and 1
+          or (label->>'size')::numeric not between 0.1 and 10
+          or (label ? 'rotation' and (label->>'rotation')::numeric not between -360 and 360) then
+          raise exception 'INVALID_WORKSHOP_SPATIAL: label bounds' using errcode = '22023';
+        end if;
+      end loop;
+    end if;
+  end loop;
+  if exists(select 1 from jsonb_array_elements(rooms) r where r ? 'attachment'
+    group by r#>>'{attachment,roomId}',r#>>'{attachment,side}' having count(*)>1) then
+    raise exception 'INVALID_WORKSHOP_SPATIAL: occupied side' using errcode = '22023';
+  end if;
+  -- Legacy independent rooms are normalized by the client on first load.
+  -- Once attachment metadata exists, enforce the same single tree as the client.
+  if exists(select 1 from jsonb_array_elements(rooms) r where r ? 'attachment') then
+    if (select count(*) from jsonb_array_elements(rooms) r where not r ? 'attachment')<>1 then
+      raise exception 'INVALID_WORKSHOP_SPATIAL: root count' using errcode='22023';
+    end if;
+    if exists(select 1 from jsonb_array_elements(rooms) child
+      join jsonb_array_elements(rooms) parent_room on parent_room->>'id'=child#>>'{attachment,roomId}'
+      where child#>>'{attachment,side}'=case parent_room#>>'{attachment,side}'
+        when 'north' then 'south' when 'south' then 'north' when 'east' then 'west' when 'west' then 'east' end) then
+      raise exception 'INVALID_WORKSHOP_SPATIAL: parent-facing side' using errcode='22023';
+    end if;
+    if exists(
+      with recursive origins as (
+        select r->>'id' id, (r->>'width')::numeric w, (r->>'depth')::numeric d, 0::numeric x, 0::numeric z
+          from jsonb_array_elements(rooms) r where not r ? 'attachment'
+        union all
+        select r->>'id', (r->>'width')::numeric, (r->>'depth')::numeric,
+          p.x + case r#>>'{attachment,side}' when 'east' then (p.w+(r->>'width')::numeric)/2 when 'west' then -(p.w+(r->>'width')::numeric)/2 else 0 end,
+          p.z + case r#>>'{attachment,side}' when 'south' then (p.d+(r->>'depth')::numeric)/2 when 'north' then -(p.d+(r->>'depth')::numeric)/2 else 0 end
+          from origins p join jsonb_array_elements(rooms) r on r#>>'{attachment,roomId}'=p.id
+      )
+      select 1 from origins a join origins b on a.id<b.id
+        where abs(a.x-b.x)<(a.w+b.w)/2-0.000001 and abs(a.z-b.z)<(a.d+b.d)/2-0.000001
+    ) then raise exception 'INVALID_WORKSHOP_SPATIAL: overlap' using errcode='22023'; end if;
+  end if;
+end;
+$$;
+revoke all on function public.validate_workshop_spatial(jsonb) from public, anon;
+grant execute on function public.validate_workshop_spatial(jsonb) to authenticated;
+
+create or replace function public.get_workshop()
+returns jsonb language plpgsql stable security invoker set search_path = '' as $$
+declare owner_id uuid := auth.uid(); result jsonb;
+begin
+  if owner_id is null then raise exception 'AUTH_REQUIRED' using errcode = '42501'; end if;
+  select jsonb_build_object('revision', r.revision, 'layout', jsonb_build_object(
+    'version', 1,
+    'rooms', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'name', name, 'width', width_m, 'depth', depth_m)
+      || spatial_metadata
+      || case when camera_x is null then '{}'::jsonb else jsonb_build_object('camera', jsonb_build_object('x', camera_x, 'y', camera_y, 'z', camera_z, 'span', camera_span) || jsonb_strip_nulls(jsonb_build_object('azimuth', camera_azimuth, 'top', camera_top))) end order by sort_order)
+      from public.workshop_rooms where user_id = owner_id), '[]'::jsonb),
+    'furniture', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'roomId', room_id, 'name', name, 'kind', kind,
+      'x', x, 'z', z, 'rotation', rotation, 'width', width, 'depth', depth, 'height', height, 'levels', levels, 'columns', columns) order by sort_order)
+      from public.workshop_furniture where user_id = owner_id), '[]'::jsonb),
+    'slots', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'furnitureId', furniture_id, 'kind', kind, 'index', slot_index, 'x', x, 'y', y, 'z', z) order by sort_order)
+      from public.workshop_slots where user_id = owner_id), '[]'::jsonb),
+    'placements', coalesce((select jsonb_agg(item order by sort_order) from (
+      select jsonb_build_object('id', id, 'entityId', printer_id, 'kind', kind, 'slotId', slot_id, 'model', model) item, sort_order
+        from public.workshop_printer_placements where user_id = owner_id
+      union all
+      select jsonb_build_object('id', id, 'entityId', filament_id, 'kind', kind, 'slotId', slot_id, 'model', model), sort_order
+        from public.workshop_filament_placements where user_id = owner_id
+    ) placements), '[]'::jsonb)
+  )) into result from public.workshop_revisions r where r.user_id = owner_id;
+  return result;
+end;
+$$;
+
+create or replace function public.save_workshop_spatial(payload jsonb, expected_revision bigint)
+returns bigint language plpgsql security invoker set search_path = '' as $$
+declare owner_id uuid := auth.uid(); current_revision bigint; new_revision bigint; field text;
+begin
+  if owner_id is null then raise exception 'AUTH_REQUIRED' using errcode = '42501'; end if;
+  if payload is null or jsonb_typeof(payload) <> 'object' or payload->'version' is distinct from '1'::jsonb then
+    raise exception 'INVALID_WORKSHOP' using errcode = '22023';
+  end if;
+  foreach field in array array['rooms', 'furniture', 'slots', 'placements'] loop
+    if jsonb_typeof(payload->field) is distinct from 'array' then
+      raise exception 'INVALID_WORKSHOP: % must be an array', field using errcode = '22023';
+    end if;
+  end loop;
+  if exists (select 1 from jsonb_array_elements(payload->'placements') p where p->>'kind' is null or p->>'kind' not in ('printer', 'filament')) then
+    raise exception 'INVALID_WORKSHOP: placement kind' using errcode = '22023';
+  end if;
+  perform public.validate_workshop_spatial(payload->'rooms');
+  -- Also serialize initial creates, for which no revision row exists yet.
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('workshop:' || owner_id::text, 0));
+  select revision into current_revision from public.workshop_revisions where user_id = owner_id for update;
+  if current_revision is distinct from expected_revision then
+    raise exception 'WORKSHOP_REVISION_CONFLICT' using errcode = '40001';
+  end if;
+  new_revision := coalesce(current_revision, 0) + 1;
+  delete from public.workshop_rooms where user_id = owner_id;
+  insert into public.workshop_rooms (id, user_id, name, width_m, depth_m, sort_order, camera_x, camera_y, camera_z, camera_span, camera_azimuth, camera_top, spatial_metadata)
+  select (p->>'id')::uuid, owner_id, p->>'name', (p->>'width')::numeric, (p->>'depth')::numeric, n::integer,
+    (p#>>'{camera,x}')::numeric, (p#>>'{camera,y}')::numeric, (p#>>'{camera,z}')::numeric, (p#>>'{camera,span}')::numeric, (p#>>'{camera,azimuth}')::numeric, (p#>>'{camera,top}')::boolean,
+    (case when p ? 'attachment' then jsonb_build_object('attachment',p->'attachment') else '{}'::jsonb end)
+    || (case when p ? 'labels' then jsonb_build_object('labels',p->'labels') else '{}'::jsonb end)
+  from jsonb_array_elements(payload->'rooms') with ordinality a(p,n);
+  insert into public.workshop_furniture (id, user_id, room_id, name, kind, x, z, rotation, width, depth, height, levels, columns, sort_order)
+  select (p->>'id')::uuid, owner_id, (p->>'roomId')::uuid, p->>'name', p->>'kind', (p->>'x')::numeric, (p->>'z')::numeric,
+    (p->>'rotation')::integer, (p->>'width')::numeric, (p->>'depth')::numeric, (p->>'height')::numeric,
+    (p->>'levels')::integer, (p->>'columns')::integer, n::integer
+  from jsonb_array_elements(payload->'furniture') with ordinality a(p,n);
+  insert into public.workshop_slots (id, user_id, furniture_id, kind, slot_index, x, y, z, sort_order)
+  select (p->>'id')::uuid, owner_id, (p->>'furnitureId')::uuid, p->>'kind', (p->>'index')::integer,
+    (p->>'x')::numeric, (p->>'y')::numeric, (p->>'z')::numeric, n::integer
+  from jsonb_array_elements(payload->'slots') with ordinality a(p,n);
+  insert into public.workshop_printer_placements (id, user_id, printer_id, slot_id, model, sort_order)
+  select (p->>'id')::uuid, owner_id, (p->>'entityId')::uuid, (p->>'slotId')::uuid, p->>'model', n::integer
+  from jsonb_array_elements(payload->'placements') with ordinality a(p,n) where p->>'kind' = 'printer';
+  insert into public.workshop_filament_placements (id, user_id, filament_id, slot_id, model, sort_order)
+  select (p->>'id')::uuid, owner_id, (p->>'entityId')::uuid, (p->>'slotId')::uuid, p->>'model', n::integer
+  from jsonb_array_elements(payload->'placements') with ordinality a(p,n) where p->>'kind' = 'filament';
+  insert into public.workshop_revisions(user_id, revision) values (owner_id, new_revision)
+    on conflict (user_id) do update set revision = excluded.revision;
+  return new_revision;
+end;
+$$;
+
+-- An old client must not erase metadata it does not understand. Serialize this
+-- check with the versioned writer, then delegate to the same atomic CAS path.
+create or replace function public.save_workshop(payload jsonb, expected_revision bigint)
+returns bigint language plpgsql security invoker set search_path = '' as $$
+declare owner_id uuid := auth.uid();
+begin
+  if owner_id is null then raise exception 'AUTH_REQUIRED' using errcode='42501'; end if;
+  if jsonb_typeof(payload->'rooms') is distinct from 'array' then
+    raise exception 'INVALID_WORKSHOP: rooms' using errcode='22023';
+  end if;
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('workshop:' || owner_id::text, 0));
+  if exists(
+    select 1 from public.workshop_rooms existing
+    where existing.user_id=owner_id and existing.spatial_metadata<>'{}'::jsonb
+      and not exists(select 1 from jsonb_array_elements(payload->'rooms') incoming
+        where incoming->>'id'=existing.id::text
+          and (not existing.spatial_metadata ? 'attachment' or incoming ? 'attachment')
+          and (not existing.spatial_metadata ? 'labels' or incoming ? 'labels'))
+  ) then raise exception 'WORKSHOP_SPATIAL_CLIENT_REQUIRED' using errcode='22023'; end if;
+  return public.save_workshop_spatial(payload,expected_revision);
+end;
+$$;
+
+revoke all on function public.get_workshop() from public, anon;
+revoke all on function public.save_workshop(jsonb, bigint) from public, anon;
+grant execute on function public.get_workshop() to authenticated;
+grant execute on function public.save_workshop(jsonb, bigint) to authenticated;
+
+-- Versioned names are the capability handshake: old servers must never accept
+-- a spatial save through the legacy API and silently discard room metadata.
+create or replace function public.get_workshop_spatial()
+returns jsonb language sql stable security invoker set search_path = '' as $$
+  select public.get_workshop();
+$$;
+revoke all on function public.get_workshop_spatial() from public, anon;
+revoke all on function public.save_workshop_spatial(jsonb,bigint) from public, anon;
+grant execute on function public.get_workshop_spatial() to authenticated;
+grant execute on function public.save_workshop_spatial(jsonb,bigint) to authenticated;
+
+commit;

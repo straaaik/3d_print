@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-09-18T13:44:06.710Z",
+  "method": "Current TypeScript source, in-memory storage, mocked Supabase client; no real network or database calls.",
+  "electronics": {
+    "expected": {
+      "cost": 600,
+      "price": 1200
+    },
+    "recalculated": {
+      "cost": 100,
+      "price": 200
+    },
+    "warehouse": {
+      "totalUnits": 1,
+      "inStockPositionsCount": 1,
+      "totalRetailValue": 200,
+      "totalCostValue": 100,
+      "potentialProfit": 100,
+      "profitMargin": 50
+    }
+  },
+  "offlineImport": {
+    "queueBefore": [
+      {
+        "entity": "orders",
+        "id": "unsynced-order"
+      }
+    ],
+    "filamentsAfter": [
+      {
+        "id": "f",
+        "name": "Imported",
+        "price": 100,
+        "weight_g": 1000
+      }
+    ],
+    "queueAfter": []
+  },
+  "sessionRace": {
+    "requestUser": "user-a",
+    "scopeAfterResponse": "user-b",
+    "userBCache": [
+      {
+        "id": "private-a",
+        "name": "A private data",
+        "price": 100,
+        "weight_g": 1000
+      }
+    ]
+  },
+  "reproduced": {
+    "electronicsOmitted": true,
+    "unrelatedQueueCleared": true,
+    "crossSessionCacheWrite": true
+  }
+}

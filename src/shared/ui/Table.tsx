@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { ArrowUpDown, ArrowUp, ArrowDown, Search, ChevronLeft, ChevronRight } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronUp, ChevronDown, Search, X, ChevronLeft, ChevronRight, Package } from 'lucide-react';
+import { usePersistentState } from '../lib/usePersistentState';
 
 export interface TableColumn<T> {
   key: string;
@@ -10,8 +10,8 @@ export interface TableColumn<T> {
   render?: (item: T) => React.ReactNode;
   align?: 'left' | 'right' | 'center';
   className?: string;
-  sortable?: boolean; // Флаг, разрешающий сортировку по этой колонке
-  sortValue?: (item: T) => string | number | boolean; // Кастомная функция извлечения значения для сортировки
+  sortable?: boolean;
+  sortValue?: (item: T) => string | number | boolean;
 }
 
 interface TableProps<T> {
@@ -20,13 +20,14 @@ interface TableProps<T> {
   keyExtractor: (item: T) => string;
   emptyState?: React.ReactNode;
   className?: string;
-  isSearchable?: boolean; // Добавляет панель поиска сверху таблицы
-  pageSize?: number; // Количество строк на одной странице (для постраничной пагинации)
-  renderSubRow?: (item: T) => React.ReactNode; // Функция отрисовки дочерней раскрывающейся строки
-  infiniteScroll?: boolean; // Включает порционную подгрузку при прокрутке
-  batchSize?: number; // Размер порции (по умолчанию 25)
-  toolbarActions?: React.ReactNode; // Дополнительные элементы управления в строке поиска
-  rowClassName?: (item: T) => string; // Кастомные стили для строки таблицы
+  isSearchable?: boolean;
+  pageSize?: number;
+  renderSubRow?: (item: T) => React.ReactNode;
+  infiniteScroll?: boolean;
+  batchSize?: number;
+  toolbarActions?: React.ReactNode;
+  rowClassName?: (item: T) => string;
+  storageKey?: string;
 }
 
 export function Table<T>({
@@ -42,24 +43,36 @@ export function Table<T>({
   batchSize = 25,
   toolbarActions,
   rowClassName,
+  storageKey,
 }: TableProps<T>) {
-  const [sortKey, setSortKey] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [persistedSortKey, setPersistedSortKey] = usePersistentState<string | null>(storageKey ? `table_${storageKey}_sortKey` : '__noop_sk__', null);
+  const [persistedSortDirection, setPersistedSortDirection] = usePersistentState<'asc' | 'desc'>(storageKey ? `table_${storageKey}_sortDir` : '__noop_sd__', 'asc');
+  const [persistedSearchQuery, setPersistedSearchQuery] = usePersistentState<string>(storageKey ? `table_${storageKey}_search` : '__noop_sq__', '');
+
+  const [localSortKey, setLocalSortKey] = useState<string | null>(null);
+  const [localSortDirection, setLocalSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
+
+  const sortKey = storageKey ? persistedSortKey : localSortKey;
+  const setSortKey = storageKey ? setPersistedSortKey : setLocalSortKey;
+  const sortDirection = storageKey ? persistedSortDirection : localSortDirection;
+  const setSortDirection = storageKey ? setPersistedSortDirection : setLocalSortDirection;
+  const searchQuery = storageKey ? persistedSearchQuery : localSearchQuery;
+  const setSearchQuery = storageKey ? setPersistedSearchQuery : setLocalSearchQuery;
+
   const [currentPage, setCurrentPage] = useState(1);
   const [visibleCount, setVisibleCount] = useState(batchSize);
 
   const [prevFilterKey, setPrevFilterKey] = useState('');
   const currentFilterKey = `${searchQuery}_${sortKey || ''}_${sortDirection}_${batchSize}`;
 
-  // Сброс страницы и видимого количества при изменении поиска, сортировки или размера пачки
   if (prevFilterKey !== currentFilterKey) {
     setPrevFilterKey(currentFilterKey);
     setCurrentPage(1);
     setVisibleCount(batchSize);
   }
 
-  // Логика перетаскивания мышью (Drag-to-Scroll) с RAF-оптимизацией
+  // Drag-to-scroll
   const containerRef = useRef<HTMLDivElement>(null);
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -70,7 +83,6 @@ export function Table<T>({
     const container = containerRef.current;
     if (!container) return;
 
-    // Игнорируем драг при клике на кнопки, заголовки сортировки th или инпуты
     const target = e.target as HTMLElement;
     if (
       target.closest('button') ||
@@ -89,21 +101,17 @@ export function Table<T>({
 
   const handleMouseLeaveOrUp = () => {
     setIsMouseDown(false);
-    if (rafIdRef.current) {
-      cancelAnimationFrame(rafIdRef.current);
-      rafIdRef.current = null;
-    }
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isMouseDown) return;
-
     const container = containerRef.current;
     if (!container) return;
 
     e.preventDefault();
     const x = e.pageX - container.offsetLeft;
-    const walk = (x - startX) * 1.5; // Коэффициент скорости перетаскивания
+    const walk = (x - startX) * 1.5;
 
     if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     rafIdRef.current = requestAnimationFrame(() => {
@@ -113,7 +121,6 @@ export function Table<T>({
     });
   };
 
-  // Обработчик переключения сортировки
   const handleSort = (col: TableColumn<T>) => {
     if (!col.sortable) return;
 
@@ -121,7 +128,7 @@ export function Table<T>({
       if (sortDirection === 'asc') {
         setSortDirection('desc');
       } else {
-        setSortKey(null); // Сброс сортировки
+        setSortKey(null);
       }
     } else {
       setSortKey(col.key);
@@ -129,7 +136,7 @@ export function Table<T>({
     }
   };
 
-  // 1. Сортировка данных в реальном времени
+  // Sort
   const sortedData = useMemo(() => {
     if (!sortKey) return data;
 
@@ -137,40 +144,30 @@ export function Table<T>({
     if (!column) return data;
 
     const sorted = [...data].sort((a, b) => {
-      let valA = column.sortValue ? column.sortValue(a) : (a as any)[sortKey];
-      let valB = column.sortValue ? column.sortValue(b) : (b as any)[sortKey];
-
-      // Обработка пустых значений
-      if (valA === undefined || valA === null) valA = '';
-      if (valB === undefined || valB === null) valB = '';
-
-      if (typeof valA === 'string' && typeof valB === 'string') {
-        return valA.localeCompare(valB, 'ru', { numeric: true, sensitivity: 'base' });
-      }
-
-      if (valA < valB) return -1;
-      if (valA > valB) return 1;
-      return 0;
+      const valA = column.sortValue ? column.sortValue(a) : (a as Record<string, unknown>)[sortKey];
+      const valB = column.sortValue ? column.sortValue(b) : (b as Record<string, unknown>)[sortKey];
+      return compareTableValues(valA, valB);
     });
 
     return sortDirection === 'desc' ? sorted.reverse() : sorted;
   }, [data, sortKey, sortDirection, columns]);
 
-  // 2. Фильтрация данных по поисковому запросу (с поддержкой тегов #, категорий и массивов)
+  // Search
   const filteredAndSortedData = useMemo(() => {
     if (!searchQuery.trim()) return sortedData;
 
     const query = searchQuery.toLowerCase().trim().replace(/^#/, '');
 
     return sortedData.filter((item) => {
-      return Object.values(item as any).some((val) => {
+      return Object.values(item as Record<string, unknown>).some((val) => {
         if (val === null || val === undefined) return false;
 
         if (Array.isArray(val)) {
-          return val.some((element) =>
-            element !== null &&
-            element !== undefined &&
-            String(element).toLowerCase().replace(/^#/, '').includes(query)
+          return val.some(
+            (element) =>
+              element !== null &&
+              element !== undefined &&
+              String(element).toLowerCase().replace(/^#/, '').includes(query)
           );
         }
 
@@ -183,13 +180,11 @@ export function Table<T>({
     });
   }, [sortedData, searchQuery]);
 
-  // 3. Вычисление страниц для постраничной пагинации
   const totalPages = useMemo(() => {
     if (!pageSize) return 1;
     return Math.ceil(filteredAndSortedData.length / pageSize);
   }, [filteredAndSortedData, pageSize]);
 
-  // Данные для отображения (в зависимости от режима: infinite scroll, pagination или все данные)
   const displayedData = useMemo(() => {
     if (infiniteScroll) {
       return filteredAndSortedData.slice(0, visibleCount);
@@ -202,12 +197,11 @@ export function Table<T>({
     return filteredAndSortedData;
   }, [filteredAndSortedData, infiniteScroll, visibleCount, pageSize, currentPage]);
 
-  // Sentinel для автоматической подгрузки при прокрутке
-  const sentinelRef = useRef<HTMLTableRowElement | null>(null);
+  // Infinite scroll sentinel
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!infiniteScroll) return;
-    if (visibleCount >= filteredAndSortedData.length) return;
+    if (!infiniteScroll || visibleCount >= filteredAndSortedData.length) return;
 
     const sentinel = sentinelRef.current;
     if (!sentinel) return;
@@ -218,99 +212,100 @@ export function Table<T>({
           setVisibleCount((prev) => Math.min(prev + batchSize, filteredAndSortedData.length));
         }
       },
-      { rootMargin: '200px' }
+      { rootMargin: '300px' }
     );
 
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [infiniteScroll, visibleCount, filteredAndSortedData.length, batchSize]);
 
-  const startIndex = pageSize ? (currentPage - 1) * pageSize : 0;
-  const endIndex = startIndex + displayedData.length;
-
   return (
-    <div className={`w-full overflow-hidden rounded-lg border border-[#242930] bg-[#16181d] flex flex-col ${className}`}>
-      {/* Панель поиска и действий */}
-      {(isSearchable || toolbarActions) && data.length > 0 && (
-        <div className="p-2.5 border-b border-[#242930] flex flex-wrap items-center justify-between gap-3 bg-[#111317]/40 select-none min-h-[46px]">
-          <div className="flex items-center gap-3 flex-1 min-w-[200px] max-w-sm">
-            {isSearchable && (
-              <div className="relative w-full">
-                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-neutral-accent" />
-                <input
-                  type="text"
-                  placeholder="Поиск по таблице..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#1a1d24] border border-[#242930] focus:border-primary focus:outline-none rounded-lg px-2.5 py-1.5 pl-8 text-xs text-white placeholder-neutral-accent transition-colors"
-                />
-              </div>
-            )}
-            {searchQuery && !toolbarActions && (
-              <span className="text-[10px] text-neutral-accent font-semibold shrink-0">
-                Найдено: {filteredAndSortedData.length}
-              </span>
-            )}
-          </div>
+    <div className={`space-y-3 ${className}`}>
+      {/* Search & Actions Toolbar */}
+      {(isSearchable || toolbarActions) && (
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 select-none">
+          {isSearchable && (
+            <div className="relative flex-1 max-w-sm">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск по реестру..."
+                className="w-full pl-8.5 pr-8 py-1.5 bg-neutral-950/90 border border-white/10 focus:border-white/25 rounded-xl text-xs font-mono text-neutral-200 placeholder:text-neutral-600 outline-none "
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 p-0.5"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          )}
 
           {toolbarActions && (
-            <div className="flex items-center gap-2.5 ml-auto">
+            <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
               {toolbarActions}
             </div>
           )}
         </div>
       )}
 
-      {/* Обертка для таблицы с минимальной высотой для предотвращения прыжков интерфейса */}
-      <div 
+      {/* Main Table Container */}
+      <div
         ref={containerRef}
         onMouseDown={handleMouseDown}
         onMouseLeave={handleMouseLeaveOrUp}
         onMouseUp={handleMouseLeaveOrUp}
         onMouseMove={handleMouseMove}
-        className={`w-full overflow-x-auto min-h-[160px] smooth-scroll transition-all duration-300 ${
-          isMouseDown ? 'cursor-grabbing' : ''
+        className={`w-full overflow-x-auto rounded-2xl border border-white/10 bg-neutral-950/80 backdrop-blur-xl shadow-2xl custom-scrollbar ${
+          isMouseDown ? 'cursor-grabbing select-none' : 'cursor-grab'
         }`}
       >
-        <table className="w-full text-left font-sans text-xs sm:text-sm border-collapse min-w-[600px] select-text">
+        <table className="w-full text-left text-xs border-collapse font-sans min-w-[600px]">
           <thead>
-            <tr className="border-b border-[#242930] text-[#9ca3af] font-semibold select-none bg-[#111317]">
+            <tr className="bg-neutral-900/90 border-b border-white/10 text-neutral-400 font-mono text-[11px] uppercase tracking-wider select-none">
               {columns.map((col) => {
-                const alignClass = 
-                  col.align === 'right' 
-                    ? 'text-right' 
-                    : col.align === 'center' 
-                    ? 'text-center' 
-                    : 'text-left';
-                
-                const isSorted = sortKey === col.key;
-                const isSelectCol = col.key === 'select';
-                const paddingClass = isSelectCol ? 'py-2 px-1.5 w-8 max-w-[32px]' : 'py-2 px-3';
-
+                const isSortActive = sortKey === col.key;
                 return (
                   <th
                     key={col.key}
                     onClick={() => handleSort(col)}
-                    className={`${paddingClass} text-xs uppercase tracking-wider font-bold transition-colors select-none group ${
-                      col.sortable ? 'cursor-pointer hover:bg-[#242930]/40' : ''
-                    } ${alignClass} ${col.className || ''}`}
+                    className={`py-3 px-3.5 whitespace-nowrap ${
+                      col.sortable ? 'cursor-pointer hover:text-white group' : ''
+                    } ${
+                      col.align === 'right'
+                        ? 'text-right'
+                        : col.align === 'center'
+                        ? 'text-center'
+                        : 'text-left'
+                    } ${col.className || ''}`}
                   >
-                    <div className={`flex items-center gap-1.5 ${
-                      col.align === 'right' 
-                        ? 'justify-end' 
-                        : col.align === 'center' 
-                        ? 'justify-center' 
-                        : 'justify-start'
-                    }`}>
+                    <div
+                      className={`flex items-center gap-1 ${
+                        col.align === 'right'
+                          ? 'justify-end'
+                          : col.align === 'center'
+                          ? 'justify-center'
+                          : 'justify-start'
+                      }`}
+                    >
                       <span>{col.header}</span>
                       {col.sortable && (
-                        <div className="text-primary shrink-0 flex items-center justify-center w-3 h-3">
-                          {isSorted ? (
-                            sortDirection === 'asc' ? <ArrowUp size={11} /> : <ArrowDown size={11} />
+                        <span className="inline-flex items-center justify-center w-3 h-3 shrink-0">
+                          {isSortActive ? (
+                            sortDirection === 'asc' ? (
+                              <ChevronUp className="w-3.5 h-3.5 text-white" />
+                            ) : (
+                              <ChevronDown className="w-3.5 h-3.5 text-white" />
+                            )
                           ) : (
-                            <ArrowUpDown size={11} className="opacity-0 group-hover:opacity-40 transition-opacity" />
+                            <ChevronDown className="w-3 h-3 text-neutral-600 opacity-0 group-hover:opacity-60 " />
                           )}
-                        </div>
+                        </span>
                       )}
                     </div>
                   </th>
@@ -318,136 +313,93 @@ export function Table<T>({
               })}
             </tr>
           </thead>
-          <tbody className="divide-y divide-secondary/30 relative">
+
+          <tbody className="divide-y divide-white/5 font-mono text-xs">
             {displayedData.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="py-12 text-center align-middle">
-                  <div className="flex flex-col items-center justify-center gap-2 select-none">
-                    {searchQuery ? (
-                      <span className="text-neutral-accent text-xs font-medium">
-                        Ничего не найдено по запросу «{searchQuery}»
-                      </span>
-                    ) : (
-                      emptyState || (
-                        <span className="text-neutral-accent text-xs font-medium">
-                          Нет данных для отображения
-                        </span>
-                      )
-                    )}
-                  </div>
+                <td colSpan={columns.length} className="py-12 px-4 text-center">
+                  {emptyState || (
+                    <div className="max-w-md mx-auto space-y-2 font-mono">
+                      <div className="w-10 h-10 bg-neutral-900 border border-white/10 rounded-xl flex items-center justify-center mx-auto text-neutral-400">
+                        <Package size={20} />
+                      </div>
+                      <div className="text-sm font-bold text-white">РЕЕСТР ПУСТ</div>
+                      <div className="text-xs text-neutral-400 font-sans">
+                        Записи не найдены или список пуст.
+                      </div>
+                    </div>
+                  )}
                 </td>
               </tr>
             ) : (
-              displayedData.map((item) => (
-                <React.Fragment key={keyExtractor(item)}>
-                  <tr
-                    className={`text-gray-300 hover:text-white transition-colors table-row-optimized ${
-                      rowClassName ? rowClassName(item) : 'hover:bg-[#242930]/30'
-                    }`}
-                  >
-                    {columns.map((col) => {
-                      const alignClass = 
-                        col.align === 'right' 
-                          ? 'text-right' 
-                          : col.align === 'center' 
-                          ? 'text-center' 
-                          : 'text-left';
-                      const isSelectCol = col.key === 'select';
-                      const tdPadding = isSelectCol ? 'py-2 px-1.5 w-8 max-w-[32px]' : 'py-2.5 px-3';
-                      return (
+              displayedData.map((item) => {
+                const key = keyExtractor(item);
+                const customClass = rowClassName ? rowClassName(item) : '';
+
+                return (
+                  <React.Fragment key={key}>
+                    <tr className={`hover:bg-white/[0.03] ${customClass}`}>
+                      {columns.map((col) => (
                         <td
                           key={col.key}
-                          className={`${tdPadding} align-middle ${alignClass} ${col.className || ''}`}
+                          className={`py-3 px-3.5 ${
+                            col.align === 'right'
+                              ? 'text-right'
+                              : col.align === 'center'
+                              ? 'text-center'
+                              : 'text-left'
+                          } ${col.className || ''}`}
                         >
-                          {col.render ? col.render(item) : (item as any)[col.key]}
+                          {col.render ? col.render(item) : String((item as Record<string, unknown>)[col.key] ?? '—')}
                         </td>
-                      );
-                    })}
-                  </tr>
-                  {renderSubRow && renderSubRow(item)}
-                </React.Fragment>
-              ))
-            )}
-            {/* Невидимый маркер для Infinite Scroll */}
-            {infiniteScroll && visibleCount < filteredAndSortedData.length && (
-              <tr ref={sentinelRef}>
-                <td colSpan={columns.length} className="py-2 text-center text-xs text-neutral-accent">
-                  <div className="flex items-center justify-center gap-2 py-2">
-                    <div className="w-3.5 h-3.5 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-                    <span>Подгрузка данных...</span>
-                  </div>
-                </td>
-              </tr>
+                      ))}
+                    </tr>
+                    {renderSubRow && (
+                      <tr className="bg-neutral-950/90">
+                        <td colSpan={columns.length} className="p-0">
+                          {renderSubRow(item)}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
 
-      {/* Панель Infinite Scroll */}
-      {infiniteScroll && filteredAndSortedData.length > batchSize && (
-        <div className="p-2.5 border-t border-[#242930] bg-[#111317]/40 flex items-center justify-between gap-4 text-xs select-none">
-          <span className="text-neutral-accent font-medium">
-            Показано {displayedData.length} из {filteredAndSortedData.length}
-          </span>
-          {visibleCount < filteredAndSortedData.length && (
-            <button
-              type="button"
-              onClick={() => setVisibleCount(filteredAndSortedData.length)}
-              className="px-2.5 py-1 rounded bg-[#1a1d24] border border-[#242930] hover:border-primary text-gray-300 hover:text-white transition-colors cursor-pointer text-xs font-medium"
-            >
-              Показать все ({filteredAndSortedData.length})
-            </button>
-          )}
+      {/* Infinite Scroll Sentinel */}
+      {infiniteScroll && visibleCount < filteredAndSortedData.length && (
+        <div ref={sentinelRef} className="p-3 text-center font-mono text-xs text-neutral-500">
+          Загрузка записей... ({visibleCount} из {filteredAndSortedData.length})
         </div>
       )}
 
-      {/* Панель пагинации (для постраничного режима) */}
-      {!infiniteScroll && pageSize && totalPages > 1 && (
-        <div className="p-3 border-t border-[#242930] bg-[#111317]/30 flex items-center justify-between gap-4 text-xs select-none">
-          <span className="text-neutral-accent font-medium">
-            Показано {startIndex + 1}–{endIndex} из {filteredAndSortedData.length}
+      {/* Pagination Footer */}
+      {pageSize && totalPages > 1 && (
+        <div className="flex items-center justify-between px-3 py-2 bg-neutral-950/80 border border-white/10 rounded-xl text-xs font-mono select-none">
+          <span className="text-neutral-400">
+            Страница <strong className="text-white">{currentPage}</strong> из{' '}
+            <strong className="text-white">{totalPages}</strong> ({filteredAndSortedData.length} записей)
           </span>
+
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                setCurrentPage((prev) => Math.max(prev - 1, 1));
-              }}
               disabled={currentPage === 1}
-              className="p-1.5 rounded bg-[#1a1d24] border border-[#242930] hover:border-primary disabled:opacity-40 disabled:hover:border-[#242930] text-gray-400 hover:text-white transition-colors cursor-pointer disabled:cursor-not-allowed"
-              title="Назад"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="p-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-neutral-300 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
             >
-              <ChevronLeft size={13} />
+              <ChevronLeft size={14} />
             </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setCurrentPage(page);
-                }}
-                className={`w-7 h-7 rounded border font-mono font-medium transition-colors cursor-pointer ${
-                  currentPage === page
-                    ? 'bg-primary border-primary text-black font-bold'
-                    : 'bg-[#1a1d24] border-[#242930] text-gray-400 hover:border-primary hover:text-white'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
             <button
               type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-              }}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded bg-[#1a1d24] border border-[#242930] hover:border-primary disabled:opacity-40 disabled:hover:border-[#242930] text-gray-400 hover:text-white transition-colors cursor-pointer disabled:cursor-not-allowed"
-              title="Вперед"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="p-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-neutral-300 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
             >
-              <ChevronRight size={13} />
+              <ChevronRight size={14} />
             </button>
           </div>
         </div>
@@ -456,3 +408,20 @@ export function Table<T>({
   );
 }
 
+export function compareTableValues(left: unknown, right: unknown): number {
+  const normalizedLeft = left ?? '';
+  const normalizedRight = right ?? '';
+
+  if (typeof normalizedLeft === 'number' && typeof normalizedRight === 'number') {
+    return normalizedLeft - normalizedRight;
+  }
+
+  if (typeof normalizedLeft === 'boolean' && typeof normalizedRight === 'boolean') {
+    return Number(normalizedLeft) - Number(normalizedRight);
+  }
+
+  return String(normalizedLeft).localeCompare(String(normalizedRight), 'ru', {
+    numeric: true,
+    sensitivity: 'base',
+  });
+}

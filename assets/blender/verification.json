@@ -1,0 +1,102 @@
+[
+  {
+    "name": "printer-a1",
+    "triangles": 13932,
+    "dimensions_m": [
+      0.5419999957084656,
+      0.5180001258850098,
+      0.7262870669364929
+    ],
+    "reimport": "passed"
+  },
+  {
+    "name": "printer-p1",
+    "triangles": 15310,
+    "dimensions_m": [
+      0.48000001907348633,
+      0.501500129699707,
+      0.6285001039505005
+    ],
+    "reimport": "passed"
+  },
+  {
+    "name": "filament-spool",
+    "triangles": 27136,
+    "dimensions_m": [
+      0.09200000017881393,
+      0.21000005304813385,
+      0.21000005304813385
+    ],
+    "reimport": "passed"
+  },
+  {
+    "name": "filament-rack",
+    "triangles": 13512,
+    "dimensions_m": [
+      1.412000060081482,
+      0.4620000422000885,
+      1.4500001668930054
+    ],
+    "reimport": "passed"
+  },
+  {
+    "name": "workbench",
+    "triangles": 17546,
+    "dimensions_m": [
+      1.600000023841858,
+      0.7500001192092896,
+      1.1090000867843628
+    ],
+    "reimport": "passed"
+  },
+  {
+    "name": "printer-rack",
+    "triangles": 9760,
+    "dimensions_m": [
+      2.2120001316070557,
+      0.7620000839233398,
+      1.2000001668930054
+    ],
+    "reimport": "passed"
+  },
+  {
+    "name": "packing-boxes",
+    "triangles": 14716,
+    "dimensions_m": [
+      0.8233499526977539,
+      0.6733500957489014,
+      0.6474001407623291
+    ],
+    "reimport": "passed"
+  },
+  {
+    "name": "plant",
+    "triangles": 6850,
+    "dimensions_m": [
+      0.6729594469070435,
+      0.33398038148880005,
+      1.197350263595581
+    ],
+    "reimport": "passed"
+  },
+  {
+    "name": "tool-cabinet",
+    "triangles": 29908,
+    "dimensions_m": [
+      0.8860000371932983,
+      0.5570002198219299,
+      1.3510000705718994
+    ],
+    "reimport": "passed"
+  },
+  {
+    "name": "room-module",
+    "triangles": 9204,
+    "dimensions_m": [
+      2.0,
+      2.000000238418579,
+      1.700000286102295
+    ],
+    "reimport": "passed"
+  }
+]
