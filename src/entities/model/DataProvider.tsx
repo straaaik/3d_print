@@ -9,6 +9,8 @@ import { useAuth } from './AuthProvider';
 import { loadInitialData, createInitialDataLoadScope, type InitialLoadSnapshot } from './loadInitialData';
 
 import { usePersistentState } from '../../shared/lib/usePersistentState';
+import { resetPersistentKeys } from '../../shared/lib/persistentStorage';
+import { resolveCalculatorLabor } from '../../features/calculate-cost/model/calculatorState';
 
 interface DataContextType {
   filaments: Filament[];
@@ -53,9 +55,9 @@ interface DataContextType {
   calcDefect: string;
   setCalcDefect: (val: string) => void;
   calcIsOwnerLabor: boolean;
-  setCalcIsOwnerLabor: (val: boolean) => void;
+  setCalcIsOwnerLabor: (val: boolean | null) => void;
   calcIsLaborPerUnit: boolean;
-  setCalcIsLaborPerUnit: (val: boolean) => void;
+  setCalcIsLaborPerUnit: (val: boolean | null) => void;
   calcDiscountType: 'percent' | 'fixed';
   setCalcDiscountType: (val: 'percent' | 'fixed') => void;
   calcDiscountValue: string;
@@ -146,12 +148,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [calcQuantity, setCalcQuantity, resetCalcQuantity] = usePersistentState('3d_calc_quantity', '1');
   const [calcFilamentId, setCalcFilamentId, resetCalcFilamentId] = usePersistentState('3d_calc_filament_id', '');
   const [calcPrinterId, setCalcPrinterId, resetCalcPrinterId] = usePersistentState('3d_calc_printer_id', '');
-  const [calcLaborMinutes, setCalcLaborMinutes, resetCalcLaborMinutes] = usePersistentState('3d_calc_labor_minutes', '15');
+  const [laborMinutesOverride, setCalcLaborMinutes, resetCalcLaborMinutes] = usePersistentState('3d_calc_labor_minutes', '');
   const [calcLaborRate, setCalcLaborRate, resetCalcLaborRate] = usePersistentState('3d_calc_labor_rate', '');
   const [calcMarkup, setCalcMarkup, resetCalcMarkup] = usePersistentState('3d_calc_markup', '');
   const [calcDefect, setCalcDefect, resetCalcDefect] = usePersistentState('3d_calc_defect', '');
-  const [calcIsOwnerLabor, setCalcIsOwnerLabor, resetCalcIsOwnerLabor] = usePersistentState('3d_calc_is_owner_labor', false);
-  const [calcIsLaborPerUnit, setCalcIsLaborPerUnit, resetCalcIsLaborPerUnit] = usePersistentState('3d_calc_is_labor_per_unit', false);
+  const [ownerLaborOverride, setCalcIsOwnerLabor, resetCalcIsOwnerLabor] = usePersistentState<boolean | null>('3d_calc_is_owner_labor', null);
+  const [laborPerUnitOverride, setCalcIsLaborPerUnit, resetCalcIsLaborPerUnit] = usePersistentState<boolean | null>('3d_calc_is_labor_per_unit', null);
+  const { minutes: calcLaborMinutes, isOwner: calcIsOwnerLabor, isPerUnit: calcIsLaborPerUnit } =
+    resolveCalculatorLabor(settings, laborMinutesOverride, ownerLaborOverride, laborPerUnitOverride);
   const [calcDiscountType, setCalcDiscountType, resetCalcDiscountType] = usePersistentState<'percent' | 'fixed'>('3d_calc_discount_type', 'percent');
   const [calcDiscountValue, setCalcDiscountValue, resetCalcDiscountValue] = usePersistentState('3d_calc_discount_value', '');
   const [calcUrgencyType, setCalcUrgencyType, resetCalcUrgencyType] = usePersistentState<'percent' | 'fixed'>('3d_calc_urgency_type', 'percent');
@@ -178,12 +182,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     resetCalcUrgencyValue();
     resetCalcCustomCostItems();
 
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('3d_calc_stl_url');
-      localStorage.removeItem('3d_calc_stl_file_name');
-      localStorage.removeItem('3d_calc_stl_file_data');
-      localStorage.removeItem('3d_calc_save_modal_state');
-    }
+    resetPersistentKeys(['3d_calc_stl_url', '3d_calc_stl_file_name', '3d_calc_stl_file_data', '3d_calc_save_modal_state']);
   };
 
   // Инициализация данных

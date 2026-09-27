@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useId, useRef, useSyncExternalStore } from 'react';
 import { getScopedStorageKey, getStorageScope, getStorageScopeEventName } from './storageScope';
 
-const PERSISTENT_STATE_EVENT = '3d-persistent-state-changed';
+import { PERSISTENT_STATE_EVENT } from './persistentStorage';
 const subscribeScope = (callback: () => void) => {
   window.addEventListener(getStorageScopeEventName(), callback);
   return () => window.removeEventListener(getStorageScopeEventName(), callback);

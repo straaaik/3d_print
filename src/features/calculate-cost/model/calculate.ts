@@ -47,7 +47,7 @@ export function recalculateAllProducts(
       weightG: item.weight_g || 0,
       hours: item.hours || 0,
       minutes: item.minutes || 0,
-      laborMinutes: item.labor_minutes ?? 15,
+      laborMinutes: item.labor_minutes ?? settings?.labor_time_minutes ?? 15,
       laborRatePerHour: item.labor_rate_per_hour,
       isOwnerLabor: item.is_owner_labor,
       isLaborPerUnit: item.is_labor_per_unit,

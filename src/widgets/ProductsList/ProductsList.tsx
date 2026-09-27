@@ -318,8 +318,8 @@ export function ProductsList({
     const filament = filaments.find((f) => f.id === item.filament_id) || filaments.find((f) => f.name === item.filament_name);
     const printer = printers.find((p) => p.id === item.printer_id) || printers.find((p) => p.name === item.printer_name);
 
-    if (filament) setCalcFilamentId(filament.id);
-    if (printer) setCalcPrinterId(printer.id);
+    setCalcFilamentId(filament?.id ?? '');
+    setCalcPrinterId(printer?.id ?? '');
     setCalcWeight(String(item.weight_g || 0));
     const totalHours = item.hours || 0;
     const days = Math.floor(totalHours / 24);
@@ -328,12 +328,12 @@ export function ProductsList({
     setCalcHours(String(remainingHours));
     setCalcMinutes(String(item.minutes || 0));
     setCalcQuantity(String(item.quantity || 1));
-    setCalcLaborMinutes(String(item.labor_minutes || 0));
-    if (item.labor_rate_per_hour) setCalcLaborRate(String(item.labor_rate_per_hour));
-    if (item.markup_percent) setCalcMarkup(String(item.markup_percent));
-    if (item.defect_percent) setCalcDefect(String(item.defect_percent));
-    if (item.is_owner_labor !== undefined) setCalcIsOwnerLabor(item.is_owner_labor);
-    if (item.is_labor_per_unit !== undefined) setCalcIsLaborPerUnit(item.is_labor_per_unit);
+    setCalcLaborMinutes(item.labor_minutes != null ? String(item.labor_minutes) : '');
+    setCalcLaborRate(item.labor_rate_per_hour != null ? String(item.labor_rate_per_hour) : '');
+    setCalcMarkup(item.markup_percent != null ? String(item.markup_percent) : '');
+    setCalcDefect(item.defect_percent != null ? String(item.defect_percent) : '');
+    setCalcIsOwnerLabor(item.is_owner_labor ?? null);
+    setCalcIsLaborPerUnit(item.is_labor_per_unit ?? null);
     if (item.custom_cost_items) setCalcCustomCostItems(item.custom_cost_items);
 
     showSuccess(`Параметры «${item.name}» загружены в Калькулятор!`, 'Калькулятор');

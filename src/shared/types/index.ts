@@ -62,6 +62,7 @@ export interface CustomCostItem {
   amount: number;
   isPerUnit?: boolean; // начисляется на каждую единицу изделия или фиксированно на весь заказ
   isEnabled: boolean;  // включен ли пункт в расчет
+  target?: 'cost' | 'profit'; // 'cost' = в себестоимость (расход), 'profit' = в чистую прибыль
 }
 
 export interface ProductCollection {

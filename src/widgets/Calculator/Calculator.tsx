@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../entities/model/DataProvider';
 import { useToast } from '../../entities/model/ToastProvider';
 import { calculateCost } from '../../features/calculate-cost/model/calculate';
+import { calculatorPricingSnapshot, parseCalculatorNumber, resolveCalculatorSelection } from '../../features/calculate-cost/model/calculatorState';
 import { formatCurrency } from '../../shared/lib/format';
 import { Tooltip, CustomTooltip } from '../../shared/ui/Tooltip';
 import { CockpitButton } from '../../shared/ui/CockpitButton';
@@ -129,6 +130,13 @@ export function Calculator() {
   const [newCostName, setNewCostName] = useState('');
   const [newCostAmount, setNewCostAmount] = useState('100');
   const [newCostIsPerUnit, setNewCostIsPerUnit] = useState(false);
+  const [newCostTarget, setNewCostTarget] = useState<'cost' | 'profit'>('cost');
+
+  // Режим ввода наценки: процент (%) или коэффициент (x)
+  const [markupMode, setMarkupMode] = usePersistentState<'percent' | 'ratio'>('3d_calc_markup_mode', 'percent');
+  const [isMarkupFocused, setIsMarkupFocused] = useState(false);
+  const [ratioInputStr, setRatioInputStr] = useState('');
+  const [isRatioFocused, setIsRatioFocused] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [stlUrl, setStlUrl] = usePersistentState('3d_calc_stl_url', '');
@@ -137,20 +145,16 @@ export function Calculator() {
   const [copied, setCopied] = useState(false);
   const [isClientReceiptOpen, setIsClientReceiptOpen] = useState(false);
 
-  useEffect(() => {
-    if (filaments.length > 0 && !filamentId) {
-      setFilamentId(filaments[0].id);
-    }
-  }, [filaments, filamentId, setFilamentId]);
+  const selectedFilament = resolveCalculatorSelection(filaments, filamentId);
+  const selectedPrinter = resolveCalculatorSelection(printers, printerId, settings?.default_printer_id);
 
   useEffect(() => {
-    if (printerId) return;
-    if (settings?.default_printer_id && printers.some(p => p.id === settings.default_printer_id)) {
-      setPrinterId(settings.default_printer_id);
-    } else if (printers.length > 0) {
-      setPrinterId(printers[0].id);
-    }
-  }, [printers, settings, printerId, setPrinterId]);
+    if (selectedFilament && filamentId !== selectedFilament.id) setFilamentId(selectedFilament.id);
+  }, [selectedFilament, filamentId, setFilamentId]);
+
+  useEffect(() => {
+    if (selectedPrinter && printerId !== selectedPrinter.id) setPrinterId(selectedPrinter.id);
+  }, [selectedPrinter, printerId, setPrinterId]);
 
   const currencySymbol = settings?.currency ?? '₽';
   const defaultDefectValue = settings?.default_defect_percent ?? 5;
@@ -160,27 +164,26 @@ export function Calculator() {
   const currentLaborMinutes = calcLaborMinutes !== '' ? calcLaborMinutes : defaultLaborMinutesValue.toString();
   const currentLaborRate = calcLaborRate !== '' ? calcLaborRate : defaultLaborRateValue.toString();
 
-  const selectedFilament = filaments.find(f => f.id === filamentId) || (filaments.length > 0 ? filaments[0] : null);
-  const selectedPrinter = printers.find(p => p.id === printerId) || (printers.length > 0 ? printers[0] : null);
+  const safeQuantity = Math.max(1, parseCalculatorNumber(quantity, true));
 
   // Расчет стоимости
   const result = useMemo(() => calculateCost({
-    weightG: parseFloat(weightG) || 0,
-    days: parseInt(days) || 0,
-    hours: parseInt(hours) || 0,
-    minutes: parseInt(minutes) || 0,
-    laborMinutes: parseInt(currentLaborMinutes) || 0,
-    laborRatePerHour: parseFloat(currentLaborRate) || 0,
+    weightG: parseCalculatorNumber(weightG),
+    days: parseCalculatorNumber(days, true),
+    hours: parseCalculatorNumber(hours, true),
+    minutes: parseCalculatorNumber(minutes, true),
+    laborMinutes: parseCalculatorNumber(currentLaborMinutes, true),
+    laborRatePerHour: parseCalculatorNumber(currentLaborRate),
     isOwnerLabor: calcIsOwnerLabor,
     isLaborPerUnit: calcIsLaborPerUnit,
-    markupPercent: calcMarkup !== '' ? parseFloat(calcMarkup) : undefined,
-    defectPercent: calcDefect !== '' ? parseFloat(calcDefect) : undefined,
+    markupPercent: calcMarkup !== '' ? parseCalculatorNumber(calcMarkup) : undefined,
+    defectPercent: calcDefect !== '' ? parseCalculatorNumber(calcDefect) : undefined,
     discountPercent: calcDiscountType === 'percent' ? (parseFloat(calcDiscountValue) || 0) : 0,
     discountAmount: calcDiscountType === 'fixed' ? (parseFloat(calcDiscountValue) || 0) : 0,
     urgencyPercent: calcUrgencyType === 'percent' ? (parseFloat(calcUrgencyValue) || 0) : 0,
     urgencyAmount: calcUrgencyType === 'fixed' ? (parseFloat(calcUrgencyValue) || 0) : 0,
     customCostItems: calcCustomCostItems,
-    quantity: parseInt(quantity) || 1,
+    quantity: safeQuantity,
     filament: selectedFilament,
     printer: selectedPrinter,
     settings,
@@ -200,7 +203,7 @@ export function Calculator() {
     calcUrgencyType,
     calcUrgencyValue,
     calcCustomCostItems,
-    quantity,
+    safeQuantity,
     selectedFilament,
     selectedPrinter,
     settings
@@ -213,14 +216,14 @@ export function Calculator() {
     ? (selectedFilament.price / selectedFilament.weight_g)
     : 0;
 
-  const totalPrintHours = (parseInt(days) || 0) * 24 + (parseInt(hours) || 0) + (parseInt(minutes) || 0) / 60;
+  const totalPrintHours = (parseCalculatorNumber(days, true)) * 24 + (parseCalculatorNumber(hours, true)) + (parseCalculatorNumber(minutes, true)) / 60;
   const powerKwH = selectedPrinter ? (selectedPrinter.power_w * totalPrintHours) / 1000 : 0;
   const electricityAndDeprecPerHour = totalPrintHours > 0
     ? (result.electricityCost + result.depreciationCost) / totalPrintHours
     : 0;
 
   const handleCopyClientMessage = () => {
-    const printHoursVal = (parseInt(days) || 0) * 24 + (parseInt(hours) || 0) + (parseInt(minutes) || 0) / 60;
+    const printHoursVal = (parseCalculatorNumber(days, true)) * 24 + (parseCalculatorNumber(hours, true)) + (parseCalculatorNumber(minutes, true)) / 60;
     const printDays = Math.floor(printHoursVal / 24);
     const leadTimeDays = Math.max(1, printDays + 2);
 
@@ -267,7 +270,7 @@ export function Calculator() {
       showWarning('Выберите филамент для 3D-печати', 'Внимание');
       return;
     }
-    const printHoursVal = (parseInt(days) || 0) * 24 + (parseInt(hours) || 0) + (parseInt(minutes) || 0) / 60;
+    const printHoursVal = (parseCalculatorNumber(days, true)) * 24 + (parseCalculatorNumber(hours, true)) + (parseCalculatorNumber(minutes, true)) / 60;
     const printDays = Math.floor(printHoursVal / 24);
     const leadTimeDays = Math.max(1, printDays + 2);
 
@@ -288,15 +291,15 @@ export function Calculator() {
     if (result.laborCost > 0 && !calcIsOwnerLabor) {
       costItems.push({ id: 'c-labor', category: 'Работа мастера', amount: Math.round(result.laborCost * 100) / 100 });
     }
-    (calcCustomCostItems || []).filter(i => i.isEnabled && i.amount > 0).forEach((ci, idx) => {
+    (calcCustomCostItems || []).filter(i => i.isEnabled && i.amount > 0 && i.target !== 'profit').forEach((ci, idx) => {
       costItems.push({
         id: `c-cust-${idx}`,
         category: ci.name,
-        amount: Math.round((ci.isPerUnit ? ci.amount * (parseInt(quantity) || 1) : ci.amount) * 100) / 100,
+        amount: Math.round((ci.isPerUnit ? ci.amount * safeQuantity : ci.amount) * 100) / 100,
       });
     });
 
-    const safeQty = parseInt(quantity) || 1;
+    const safeQty = safeQuantity;
     const draftTitle = `3D-печать: ${selectedFilament.name} (${weightG || 0}г)`;
 
     const draft = {
@@ -339,21 +342,23 @@ export function Calculator() {
         filament_name: selectedFilament?.name || 'Не выбран',
         filament_color: selectedFilament?.color || '#ffffff',
         printer_name: selectedPrinter?.name || 'Не выбран',
-        weight_g: parseFloat(weightG) || 0,
-        hours: (parseInt(days) || 0) * 24 + (parseInt(hours) || 0),
-        minutes: parseInt(minutes) || 0,
-        quantity: parseInt(quantity) || 1,
+        weight_g: parseCalculatorNumber(weightG),
+        hours: (parseCalculatorNumber(days, true)) * 24 + (parseCalculatorNumber(hours, true)),
+        minutes: parseCalculatorNumber(minutes, true),
+        quantity: safeQuantity,
         base_cost: result.totalBaseCost,
         final_price: result.totalFinalPrice,
 
-        filament_id: filamentId || undefined,
-        printer_id: printerId || undefined,
-        labor_minutes: parseInt(currentLaborMinutes) || undefined,
-        labor_rate_per_hour: parseFloat(currentLaborRate) || undefined,
+        filament_id: selectedFilament?.id,
+        printer_id: selectedPrinter?.id,
+        ...calculatorPricingSnapshot({
+          laborMinutes: currentLaborMinutes,
+          laborRate: currentLaborRate,
+          markup: currentMarkup,
+          defect: currentDefect,
+        }),
         is_owner_labor: calcIsOwnerLabor,
         is_labor_per_unit: calcIsLaborPerUnit,
-        markup_percent: parseFloat(currentMarkup) || undefined,
-        defect_percent: parseFloat(currentDefect) || undefined,
         discount_percent: calcDiscountType === 'percent' && parseFloat(calcDiscountValue) > 0 ? parseFloat(calcDiscountValue) : undefined,
         discount_amount: calcDiscountType === 'fixed' && parseFloat(calcDiscountValue) > 0 ? parseFloat(calcDiscountValue) : undefined,
         urgency_percent: calcUrgencyType === 'percent' && parseFloat(calcUrgencyValue) > 0 ? parseFloat(calcUrgencyValue) : undefined,
@@ -400,7 +405,14 @@ export function Calculator() {
     reader.readAsDataURL(file);
   };
 
-  const markupRatio = (1 + (parseFloat(currentMarkup) || 100) / 100).toFixed(1);
+  const ratioValue = 1 + result.appliedMarkupPercent / 100;
+  const markupRatio = Number.isInteger(Math.round(ratioValue * 10))
+    ? ratioValue.toFixed(1)
+    : ratioValue.toFixed(2);
+  const printMarkupAmount = Math.max(0, result.printFinalPrice - result.totalBaseCost);
+  const minOrderSupplement = result.isMinOrderApplied
+    ? Math.max(0, result.totalFinalPrice - result.calculatedFinalPrice)
+    : 0;
 
   return (
     <div className="w-full max-w-[1500px] mx-auto select-none font-sans">
@@ -454,7 +466,7 @@ export function Calculator() {
                 title="Тариф электроэнергии"
                 description="Стоимость 1 кВт·ч для вашей мастерской. Задается в Настройках."
                 formula="Ток(₽) = Время(ч) × (Мощность(Вт) / 1000) × Тариф"
-                accentColor="cyan"
+                accentColor="neutral"
                 align="right"
               >
                 <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white ml-0.5 shrink-0 cursor-help" />
@@ -487,7 +499,7 @@ export function Calculator() {
 
                 {/* Выбор принтера в точности по скриншоту */}
                 <CockpitDropdown
-                  value={printerId || (printers.length > 0 ? printers[0].id : '')}
+                  value={selectedPrinter?.id ?? ''}
                   onChange={(val) => setPrinterId(val)}
                   footerText={`${printers.length} ПРИНТЕРОВ · ${printers.length} ОНЛАЙН`}
                   options={printers.map((p) => ({
@@ -514,7 +526,7 @@ export function Calculator() {
                         title="Расход и стоимость материала"
                         description="Прямой расход филамента или смолы на изготовление детали."
                         formula="Материал(₽) = Вес(г) × (Цена катушки / Вес катушки)"
-                        accentColor="cyan"
+                        accentColor="neutral"
                         align="left"
                       >
                         <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white shrink-0 cursor-help" />
@@ -527,7 +539,7 @@ export function Calculator() {
                         max="999999"
                         step="any"
                         value={weightG}
-                        onChange={(e) => setWeightG(e.target.value)}
+                        onChange={(e) => setWeightG(e.target.value === '' ? '' : String(parseCalculatorNumber(e.target.value)))}
                         placeholder="0"
                         style={{ width: `${Math.max(1, String(weightG || '').length) + 0.3}ch` }}
                         className="text-xl sm:text-2xl font-bold font-mono text-white bg-transparent focus:outline-none min-w-[1.5ch]"
@@ -540,7 +552,7 @@ export function Calculator() {
                   <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between gap-1.5">
                     <div className="min-w-0 flex-1">
                       <CockpitDropdown
-                        value={filamentId}
+                        value={selectedFilament?.id ?? ''}
                         onChange={(val) => setFilamentId(val)}
                         footerText={`${filaments.length} КАТУШЕК · В НАЛИЧИИ`}
                         options={filaments.map((f) => {
@@ -558,7 +570,7 @@ export function Calculator() {
                         placeholder="Выбрать пластик..."
                       />
                     </div>
-                    <span className="text-[10px] font-mono text-cyan-400 font-bold shrink-0">
+                    <span className="text-[10px] font-mono text-neutral-300 font-bold shrink-0">
                       {pricePerGram.toFixed(1)} ₽/г
                     </span>
                   </div>
@@ -573,7 +585,7 @@ export function Calculator() {
                         title="Время печати и тираж"
                         description="Длительность работы 3D-принтера для изготовления всей партии изделий."
                         formula="Всего часов = ((Дни × 24) + Часы + Минуты / 60) × Тираж"
-                        accentColor="cyan"
+                        accentColor="neutral"
                         align="left"
                       >
                         <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white shrink-0 cursor-help" />
@@ -585,7 +597,7 @@ export function Calculator() {
                         min="0"
                         max="999"
                         value={days}
-                        onChange={(e) => setDays(e.target.value)}
+                        onChange={(e) => setDays(e.target.value === '' ? '' : String(parseCalculatorNumber(e.target.value, true)))}
                         placeholder="0"
                         style={{ width: `${Math.max(1, String(days || '').length) + 0.3}ch` }}
                         className="bg-transparent focus:outline-none min-w-[1.2ch]"
@@ -597,7 +609,7 @@ export function Calculator() {
                         min="0"
                         max="9999"
                         value={hours}
-                        onChange={(e) => setHours(e.target.value)}
+                        onChange={(e) => setHours(e.target.value === '' ? '' : String(parseCalculatorNumber(e.target.value, true)))}
                         placeholder="0"
                         style={{ width: `${Math.max(1, String(hours || '').length) + 0.3}ch` }}
                         className="bg-transparent focus:outline-none min-w-[1.2ch]"
@@ -626,16 +638,16 @@ export function Calculator() {
                     <div className="flex items-center gap-1 text-white font-bold">
                       <button
                         type="button"
-                        onClick={() => setQuantity(Math.max(1, (parseInt(quantity) || 1) - 1).toString())}
-                        className="hover:text-cyan-400 px-1"
+                        onClick={() => setQuantity(Math.max(1, safeQuantity - 1).toString())}
+                        className="text-neutral-400 hover:text-white transition-colors px-1"
                       >
                         -
                       </button>
                       <span>{quantity} шт</span>
                       <button
                         type="button"
-                        onClick={() => setQuantity(((parseInt(quantity) || 1) + 1).toString())}
-                        className="hover:text-cyan-400 px-1"
+                        onClick={() => setQuantity((safeQuantity + 1).toString())}
+                        className="text-neutral-400 hover:text-white transition-colors px-1"
                       >
                         +
                       </button>
@@ -652,7 +664,7 @@ export function Calculator() {
                         title="Энергия и амортизация оборудования"
                         description="Почасовые затраты на электроэнергию и износ принтера (сопла, ремни, кинематика)."
                         formula="В час = (Мощность / 1000 × Тариф) + (Цена принтера / Ресурс принтера ч)"
-                        accentColor="cyan"
+                        accentColor="neutral"
                         align="left"
                       >
                         <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white shrink-0 cursor-help" />
@@ -667,24 +679,153 @@ export function Calculator() {
                   </span>
                 </div>
 
-                {/* 4. Коэффициент наценки */}
+                {/* 4. Коэффициент наценки и процент */}
                 <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 p-3.5 rounded-xl flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between">
-                      <label className="text-[11px] font-mono text-neutral-400 block">Коэффициент наценки</label>
-                      <CustomTooltip
-                        title="Торговая наценка (Markup)"
-                        description="Коэффициент наценки на прямые затраты печати для формирования розничной цены."
-                        formula="Цена печати = Себестоимость печати × (1 + Наценка% / 100)"
-                        align="left"
-                      >
-                        <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white shrink-0 cursor-help" />
-                      </CustomTooltip>
+                      <div className="flex items-center gap-1.5">
+                        <label className="text-[11px] font-mono text-neutral-400 block">
+                          {markupMode === 'percent' ? 'Наценка (%)' : 'Коэффициент (x)'}
+                        </label>
+                        <CustomTooltip
+                          title="Торговая наценка (Markup)"
+                          description="Коэффициент или процент наценки на прямые затраты для формирования розничной цены и прибыли."
+                          formula="Цена печати = База себестоимости × (1 + Наценка% / 100)"
+                          accentColor="emerald"
+                          align="left"
+                        >
+                          <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white shrink-0 cursor-help" />
+                        </CustomTooltip>
+                      </div>
+
+                      {/* Переключатель режима ввода: % или x */}
+                      <div className="flex items-center bg-white/5 border border-white/10 rounded p-0.5 text-[10px] font-mono">
+                        <button
+                          type="button"
+                          onClick={() => setMarkupMode('percent')}
+                          className={`px-1.5 py-0.2 rounded transition-colors cursor-pointer ${
+                            markupMode === 'percent'
+                              ? 'bg-emerald-500/20 text-emerald-300 font-bold'
+                              : 'text-neutral-500 hover:text-white'
+                          }`}
+                          title="Вводить процент наценки (+%)"
+                        >
+                          %
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMarkupMode('ratio');
+                            setRatioInputStr(markupRatio);
+                          }}
+                          className={`px-1.5 py-0.2 rounded transition-colors cursor-pointer ${
+                            markupMode === 'ratio'
+                              ? 'bg-emerald-500/20 text-emerald-300 font-bold'
+                              : 'text-neutral-500 hover:text-white'
+                          }`}
+                          title="Вводить коэффициент множителя (x)"
+                        >
+                          x
+                        </button>
+                      </div>
                     </div>
-                    <div className="mt-1 flex items-baseline gap-2">
-                      <span className="text-xl sm:text-2xl font-bold font-mono text-emerald-400">
-                        {markupRatio}x (+{currentMarkup}%)
-                      </span>
+
+                    {/* Поле ручного ввода процента или коэффициента */}
+                    <div className="mt-1 flex items-baseline gap-1 font-mono">
+                      {markupMode === 'percent' ? (
+                        <>
+                          <span className="text-xl sm:text-2xl font-bold font-mono text-emerald-400 select-none">+</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="5000"
+                            step="5"
+                            value={isMarkupFocused && calcMarkup === '' ? '' : (calcMarkup !== '' ? calcMarkup : currentMarkup)}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (val === '') {
+                                setCalcMarkup('');
+                                return;
+                              }
+                              const num = Math.max(0, parseFloat(val));
+                              if (!Number.isNaN(num)) {
+                                setCalcMarkup(val);
+                              }
+                            }}
+                            onFocus={(e) => {
+                              setIsMarkupFocused(true);
+                              if (calcMarkup === '') {
+                                setCalcMarkup(currentMarkup);
+                              }
+                              e.target.select();
+                            }}
+                            onBlur={() => setIsMarkupFocused(false)}
+                            placeholder={currentMarkup}
+                            style={{
+                              width: `${Math.max(1, String(isMarkupFocused && calcMarkup === '' ? currentMarkup : (calcMarkup !== '' ? calcMarkup : currentMarkup)).length) + 0.3}ch`
+                            }}
+                            className="text-xl sm:text-2xl font-bold font-mono text-emerald-400 bg-transparent focus:outline-none min-w-[1.5ch] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text"
+                          />
+                          <span className="text-sm font-mono text-emerald-400/80 select-none">%</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMarkupMode('ratio');
+                              setRatioInputStr(markupRatio);
+                            }}
+                            title="Переключить на ввод коэффициента (x)"
+                            className="text-xs font-mono text-neutral-400 hover:text-emerald-300 transition-colors ml-auto shrink-0 cursor-pointer"
+                          >
+                            ({markupRatio}x)
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <input
+                            type="number"
+                            min="1"
+                            max="50"
+                            step="0.1"
+                            value={isRatioFocused ? ratioInputStr : markupRatio}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setRatioInputStr(val);
+                              if (val === '') {
+                                setCalcMarkup('');
+                                return;
+                              }
+                              const r = parseFloat(val);
+                              if (!Number.isNaN(r)) {
+                                const pct = Math.max(0, Math.round((r - 1) * 100 * 10) / 10);
+                                setCalcMarkup(pct.toString());
+                              }
+                            }}
+                            onFocus={(e) => {
+                              setIsRatioFocused(true);
+                              setRatioInputStr(markupRatio);
+                              e.target.select();
+                            }}
+                            onBlur={() => {
+                              setIsRatioFocused(false);
+                              setRatioInputStr('');
+                            }}
+                            placeholder={markupRatio}
+                            style={{
+                              width: `${Math.max(2, String(isRatioFocused ? ratioInputStr : markupRatio).length) + 0.3}ch`
+                            }}
+                            className="text-xl sm:text-2xl font-bold font-mono text-emerald-400 bg-transparent focus:outline-none min-w-[2.5ch] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text"
+                          />
+                          <span className="text-sm font-mono text-emerald-400/80 select-none">x</span>
+                          <button
+                            type="button"
+                            onClick={() => setMarkupMode('percent')}
+                            title="Переключить на ввод процента (+%)"
+                            className="text-xs font-mono text-neutral-400 hover:text-emerald-300 transition-colors ml-auto shrink-0 cursor-pointer"
+                          >
+                            (+{currentMarkup}%)
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -692,18 +833,27 @@ export function Calculator() {
                   <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono">
                     <span className="text-neutral-500">Пресет:</span>
                     <div className="flex gap-1">
-                      {[50, 100, 180, 250].map((mVal) => (
-                        <button
-                          key={mVal}
-                          type="button"
-                          onClick={() => setCalcMarkup(mVal.toString())}
-                          className={`px-1.5 py-0.2 rounded ${
-                            parseInt(currentMarkup) === mVal ? 'bg-emerald-500/20 text-emerald-300 font-bold' : 'text-neutral-500 hover:text-white'
-                          }`}
-                        >
-                          +{mVal}%
-                        </button>
-                      ))}
+                      {[50, 100, 180, 250].map((mVal) => {
+                        const isSelected = Math.round(parseFloat(currentMarkup)) === mVal;
+                        const rVal = 1 + mVal / 100;
+                        const rStr = Number.isInteger(Math.round(rVal * 10)) ? rVal.toFixed(1) : rVal.toFixed(2);
+                        return (
+                          <button
+                            key={mVal}
+                            type="button"
+                            onClick={() => {
+                              setCalcMarkup(mVal.toString());
+                              setRatioInputStr(rStr);
+                            }}
+                            className={`px-1.5 py-0.2 rounded cursor-pointer transition-colors ${
+                              isSelected ? 'bg-emerald-500/20 text-emerald-300 font-bold' : 'text-neutral-500 hover:text-white'
+                            }`}
+                            title={markupMode === 'percent' ? `${rStr}x к себестоимости` : `+${mVal}%`}
+                          >
+                            {markupMode === 'percent' ? `+${mVal}%` : `${rStr}x`}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -715,7 +865,7 @@ export function Calculator() {
                 <span className="font-mono text-xs text-neutral-400 uppercase tracking-wider">
                   ПОСТ-ОБРАБОТКА И ДОП. РАСХОДЫ
                 </span>
-                <span className="font-mono text-xs text-cyan-400 font-bold">
+                <span className="font-mono text-xs text-neutral-300 font-bold">
                   +{formatCurrency(result.defectCost + result.laborCost + result.customCostsTotal, currencySymbol)}
                 </span>
               </div>
@@ -748,14 +898,14 @@ export function Calculator() {
                         min="0"
                         max="9999"
                         value={currentLaborMinutes}
-                        onChange={(e) => setCalcLaborMinutes(e.target.value)}
+                        onChange={(e) => setCalcLaborMinutes(e.target.value === '' ? '' : String(parseCalculatorNumber(e.target.value, true)))}
                         placeholder="0"
                         style={{ width: `${Math.max(1, String(currentLaborMinutes || '').length) + 0.3}ch` }}
                         className="text-xl sm:text-2xl font-bold font-mono text-white bg-transparent focus:outline-none min-w-[1.5ch]"
                       />
                       <span className="text-sm font-mono text-neutral-400">мин</span>
                       {result.laborCost > 0 && (
-                        <span className="text-xs font-mono text-cyan-400 font-bold ml-auto shrink-0 truncate">
+                        <span className="text-xs font-mono text-neutral-300 font-bold ml-auto shrink-0 truncate">
                           +{formatCurrency(result.laborCost, currencySymbol)}
                         </span>
                       )}
@@ -797,7 +947,7 @@ export function Calculator() {
                         </CustomTooltip>
                       </div>
                       {result.defectCost > 0 && (
-                        <span className="text-xs font-mono text-cyan-400 font-bold shrink-0 truncate">
+                        <span className="text-xs font-mono text-neutral-300 font-bold shrink-0 truncate">
                           +{formatCurrency(result.defectCost, currencySymbol)}
                         </span>
                       )}
@@ -831,7 +981,7 @@ export function Calculator() {
                           onClick={() => setCalcDefect(dVal.toString())}
                           className={`px-1.5 py-0.2 rounded cursor-pointer ${
                             parseInt(currentDefect) === dVal
-                              ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
+                              ? 'bg-white/15 text-white font-bold border border-white/25'
                               : 'text-neutral-500 hover:text-white'
                           }`}
                         >
@@ -853,44 +1003,43 @@ export function Calculator() {
                     </label>
                     <CustomTooltip
                       title="Дополнительные услуги и опции"
-                      description="Упаковка, доставка, покраска, фурнитура и моделирование с расчетом за заказ или за шт."
-                      formula="Услуги(₽) = Сумма(за заказ) + Сумма(за шт × Тираж)"
+                      description="Упаковка, доставка, покраска, фурнитура и моделирование с расчетом за заказ или за шт. Можно выбирать, куда идет услуга: в себестоимость (расход) или в прибыль."
+                      formula="Услуга → в себестоимость (расход) ИЛИ в прибыль (доход мастера)"
                       align="left"
                     >
                       <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white shrink-0 cursor-help" />
                     </CustomTooltip>
                     {calcCustomCostItems.length > 0 && (
-                      <span className="text-[10px] font-mono text-cyan-300 font-bold bg-cyan-950/60 border border-cyan-800/40 px-1.5 py-0.2 rounded">
+                      <span className="text-[10px] font-mono text-neutral-300 font-bold bg-white/5 border border-white/10 px-1.5 py-0.2 rounded">
                         {calcCustomCostItems.length} активн.
                       </span>
                     )}
                   </div>
                   {result.customCostsTotal > 0 && (
-                    <span className="text-xs font-mono text-cyan-400 font-bold">
+                    <span className="text-xs font-mono text-neutral-300 font-bold">
                       +{formatCurrency(result.customCostsTotal, currencySymbol)}
                     </span>
                   )}
                 </div>
 
-                {/* Интерактивные чипы: раскрываются прямо на месте при активации */}
+                {/* Интерактивные чипы: серый матовый стиль консоли */}
                 <div className="flex flex-wrap gap-2 items-center font-mono">
                   {DEFAULT_COST_CATEGORIES.filter(c => c.id !== 'print').map((cat) => {
                     const activeItem = (calcCustomCostItems || []).find(i => i.id === cat.id);
 
                     if (activeItem) {
-                      // Раскрытый активный чип в голубом стиле с редактированием цены прямо внутри
+                      // Раскрытый активный чип в строгом сером стиле консоли с выбором себестоимость / прибыль
                       return (
                         <div
                           key={cat.id}
-                          className="flex items-center gap-1.5 p-1 px-2.5 rounded-lg text-xs font-mono border bg-cyan-950/40 border-cyan-500/40 text-cyan-300 shadow-sm "
+                          className="flex items-center gap-1.5 p-1 px-2.5 rounded-lg text-xs font-mono border bg-neutral-900 border-white/20 text-neutral-200 shadow-sm"
                         >
-                          <span className="font-bold flex items-center gap-1 text-cyan-300 shrink-0">
-                            <span className="text-cyan-400">✓</span>
+                          <span className="font-bold flex items-center gap-1 text-white shrink-0">
                             <span>{cat.name}</span>
                           </span>
 
                           {/* Поле редактирования цены */}
-                          <div className="flex items-center gap-1 bg-neutral-950 border border-cyan-500/40 rounded px-1.5 py-0.5 focus-within:border-cyan-300 ">
+                          <div className="flex items-center gap-1 bg-neutral-950 border border-white/15 rounded px-1.5 py-0.5 focus-within:border-white/30">
                             <input
                               type="number"
                               min="0"
@@ -914,11 +1063,28 @@ export function Calculator() {
                               }}
                               className={`px-1.5 py-0.5 rounded text-[10px] border cursor-pointer font-bold ${
                                 activeItem.isPerUnit
-                                  ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50'
-                                  : 'bg-neutral-900 text-cyan-400 border-cyan-500/30 hover:text-white'
+                                  ? 'bg-white/15 text-white border-white/30'
+                                  : 'bg-neutral-950 text-neutral-400 border-white/15 hover:text-white'
                               }`}
                             >
                               {activeItem.isPerUnit ? 'за шт' : 'за заказ'}
+                            </button>
+                          </Tooltip>
+
+                          {/* Переключатель: в себестоимость / в прибыль */}
+                          <Tooltip content={activeItem.target === 'profit' ? 'Сумма идет в чистую прибыль мастера' : 'Сумма идет в прямую себестоимость изделия (расход)'}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCalcCustomCostItems(prev => prev.map(i => i.id === cat.id ? { ...i, target: i.target === 'profit' ? 'cost' : 'profit' } : i));
+                              }}
+                              className={`px-1.5 py-0.5 rounded text-[10px] border cursor-pointer font-bold ${
+                                activeItem.target === 'profit'
+                                  ? 'bg-emerald-950/60 text-emerald-300 border-emerald-700/50'
+                                  : 'bg-neutral-950 text-neutral-300 border-white/15 hover:text-white'
+                              }`}
+                            >
+                              {activeItem.target === 'profit' ? 'в прибыль' : 'в себест.'}
                             </button>
                           </Tooltip>
 
@@ -949,7 +1115,8 @@ export function Calculator() {
                             name: cat.name,
                             amount: cat.defaultAmount ?? 100,
                             isPerUnit: cat.isPerUnit ?? false,
-                            isEnabled: true
+                            isEnabled: true,
+                            target: cat.defaultTarget ?? 'cost',
                           }]);
                         }}
                         className="px-2.5 py-1.5 rounded-lg text-xs border cursor-pointer flex items-center gap-1 bg-white/[0.02] hover:bg-white/[0.06] text-neutral-400 border-white/10 hover:border-white/20 hover:text-white"
@@ -964,14 +1131,13 @@ export function Calculator() {
                   {(calcCustomCostItems || []).filter(item => !DEFAULT_COST_CATEGORIES.some(cat => cat.id === item.id)).map((customItem) => (
                     <div
                       key={customItem.id}
-                      className="flex items-center gap-1.5 p-1 px-2.5 rounded-lg text-xs font-mono border bg-cyan-950/40 border-cyan-500/40 text-cyan-300 shadow-sm "
+                      className="flex items-center gap-1.5 p-1 px-2.5 rounded-lg text-xs font-mono border bg-neutral-900 border-white/20 text-neutral-200 shadow-sm"
                     >
-                      <span className="font-bold flex items-center gap-1 text-cyan-300 shrink-0">
-                        <span className="text-cyan-400">✓</span>
+                      <span className="font-bold flex items-center gap-1 text-white shrink-0">
                         <span>{customItem.name}</span>
                       </span>
 
-                      <div className="flex items-center gap-1 bg-neutral-950 border border-cyan-500/40 rounded px-1.5 py-0.5 focus-within:border-cyan-300 ">
+                      <div className="flex items-center gap-1 bg-neutral-950 border border-white/15 rounded px-1.5 py-0.5 focus-within:border-white/30">
                         <input
                           type="number"
                           min="0"
@@ -994,11 +1160,27 @@ export function Calculator() {
                           }}
                           className={`px-1.5 py-0.5 rounded text-[10px] border cursor-pointer font-bold ${
                             customItem.isPerUnit
-                              ? 'bg-cyan-500/20 text-cyan-200 border-cyan-400/50'
-                              : 'bg-neutral-900 text-cyan-400 border-cyan-500/30 hover:text-white'
+                              ? 'bg-white/15 text-white border-white/30'
+                              : 'bg-neutral-950 text-neutral-400 border-white/15 hover:text-white'
                           }`}
                         >
                           {customItem.isPerUnit ? 'за шт' : 'за заказ'}
+                        </button>
+                      </Tooltip>
+
+                      <Tooltip content={customItem.target === 'profit' ? 'Сумма идет в чистую прибыль мастера' : 'Сумма идет в прямую себестоимость изделия (расход)'}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCalcCustomCostItems(prev => prev.map(i => i.id === customItem.id ? { ...i, target: i.target === 'profit' ? 'cost' : 'profit' } : i));
+                          }}
+                          className={`px-1.5 py-0.5 rounded text-[10px] border cursor-pointer font-bold ${
+                            customItem.target === 'profit'
+                              ? 'bg-emerald-950/60 text-emerald-300 border-emerald-700/50'
+                              : 'bg-neutral-950 text-neutral-300 border-white/15 hover:text-white'
+                          }`}
+                        >
+                          {customItem.target === 'profit' ? 'в прибыль' : 'в себест.'}
                         </button>
                       </Tooltip>
 
@@ -1022,7 +1204,7 @@ export function Calculator() {
                     onClick={() => setIsAddingCustomCost(!isAddingCustomCost)}
                     className={`px-2.5 py-1.5 rounded-lg text-xs border cursor-pointer flex items-center gap-1 font-mono ${
                       isAddingCustomCost
-                        ? 'bg-cyan-950/60 text-cyan-300 border-cyan-500/40 font-bold'
+                        ? 'bg-neutral-800 text-white border-white/30 font-bold'
                         : 'bg-white/[0.02] hover:bg-white/[0.06] text-neutral-300 border-dashed border-white/20 hover:border-white/40 hover:text-white'
                     }`}
                   >
@@ -1033,13 +1215,13 @@ export function Calculator() {
 
                 {/* Форма добавления нового расхода */}
                 {isAddingCustomCost && (
-                  <MotionRevealDiv className="p-3 bg-neutral-900/90 border border-cyan-500/30 rounded-xl space-y-2.5 text-xs font-mono">
+                  <MotionRevealDiv className="p-3 bg-neutral-900/90 border border-white/15 rounded-xl space-y-2.5 text-xs font-mono">
                     <div className="flex items-center justify-between text-[11px] text-neutral-400 border-b border-white/10 pb-1.5">
-                      <span className="font-bold text-cyan-300">{'// НОВЫЙ РАСХОД'}</span>
+                      <span className="font-bold text-neutral-200">{'// НОВЫЙ РАСХОД'}</span>
                       <button
                         type="button"
                         onClick={() => setIsAddingCustomCost(false)}
-                        className="text-neutral-500 hover:text-white "
+                        className="text-neutral-500 hover:text-white"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -1050,7 +1232,7 @@ export function Calculator() {
                         placeholder="Название (напр. Гравировка)"
                         value={newCostName}
                         onChange={(e) => setNewCostName(e.target.value)}
-                        className="sm:col-span-6 h-8 bg-neutral-950 border border-white/15 rounded-lg px-2.5 text-white focus:outline-none focus:border-cyan-400"
+                        className="sm:col-span-5 h-8 bg-neutral-950 border border-white/15 rounded-lg px-2.5 text-white focus:outline-none focus:border-white/30"
                       />
                       <div className="sm:col-span-3 flex items-center bg-neutral-950 border border-white/15 rounded-lg px-2.5 h-8">
                         <input
@@ -1063,15 +1245,24 @@ export function Calculator() {
                         />
                         <span className="text-neutral-500 text-xs ml-1">{currencySymbol}</span>
                       </div>
-                      <div className="sm:col-span-3 flex gap-1.5">
+                      <div className="sm:col-span-4 flex gap-1.5">
                         <button
                           type="button"
                           onClick={() => setNewCostIsPerUnit(!newCostIsPerUnit)}
                           className={`flex-1 h-8 rounded-lg text-[10px] border cursor-pointer font-bold ${
-                            newCostIsPerUnit ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40' : 'bg-neutral-950 text-neutral-400 border-white/15 hover:text-white'
+                            newCostIsPerUnit ? 'bg-white/15 text-white border-white/30' : 'bg-neutral-950 text-neutral-400 border-white/15 hover:text-white'
                           }`}
                         >
                           {newCostIsPerUnit ? 'за шт' : 'за заказ'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNewCostTarget(newCostTarget === 'profit' ? 'cost' : 'profit')}
+                          className={`flex-1 h-8 rounded-lg text-[10px] border cursor-pointer font-bold ${
+                            newCostTarget === 'profit' ? 'bg-emerald-950/60 text-emerald-300 border-emerald-700/50' : 'bg-neutral-950 text-neutral-300 border-white/15 hover:text-white'
+                          }`}
+                        >
+                          {newCostTarget === 'profit' ? 'в прибыль' : 'в себест.'}
                         </button>
                         <button
                           type="button"
@@ -1083,14 +1274,16 @@ export function Calculator() {
                               name: newCostName.trim(),
                               amount: parseFloat(newCostAmount) || 0,
                               isPerUnit: newCostIsPerUnit,
-                              isEnabled: true
+                              isEnabled: true,
+                              target: newCostTarget,
                             }]);
                             setNewCostName('');
                             setNewCostAmount('100');
                             setNewCostIsPerUnit(false);
+                            setNewCostTarget('cost');
                             setIsAddingCustomCost(false);
                           }}
-                          className="px-3 h-8 bg-cyan-400 text-neutral-950 font-bold rounded-lg hover:bg-cyan-300 cursor-pointer text-xs shrink-0"
+                          className="px-3 h-8 bg-white text-neutral-950 font-bold rounded-lg hover:bg-neutral-200 cursor-pointer text-xs shrink-0"
                         >
                           Добавить
                         </button>
@@ -1099,7 +1292,6 @@ export function Calculator() {
                   </MotionRevealDiv>
                 )}
               </div>
-
             </div>
 
             {/* ===================== ПРАВАЯ КОЛОНКА: ЧЕК (MUTED MATTE RECEIPT) ===================== */}
@@ -1124,20 +1316,25 @@ export function Calculator() {
                     </h3>
                     {parseInt(quantity) > 1 && (
                       <span className="text-xs font-mono font-bold text-neutral-800 whitespace-nowrap tabular-nums shrink-0">
-                        ~{formatCurrency(result.totalFinalPrice / Math.max(1, parseInt(quantity) || 1), currencySymbol)}/шт.
+                        ~{formatCurrency(result.totalFinalPrice / safeQuantity, currencySymbol)}/шт.
                       </span>
                     )}
                   </div>
                   <p className="text-xs text-neutral-700 font-mono mt-0.5">
-                    {selectedPrinter?.name || '3D Принтер'} · {filaments.find(f => f.id === filamentId)?.name || 'Пластик'}
+                    {selectedPrinter?.name || '3D Принтер'} · {selectedFilament?.name || 'Пластик'}
                   </p>
                 </div>
 
-                {/* 3. Секция INCLUDES с точечными линиями-лидерами */}
+                {/* 3. Группа 1: СЕБЕСТОИМОСТЬ (РАСХОДЫ) */}
                 <div className="mt-4 space-y-2">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-neutral-600 block">
-                    INCLUDES
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-neutral-600">
+                      СЕБЕСТОИМОСТЬ
+                    </span>
+                    <span className="text-[10px] font-mono text-neutral-600">
+                      прямые затраты
+                    </span>
+                  </div>
 
                   <div className="space-y-1.5 text-xs font-mono text-neutral-800">
                     <div className="flex items-baseline justify-between">
@@ -1160,28 +1357,34 @@ export function Calculator() {
 
                     {result.defectCost > 0 && (
                       <div className="flex items-baseline justify-between">
-                        <span className="shrink-0">• Закладка на брак ({currentDefect}%)</span>
+                        <span className="shrink-0">• Брак ({currentDefect}%)</span>
                         <span className="flex-1 mx-2 border-b border-dotted border-neutral-600/40" />
-                        <span className="font-bold text-neutral-950 shrink-0 whitespace-nowrap tabular-nums">+{formatCurrency(result.defectCost, currencySymbol)}</span>
+                        <span className="font-bold text-neutral-950 shrink-0 whitespace-nowrap tabular-nums">{formatCurrency(result.defectCost, currencySymbol)}</span>
                       </div>
                     )}
 
-                    {result.laborCost > 0 && (
+                    {!calcIsOwnerLabor && result.laborCost > 0 && (
                       <div className="flex items-baseline justify-between">
-                        <span className="shrink-0">• Ручной труд ({currentLaborMinutes} мин)</span>
+                        <span className="shrink-0">• Ручной труд ({currentLaborMinutes} мин, наемный)</span>
                         <span className="flex-1 mx-2 border-b border-dotted border-neutral-600/40" />
-                        <span className="font-bold text-neutral-950 shrink-0 whitespace-nowrap tabular-nums">+{formatCurrency(result.laborCost, currencySymbol)}</span>
+                        <span className="font-bold text-neutral-950 shrink-0 whitespace-nowrap tabular-nums">{formatCurrency(result.laborCost, currencySymbol)}</span>
                       </div>
                     )}
 
-                    {/* Дополнительные услуги */}
-                    {result.customCostsBreakdown.map((item) => (
+                    {/* Дополнительные расходы в себестоимость */}
+                    {result.customCostsBreakdown.filter(item => item.target === 'cost').map((item) => (
                       <div key={item.id} className="flex items-baseline justify-between">
-                        <span className="shrink-0 text-cyan-950 font-semibold">• {item.name}</span>
+                        <span className="shrink-0">• {item.name}</span>
                         <span className="flex-1 mx-2 border-b border-dotted border-neutral-600/40" />
-                        <span className="font-bold text-cyan-950 shrink-0 whitespace-nowrap tabular-nums">+{formatCurrency(item.totalAmount, currencySymbol)}</span>
+                        <span className="font-bold text-neutral-950 shrink-0 whitespace-nowrap tabular-nums">{formatCurrency(item.totalAmount, currencySymbol)}</span>
                       </div>
                     ))}
+
+                    {/* Подитог себестоимости */}
+                    <div className="flex justify-between pt-1.5 border-t border-neutral-600/30 text-xs font-mono font-bold text-neutral-950">
+                      <span>Итого себестоимость:</span>
+                      <span className="whitespace-nowrap tabular-nums">{formatCurrency(result.totalBaseCost, currencySymbol)}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -1195,36 +1398,78 @@ export function Calculator() {
                   <div className="border-b border-dashed border-neutral-600/40 w-full" />
                 </div>
 
-                {/* 5. Финансовая сводка (Subtotal / Наценка / Скидка) */}
-                <div className="space-y-1.5 text-xs font-mono text-neutral-700">
-                  <div className="flex justify-between">
-                    <span>Себестоимость (база):</span>
-                    <span className="font-bold text-neutral-950 whitespace-nowrap tabular-nums">{formatCurrency(result.totalBaseCost, currencySymbol)}</span>
+                {/* 5. Группа 2: НАЦЕНКА И ПРИБЫЛЬ */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-neutral-600">
+                      НАЦЕНКА И ПРИБЫЛЬ
+                    </span>
+                    <span className="text-[10px] font-mono text-neutral-600">
+                      доход мастерской
+                    </span>
                   </div>
 
-                  <div className="flex justify-between">
-                    <span>Наценка ({markupRatio}x / +{currentMarkup}%):</span>
-                    <span className="text-neutral-950 font-medium whitespace-nowrap tabular-nums">+{formatCurrency(Math.max(0, result.totalFinalPrice - result.totalBaseCost), currencySymbol)}</span>
-                  </div>
-
-                  {result.discountTotal > 0 && (
-                    <div className="flex justify-between text-emerald-900 font-bold">
-                      <span>Скидка на тираж:</span>
-                      <span className="whitespace-nowrap tabular-nums">-{formatCurrency(result.discountTotal, currencySymbol)}</span>
+                  <div className="space-y-1.5 text-xs font-mono text-neutral-800">
+                    <div className="flex items-baseline justify-between">
+                      <span className="shrink-0">• Наценка ({markupRatio}x / +{result.appliedMarkupPercent}%)</span>
+                      <span className="flex-1 mx-2 border-b border-dotted border-neutral-600/40" />
+                      <span className="font-bold text-neutral-950 shrink-0 whitespace-nowrap tabular-nums">+{formatCurrency(printMarkupAmount, currencySymbol)}</span>
                     </div>
-                  )}
 
-                  <div className="flex justify-between text-[11px] text-neutral-700 pt-0.5">
-                    <span>Чистая прибыль:</span>
-                    <span className="font-bold text-emerald-900 whitespace-nowrap tabular-nums">+{formatCurrency(result.profitTotal, currencySymbol)} ({result.marginPercent}%)</span>
-                  </div>
+                    {calcIsOwnerLabor && result.laborCost > 0 && (
+                      <div className="flex items-baseline justify-between">
+                        <span className="shrink-0">• Личный труд ({currentLaborMinutes} мин)</span>
+                        <span className="flex-1 mx-2 border-b border-dotted border-neutral-600/40" />
+                        <span className="font-bold text-neutral-950 shrink-0 whitespace-nowrap tabular-nums">+{formatCurrency(result.laborCost, currencySymbol)}</span>
+                      </div>
+                    )}
 
-                  {parseInt(quantity) > 1 && (
-                    <div className="flex justify-between text-neutral-950 font-bold pt-1 border-t border-neutral-600/20">
-                      <span>Цена за 1 шт.:</span>
-                      <span className="whitespace-nowrap tabular-nums">{formatCurrency(result.totalFinalPrice / Math.max(1, parseInt(quantity) || 1), currencySymbol)} / шт.</span>
+                    {result.urgencyCost > 0 && (
+                      <div className="flex items-baseline justify-between">
+                        <span className="shrink-0">• Наценка за срочность</span>
+                        <span className="flex-1 mx-2 border-b border-dotted border-neutral-600/40" />
+                        <span className="font-bold text-neutral-950 shrink-0 whitespace-nowrap tabular-nums">+{formatCurrency(result.urgencyCost, currencySymbol)}</span>
+                      </div>
+                    )}
+
+                    {minOrderSupplement > 0 && (
+                      <div className="flex items-baseline justify-between">
+                        <span className="shrink-0">• Доплата до мин. заказа</span>
+                        <span className="flex-1 mx-2 border-b border-dotted border-neutral-600/40" />
+                        <span className="font-bold text-neutral-950 shrink-0 whitespace-nowrap tabular-nums">+{formatCurrency(minOrderSupplement, currencySymbol)}</span>
+                      </div>
+                    )}
+
+                    {result.discountTotal > 0 && (
+                      <div className="flex items-baseline justify-between text-emerald-900 font-bold">
+                        <span className="shrink-0">• Скидка на заказ</span>
+                        <span className="flex-1 mx-2 border-b border-dotted border-neutral-600/40" />
+                        <span className="whitespace-nowrap tabular-nums">-{formatCurrency(result.discountTotal, currencySymbol)}</span>
+                      </div>
+                    )}
+
+                    {/* Дополнительные услуги в прибыль */}
+                    {result.customCostsBreakdown.filter(item => item.target === 'profit').map((item) => (
+                      <div key={item.id} className="flex items-baseline justify-between">
+                        <span className="shrink-0">• {item.name}</span>
+                        <span className="flex-1 mx-2 border-b border-dotted border-neutral-600/40" />
+                        <span className="font-bold text-neutral-950 shrink-0 whitespace-nowrap tabular-nums">+{formatCurrency(item.totalAmount, currencySymbol)}</span>
+                      </div>
+                    ))}
+
+                    {/* Подитог чистой прибыли */}
+                    <div className="flex justify-between pt-1.5 border-t border-neutral-600/30 text-xs font-mono font-bold text-neutral-950">
+                      <span>Чистая прибыль:</span>
+                      <span className="font-bold text-emerald-900 whitespace-nowrap tabular-nums">+{formatCurrency(result.profitTotal, currencySymbol)} ({result.marginPercent}%)</span>
                     </div>
-                  )}
+
+                    {parseInt(quantity) > 1 && (
+                      <div className="flex justify-between text-neutral-700 text-[11px] pt-0.5">
+                        <span>Цена за 1 шт.:</span>
+                        <span className="whitespace-nowrap tabular-nums">{formatCurrency(result.totalFinalPrice / safeQuantity, currencySymbol)} / шт.</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* 6. Итого к оплате (Крупный блок с ценой) */}
@@ -1236,7 +1481,7 @@ export function Calculator() {
                     <CustomTooltip
                       title="Итоговая расчетная цена"
                       description="Окончательная расчетная стоимость для клиента с учетом себестоимости, наценки, труда, услуг и скидок."
-                      formula="Цена = (Печать × Наценка + Труд + Услуги) + Срочность − Скидка"
+                      formula="Итого = Себестоимость + Наценка и прибыль"
                       accentColor="neutral"
                       align="right"
                     >
@@ -1250,7 +1495,7 @@ export function Calculator() {
                     </div>
                     <div className="text-[10.5px] font-mono text-neutral-700 block font-bold whitespace-nowrap tabular-nums">
                       {parseInt(quantity) > 1
-                        ? `${formatCurrency(result.totalFinalPrice / Math.max(1, parseInt(quantity) || 1), currencySymbol)} / шт. (за ${quantity} шт.)`
+                        ? `${formatCurrency(result.totalFinalPrice / safeQuantity, currencySymbol)} / шт. (за ${quantity} шт.)`
                         : 'за 1 шт.'}
                     </div>
                   </div>
@@ -1349,7 +1594,7 @@ export function Calculator() {
         quantity={quantity}
         weightG={weightG}
         printerName={selectedPrinter?.name || '3D-печать'}
-        filamentName={filaments.find(f => f.id === filamentId)?.name || 'Пластик'}
+        filamentName={selectedFilament?.name || 'Пластик'}
         currencySymbol={currencySymbol}
         result={result}
       />

@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 const outputDirectory = resolve('.test-dist');
 const tscScript = resolve('node_modules', 'typescript', 'bin', 'tsc');
 const unitTestFiles = [
+  'tests/calculator-state.test.ts',
   'tests/workshop.test.ts',
   'tests/workshop-persistence.test.ts',
   'tests/page-loading-assets.test.ts',
@@ -72,6 +73,7 @@ try {
     '--require',
     resolve('tests', 'register-aliases.cjs'),
     '--test',
+    resolve(outputDirectory, 'tests', 'calculator-state.test.js'),
     resolve(outputDirectory, 'tests', 'workshop.test.js'),
     resolve(outputDirectory, 'tests', 'workshop-persistence.test.js'),
     resolve(outputDirectory, 'tests', 'page-loading-assets.test.js'),

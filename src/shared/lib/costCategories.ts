@@ -22,6 +22,7 @@ export interface CostCategoryConfig {
   description: string;
   defaultAmount?: number;
   isPerUnit?: boolean;
+  defaultTarget?: 'cost' | 'profit';
 }
 
 export const DEFAULT_COST_CATEGORIES: CostCategoryConfig[] = [
@@ -29,8 +30,8 @@ export const DEFAULT_COST_CATEGORIES: CostCategoryConfig[] = [
     id: 'print',
     name: 'Печать',
     icon: Printer,
-    color: 'text-blue-400',
-    badgeStyle: 'bg-blue-950/80 text-blue-300 border-blue-500/40',
+    color: 'text-neutral-400',
+    badgeStyle: 'bg-neutral-900 text-neutral-300 border-neutral-700/50',
     description: 'Материал, нить / смола, электричество, амортизация',
     defaultAmount: 250,
     isPerUnit: true,
@@ -44,6 +45,7 @@ export const DEFAULT_COST_CATEGORIES: CostCategoryConfig[] = [
     description: 'Коробка, пупырка, zip-пакет, брендированный скотч',
     defaultAmount: 100,
     isPerUnit: false,
+      defaultTarget: 'cost',
   },
   {
     id: 'labor',
@@ -54,6 +56,7 @@ export const DEFAULT_COST_CATEGORIES: CostCategoryConfig[] = [
     description: 'Снятие поддержек, зачистка, шлифовка, сборка',
     defaultAmount: 150,
     isPerUnit: true,
+      defaultTarget: 'profit',
   },
   {
     id: 'painting',
@@ -64,16 +67,18 @@ export const DEFAULT_COST_CATEGORIES: CostCategoryConfig[] = [
     description: 'Грунтовка, акриловые эмали, аэрограф, лак',
     defaultAmount: 300,
     isPerUnit: true,
+      defaultTarget: 'profit',
   },
   {
     id: 'delivery',
     name: 'Доставка',
     icon: Truck,
-    color: 'text-cyan-400',
-    badgeStyle: 'bg-cyan-950/80 text-cyan-300 border-cyan-500/40',
+    color: 'text-neutral-400',
+    badgeStyle: 'bg-neutral-900 text-neutral-300 border-neutral-700/50',
     description: 'Курьер, отправка СДЭК, Почта, Яндекс',
     defaultAmount: 350,
     isPerUnit: false,
+      defaultTarget: 'cost',
   },
   {
     id: 'defect',
@@ -84,6 +89,7 @@ export const DEFAULT_COST_CATEGORIES: CostCategoryConfig[] = [
     description: 'Отбраковка, подбор настроек печати, тесты',
     defaultAmount: 50,
     isPerUnit: false,
+      defaultTarget: 'cost',
   },
   {
     id: 'modeling',
@@ -94,6 +100,7 @@ export const DEFAULT_COST_CATEGORIES: CostCategoryConfig[] = [
     description: 'Разработка, правка сетки STL, подготовка к печати',
     defaultAmount: 500,
     isPerUnit: false,
+      defaultTarget: 'profit',
   },
   {
     id: 'hardware',
@@ -104,6 +111,7 @@ export const DEFAULT_COST_CATEGORIES: CostCategoryConfig[] = [
     description: 'Вплавляемые латунные резьбовые втулки, винты, магниты',
     defaultAmount: 80,
     isPerUnit: true,
+      defaultTarget: 'cost',
   },
   {
     id: 'consumables',
@@ -114,6 +122,7 @@ export const DEFAULT_COST_CATEGORIES: CostCategoryConfig[] = [
     description: '3D-лак для стола, спирт IPA, смазка осей',
     defaultAmount: 50,
     isPerUnit: false,
+      defaultTarget: 'cost',
   },
   {
     id: 'tax',
@@ -124,6 +133,7 @@ export const DEFAULT_COST_CATEGORIES: CostCategoryConfig[] = [
     description: 'Налог самозанятого (4-6%), комиссия Авито/маркетплейса',
     defaultAmount: 70,
     isPerUnit: false,
+      defaultTarget: 'cost',
   },
 ];
 

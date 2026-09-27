@@ -165,6 +165,7 @@ export interface CustomCostBreakdownItem {
   amount: number;
   isPerUnit: boolean;
   totalAmount: number;
+  target: 'cost' | 'profit';
 }
 
 export interface DetailedCalculationResult {
@@ -174,6 +175,8 @@ export interface DetailedCalculationResult {
   laborCost: number;
   defectCost: number;
   customCostsTotal: number;
+  customCostsExpenseTotal: number;
+  customCostsProfitTotal: number;
   customCostsBreakdown: CustomCostBreakdownItem[];
 
   printDirectCost: number;
@@ -240,6 +243,7 @@ export interface CalculateCostParams {
  * Главная функция расчета себестоимости и розничной цены единичного 3D-изделия или тиража
  */
 export function calculatePrintCost(params: CalculateCostParams): DetailedCalculationResult {
+  const nonNegative = (value: number) => Number.isFinite(value) ? Math.max(0, value) : 0;
   const {
     weightG,
     days = 0,
@@ -260,7 +264,15 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
     filament,
     printer,
     settings
-  } = params;
+  } = {
+    ...params,
+    weightG: nonNegative(params.weightG),
+    days: nonNegative(params.days ?? 0),
+    hours: nonNegative(params.hours),
+    minutes: nonNegative(params.minutes),
+    laborMinutes: nonNegative(params.laborMinutes),
+    quantity: Math.max(1, Math.trunc(nonNegative(params.quantity))),
+  };
 
   const safeQuantity = Math.max(1, quantity || 1);
   const printTimeHours = timeToHours(hours, minutes, days);
@@ -288,24 +300,7 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
   // Базовая себестоимость печати с учетом брака
   const printBaseSubtotal = round2(printDirectCost + defectCost);
 
-  // 6. Определение сложности материала и наценки
-  const materialDifficulty = filament ? detectMaterialDifficulty(filament.name) : null;
-
-  let effectiveMarkupPercent: number;
-  if (customMarkupPercent !== undefined) {
-    effectiveMarkupPercent = customMarkupPercent;
-  } else if (settings?.enable_material_difficulty !== false && materialDifficulty) {
-    const configuredMarkup = settings?.material_multipliers?.[materialDifficulty.id];
-    effectiveMarkupPercent = configuredMarkup !== undefined
-      ? configuredMarkup
-      : materialDifficulty.defaultMarkup;
-  } else {
-    effectiveMarkupPercent = settings?.default_markup_percent ?? 100;
-  }
-
-  const printFinalPrice = round2(printBaseSubtotal * (1 + effectiveMarkupPercent / 100));
-
-  // 7. Труд мастера
+  // 6. Труд мастера
   const isLaborPerUnit = customIsLaborPerUnit !== undefined
     ? customIsLaborPerUnit
     : (settings?.is_labor_per_unit_default ?? false);
@@ -320,15 +315,17 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
     : (settings?.is_owner_labor_default ?? false);
   const laborInCost = isOwnerLabor ? 0 : laborCost;
 
-  // 8. Дополнительные расходы и услуги
+  // 7. Дополнительные расходы и услуги (разделение на себестоимость и прибыль)
   const customCostsBreakdown: CustomCostBreakdownItem[] = [];
-  let customCostsTotal = 0;
+  let customCostsExpenseTotal = 0;
+  let customCostsProfitTotal = 0;
 
   for (const item of customCostItems) {
     if (!item.isEnabled) continue;
     const itemAmount = item.amount || 0;
     const isPerUnit = Boolean(item.isPerUnit);
     const itemTotal = isPerUnit ? itemAmount * safeQuantity : itemAmount;
+    const target: 'cost' | 'profit' = item.target === 'profit' ? 'profit' : 'cost';
 
     customCostsBreakdown.push({
       id: item.id,
@@ -336,16 +333,42 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
       amount: itemAmount,
       isPerUnit,
       totalAmount: itemTotal,
+      target,
     });
-    customCostsTotal += itemTotal;
+
+    if (target === 'profit') {
+      customCostsProfitTotal += itemTotal;
+    } else {
+      customCostsExpenseTotal += itemTotal;
+    }
   }
-  customCostsTotal = round2(customCostsTotal);
+  customCostsExpenseTotal = round2(customCostsExpenseTotal);
+  customCostsProfitTotal = round2(customCostsProfitTotal);
+  const customCostsTotal = round2(customCostsExpenseTotal + customCostsProfitTotal);
 
-  // 9. Итого себестоимость (Печать + Брак + Наемный труд + Доп. расходы)
-  const totalBaseCost = round2(printBaseSubtotal + laborInCost + customCostsTotal);
+  // 8. Итого себестоимость (Печать + Брак + Наемный труд + Услуги в себестоимость)
+  const totalBaseCost = round2(printBaseSubtotal + laborInCost + customCostsExpenseTotal);
 
-  // 10. Базовая розничная цена (до срочности и скидок)
-  const baseRetailPrice = round2(printFinalPrice + laborCost + customCostsTotal);
+  // 9. Определение сложности материала и наценки
+  const materialDifficulty = filament ? detectMaterialDifficulty(filament.name) : null;
+
+  let effectiveMarkupPercent: number;
+  if (customMarkupPercent !== undefined) {
+    effectiveMarkupPercent = customMarkupPercent;
+  } else if (settings?.enable_material_difficulty !== false && materialDifficulty) {
+    const configuredMarkup = settings?.material_multipliers?.[materialDifficulty.id];
+    effectiveMarkupPercent = configuredMarkup !== undefined
+      ? configuredMarkup
+      : materialDifficulty.defaultMarkup;
+  } else {
+    effectiveMarkupPercent = settings?.default_markup_percent ?? 100;
+  }
+
+  // Коэффициент наценки умножает всю сумму себестоимости (печать, брак, наемный труд и услуги в себестоимость)
+  const printFinalPrice = round2(totalBaseCost * (1 + effectiveMarkupPercent / 100));
+
+  // 10. Базовая розничная цена (включает себестоимость с наценкой + личный труд в прибыль + услуги в прибыль)
+  const baseRetailPrice = round2(printFinalPrice + (isOwnerLabor ? laborCost : 0) + customCostsProfitTotal);
 
   // 11. Наценка за срочность (Urgency Fee)
   const safeUrgencyPercent = Math.max(0, urgencyPercent || 0);
@@ -384,6 +407,8 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
     laborCost,
     defectCost,
     customCostsTotal,
+    customCostsExpenseTotal,
+    customCostsProfitTotal,
     customCostsBreakdown,
     printDirectCost,
     printBaseSubtotal,
