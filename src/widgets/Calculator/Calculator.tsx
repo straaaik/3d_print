@@ -28,9 +28,11 @@ import {
   X,
   Zap,
   HelpCircle,
-  Share2
+  Share2,
+  Sparkles
 } from 'lucide-react';
 import { usePersistentState } from '../../shared/lib/usePersistentState';
+import { detectMaterialDifficulty } from '../../shared/lib/materialDifficulty';
 import { CockpitDropdown } from '../../shared/ui/CockpitDropdown';
 import { ClientReceiptModal } from './ClientReceiptModal';
 import { MotionRevealDiv } from '../../shared/ui/MotionPrimitives';
@@ -211,6 +213,33 @@ export function Calculator() {
 
   const currentMarkup = calcMarkup !== '' ? calcMarkup : result.appliedMarkupPercent.toString();
   const currentDefect = calcDefect !== '' ? calcDefect : defaultDefectValue.toString();
+
+  // Определение базового коэффициента/наценки из настроек с учетом сложности выбранного пластика
+  const baseMaterialDifficulty = useMemo(() => {
+    return selectedFilament ? detectMaterialDifficulty(selectedFilament.name) : null;
+  }, [selectedFilament]);
+
+  const baseMarkupPercent = useMemo(() => {
+    if (settings?.enable_material_difficulty !== false && baseMaterialDifficulty) {
+      const configuredMarkup = settings?.material_multipliers?.[baseMaterialDifficulty.id];
+      return configuredMarkup !== undefined
+        ? configuredMarkup
+        : baseMaterialDifficulty.defaultMarkup;
+    }
+    return settings?.default_markup_percent ?? 100;
+  }, [settings, baseMaterialDifficulty]);
+
+  const baseMarkupRatio = useMemo(() => {
+    const r = 1 + baseMarkupPercent / 100;
+    return Number.isInteger(Math.round(r * 10)) ? r.toFixed(1) : r.toFixed(2);
+  }, [baseMarkupPercent]);
+
+  const isBaseMarkupActive = calcMarkup === '' || Math.round(parseFloat(currentMarkup)) === baseMarkupPercent;
+
+  const handleApplyBaseMarkup = () => {
+    setCalcMarkup(''); // Сбрасывает ручной оверрайд, активируя базовую настройку для пластика
+    setRatioInputStr(baseMarkupRatio);
+  };
 
   const pricePerGram = selectedFilament && selectedFilament.weight_g > 0
     ? (selectedFilament.price / selectedFilament.weight_g)
@@ -829,32 +858,56 @@ export function Calculator() {
                     </div>
                   </div>
 
-                  {/* Быстрые кнопки переключения наценки */}
-                  <div className="mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] font-mono">
-                    <span className="text-neutral-500">Пресет:</span>
-                    <div className="flex gap-1">
-                      {[50, 100, 180, 250].map((mVal) => {
-                        const isSelected = Math.round(parseFloat(currentMarkup)) === mVal;
-                        const rVal = 1 + mVal / 100;
-                        const rStr = Number.isInteger(Math.round(rVal * 10)) ? rVal.toFixed(1) : rVal.toFixed(2);
-                        return (
-                          <button
-                            key={mVal}
-                            type="button"
-                            onClick={() => {
-                              setCalcMarkup(mVal.toString());
-                              setRatioInputStr(rStr);
-                            }}
-                            className={`px-1.5 py-0.2 rounded cursor-pointer transition-colors ${
-                              isSelected ? 'bg-emerald-500/20 text-emerald-300 font-bold' : 'text-neutral-500 hover:text-white'
-                            }`}
-                            title={markupMode === 'percent' ? `${rStr}x к себестоимости` : `+${mVal}%`}
-                          >
-                            {markupMode === 'percent' ? `+${mVal}%` : `${rStr}x`}
-                          </button>
-                        );
-                      })}
+                  {/* Быстрые кнопки переключения наценки и кнопка базового коэффициента */}
+                  <div className="mt-2 pt-2 border-t border-white/5 space-y-1.5 font-mono">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-neutral-500">Пресет:</span>
+                      <div className="flex gap-1">
+                        {[50, 100, 180, 250].map((mVal) => {
+                          const isSelected = !isBaseMarkupActive && Math.round(parseFloat(currentMarkup)) === mVal;
+                          const rVal = 1 + mVal / 100;
+                          const rStr = Number.isInteger(Math.round(rVal * 10)) ? rVal.toFixed(1) : rVal.toFixed(2);
+                          return (
+                            <button
+                              key={mVal}
+                              type="button"
+                              onClick={() => {
+                                setCalcMarkup(mVal.toString());
+                                setRatioInputStr(rStr);
+                              }}
+                              className={`px-1.5 py-0.2 rounded cursor-pointer transition-colors ${
+                                isSelected ? 'bg-emerald-500/20 text-emerald-300 font-bold' : 'text-neutral-500 hover:text-white'
+                              }`}
+                              title={markupMode === 'percent' ? `${rStr}x к себестоимости` : `+${mVal}%`}
+                            >
+                              {markupMode === 'percent' ? `+${mVal}%` : `${rStr}x`}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
+
+                    {/* Кнопка применения базового коэффициента из настроек с учетом пластика */}
+                    <button
+                      type="button"
+                      onClick={handleApplyBaseMarkup}
+                      className={`w-full py-1 px-2 rounded border text-[10px] flex items-center justify-between transition-colors cursor-pointer ${
+                        isBaseMarkupActive
+                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 font-medium'
+                          : 'bg-white/[0.03] border-white/10 hover:border-white/20 text-neutral-400 hover:text-white'
+                      }`}
+                      title={`Применить базовый коэффициент из настроек (${baseMarkupRatio}x / +${baseMarkupPercent}%) для пластика "${selectedFilament?.name || 'по умолчанию'}"`}
+                    >
+                      <span className="flex items-center gap-1.5 truncate">
+                        <Sparkles className={`w-3 h-3 shrink-0 ${isBaseMarkupActive ? 'text-emerald-400' : 'text-neutral-400'}`} />
+                        <span className="truncate">
+                          {selectedFilament ? `Базовый (${baseMaterialDifficulty?.shortLabel || 'пластик'}):` : 'Базовый из настроек:'}
+                        </span>
+                      </span>
+                      <span className={`font-bold shrink-0 ml-1 ${isBaseMarkupActive ? 'text-emerald-300' : 'text-neutral-300'}`}>
+                        {markupMode === 'percent' ? `+${baseMarkupPercent}%` : `${baseMarkupRatio}x`}
+                      </span>
+                    </button>
                   </div>
                 </div>
 

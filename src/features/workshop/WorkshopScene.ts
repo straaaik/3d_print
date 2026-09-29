@@ -7,6 +7,7 @@ import { acquireAssets, releaseAssets, type Assets, type SceneBuild } from './sc
 import { roomOrigin, findRoomAt, type FurnitureKind, snap, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, pickWorkshopTarget, footprint, slotWorld, calculatePanDelta, calculateOrbitAngles, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget, calculateGroupMove, resolvePlacementPosition, defaultRoomLabels, type Furniture, type Room, type Workshop, type Slot, type ModelKey, type Placement } from './model';
 import { buildSpatialWorkshop, workshopBounds } from './spatialScene';
 import { SpatialAuthoring, type SpatialCallbacks } from './spatialAuthoring';
+import { isFilamentFurniture } from './model';
 import type { Filament, Printer } from '../../shared/types';
 
 export interface HoverPlacementInfo {
@@ -1207,20 +1208,14 @@ export class WorkshopScene {
         this.highlightedFurnitureId = placementMeta.f.id;
         this.build?.setFurnitureBorderColor(placementMeta.f.id, '#38bdf8');
         this.updateGizmoForPlacement(id);
-        if (isPrinter) {
-          this.selectedPrinterPlacementId = id;
-          this.build?.setPrinterOutline?.(id, 'selected');
-        }
+        this.selectedPrinterPlacementId = id;
+        this.build?.setPrinterOutline?.(id, 'selected');
         return;
       }
 
       this.hideGizmo();
 
-      if (isPrinter) {
-        this.showPrinterInspectionLight(placementMeta);
-      } else {
-        this.hidePrinterInspectionLight();
-      }
+      this.showPrinterInspectionLight(placementMeta);
 
       if (!this.top) {
         if (isPrinter) {
@@ -1229,9 +1224,8 @@ export class WorkshopScene {
           const inspectionAzimuth = this.getSafeInspectionAzimuth(target, placementMeta.f.rotation);
           this.moveCamera(target, 1.5, inspectionAzimuth, 20, false);
         } else {
-          // Filament on rack: zoom to front of filament rack (1.8m)
-          const o = roomOrigin(this.data, placementMeta.f.roomId);
-          const target = new THREE.Vector3(o.x + placementMeta.f.x, placementMeta.f.height * 0.5, o.z + placementMeta.f.z);
+          // Center the selected spool so the top/bottom shelf cannot crop it.
+          const target = placementMeta.pos.clone().add(new THREE.Vector3(0, .18, 0));
           this.moveCamera(target, 1.8, this.azimuth, 14, false);
         }
       } else {
@@ -1256,9 +1250,9 @@ export class WorkshopScene {
       } else {
         this.hideGizmo();
         // Camera zooms ONLY to filament rack, NOT to tables or printer racks!
-        if (!this.top && furniture.kind === 'filament_rack') {
+        if (!this.top && isFilamentFurniture(furniture.kind)) {
           const o = roomOrigin(this.data, furniture.roomId);
-          const target = new THREE.Vector3(o.x + furniture.x, furniture.height * 0.5, o.z + furniture.z);
+          const target = new THREE.Vector3(o.x + furniture.x, furniture.kind === 'wall_filament_rack' ? 1.35 : furniture.height * 0.5, o.z + furniture.z);
           this.moveCamera(target, 1.8, this.azimuth, 14, false);
         } else {
           this.overview();
@@ -1429,7 +1423,7 @@ export class WorkshopScene {
     this.key.shadow.camera.updateProjectionMatrix();
     if (this.selected) {
       const placementMeta = this.build.placements.get(this.selected);
-      if (placementMeta && placementMeta.p.kind === 'printer') {
+      if (placementMeta) {
         this.selectedPrinterPlacementId = this.selected;
         this.build?.setPrinterOutline?.(this.selected, 'selected');
       } else {
@@ -2408,7 +2402,7 @@ export class WorkshopScene {
           }
           this.selectedFurnitureIds.clear();
           const f = this.data?.furniture.find((item) => item.id === furnitureId);
-          if (f?.kind === 'filament_rack') {
+          if (f && isFilamentFurniture(f.kind)) {
             this.options.onSelect(furnitureId, 'furniture');
             this.select(furnitureId);
           } else {
@@ -2691,7 +2685,7 @@ export class WorkshopScene {
     this.camera.updateMatrixWorld();
     this.authoring.project();
     this.renderer.info.reset();
-    this.presentation.render(this.top);
+    this.options.canvas.dataset.outlinedPlacement = this.presentation.render(this.top, this.selected) ?? '';
     this.options.canvas.dataset.drawCalls = String(this.renderer.info.render.calls);
     if (this.hoveredPlacementId) {
       this.updateHoverPlacementBadge();
@@ -2776,4 +2770,3 @@ export function getWorkshopShadowConfig(containerWidth: number) {
 }
 
 export { calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget } from './model';
-

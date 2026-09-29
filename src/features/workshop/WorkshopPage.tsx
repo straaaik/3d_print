@@ -13,6 +13,7 @@ import { useWorkshop } from './useWorkshop';
 import { WorkshopCanvas } from './WorkshopCanvas';
 import {
   createFurniture,
+  nearestWallMount,
   placeEntity,
   removeFurniture,
   createRoomFromTiles,
@@ -27,7 +28,6 @@ import {
   syncWorkshopPlacements,
   uid,
   updateFurniture,
-  findNearestValidPosition,
   resolveInvalidFurniture,
   pushWorkshopHistory,
   undoWorkshopHistory,
@@ -312,7 +312,7 @@ function Workspace({ userId }: { userId: string }) {
   function handleSaveAndExit() {
     if (!layout) return;
     const { nextState, relocated } = resolveInvalidFurniture(layout);
-    let effectiveLayout = nextState;
+    const effectiveLayout = nextState;
     if (relocated.length > 0) {
       commit(effectiveLayout);
       const names = relocated.map((r) => `«${r.furniture.name}»`).join(', ');
@@ -358,6 +358,7 @@ function Workspace({ userId }: { userId: string }) {
       const f = layout!.furniture.find((item) => item.id === id);
       if (!f) return;
       const next = { ...f, rotation };
+      if(f.kind==='wall_filament_rack')throw new Error('Настенный стеллаж поворачивается автоматически при переносе к другой стене.');
       commit(updateFurniture(layout!, next, true));
       select(id, 'furniture');
     });
@@ -450,6 +451,11 @@ function Workspace({ userId }: { userId: string }) {
     if(!edit)return;
     attempt(()=>{
       const f=createFurniture(roomId,kind);
+      if(kind==='wall_filament_rack'){
+        const mounted=nearestWallMount(layout!,{...f,x,z});
+        if(!mounted)throw new Error('Нет свободного участка стены: настенному стеллажу нужно 1,24 м.');
+        commit(updateFurniture(layout!,mounted));setActiveRoom(roomId);select(f.id,'furniture');return;
+      }
       const isLengthOnly = ['table', 'printer_rack', 'filament_rack'].includes(kind);
       const targetDepth = isLengthOnly ? f.depth : depth;
       const decor=['plant','boxes','cabinet'].includes(kind);
@@ -614,7 +620,9 @@ function Workspace({ userId }: { userId: string }) {
   function handlePlaceFilament(filament: Filament) {
     if (!room || !layout) return;
     const occupied = new Set(layout.placements.map((p) => p.slotId));
-    const freeSlot = layout.slots.find(
+    const selectedFurnitureId=selection?.kind==='furniture'?selection.id:layout.slots.find(s=>s.id===layout.placements.find(p=>p.id===selection?.id)?.slotId)?.furnitureId;
+    const candidates=[...layout.slots].sort((a,b)=>Number(b.furnitureId===selectedFurnitureId)-Number(a.furnitureId===selectedFurnitureId));
+    const freeSlot = candidates.find(
       (s) =>
         s.kind === 'filament' &&
         !occupied.has(s.id) &&
@@ -744,7 +752,12 @@ function Workspace({ userId }: { userId: string }) {
                   attempt(() => {
                     const f = layout.furniture.find((item) => item.id === id)!;
                     const nextRoomId = targetRoomId ?? f.roomId;
-                    commit(updateFurniture(layout, { ...f, roomId: nextRoomId, x, z }, true));
+                    const moved={...f,roomId:nextRoomId,x,z};
+                    if(f.kind==='wall_filament_rack'){
+                      const mounted=nearestWallMount(layout,moved);
+                      if(!mounted)throw new Error('На этой стене нет свободного места для стеллажа.');
+                      commit(updateFurniture(layout,mounted));
+                    }else commit(updateFurniture(layout,moved,true));
                     if (nextRoomId !== activeRoom) {
                       setActiveRoom(nextRoomId);
                     }

@@ -11,6 +11,45 @@ import { getOrCreateHudButtonTexture, hudButtonTextureCache, clearHudButtonTextu
 import { occupiedSides } from '../src/features/workshop/spatialScene';
 import { ReferenceSceneParts } from '../src/features/workshop/referenceSceneParts';
 import { buildMergedOutlineGeometry, buildPrinterOutlineHull } from '../src/features/workshop/sceneGeometry';
+import { findSelectionMask, updateFilamentHighlight } from '../src/features/workshop/selectionContour';
+
+test('filament selection keeps its animated pose without an outline', () => {
+  const f = spatial.createFurniture('room', 'filament_rack');
+  const s = spatial.slotsFor(f)[0];
+  const mask = new THREE.Mesh();
+  mask.userData.selectionMask = mask.geometry;
+  mask.userData.placementId = 'spool';
+  mask.userData.selectionKind = 'filament';
+  const root = new THREE.Group(); root.add(mask);
+  updateFilamentHighlight(mask, f, s, 1);
+  assert.equal(findSelectionMask(root, null), undefined);
+  assert.equal(findSelectionMask(root, 'spool'), undefined);
+  assert.ok(Math.abs(mask.position.z - s.z - .07) < 1e-8);
+  mask.updateMatrix();
+  const hoverPose = mask.matrix.clone();
+  mask.userData.selectedMask = true;
+  assert.equal(updateFilamentHighlight(mask, f, s, 0), 1);
+  mask.updateMatrix();
+  assert.deepEqual(mask.matrix.elements, hoverPose.elements, 'Click must not push the spool and its mask back into the shelf');
+  mask.userData.selectedMask = false;
+  updateFilamentHighlight(mask, f, s, 0);
+  assert.equal(findSelectionMask(root, null), undefined);
+  assert.equal(mask.position.z, s.z);
+  mask.geometry.dispose(); (mask.material as THREE.Material).dispose();
+});
+
+test('clicked placement ID controls outline despite stale hover or selection flags', () => {
+  const root = new THREE.Group(), printer = new THREE.Mesh(), spool = new THREE.Mesh();
+  printer.userData = { selectionMask: printer.geometry, placementId: 'printer', selectedMask: true };
+  spool.userData = { selectionMask: spool.geometry, placementId: 'spool', selectionKind: 'filament', hoverMask: true };
+  root.add(printer, spool);
+  assert.equal(findSelectionMask(root, 'printer'), printer);
+  assert.equal(findSelectionMask(root, null), undefined);
+  printer.userData.selectedMask = false;
+  assert.equal(findSelectionMask(root, 'spool'), undefined);
+  assert.equal(findSelectionMask(root, 'missing'), undefined);
+  for (const mesh of [printer, spool]) { mesh.geometry.dispose(); (mesh.material as THREE.Material).dispose(); }
+});
 
 test('default layout has non-overlapping furnishings including movable decor and no invented inventory', () => {
   const state = createWorkshop();
@@ -2240,7 +2279,7 @@ test('resolveInvalidFurniture and updateFurniture: allows free placement/rotatio
   assert.ok(notification.includes('перемещён, так как он стоял в недоступном месте'));
 });
 
-test('buildPrinterOutlineHull creates merged, welded, extruded silhouette hull from mesh hierarchies', () => {
+test('buildPrinterOutlineHull creates an exterior contour from mesh hierarchies', () => {
   const root = new THREE.Group();
   const box1 = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5));
   box1.position.set(0, 0.25, 0);
@@ -2264,81 +2303,59 @@ test('buildPrinterOutlineHull creates merged, welded, extruded silhouette hull f
   box2.geometry.dispose();
 });
 
-test('printer 3D model contour outline transitions between active (emerald bloom) and selected (cyan bloom) states with BackSide hull and no internal light bulb', () => {
-  const activeColor = new THREE.Color('#10b981').multiplyScalar(4.0);
-  const selectedColor = new THREE.Color('#38bdf8').multiplyScalar(3.5);
-
-  // Colors must exceed UnrealBloomPass threshold of 1.8 for luminous neon glow
-  assert.ok(Math.max(activeColor.r, activeColor.g, activeColor.b) > 1.8, 'Active color must exceed bloom threshold 1.8');
-  assert.ok(Math.max(selectedColor.r, selectedColor.g, selectedColor.b) > 1.8, 'Selected color must exceed bloom threshold 1.8');
-
-  const activeOutlineMaterial = new THREE.MeshBasicMaterial({
-    color: activeColor,
-    side: THREE.BackSide,
-    depthTest: true,
-    depthWrite: false,
-    transparent: true,
-    opacity: 0.95,
-  });
-  const selectedOutlineMaterial = new THREE.MeshBasicMaterial({
-    color: selectedColor,
-    side: THREE.BackSide,
-    depthTest: true,
-    depthWrite: false,
-    transparent: true,
-    opacity: 0.98,
-  });
-
-  assert.equal(activeOutlineMaterial.side, THREE.BackSide, 'Material must render BackSide for exterior silhouette hull');
-  assert.equal(activeOutlineMaterial.depthWrite, false, 'Depth write must be disabled to avoid occluding other objects');
-
-  const outline = new THREE.Mesh(new THREE.BufferGeometry(), activeOutlineMaterial);
-  outline.visible = false;
-
-  const item = { outline, isActive: true };
-
-  // 1. Initial active state: visible with glowing emerald BackSide hull
-  if (item.isActive) {
-    item.outline.material = activeOutlineMaterial;
-    item.outline.visible = true;
-  }
-  assert.equal(item.outline.visible, true, 'Active printer must have visible contour outline');
-  assert.equal(item.outline.material, activeOutlineMaterial, 'Active printer must use active emerald bloom material');
-
-  // 2. Select active printer: switches to bright cyan outline, stays visible
-  item.outline.material = selectedOutlineMaterial;
-  item.outline.visible = true;
-  assert.equal(item.outline.visible, true, 'Selected printer must remain visible');
-  assert.equal(item.outline.material, selectedOutlineMaterial, 'Selected printer must use cyan bloom material');
-
-  // 3. Deselect active printer: returns to emerald contour (not hidden)
-  if (item.isActive) {
-    item.outline.material = activeOutlineMaterial;
-    item.outline.visible = true;
-  } else {
-    item.outline.visible = false;
-  }
-  assert.equal(item.outline.visible, true);
-  assert.equal(item.outline.material, activeOutlineMaterial, 'Deselecting active printer must return to emerald contour');
-
-  // 4. Inactive printer: hidden when deselected, cyan when selected
-  const inactiveItem = { outline: new THREE.Mesh(new THREE.BufferGeometry(), selectedOutlineMaterial), isActive: false };
-  // Apply inactive deselect
-  inactiveItem.outline.visible = inactiveItem.isActive;
-  assert.equal(inactiveItem.outline.visible, false, 'Inactive printer must not show outline when deselected');
-
-  // Selecting inactive printer turns cyan outline on
-  inactiveItem.outline.material = selectedOutlineMaterial;
-  inactiveItem.outline.visible = true;
-  assert.equal(inactiveItem.outline.visible, true, 'Selecting inactive printer must show cyan outline');
-
-  // Clean up
-  activeOutlineMaterial.dispose();
-  selectedOutlineMaterial.dispose();
+test('selection contour ignores all interior meshes and keeps only the exterior envelope', () => {
+  const root = new THREE.Group();
+  const shell = new THREE.Mesh(new THREE.BoxGeometry(.6, .8, .6));
+  root.add(shell);
+  const before = buildPrinterOutlineHull(root);
+  const inner = new THREE.Mesh(new THREE.TorusKnotGeometry(.12, .025, 64, 8));
+  root.add(inner);
+  const after = buildPrinterOutlineHull(root);
+  assert.deepEqual(Array.from(after.getAttribute('position').array), Array.from(before.getAttribute('position').array));
+  assert.ok(after.getAttribute('position').count < 2000, 'Simple enclosure must stay lightweight');
+  before.dispose(); after.dispose(); shell.geometry.dispose(); inner.geometry.dispose();
 });
 
+test('filament edge and neighboring clearances remain positive at full hover scale', () => {
+  const state = createWorkshop();
+  for (const kind of ['filament_rack', 'wall_filament_rack'] as const) {
+    const f = spatial.createFurniture(state.rooms[0].id, kind);
+    const slots = spatial.slotsFor(f);
+    const radiusX = .1 * spatial.filamentScale(f)[0] * 1.05 + .003;
+    const xs = slots.slice(0,f.columns).map(s => spatial.slotWorld(f,s)[0]);
+    assert.ok(Math.abs(xs[0]) + radiusX < f.width / 2 - .08, 'Hover must clear the side supports');
+    assert.ok(Math.abs(xs.at(-1)!) + radiusX < f.width / 2 - .08);
+    for (let i=1;i<xs.length;i++) assert.ok(xs[i]-xs[i-1] > 2*radiusX, 'Spools must not intersect their neighbors');
+    const rotated = spatial.slotWorld({...f,rotation:90}, slots[0]);
+    assert.ok(Math.abs(rotated[2]+xs[0])<1e-6);
+  }
+});
 
+test('wall filament rack snaps to a real wall, keeps eight filament slots and round trips', () => {
+  const state=createWorkshop();
+  const base=spatial.createFurniture(state.rooms[0].id,'wall_filament_rack');
+  assert.equal(spatial.validFurniture(state,base),false);
+  const rack=spatial.nearestWallMount(state,{...base,x:-2,z:-4});
+  assert.ok(rack);
+  assert.equal(rack.rotation,0);
+  assert.equal(spatial.getFurnitureCollisionReason(state,rack),null);
+  const next=spatial.updateFurniture(state,rack);
+  const slots=next.slots.filter(s=>s.furnitureId===rack.id);
+  assert.equal(slots.length,8);
+  assert.ok(slots.every(s=>s.kind==='filament'&&s.z===.035));
+  assert.deepEqual([...new Set(slots.map(s=>s.y))],[.93,1.53]);
+  assert.ok(spatial.parseWorkshop(JSON.stringify(next)));
+  const moved=spatial.nearestWallMount(next,{...rack,x:-6,z:0});
+  assert.ok(moved);assert.equal(moved.rotation,90);
+  const resaved=spatial.updateFurniture(next,moved);
+  assert.deepEqual(resaved.slots.filter(s=>s.furnitureId===rack.id).map(s=>s.id),slots.map(s=>s.id));
+});
 
-
-
-
+test('wall rack refuses cutaway edge placement and keeps existing floor rack dimensions and slots',()=>{
+  const state=createWorkshop();
+  const base=spatial.createFurniture(state.rooms[0].id,'wall_filament_rack');
+  assert.equal(spatial.validFurniture(state,{...base,z:state.rooms[0].depth/2-.23,rotation:180}),false);
+  const old=spatial.createFurniture(state.rooms[0].id,'filament_rack');
+  assert.deepEqual([old.width,old.depth,old.height,old.levels,old.columns],[1.8,.45,2.15,4,8]);
+  assert.equal(spatial.slotsFor(old).length,32);
+});

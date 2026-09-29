@@ -53,6 +53,11 @@ export class ReferenceSceneParts {
     });
   }
   furniture(parent:THREE.Group,f:Furniture,occupied:boolean){
+    if(f.kind==='wall_filament_rack'){
+      const mounted=new THREE.Group();mounted.position.y=.75;
+      this.copy(mounted,'wallFilamentRack','',new THREE.Vector3());
+      parent.add(mounted);return;
+    }
     const table=f.kind==='table',printer=f.kind==='printer_rack',asset=table?'workbench':printer?'printerRack':'filamentRack';
     const label=table?'Workbench':'Printer';
     const shelfName=table?'Shelf_Workbench_Top_Wood':printer?'Shelf_Printer_0_Wood':'Shelf_Filament_0_Wood';

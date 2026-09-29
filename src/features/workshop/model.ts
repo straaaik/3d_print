@@ -1,4 +1,4 @@
-export type FurnitureKind = 'table' | 'printer_rack' | 'filament_rack' | 'plant' | 'boxes' | 'cabinet';
+export type FurnitureKind = 'table' | 'printer_rack' | 'filament_rack' | 'wall_filament_rack' | 'plant' | 'boxes' | 'cabinet';
 export type EntityKind = 'printer' | 'filament';
 export type ModelKey = 'a1' | 'p1';
 export type RoomSide = 'north' | 'east' | 'south' | 'west';
@@ -12,17 +12,50 @@ export const furnitureNames: Record<FurnitureKind, string> = {
   table: 'Стол',
   printer_rack: 'Стойка',
   filament_rack: 'Стеллаж',
+  wall_filament_rack: 'Настенный стеллаж для катушек',
   plant: 'Кустик / Растение',
   boxes: 'Упаковочные коробки',
   cabinet: 'Инструментальная тумба',
 };
 export const uid = () => crypto.randomUUID();
+export const isFilamentFurniture = (kind: FurnitureKind) => kind === 'filament_rack' || kind === 'wall_filament_rack';
+
+/** Full-height exterior north/west walls; open cutaway edges and doorways cannot support a rack. */
+function wallMountCandidates(state: Workshop, f: Furniture): Furniture[] {
+  const room=state.rooms.find(r=>r.id===f.roomId);if(!room)return [];
+  const origin=roomOrigin(state,room.id);
+  const segments:{side:'north'|'west';line:number;start:number;end:number}[]=[];
+  if(room.tiles?.length){
+    const edges=roomPerimeterEdges(room.tiles).filter(e=>(e.side==='north'||e.side==='west')&&!isTileOccupiedByRooms(state,e.x-(e.side==='west'?1:0),e.z-(e.side==='north'?1:0),room.id));
+    for(const edge of edges){
+      const side=edge.side as 'north'|'west',line=side==='north'?edge.z-origin.z:edge.x-origin.x,start=side==='north'?edge.x-origin.x:edge.z-origin.z;
+      segments.push({side,line,start,end:start+1});
+    }
+    segments.sort((a,b)=>a.side.localeCompare(b.side)||a.line-b.line||a.start-b.start);
+    for(let i=1;i<segments.length;){const a=segments[i-1],b=segments[i];if(a.side===b.side&&a.line===b.line&&Math.abs(a.end-b.start)<.001){a.end=b.end;segments.splice(i,1);}else i++;}
+  }else{
+    const open=new Set<RoomSide>();
+    if(room.attachment)open.add(({north:'south',south:'north',east:'west',west:'east'} as const)[room.attachment.side]);
+    for(const r of state.rooms)if(r.attachment?.roomId===room.id)open.add(r.attachment.side);
+    if(!open.has('north'))segments.push({side:'north',line:-room.depth/2,start:-room.width/2,end:room.width/2});
+    if(!open.has('west'))segments.push({side:'west',line:-room.width/2,start:-room.depth/2,end:room.depth/2});
+  }
+  return segments.filter(s=>s.end-s.start>=f.width+.04).map(s=>{
+    const along=Math.max(s.start+f.width/2+.02,Math.min(s.end-f.width/2-.02,s.side==='north'?f.x:f.z));
+    const inset=f.depth/2+.07;
+    return {...f,x:s.side==='north'?along:s.line+inset,z:s.side==='north'?s.line+inset:along,rotation:s.side==='north'?0:90};
+  });
+}
+export function nearestWallMount(state: Workshop, f: Furniture): Furniture|null {
+  return wallMountCandidates(state,f).filter(candidate=>validFurniture(state,candidate)).sort((a,b)=>Math.hypot(a.x-f.x,a.z-f.z)-Math.hypot(b.x-f.x,b.z-f.z))[0]??null;
+}
 export const snap = (n: number, grid: number) => Math.round(n / grid) * grid;
 export function pickWorkshopTarget<T extends {userData:Record<string,unknown>}>(hits:{object:T}[],edit:boolean):T|undefined {
   return (!edit?hits.find(hit=>hit.object.userData.placementId)?.object:undefined)??hits[0]?.object;
 }
 
 export function createFurniture(roomId: string, kind: FurnitureKind): Furniture {
+  if(kind==='wall_filament_rack')return {id:uid(),roomId,kind,name:furnitureNames[kind],x:0,z:0,rotation:0,width:1.2,depth:.32,height:1.95,levels:2,columns:4};
   const isDecor = ['plant', 'boxes', 'cabinet'].includes(kind);
   return {
     id: uid(),
@@ -43,10 +76,10 @@ export function slotsFor(f: Furniture, previous: Slot[] = []): Slot[] {
   if (f.columns <= 0 || f.levels <= 0) return [];
   return Array.from({ length: f.levels * f.columns }, (_, index) => ({
     id: previous.find(s => s.index === index)?.id ?? uid(), furnitureId: f.id,
-    kind: f.kind === 'filament_rack' ? 'filament' : 'printer', index,
-    x: ((index % f.columns + .5) / f.columns - .5) * f.width,
-    y: f.kind === 'table' ? f.height : .18 + Math.floor(index / f.columns) * (f.height - .35) / f.levels,
-    z: 0,
+    kind: isFilamentFurniture(f.kind) ? 'filament' : 'printer', index,
+    x: ((index % f.columns + .5) / f.columns - .5) * (f.width-(f.kind==='wall_filament_rack'?.12:0)),
+    y: f.kind==='wall_filament_rack'?.93+Math.floor(index/f.columns)*.6:f.kind === 'table' ? f.height : .18 + Math.floor(index / f.columns) * (f.height - .35) / f.levels,
+    z: f.kind==='wall_filament_rack'?.035:0,
   }));
 }
 export function footprint(f: Furniture) {
@@ -61,10 +94,12 @@ export function validFurniture(state: Workshop, f: Furniture): boolean {
   } else {
     if (f.columns < 1) return false;
     if (f.kind === 'table' && f.levels !== 1) return false;
-    if (f.width / f.columns < (f.kind === 'filament_rack' ? .16 : .6) || (f.kind !== 'table' && (f.height - .35) / f.levels < (f.kind === 'filament_rack' ? .24 : .95))) return false;
+    if (f.width / f.columns < (isFilamentFurniture(f.kind) ? .16 : .6) || (f.kind !== 'table' && (f.height - .35) / f.levels < (isFilamentFurniture(f.kind) ? .24 : .95))) return false;
   }
   const { w,d } = footprint(f);
-  if (Math.abs(f.x) + w/2 > room.width/2 - .15 || Math.abs(f.z) + d/2 > room.depth/2 - .15) return false;
+  const margin=f.kind==='wall_filament_rack'?.02:.15;
+  if (Math.abs(f.x) + w/2 > room.width/2 - margin || Math.abs(f.z) + d/2 > room.depth/2 - margin) return false;
+  if(f.kind==='wall_filament_rack' && (f.width!==1.2||f.depth!==.32||f.height!==1.95||f.levels!==2||f.columns!==4||!wallMountCandidates(state,f).some(p=>p.rotation===f.rotation&&Math.hypot(p.x-f.x,p.z-f.z)<.015)))return false;
   return !state.furniture.some(other => {
     if (other.id === f.id || other.roomId !== f.roomId) return false;
     const o = footprint(other);
@@ -76,7 +111,8 @@ export function getFurnitureCollisionReason(state: Workshop, f: Furniture): stri
   if (!room) return 'Комната не найдена';
 
   const { w, d } = footprint(f);
-  if (Math.abs(f.x) + w / 2 > room.width / 2 - 0.15 || Math.abs(f.z) + d / 2 > room.depth / 2 - 0.15) {
+  const margin = f.kind === 'wall_filament_rack' ? .02 : .15;
+  if (Math.abs(f.x) + w / 2 > room.width / 2 - margin || Math.abs(f.z) + d / 2 > room.depth / 2 - margin) {
     return 'Выход за пределы комнаты';
   }
 
@@ -174,7 +210,23 @@ export function snapFurnitureToNeighbors(
 }
 export function slotWorld(f: Furniture, s: Slot): [number,number,number] {
   const angle = f.rotation * Math.PI / 180;
-  return [f.x + s.x * Math.cos(angle) + s.z * Math.sin(angle), s.y, f.z - s.x * Math.sin(angle) + s.z * Math.cos(angle)];
+  const x = filamentSlotX(f, s);
+  return [f.x + x * Math.cos(angle) + s.z * Math.sin(angle), s.y, f.z - x * Math.sin(angle) + s.z * Math.cos(angle)];
+}
+
+/** Presentation spacing preserves persisted slot IDs and inventory links. */
+export function filamentSlotX(f: Furniture, s: Slot): number {
+  return isFilamentFurniture(f.kind)
+    ? ((s.index % f.columns + .5) / f.columns - .5) * filamentUsableWidth(f)
+    : s.x;
+}
+export function filamentUsableWidth(f: Furniture): number {
+  return Math.max(.1, f.width - .26);
+}
+export function filamentScale(f: Furniture): [number, number, number] {
+  const axial = Math.min(1, Math.max(.1, (filamentUsableWidth(f) / f.columns - .014) / .21));
+  const radial = f.kind === 'wall_filament_rack' ? 1 : Math.min(1, (f.height - .35) / f.levels / .39, (f.depth - .04) / .36);
+  return [axial, radial, radial];
 }
 export interface GroupMoveResult {
   valid: boolean;
@@ -249,6 +301,7 @@ export function findNearestValidPosition(
   furniture: Furniture,
   gridStep = 0.1
 ): { x: number; z: number; roomId: string; rotation: number } | null {
+  if(furniture.kind==='wall_filament_rack')return nearestWallMount(state,furniture);
   // If already valid in place, return current position
   if (validFurniture(state, furniture)) {
     return { x: furniture.x, z: furniture.z, roomId: furniture.roomId, rotation: furniture.rotation };
@@ -540,7 +593,7 @@ export function parseWorkshop(raw: string): Workshop | null {
     if (s.rooms.some(r=>r.camera&&((r.camera.azimuth!==undefined&&(!Number.isFinite(r.camera.azimuth)||Math.abs(r.camera.azimuth)>1000))||(r.camera.top!==undefined&&typeof r.camera.top!=='boolean')))) return null;
     if (s.rooms.some(r => r.tiles && (!Array.isArray(r.tiles) || r.tiles.length > 2000 || r.tiles.some(t => !Array.isArray(t) || t.length !== 2 || !t.every(Number.isFinite))))) return null;
     if (s.furniture.some(f=>typeof f.name!=='string' || !Object.hasOwn(furnitureNames,f.kind) || !validFurniture(s,f))) return null;
-    if (s.slots.some(slot=>!s.furniture.some(f=>f.id===slot.furnitureId && (f.kind==='filament_rack'?'filament':'printer')===slot.kind) || ![slot.index,slot.x,slot.y,slot.z].every(Number.isFinite))) return null;
+    if (s.slots.some(slot=>!s.furniture.some(f=>f.id===slot.furnitureId && (isFilamentFurniture(f.kind)?'filament':'printer')===slot.kind) || ![slot.index,slot.x,slot.y,slot.z].every(Number.isFinite))) return null;
     if (new Set(s.slots.map(x=>`${x.furnitureId}:${x.index}`)).size!==s.slots.length) return null;
     for (const f of s.furniture) {
       const actual=s.slots.filter(slot=>slot.furnitureId===f.id);
@@ -1414,6 +1467,3 @@ export function redoWorkshopHistory(
   }
   return next;
 }
-
-
-

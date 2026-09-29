@@ -3,6 +3,7 @@ import {
   resizeRoom,
   resizeFurnitureOnGrid,
   createFurniture,
+  nearestWallMount,
   roomOrigin,
   snap,
   validFurniture,
@@ -687,7 +688,7 @@ export class SpatialAuthoring {
   beginFurniture(kind: FurnitureKind) {
     if (!this.edit) return;
     this.start({ type: 'furniture', kind, width: 1, depth: 1, x: 0, z: 0 });
-    this.callbacks.onAuthoringHint?.('Нажмите на пол и протяните размер мебели. Второй щелчок подтверждает. Esc — отмена.');
+    this.callbacks.onAuthoringHint?.(kind==='wall_filament_rack'?'Наведите указатель к стене. Стеллаж закрепится на ней; щелчок — разместить, Esc — отмена.':'Нажмите на пол и протяните размер мебели. Второй щелчок подтверждает. Esc — отмена.');
   }
 
   beginLabel(surface?: Surface, text?: string, color?: string, size = 0.35, rotation = 0) {
@@ -773,7 +774,7 @@ export class SpatialAuthoring {
     this.lastHit = null;
     if (this.labelPreviewMesh) {
       if (this.labelPreviewMesh.material instanceof THREE.Material) {
-        if ((this.labelPreviewMesh.material as any).map) (this.labelPreviewMesh.material as any).map.dispose();
+        if ('map' in this.labelPreviewMesh.material && this.labelPreviewMesh.material.map instanceof THREE.Texture) this.labelPreviewMesh.material.map.dispose();
         this.labelPreviewMesh.material.dispose();
       }
       this.labelPreviewMesh.geometry.dispose();
@@ -932,7 +933,7 @@ export class SpatialAuthoring {
       this.currentPreviewKey = previewKey;
       if (this.labelPreviewMesh) {
         if (this.labelPreviewMesh.material instanceof THREE.Material) {
-          if ((this.labelPreviewMesh.material as any).map) (this.labelPreviewMesh.material as any).map.dispose();
+          if ('map' in this.labelPreviewMesh.material && this.labelPreviewMesh.material.map instanceof THREE.Texture) this.labelPreviewMesh.material.map.dispose();
           this.labelPreviewMesh.material.dispose();
         }
         this.labelPreviewMesh.geometry.dispose();
@@ -1313,6 +1314,9 @@ export class SpatialAuthoring {
 
     // 1. Завершение активного режима (чертежа)
     if (this.draft) {
+      if(this.draft.type==='furniture'&&this.draft.kind==='wall_filament_rack'){
+        this.pointerMove(e);this.commit();return true;
+      }
       if (this.draft.type === 'label') {
         this.placeLabel(e);
         return true;
@@ -1580,12 +1584,20 @@ export class SpatialAuthoring {
       }
       this.renderFurnitureResize3D(f, draft.width, draft.depth, valid);
     } else if (draft.type === 'furniture') {
-      const room = draft.roomId ? this.state.rooms.find((r) => r.id === draft.roomId) : this.roomAt(p);
+      const room = draft.kind==='wall_filament_rack'?this.roomAt(p):draft.roomId ? this.state.rooms.find((r) => r.id === draft.roomId) : this.roomAt(p);
       if (!room) {
         this.cleanupFurniturePreview();
         return true;
       }
       const o = roomOrigin(this.state, room.id);
+      if(draft.kind==='wall_filament_rack'){
+        const base=createFurniture(room.id,draft.kind);
+        const mounted=nearestWallMount(this.state,{...base,x:p.x-o.x,z:p.z-o.z});
+        draft.roomId=room.id;draft.width=base.width;draft.depth=base.depth;
+        draft.x=mounted?.x??p.x-o.x;draft.z=mounted?.z??p.z-o.z;
+        this.renderFurnitureResize3D(mounted??{...base,x:draft.x,z:draft.z},base.width,base.depth,!!mounted);
+        return true;
+      }
       if (draft.anchor) {
         const ax = draft.anchor.x - o.x;
         const az = draft.anchor.z - o.z;

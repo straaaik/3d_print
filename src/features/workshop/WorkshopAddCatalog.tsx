@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { motion } from 'motion/react';
 import {
   Plus,
@@ -8,13 +9,13 @@ import {
   ChevronLeft,
   Package,
   Layers,
-  Sparkles,
   Type,
   Trash2,
   Edit,
 } from 'lucide-react';
 import type { FurnitureKind, Room, Workshop } from './model';
 import type { Filament, Printer } from '../../shared/types';
+import { CockpitButton } from '../../shared/ui/CockpitButton';
 
 interface WorkshopAddCatalogProps {
   layout: Workshop;
@@ -387,6 +388,15 @@ export function WorkshopAddCatalog({
                   </button>
                 </div>
 
+                <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-2">
+                  <Image src="/images/workshop/wall-filament-rack.png" alt="Настенный стеллаж с катушками" width={56} height={56} sizes="56px" className="h-14 w-14 shrink-0 rounded-lg object-cover" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold text-white">Настенный стеллаж</div>
+                    <div className="mt-1 text-[10px] text-neutral-400">1,2 м · 2 ряда · 8 катушек</div>
+                    <div className="mt-1 text-[10px] text-neutral-500">Размещается у стены</div>
+                  </div>
+                  <CockpitButton icon={Plus} aria-label="Добавить настенный стеллаж" title="Добавить настенный стеллаж" onClick={()=>addFurniture('wall_filament_rack')}>Добавить</CockpitButton>
+                </div>
                 {/* Стеллаж для филамента */}
                 <div className="group flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-2 hover:border-white/20 hover:bg-white/[0.04] transition-all">
                   <div className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-neutral-900/90 shadow-inner group-hover:border-cyan-500/40 transition-colors">

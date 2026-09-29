@@ -10,7 +10,8 @@ import {
   Cpu,
   Sparkles,
   Layers,
-  Receipt
+  Receipt,
+  ScanLine
 } from 'lucide-react';
 
 export interface CostCategoryConfig {
@@ -57,6 +58,17 @@ export const DEFAULT_COST_CATEGORIES: CostCategoryConfig[] = [
     defaultAmount: 150,
     isPerUnit: true,
       defaultTarget: 'profit',
+  },
+  {
+    id: 'scanning',
+    name: '3D-Сканирование',
+    icon: ScanLine,
+    color: 'text-neutral-400',
+    badgeStyle: 'bg-neutral-900 text-neutral-300 border-neutral-700/50',
+    description: 'Оцифровка физической детали, 3D-скан, реверс-инжиниринг',
+    defaultAmount: 1000,
+    isPerUnit: false,
+    defaultTarget: 'profit',
   },
   {
     id: 'painting',
@@ -176,8 +188,13 @@ export function getCategoryConfig(categoryName: string): CostCategoryConfig {
   if (clean.includes('брак') || clean.includes('тест') || clean.includes('отбраковк')) {
     return DEFAULT_COST_CATEGORIES[5]; // Брак
   }
+  const byId = (id: string) => DEFAULT_COST_CATEGORIES.find(c => c.id === id) || DEFAULT_COST_CATEGORIES[0];
+
+  if (clean.includes('скан') || clean.includes('scan')) {
+    return byId('scanning');
+  }
   if (clean.includes('модел') || clean.includes('слайс') || clean.includes('stl') || clean.includes('cad')) {
-    return DEFAULT_COST_CATEGORIES[6]; // Моделирование
+    return byId('modeling');
   }
   if (clean.includes('фурнитур') || clean.includes('метиз') || clean.includes('втулк') || clean.includes('винт') || clean.includes('магнит') || clean.includes('болт')) {
     return DEFAULT_COST_CATEGORIES[7]; // Фурнитура

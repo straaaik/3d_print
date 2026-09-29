@@ -904,7 +904,7 @@ create table if not exists public.workshop_furniture (
   user_id uuid not null references auth.users(id) on delete cascade,
   room_id uuid not null,
   name text not null,
-  kind text not null check (kind in ('table', 'printer_rack', 'filament_rack')),
+  kind text not null check (kind in ('table', 'printer_rack', 'filament_rack', 'wall_filament_rack', 'plant', 'boxes', 'cabinet')),
   x numeric not null check (x between -100000 and 100000),
   z numeric not null check (z between -100000 and 100000),
   rotation integer not null check (rotation in (0, 90, 180, 270)),

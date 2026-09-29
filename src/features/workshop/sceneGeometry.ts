@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { mergeGeometries, mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { buildSelectionContour, buildSelectionMask, updateFilamentHighlight } from './selectionContour';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { ReferenceSceneParts } from './referenceSceneParts';
 import { instanceTemplate, disposeAssets, disposeInstances } from './instances';
-import { defaultRoomLabels, slotWorld, roomOrigin, type Room, type Workshop, type Furniture, type Slot, type Placement } from './model';
+import { defaultRoomLabels, slotWorld, filamentSlotX, filamentScale, roomOrigin, type Room, type Workshop, type Furniture, type Slot, type Placement } from './model';
 import type { Filament, Printer } from '../../shared/types';
 
 export interface Assets {
@@ -15,60 +16,20 @@ export interface Assets {
   cabinet: THREE.Group;
   workbench: THREE.Group;
   filamentRack: THREE.Group;
+  wallFilamentRack: THREE.Group;
   printerRack: THREE.Group;
   room: THREE.Group;
   a1Outline?: THREE.BufferGeometry;
   p1Outline?: THREE.BufferGeometry;
+  spoolOutline?: THREE.BufferGeometry;
+  a1Mask?: THREE.BufferGeometry;
+  p1Mask?: THREE.BufferGeometry;
+  spoolMask?: THREE.BufferGeometry;
 }
 
-export function buildPrinterOutlineHull(modelGroup: THREE.Group, thickness = 0.009): THREE.BufferGeometry {
-  const t = thickness > 0.5 ? 0.009 : thickness;
-  const geoms: THREE.BufferGeometry[] = [];
-  modelGroup.updateMatrixWorld(true);
-  modelGroup.traverse((child) => {
-    if (child instanceof THREE.Mesh && child.geometry) {
-      if (/nozzle/i.test(child.name)) return;
-      const g = child.geometry.clone();
-      for (const key of Object.keys(g.attributes)) {
-        if (key !== 'position' && key !== 'normal') g.deleteAttribute(key);
-      }
-      if (!g.attributes.normal) {
-        g.computeVertexNormals();
-      }
-      const relMatrix = new THREE.Matrix4().copy(modelGroup.matrixWorld).invert().multiply(child.matrixWorld);
-      g.applyMatrix4(relMatrix);
-      geoms.push(g);
-    }
-  });
-
-  if (geoms.length === 0) return new THREE.BufferGeometry();
-  const merged = mergeGeometries(geoms);
-  geoms.forEach((g) => g.dispose());
-  if (!merged) return new THREE.BufferGeometry();
-
-  const welded = mergeVertices(merged, 0.001);
-  merged.dispose();
-  welded.computeVertexNormals();
-
-  const pos = welded.attributes.position;
-  const norm = welded.attributes.normal;
-  for (let i = 0; i < pos.count; i++) {
-    const nx = norm.getX(i);
-    const ny = norm.getY(i);
-    const nz = norm.getZ(i);
-    pos.setXYZ(
-      i,
-      pos.getX(i) + nx * t,
-      Math.max(0.001, pos.getY(i) + ny * t),
-      pos.getZ(i) + nz * t
-    );
-  }
-  pos.needsUpdate = true;
-  welded.computeBoundingBox();
-  welded.computeBoundingSphere();
-  return welded;
+export function buildPrinterOutlineHull(modelGroup: THREE.Group, _legacyThickness?: number): THREE.BufferGeometry {
+  return buildSelectionContour(modelGroup);
 }
-
 export const buildMergedOutlineGeometry = buildPrinterOutlineHull;
 
 // Shared CPU/GPU templates are leased by mounted scenes, never disposed by an instance.
@@ -77,7 +38,7 @@ let users=0;
 export function acquireAssets(): Promise<Assets> {
   users++;
   if (!pending) {
-    const loading=Promise.allSettled(['printer-a1','printer-p1','filament-spool','packing-boxes','plant','tool-cabinet','workbench','filament-rack','printer-rack','room-module'].map(async name=>{
+    const loading=Promise.allSettled(['printer-a1','printer-p1','filament-spool','packing-boxes','plant','tool-cabinet','workbench','filament-rack','printer-rack','room-module','wall-filament-rack'].map(async name=>{
     const loader=new GLTFLoader();
     // Embedded PNGs are images, not network requests. TextureLoader uses the
     // allowed img-src blob: path; ImageBitmapLoader would fetch them via connect-src.
@@ -90,7 +51,8 @@ export function acquireAssets(): Promise<Assets> {
           : null;
       },
     }));
-    const gltf=await loader.loadAsync(`/models/workshop/${name}.glb?v=reference-20260924-r3`);
+    const revision=name==='filament-spool'||name==='wall-filament-rack'?'filament-20260928-r1':'reference-20260924-r3';
+    const gltf=await loader.loadAsync(`/models/workshop/${name}.glb?v=${revision}`);
     const root=new THREE.Group();
     gltf.scene.rotation.x=-Math.PI/2; root.add(gltf.scene); root.updateMatrixWorld(true);
     const box=new THREE.Box3().setFromObject(root);
@@ -107,10 +69,12 @@ export function acquireAssets(): Promise<Assets> {
         disposeAssets(results.flatMap(r=>r.status==='fulfilled'?[r.value]:[]));
         throw failed.reason;
       }
-      const [a1,p1,spool,boxes,plant,cabinet,workbench,filamentRack,printerRack,room]=results.map(r=>(r as PromiseFulfilledResult<THREE.Group>).value);
+      const [a1,p1,spool,boxes,plant,cabinet,workbench,filamentRack,printerRack,room,wallFilamentRack]=results.map(r=>(r as PromiseFulfilledResult<THREE.Group>).value);
       const a1Outline = buildMergedOutlineGeometry(a1);
       const p1Outline = buildMergedOutlineGeometry(p1);
-      return {a1,p1,spool,boxes,plant,cabinet,workbench,filamentRack,printerRack,room,a1Outline,p1Outline};
+      const spoolOutline = buildSelectionContour(spool, .0013);
+      return {a1,p1,spool,boxes,plant,cabinet,workbench,filamentRack,printerRack,room,wallFilamentRack,a1Outline,p1Outline,spoolOutline,
+        a1Mask:buildSelectionMask(a1), p1Mask:buildSelectionMask(p1), spoolMask:buildSelectionMask(spool)};
     }).catch(error=>{if(pending===loading)pending=null;throw error;});
     pending=loading;
   }
@@ -162,15 +126,15 @@ export function buildWorkshop(
   const hitMaterial=new THREE.MeshBasicMaterial({visible:false});
   const activeOutlineMaterial = new THREE.MeshBasicMaterial({
     color: new THREE.Color('#10b981').multiplyScalar(4.0),
-    side: THREE.BackSide,
+    side: THREE.FrontSide,
     depthTest: true,
     depthWrite: false,
     transparent: true,
     opacity: 0.95,
   });
   const selectedOutlineMaterial = new THREE.MeshBasicMaterial({
-    color: new THREE.Color('#38bdf8').multiplyScalar(3.5),
-    side: THREE.BackSide,
+    color: new THREE.Color('#009dff').multiplyScalar(4),
+    side: THREE.FrontSide,
     depthTest: true,
     depthWrite: false,
     transparent: true,
@@ -239,8 +203,9 @@ export function buildWorkshop(
     const occupied=state.placements.some(p=>state.slots.some(s=>s.id===p.slotId&&s.furnitureId===f.id));
     referenceParts.furniture(group,f,occupied);
     const hit = new THREE.Mesh(cube, hitMaterial);
-    hit.scale.set(f.width, f.height, f.depth);
-    hit.position.set(0, f.height / 2, 0);
+    const mountBottom=f.kind==='wall_filament_rack'?.75:0;
+    hit.scale.set(f.width, f.height-mountBottom, f.depth);
+    hit.position.set(0, (f.height+mountBottom) / 2, 0);
     hit.userData = { keepSeparate: true, isHit: true, furnitureId: f.id, kind: f.kind };
     group.add(hit);
     picks.push(hit);
@@ -302,10 +267,11 @@ export function buildWorkshop(
           outlineGeom,
           isActive ? activeOutlineMaterial : selectedOutlineMaterial
         );
-        outline.position.set(s.x, s.y, s.z);
+        outline.position.set(filamentSlotX(f,s), s.y, s.z);
         outline.visible = isActive;
         outline.renderOrder = 10;
         outline.userData = { keepSeparate: true, isOutline: true, placementId: p.id };
+        outline.userData.selectionMask = p.model === 'p1' ? assets.p1Mask : assets.a1Mask;
         if (fGroup) {
           fGroup.add(outline);
         } else {
@@ -317,13 +283,30 @@ export function buildWorkshop(
     else {
       const hex=filamentById.get(p.entityId)?.color;
       const color=hex&&/^#[\da-f]{6}$/i.test(hex)?hex:'#b7bcc5';
-      // Present the recessed flange and windings together, while respecting slot width.
-      const facing=f.width/f.columns>=.21?Math.PI/4:Math.PI/10;
-      transform.multiply(new THREE.Matrix4().makeRotationY(facing));
+      // Upright, side-by-side spools; preserve legacy dense slot spacing.
+      const scale = filamentScale(f);
+      transform.multiply(new THREE.Matrix4().makeScale(...scale));
+      if (assets.spoolOutline) {
+        const outline = new THREE.Mesh(assets.spoolOutline, selectedOutlineMaterial);
+        outline.position.set(filamentSlotX(f,s), s.y, s.z);
+        outline.scale.set(...scale);
+        outline.visible = false;
+        outline.renderOrder = 10;
+        outline.userData = { keepSeparate: true, isOutline: true, placementId: p.id };
+        outline.userData.selectionMask = assets.spoolMask;
+        outline.userData.selectionKind = 'filament';
+        fGroup?.add(outline);
+        printerOutlines.set(p.id, { outline, isActive: false });
+      }
       spoolTransforms.push(transform);spoolOwners.push(f.id);spoolColors.push(color);spoolPlacements.push(p.id);
     }
-    const hit=new THREE.Mesh(cube,hitMaterial);hit.position.copy(pos).y+=p.kind==='printer'?.43:.12;hit.scale.set(p.kind==='printer'?.6:.18,p.kind==='printer'?.86:.26,p.kind==='printer'?.6:.32);hit.userData={keepSeparate:true,isHit:true,placementId:p.id,kind:p.kind,furnitureId:f.id};owned.add(hit);picks.unshift(hit);positions.set(p.id,pos.clone().add(new THREE.Vector3(0,.02,0)));
+    const hit=new THREE.Mesh(cube,hitMaterial);hit.position.copy(pos).y+=p.kind==='printer'?.43:.18;hit.scale.set(p.kind==='printer'?.6:.20,p.kind==='printer'?.86:.36,p.kind==='printer'?.6:.36);hit.userData={keepSeparate:true,isHit:true,placementId:p.id,kind:p.kind,furnitureId:f.id};owned.add(hit);picks.unshift(hit);positions.set(p.id,pos.clone().add(new THREE.Vector3(0,.02,0)));
     hit.rotation.y=angle;
+    if (p.kind === 'filament') {
+      const [axial, radial] = filamentScale(f);
+      hit.position.y = pos.y + .18 * radial;
+      hit.scale.set(.20 * axial, .36 * radial, .36 * radial);
+    }
     if(!placementHits.has(f.id))placementHits.set(f.id,[]);
     placementHits.get(f.id)!.push({hit,position:hit.position.clone(),placementId:p.id});
   }
@@ -454,9 +437,11 @@ export function buildWorkshop(
   const tempPos=new THREE.Vector3(), tempRot=new THREE.Quaternion(), tempScl=new THREE.Vector3(), elevated=new THREE.Matrix4();
   function setPlacementHover(placementId:string, progress:number) {
     const items=placementBindings.get(placementId);if(!items)return;
-    const clamped=Math.max(0,Math.min(1,progress));
+    let clamped=Math.max(0,Math.min(1,progress));
     const meta=placementsMeta.get(placementId);
     const isFilament=meta?.p.kind==='filament';
+    const outline = printerOutlines.get(placementId)?.outline;
+    if (isFilament && meta && outline) clamped = updateFilamentHighlight(outline, meta.f, meta.s, clamped);
     const changed=new Set<THREE.InstancedMesh>();
     for(const item of items) {
       if(clamped<=0.0001){
@@ -525,7 +510,7 @@ export function buildWorkshop(
     if (meta && pPos) pPos.copy(meta.pos);
     const pOutline = printerOutlines.get(placementId);
     if (pOutline && meta) {
-      pOutline.outline.position.set(meta.s.x, meta.s.y, meta.s.z);
+      pOutline.outline.position.set(filamentSlotX(meta.f, meta.s), meta.s.y, meta.s.z);
     }
   }
   function setFurnitureBorderColor(id:string, color:string) {
@@ -545,9 +530,15 @@ export function buildWorkshop(
     setPrinterOutline: (placementId: string, state: 'selected' | 'active' | null) => {
       const item = printerOutlines.get(placementId);
       if (!item) return;
+      item.outline.userData.selectedMask = state === 'selected';
+      if (item.outline.userData.selectionKind === 'filament') {
+        setPlacementHover(placementId, state === 'selected' ? 1 : 0);
+        item.outline.visible = false;
+        return;
+      }
       if (state === 'selected') {
         item.outline.material = selectedOutlineMaterial;
-        item.outline.visible = true;
+        item.outline.visible = !item.outline.userData.selectionMask;
       } else if (state === 'active' || item.isActive) {
         item.outline.material = activeOutlineMaterial;
         item.outline.visible = true;
@@ -558,6 +549,8 @@ export function buildWorkshop(
     setSelected,
     setSelectedRoom,
     dispose: () => {
+      // These geometries belong to the shared asset lease, not this room build.
+      printerOutlines.forEach(({ outline }) => outline.removeFromParent());
       activeOutlineMaterial.dispose();
       selectedOutlineMaterial.dispose();
       furnitureBorders.forEach((m) => m.dispose());
@@ -571,4 +564,3 @@ export function buildWorkshop(
     },
   };
 }
-
