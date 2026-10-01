@@ -1,4 +1,6 @@
 import type { Filament, Order, Printer, ProductCollection, SavedCalculation, Settings } from '../types';
+import type { FoundationState } from '../types/foundation';
+import { parseBusinessBackup, validateBackupDraft, validateBackupOwnership, validateBusinessBackupConsistency } from './businessBackup';
 
 export interface BackupMonthlyGoalsConfig {
   defaultGoal: number;
@@ -21,8 +23,17 @@ export interface DataBackupV2 extends DataBackupSnapshot {
   exportedAt: string;
 }
 
+export interface DataBackupV3 extends DataBackupSnapshot {
+  version: 3;
+  exportedAt: string;
+  business: FoundationState;
+  calculationDraft?: unknown;
+}
+
 export interface ParsedDataBackup {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
+  business?: FoundationState;
+  calculationDraft?: unknown;
   exportedAt?: string;
   filaments?: Filament[];
   printers?: Printer[];
@@ -35,31 +46,34 @@ export interface ParsedDataBackup {
 
 type UnknownRecord = Record<string, unknown>;
 
-/** Adds the V2 envelope while preserving the application snapshot verbatim.
+/** Adds an owned envelope while preserving the application snapshot verbatim.
  * The runtime parser remains the trust boundary for imported files. */
-export function createDataBackup(snapshot: DataBackupSnapshot): DataBackupV2 {
-  return {
-    ...snapshot,
-    version: 2,
-    exportedAt: new Date().toISOString(),
-  };
+export function createDataBackup(snapshot: DataBackupSnapshot): DataBackupV2;
+export function createDataBackup(snapshot: DataBackupSnapshot, business: FoundationState, calculationDraft?: unknown): DataBackupV3;
+export function createDataBackup(snapshot: DataBackupSnapshot, business?: FoundationState, calculationDraft?: unknown): DataBackupV2 | DataBackupV3;
+export function createDataBackup(snapshot: DataBackupSnapshot, business?: FoundationState, calculationDraft?: unknown): DataBackupV2 | DataBackupV3 {
+  const copy = structuredClone(snapshot);
+  const exportedAt = new Date().toISOString();
+  return business === undefined ? { ...copy, version: 2, exportedAt }
+    : { ...copy, version: 3, exportedAt, business: structuredClone(business),
+      ...(calculationDraft === undefined ? {} : { calculationDraft: structuredClone(calculationDraft) }) };
 }
 
-export function parseDataBackup(input: unknown): ParsedDataBackup {
+export function parseDataBackup(input: unknown, ownerId?: string): ParsedDataBackup {
   if (!isRecord(input)) throw new Error('Неверный формат файла резервной копии.');
 
   const version = input.version === undefined ? 1 : input.version;
-  if (version !== 1 && version !== 2) throw new Error('Неподдерживаемая версия резервной копии.');
-  if (version === 2 && (typeof input.exportedAt !== 'string'
+  if (version !== 1 && version !== 2 && version !== 3) throw new Error('Неподдерживаемая версия резервной копии.');
+  if (version !== 1 && (typeof input.exportedAt !== 'string'
     || input.exportedAt.trim() === ''
     || Number.isNaN(Date.parse(input.exportedAt)))) {
-    throw new Error('Поле exportedAt обязательно для резервной копии V2.');
+    throw new Error(`Поле exportedAt обязательно для резервной копии V${version}.`);
   }
   if (version === 1 && input.exportedAt !== undefined && typeof input.exportedAt !== 'string') {
     throw new Error('Поле exportedAt имеет неверный формат.');
   }
 
-  const required = version === 2;
+  const required = version !== 1;
   const parsed: ParsedDataBackup = { version, exportedAt: input.exportedAt as string | undefined };
   parsed.filaments = parseArraySection(input, 'filaments', required, isFilament);
   parsed.printers = parseArraySection(input, 'printers', required, isPrinter);
@@ -69,11 +83,21 @@ export function parseDataBackup(input: unknown): ParsedDataBackup {
   parsed.orders = parseArraySection(input, 'orders', required, isOrder);
   parsed.monthlyGoals = parseMonthlyGoalsSection(input, required);
 
+  if (version === 3) {
+    parsed.business = parseBusinessBackup(input.business, ownerId);
+    validateBackupOwnership(input, parsed.business.user_id, 'backup');
+    validateBusinessBackupConsistency(parsed.business, { orders: parsed.orders!, savedCalculations: parsed.savedCalculations! });
+    if (input.calculationDraft !== undefined) {
+      validateBackupDraft(input.calculationDraft, parsed.business.user_id);
+      parsed.calculationDraft = input.calculationDraft;
+    }
+  }
+
   if (!Object.keys(input).some(key => ['filaments', 'printers', 'settings', 'savedCalculations', 'collections', 'orders', 'monthlyGoals'].includes(key))) {
     throw new Error('В файле нет поддерживаемых данных для восстановления.');
   }
 
-  return parsed;
+  return structuredClone(parsed);
 }
 
 function parseArraySection<T>(input: UnknownRecord, key: string, required: boolean, validate: (value: unknown, path: string) => value is T): T[] | undefined {

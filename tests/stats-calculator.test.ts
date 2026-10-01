@@ -7,6 +7,8 @@ import {
   normalizeSharePercentages,
   getPreviousDateRange,
 } from '../src/widgets/Stats/helpers/statsCalculator';
+import { buildOrderItem } from '../src/widgets/Orders/orderItems';
+import { calculatePrintCost } from '../src/shared/lib/formulas';
 import type { Order, SavedCalculation, Filament, Printer } from '../src/shared/types';
 
 const incomeOrder: Order = {
@@ -63,7 +65,7 @@ test('режим по заказам считает полную сумму за
 
   assert.equal(report.kpi.revenue, 1000);
   assert.equal(report.kpi.expenses, 450);
-  assert.equal(report.kpi.result, 550);
+  assert.equal(report.kpi.result, 150);
   assert.equal(report.kpi.receivables, 400);
 });
 
@@ -173,15 +175,15 @@ test('отчёт собирает товары, затраты, материал
   });
 
   assert.equal(report.goal.target, 2000);
-  assert.equal(report.goal.progressPercent, 27.5);
+  assert.equal(report.goal.progressPercent, 7.5);
   assert.equal(report.statuses.find((item) => item.label === 'Готово')?.value, 1);
-  assert.equal(report.products.find((item) => item.id === product.id)?.profit, 650);
+  assert.equal(report.products.find((item) => item.id === product.id)?.profit, 250);
   assert.equal(report.filamentUsage.find((item) => item.id === filament.id)?.value, 200);
   assert.equal(report.printerWorkload.find((item) => item.id === printer.id)?.hours, 2);
   assert.equal(report.costs.reduce((sum, item) => sum + item.value, 0), report.kpi.expenses);
   assert.equal(report.activity.find((item) => item.key === '2026-08-15')?.orders, 1);
   assert.equal(report.previousKpi?.result, 400);
-  assert.equal(report.deltas.result.value, 150);
+  assert.equal(report.deltas.result.value, -250);
 });
 
 test('сборка распределяет расход и часы по деталям', () => {
@@ -288,11 +290,11 @@ test('пустые данные возвращают конечные нули �
 test('финансовые подписи меняются вместе с режимом', () => {
   assert.deepEqual(getFinancialLabels('accrual'), {
     revenue: 'Выручка',
-    result: 'Чистая прибыль',
+    result: 'Фактическая прибыль',
   });
   assert.deepEqual(getFinancialLabels('cash'), {
     revenue: 'Получено',
-    result: 'Кассовый результат',
+    result: 'Фактическая прибыль',
   });
 });
 
@@ -308,4 +310,17 @@ test('проценты сегментов дают ровно сто проце�
   const shares = normalizeSharePercentages([1, 1, 1]);
   assert.equal(shares.reduce((sum, value) => sum + value, 0), 100);
   assert.deepEqual(normalizeSharePercentages([0, 0]), [0, 0]);
+});
+
+test('frozen positions keep physical metrics and actual profit independent of live catalog edits', () => {
+  const inputs={weightG:100,hours:1,minutes:0,quantity:2,laborMinutes:0,defectPercent:0,filament:{id:'f',name:'PLA',weight_g:1000,price:1000},printer:{id:'r',name:'P1',power_w:100,price:1000,lifespan_hours:1000},settings:null};
+  const product:SavedCalculation={id:'p',name:'Frozen part',weight_g:100,hours:1,minutes:0,quantity:2,filament_name:'PLA',printer_name:'P1',base_cost:100,final_price:200,calculation_snapshot:{version:1,inputs,result:calculatePrintCost(inputs)}};
+  const item={...buildOrderItem(product,2,{userId:'owner',orderId:'order',variantId:'v'}),fulfilled_quantity:2,production_quantity:1,reserved_quantity:1,total_cost:80,unit_cost:40};
+  const order={...incomeOrder,id:'order',items:[item],amount:200,cost:80,payment:100};
+  const report=buildStatsReport({orders:[order],products:[{...product,name:'Changed',weight_g:9999,hours:99}],filaments:[],printers:[],goals,range:{startDate:null,endDate:null},preset:'all',mode:'accrual',now:new Date(2026,7,31)});
+  assert.equal(report.kpi.result,20);
+  assert.equal(report.products[0].label,'Frozen part');
+  assert.equal(report.products[0].profit,20);
+  assert.equal(report.kpi.filamentG,50);
+  assert.equal(report.kpi.printHours,0.5);
 });

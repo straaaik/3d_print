@@ -1,28 +1,42 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Monitor,
-  Smartphone,
   Tablet,
   Maximize2,
   Table,
   Layers,
   Sparkles,
-  RotateCcw,
-  ArrowRight,
-  Eye,
-  SlidersHorizontal,
 } from 'lucide-react';
 import { DrawerDesignConfig, DesignPreset } from './types';
-import { DEFAULT_CONFIG, MOCK_EXPENSE_ORDER, MOCK_INCOME_ORDER, BUILTIN_PRESETS } from './defaults';
+import { DEFAULT_CONFIG, MOCK_EXPENSE_ORDER, MOCK_INCOME_ORDER } from './defaults';
 import { CustomizableOrderDrawer } from './components/CustomizableOrderDrawer';
 import { ContextTableRow } from './components/ContextTableRow';
 import { SandboxControls } from './components/SandboxControls';
 import { Order } from '@/shared/types';
-import { CockpitButton } from '../../shared/ui/CockpitButton';
 import { usePageTransition } from '../../shared/ui/page-transition/PageTransitionProvider';
+import { useIsClient } from '../../shared/ui/useIsClient';
+
+const subscribeStorage = (notify: () => void) => {
+  window.addEventListener('storage', notify);
+  return () => window.removeEventListener('storage', notify);
+};
+const emptySnapshot = () => null;
+const savedConfigSnapshot = () => {
+  try { return localStorage.getItem('3d_labs_sandbox_config'); }
+  catch { return null; }
+};
+const savedPresetsSnapshot = () => {
+  try { return localStorage.getItem('3d_labs_sandbox_custom_presets'); }
+  catch { return null; }
+};
+
+function parseSaved<T>(raw: string | null, fallback: T): T {
+  if (!raw) return fallback;
+  try { return JSON.parse(raw) as T; }
+  catch { return fallback; }
+}
 
 export function DesignSandboxWorkspace() {
   const { settleFallback } = usePageTransition();
@@ -31,22 +45,15 @@ export function DesignSandboxWorkspace() {
     settleFallback();
   }, [settleFallback]);
 
-  const [config, setConfig] = useState<DrawerDesignConfig>(DEFAULT_CONFIG);
-  const [customPresets, setCustomPresets] = useState<DesignPreset[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    try {
-      const savedConfig = localStorage.getItem('3d_labs_sandbox_config');
-      if (savedConfig) setConfig(JSON.parse(savedConfig));
-      const savedPresets = localStorage.getItem('3d_labs_sandbox_custom_presets');
-      if (savedPresets) setCustomPresets(JSON.parse(savedPresets));
-    } catch (e) {
-      console.warn('Failed to load sandbox config from localStorage', e);
-    } finally {
-      setIsLoaded(true);
-    }
-  }, []);
+  const savedConfig = useSyncExternalStore(subscribeStorage, savedConfigSnapshot, emptySnapshot);
+  const savedPresets = useSyncExternalStore(subscribeStorage, savedPresetsSnapshot, emptySnapshot);
+  const [configOverride, setConfig] = useState<DrawerDesignConfig | null>(null);
+  const [presetsOverride, setCustomPresets] = useState<DesignPreset[] | null>(null);
+  const cachedConfig = useMemo(() => parseSaved(savedConfig, DEFAULT_CONFIG), [savedConfig]);
+  const cachedPresets = useMemo(() => parseSaved<DesignPreset[]>(savedPresets, []), [savedPresets]);
+  const config = configOverride ?? cachedConfig;
+  const customPresets = presetsOverride ?? cachedPresets;
+  const isLoaded = useIsClient();
 
   const [orderMode, setOrderMode] = useState<'expense' | 'income'>('expense');
   const [order, setOrder] = useState<Order>(MOCK_EXPENSE_ORDER);
@@ -88,11 +95,11 @@ export function DesignSandboxWorkspace() {
       config: { ...config },
       isCustom: true,
     };
-    setCustomPresets((prev) => [newPreset, ...prev]);
+    setCustomPresets([newPreset, ...customPresets]);
   };
 
   const handleDeletePreset = (id: string) => {
-    setCustomPresets((prev) => prev.filter((p) => p.id !== id));
+    setCustomPresets(customPresets.filter((p) => p.id !== id));
   };
 
   const handleSelectPreset = (preset: DesignPreset) => {

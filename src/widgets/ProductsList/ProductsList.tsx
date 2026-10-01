@@ -1,15 +1,19 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { usePageRouter as useRouter } from '../../shared/ui/page-transition/PageTransitionLink';
 import { useData } from '../../entities/model/DataProvider';
+import { useInventory } from '../../entities/model/InventoryProvider';
+import { useAuth } from '../../entities/model/AuthProvider';
+import { addProductToCalculationDraft, productToCalculatorForm, calculatorFormToProductUpdates } from '../../shared/lib/productCalculation';
+import { readCalculationDraft, writeCalculationDraft } from '../../shared/lib/calculationDraft';
+import { FinishedStockPanel } from './FinishedStockPanel';
 import { useToast } from '../../entities/model/ToastProvider';
 import {
   SavedCalculation,
   ProductCollection,
   AssemblyPrintedPart
 } from '../../shared/types';
-import { restoreAllCollections } from '../../shared/api/db';
 import {
   getStoredCategories,
   saveNewCategory,
@@ -62,35 +66,23 @@ export function ProductsList({
 }: ProductsListProps = {}) {
   const router = useRouter();
   const { showWarning, showSuccess } = useToast();
+  const inventory = useInventory();
+  const { currentUser, isLoading: isAuthLoading } = useAuth();
+  const stockWritePending = useRef(false);
   const {
     isOnline,
     savedCalculations,
     collections,
-    addCollection,
-    updateCollection,
-    deleteCollection,
-    addSavedCalculation,
-    updateSavedCalculation,
-    deleteSavedCalculation,
-    clearAllSavedCalculations,
-    restoreAllSavedCalculations,
+    addCollection: apiAddCollection,
+    updateCollection: apiUpdateCollection,
+    deleteCollection: apiDeleteCollection,
+    addSavedCalculation: apiAddSavedCalculation,
+    updateSavedCalculation: apiUpdateSavedCalculation,
+    deleteSavedCalculation: apiDeleteSavedCalculation,
+    restoreAllSavedCalculations: apiRestoreAllSavedCalculations,
     filaments,
     printers,
     settings,
-    setCalcFilamentId,
-    setCalcPrinterId,
-    setCalcWeight,
-    setCalcDays,
-    setCalcHours,
-    setCalcMinutes,
-    setCalcQuantity,
-    setCalcLaborMinutes,
-    setCalcLaborRate,
-    setCalcMarkup,
-    setCalcDefect,
-    setCalcIsOwnerLabor,
-    setCalcIsLaborPerUnit,
-    setCalcCustomCostItems,
     orders,
   } = useData();
 
@@ -136,8 +128,8 @@ export function ProductsList({
 
   // 4. Складские KPI метрики
   const warehouseMetrics = useMemo(() => {
-    return getWarehouseMetrics(savedCalculations);
-  }, [savedCalculations]);
+    return getWarehouseMetrics(savedCalculations, inventory.state?.finishedBalances, inventory.state?.legacyProducts);
+  }, [savedCalculations, inventory.state?.finishedBalances, inventory.state?.legacyProducts]);
 
   // 5. Фильтры и сортировка
   const [productFilter, setProductFilter] = usePersistentState<ProductFilter>('3d_products_product_filter', 'all');
@@ -181,37 +173,99 @@ export function ProductsList({
   // 7. Раскрытие коллекций и сборок
   const [expandedItemIds, setExpandedItemIds] = usePersistentState<Record<string, boolean>>('3d_products_expanded_ids', {});
 
-  // 8. Стек истории для Undo (Ctrl+Z / Alt+Z)
-  const [historyStack, setHistoryStack] = useState<
-    Array<{ calculations: SavedCalculation[]; collections: ProductCollection[] }>
-  >([]);
-
+  // History records only IDs changed by our own action. Other tabs are never part of Undo.
+  type CatalogHistory = { calculations: SavedCalculation[]; collections: ProductCollection[];
+    productRevisions: Record<string, number>; collectionIds: string[] };
+  const [historySnapshot, setHistorySnapshot] = useState<{ owner: string | undefined; entries: CatalogHistory[] }>({ owner: currentUser?.id, entries: [] });
+  const historyStack = historySnapshot.owner === currentUser?.id ? historySnapshot.entries : [];
+  const setHistoryStack = useCallback((entries: CatalogHistory[]) => setHistorySnapshot({ owner: currentUser?.id, entries }), [currentUser?.id]);
+  const historyRef = useRef<CatalogHistory[]>([]);
+  const undoPending = useRef(false);
+  useLayoutEffect(() => { historyRef.current = []; }, [currentUser?.id]);
   const pushHistory = () => {
-    setHistoryStack((prev) => [
-      ...prev.slice(-25),
-      { calculations: [...savedCalculations], collections: [...collections] },
-    ]);
+    historyRef.current = [...historyRef.current.slice(-25), { calculations: structuredClone(savedCalculations),
+      collections: structuredClone(collections), productRevisions: {}, collectionIds: [] }];
+    setHistoryStack(historyRef.current);
   };
-
+  const recordProduct = (entry: CatalogHistory | undefined, id: string, revision: number) => {
+    if (!entry || !historyRef.current.includes(entry)) return;
+    entry.productRevisions[id] = revision;
+    setHistoryStack([...historyRef.current]);
+  };
+  const recordCollection = (entry: CatalogHistory | undefined, id: string) => {
+    if (!entry || !historyRef.current.includes(entry)) return;
+    if (!entry.collectionIds.includes(id)) entry.collectionIds.push(id);
+    setHistoryStack([...historyRef.current]);
+  };
+  const addSavedCalculation: typeof apiAddSavedCalculation = async calculation => {
+    const entry = historyRef.current.at(-1);
+    const created = await apiAddSavedCalculation(calculation);
+    recordProduct(entry, created.id, created.catalog_revision ?? 0); return created;
+  };
+  const updateSavedCalculation: typeof apiUpdateSavedCalculation = async calculation => {
+    const entry = historyRef.current.at(-1);
+    const updated = await apiUpdateSavedCalculation(calculation);
+    recordProduct(entry, updated.id, updated.catalog_revision ?? 0); return updated;
+  };
+  const deleteSavedCalculation: typeof apiDeleteSavedCalculation = async id => {
+    const entry = historyRef.current.at(-1);
+    const revision = savedCalculations.find(row => row.id === id)?.catalog_revision ?? 0;
+    await apiDeleteSavedCalculation(id); recordProduct(entry, id, revision + 1);
+  };
+  const restoreAllSavedCalculations: typeof apiRestoreAllSavedCalculations = async desired => {
+    const entry = historyRef.current.at(-1);
+    const current = new Map(savedCalculations.map(row => [row.id, row]));
+    const proposed = new Map(desired.map(row => [row.id, row]));
+    const ids = savedCalculations.filter(row => !proposed.has(row.id)
+      || JSON.stringify(row) !== JSON.stringify(proposed.get(row.id))).map(row => row.id);
+    if (!ids.length) return;
+    const expectedRevisions = Object.fromEntries(ids.map(id => [id, current.get(id)?.catalog_revision ?? 0]));
+    await apiRestoreAllSavedCalculations(desired.filter(row => ids.includes(row.id)), { productIds: ids, expectedRevisions });
+    for (const id of ids) recordProduct(entry, id, expectedRevisions[id] + 1);
+  };
+  const clearAllSavedCalculations = () => restoreAllSavedCalculations([]);
+  const addCollection: typeof apiAddCollection = async collection => {
+    const entry = historyRef.current.at(-1); const created = await apiAddCollection(collection);
+    recordCollection(entry, created.id); return created;
+  };
+  const updateCollection: typeof apiUpdateCollection = async collection => {
+    const entry = historyRef.current.at(-1); const updated = await apiUpdateCollection(collection);
+    recordCollection(entry, updated.id); return updated;
+  };
+  const deleteCollection: typeof apiDeleteCollection = async (id, deleteProducts) => {
+    const entry = historyRef.current.at(-1);
+    const affected = savedCalculations.filter(row => row.collection_id === id);
+    await apiDeleteCollection(id, deleteProducts);
+    recordCollection(entry, id);
+    for (const row of affected) recordProduct(entry, row.id, (row.catalog_revision ?? 0) + 1);
+  };
   const handleUndo = useCallback(async () => {
-    if (historyStack.length === 0) {
-      showWarning('История изменений пуста', 'Отмена (Ctrl+Z)');
-      return;
-    }
-
-    const previousState = historyStack[historyStack.length - 1];
-    setHistoryStack((prev) => prev.slice(0, -1));
-
+    if (undoPending.current) return;
+    const previousState = historyRef.current.at(-1);
+    if (!previousState) { showWarning('История изменений пуста', 'Отмена'); return; }
+    undoPending.current = true;
     try {
-      await Promise.all([
-        restoreAllSavedCalculations(previousState.calculations),
-        restoreAllCollections(previousState.collections),
-      ]);
-      showSuccess('Действие отменено (Ctrl+Z)!', 'Откат состояния');
-    } catch (err) {
-      console.error('Ошибка отката:', err);
-    }
-  }, [historyStack, restoreAllSavedCalculations, showWarning, showSuccess]);
+      const productIds = Object.keys(previousState.productRevisions);
+      if (productIds.length) await apiRestoreAllSavedCalculations(previousState.calculations.filter(row => productIds.includes(row.id)),
+        { productIds, expectedRevisions: previousState.productRevisions });
+      for (const id of previousState.collectionIds) {
+        const previous = previousState.collections.find(row => row.id === id);
+        if (previous) await apiUpdateCollection(previous);
+        else await apiDeleteCollection(id);
+      }
+      const undoneIndex = historyRef.current.indexOf(previousState);
+      if (undoneIndex >= 0) {
+        for (const id of productIds) {
+          const prior = historyRef.current.slice(0, undoneIndex).findLast(entry => Object.hasOwn(entry.productRevisions, id));
+          if (prior) prior.productRevisions[id] = previousState.productRevisions[id] + 1;
+        }
+        historyRef.current = historyRef.current.filter(entry => entry !== previousState);
+        setHistoryStack(historyRef.current);
+      }
+      showSuccess('Параметры каталога восстановлены. Физический склад и производство сохранены.', 'Отмена');
+    } catch (error) { showWarning(error instanceof Error ? error.message : 'Не удалось отменить изменение.', 'Отмена'); }
+    finally { undoPending.current = false; }
+  }, [apiRestoreAllSavedCalculations, apiUpdateCollection, apiDeleteCollection, showWarning, showSuccess, setHistoryStack]);
 
   // Глобальный слушатель Ctrl+Z / Alt+Z
   useEffect(() => {
@@ -232,6 +286,8 @@ export function ProductsList({
 
   const handleStageForAssembly = (item: SavedCalculation) => {
     const foundFilament = filaments.find((f) => f.name === item.filament_name);
+    const batchQuantity = Math.max(1, item.quantity || 1);
+    const unitMinutes = ((item.hours || 0) * 60 + (item.minutes || 0)) / batchQuantity;
     const newPart: AssemblyPrintedPart = {
       id: `part-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       name: item.name,
@@ -239,12 +295,12 @@ export function ProductsList({
       filament_name: item.filament_name || 'PLA',
       filament_color: item.filament_color || '#3b82f6',
       printer_name: item.printer_name,
-      weight_g: item.weight_g || 0,
-      hours: item.hours || 0,
-      minutes: item.minutes || 0,
+      weight_g: (item.weight_g || 0) / batchQuantity,
+      hours: Math.floor(unitMinutes / 60),
+      minutes: unitMinutes % 60,
       quantity: 1,
-      base_cost: item.base_cost,
-      final_price: item.final_price,
+      base_cost: item.base_cost / batchQuantity,
+      final_price: item.final_price / batchQuantity,
       stl_url: item.stl_url,
       stl_file_name: item.stl_file_name,
       stl_file_data: item.stl_file_data,
@@ -296,12 +352,16 @@ export function ProductsList({
 
   // 11. Быстрое изменение остатка
   const handleSetStock = async (item: SavedCalculation, newStock: number) => {
-    pushHistory();
-    const val = Math.max(0, Math.round(newStock));
-    await updateSavedCalculation({
-      ...item,
-      stock_quantity: val,
-    });
+    if (!inventory.state || stockWritePending.current) return;
+    stockWritePending.current = true;
+    try {
+      const balance = inventory.state.finishedBalances.find(value => value.source_product_id === item.id);
+      await inventory.execute({ kind: 'adjustFinished', id: crypto.randomUUID(), occurredAt: new Date().toISOString(),
+        productId: item.id, quantity: Math.max(0, Math.round(newStock)),
+        unitCost: balance?.average_unit_cost ?? item.base_cost / (item.quantity || 1) });
+      showSuccess('Готовый остаток скорректирован. Филамент не списан.', 'Склад');
+    } catch (error) { showWarning(error instanceof Error ? error.message : 'Не удалось изменить остаток.', 'Склад'); }
+    finally { stockWritePending.current = false; }
   };
 
   // 12. Создание заказа
@@ -315,29 +375,24 @@ export function ProductsList({
 
   // 13. Загрузка в Калькулятор
   const handleLoadIntoCalculator = (item: SavedCalculation) => {
-    const filament = filaments.find((f) => f.id === item.filament_id) || filaments.find((f) => f.name === item.filament_name);
-    const printer = printers.find((p) => p.id === item.printer_id) || printers.find((p) => p.name === item.printer_name);
-
-    setCalcFilamentId(filament?.id ?? '');
-    setCalcPrinterId(printer?.id ?? '');
-    setCalcWeight(String(item.weight_g || 0));
-    const totalHours = item.hours || 0;
-    const days = Math.floor(totalHours / 24);
-    const remainingHours = totalHours % 24;
-    setCalcDays(days > 0 ? String(days) : '');
-    setCalcHours(String(remainingHours));
-    setCalcMinutes(String(item.minutes || 0));
-    setCalcQuantity(String(item.quantity || 1));
-    setCalcLaborMinutes(item.labor_minutes != null ? String(item.labor_minutes) : '');
-    setCalcLaborRate(item.labor_rate_per_hour != null ? String(item.labor_rate_per_hour) : '');
-    setCalcMarkup(item.markup_percent != null ? String(item.markup_percent) : '');
-    setCalcDefect(item.defect_percent != null ? String(item.defect_percent) : '');
-    setCalcIsOwnerLabor(item.is_owner_labor ?? null);
-    setCalcIsLaborPerUnit(item.is_labor_per_unit ?? null);
-    if (item.custom_cost_items) setCalcCustomCostItems(item.custom_cost_items);
-
-    showSuccess(`Параметры «${item.name}» загружены в Калькулятор!`, 'Калькулятор');
-    router.push('/calculator');
+    if (item.type === 'assembly') {
+      setEditingAssembly(item); setIsAssemblyModalOpen(true); return;
+    }
+    if (isAuthLoading) { showWarning('Дождитесь загрузки профиля.', 'Калькулятор'); return; }
+    try {
+      const ownerId = currentUser?.id ?? 'anonymous';
+      const source = readCalculationDraft(localStorage, ownerId);
+      const draft = addProductToCalculationDraft(source, ownerId, item, filaments, printers);
+      if (!savedCalculations.some(row => row.id === item.id)) {
+        const imported = draft.items.find(row => row.id === draft.activeItemId)!;
+        imported.productId = null; delete imported.productRevision; delete imported.productEditBaseline;
+      }
+      writeCalculationDraft(localStorage, draft);
+      showSuccess(`Товар «${item.name}» открыт для редактирования в калькуляторе.`, 'Калькулятор');
+      router.push('/calculator');
+    } catch (failure) {
+      showWarning(failure instanceof Error ? failure.message : 'Не удалось сохранить черновик товара.', 'Калькулятор');
+    }
   };
 
   // 14. Состояния модалок
@@ -406,7 +461,7 @@ export function ProductsList({
   // Инлайн-обновление товара и коллекции
   const handleInlineUpdateProduct = async (productId: string, updates: Partial<SavedCalculation>) => {
     const existing = savedCalculations.find((p) => p.id === productId);
-    if (!existing) return;
+    if (!existing) throw new Error('Товар больше не найден в каталоге.');
     pushHistory();
     const updated = { ...existing, ...updates };
     await updateSavedCalculation(updated);
@@ -538,48 +593,20 @@ export function ProductsList({
     const chosenFilament = filaments.find((f) => f.id === data.filamentId) || filaments[0];
     const source = data.sourceCalculation;
 
-    if (source) {
-      const filCost = chosenFilament
-        ? (chosenFilament.price / chosenFilament.weight_g) * data.weightG
-        : source.base_cost;
-      const newBaseCost = Math.round(filCost * 1.3);
-      const newFinalPrice = Math.round(newBaseCost * 2);
-      const restSource = { ...source };
-      Reflect.deleteProperty(restSource, 'id');
-      Reflect.deleteProperty(restSource, 'created_at');
-
-      await addSavedCalculation({
-        ...restSource,
-        name: data.name,
-        filament_id: chosenFilament?.id,
-        filament_name: chosenFilament?.name || source.filament_name,
-        filament_color: chosenFilament?.color || source.filament_color,
-        weight_g: data.weightG,
-        base_cost: newBaseCost > 0 ? newBaseCost : source.base_cost,
-        final_price: newFinalPrice > 0 ? newFinalPrice : source.final_price,
-        collection_id: activeAddVariantCollection.id,
-        collection_name: activeAddVariantCollection.name,
-      });
-    } else {
-      await addSavedCalculation({
-        name: data.name,
-        type: 'single',
-        filament_id: chosenFilament?.id,
-        filament_name: chosenFilament?.name || 'PLA',
-        filament_color: chosenFilament?.color || '#3b82f6',
-        printer_name: printers[0]?.name || '3D Принтер',
-        weight_g: data.weightG,
-        hours: 2,
-        minutes: 0,
-        quantity: 1,
-        base_cost: 150,
-        final_price: 450,
-        category: activeAddVariantCollection.category || 'Разное',
-        collection_id: activeAddVariantCollection.id,
-        collection_name: activeAddVariantCollection.name,
-        stock_quantity: 0,
-      });
+    if (source?.type === 'assembly') {
+      showWarning('Материал сборки изменяется в редакторе спецификации.', 'Вариант сборки'); return;
     }
+    const printer = printers.find(row => row.id === settings?.default_printer_id) ?? printers[0];
+    const template: SavedCalculation = source ?? { id: 'new-variant', name: data.name, type: 'single',
+      filament_name: chosenFilament?.name ?? 'PLA', printer_name: printer?.name ?? '', printer_id: printer?.id,
+      weight_g: data.weightG, hours: 2, minutes: 0, quantity: 1, base_cost: 0, final_price: 0 };
+    const variantForm = productToCalculatorForm(template, filaments, printers);
+    variantForm.name = data.name; variantForm.weight = String(data.weightG);
+    variantForm.filamentId = chosenFilament?.id ?? ''; variantForm.filamentName = chosenFilament?.name ?? template.filament_name;
+    variantForm.filamentColor = chosenFilament?.color;
+    const updates = calculatorFormToProductUpdates(variantForm, { filaments, printers, settings, product: template });
+    await addSavedCalculation({ ...template, ...updates, name: data.name, stock_quantity: 0,
+      collection_id: activeAddVariantCollection.id, collection_name: activeAddVariantCollection.name });
 
     showSuccess(`Вариант «${data.name}» добавлен в коллекцию!`, 'Товар добавлен');
   };
@@ -738,7 +765,7 @@ export function ProductsList({
           return;
         }
 
-        const prices = childs.map((c) => c.final_price || c.base_cost || 0);
+        const prices = childs.map((c) => c.final_price ?? 0);
         const costs = childs.map((c) => c.base_cost || 0);
         const weights = childs.map((c) => c.weight_g || 0);
         const minutesTotal = childs.map((c) => (c.hours || 0) * 60 + (c.minutes || 0));
@@ -756,7 +783,7 @@ export function ProductsList({
 
         const totalStock = childs.reduce((sum, c) => sum + (c.stock_quantity || 0), 0);
         const totalProfit = childs.reduce(
-          (sum, c) => sum + ((c.final_price || 0) - (c.base_cost || 0)) * (c.stock_quantity || 1),
+          (sum, c) => sum + ((c.final_price ?? 0) - (c.base_cost ?? 0)) / Math.max(1, c.quantity ?? 1) * (c.stock_quantity ?? 0),
           0
         );
 
@@ -964,6 +991,7 @@ export function ProductsList({
     <div className="space-y-4">
       {/* ГЛАВНАЯ КОНСОЛЬ ТОВАРОВ V2 */}
       <ProductsV2View
+        headerActions={<FinishedStockPanel />}
         rows={tableData}
         sortedRows={sortedRows}
         visibleRows={visibleRows}
@@ -983,7 +1011,7 @@ export function ProductsList({
         singleCount={counts.single}
         assemblyCount={counts.assembly}
         collectionCount={counts.collections}
-        inStockCount={counts.inStock}
+        inStockCount={warehouseMetrics.inStockPositionsCount}
         lowStockCount={counts.lowStock}
         outOfStockCount={savedCalculations.filter((c) => (c.stock_quantity || 0) === 0).length}
         stlCount={savedCalculations.filter((c) => c.stl_url || c.stl_file_data).length}

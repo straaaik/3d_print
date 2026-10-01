@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Box, Copy, Check, Pipette } from 'lucide-react';
 import {
   hexToHsl,
@@ -16,6 +16,7 @@ import { CustomColorPickerProps } from './types';
 import { ColorPickerTrigger } from './ColorPickerTrigger';
 import { Tooltip } from '../Tooltip';
 import { PrinterMachineIcon } from '../../../widgets/InventoryCockpit/InventoryIcons';
+import { useIsClient } from '../useIsClient';
 
 export function IsometricPrinterPicker({
   value = '#0CB4E0',
@@ -28,19 +29,16 @@ export function IsometricPrinterPicker({
   const [currentColor, setCurrentColor] = useState(() => normalizeHex(value));
   const [hsl, setHsl] = useState(() => hexToHsl(value));
   const [copied, setCopied] = useState(false);
-  const [hasDropper, setHasDropper] = useState(false);
-
-  useEffect(() => {
-    setHasDropper(hasEyeDropperSupport());
-  }, []);
-
-  useEffect(() => {
+  const hasDropper = useIsClient() && hasEyeDropperSupport();
+  const [previousValue, setPreviousValue] = useState(value);
+  if (previousValue !== value) {
+    setPreviousValue(value);
     if (isValidHex(value)) {
       const norm = normalizeHex(value);
       setCurrentColor(norm);
       setHsl(hexToHsl(norm));
     }
-  }, [value]);
+  }
 
   const updateHsl = (newHsl: { h: number; s: number; l: number }) => {
     setHsl(newHsl);

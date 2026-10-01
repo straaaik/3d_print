@@ -205,17 +205,17 @@ export function AssemblyExpandedRow({
   // Сводка по печатным деталям
   const totalWeight = parts.reduce((acc, p) => acc + (p.weight_g || 0) * (p.quantity || 1), 0);
   const partsCost = parts.reduce((acc, p) => acc + (p.base_cost || 0) * (p.quantity || 1), 0);
-  const partsPrice = parts.reduce((acc, p) => acc + (p.final_price || p.base_cost || 0) * (p.quantity || 1), 0);
+  const partsPrice = parts.reduce((acc, p) => acc + (p.final_price ?? 0) * (p.quantity || 1), 0);
 
   // Сводка по крепежу
   const totalHwPieces = hardware.reduce((acc, h) => acc + (h.quantity || 1), 0);
   const hwCost = hardware.reduce((acc, h) => acc + (h.cost_per_unit || 0) * (h.quantity || 1), 0);
-  const hwPrice = hardware.reduce((acc, h) => acc + (h.price_per_unit || h.cost_per_unit || 0) * (h.quantity || 1), 0);
+  const hwPrice = hardware.reduce((acc, h) => acc + (h.price_per_unit ?? 0) * (h.quantity || 1), 0);
 
   // Сводка по электронике
   const totalElPieces = electronics.reduce((acc, el) => acc + (el.quantity || 1), 0);
   const elCost = electronics.reduce((acc, el) => acc + (el.cost_per_unit || 0) * (el.quantity || 1), 0);
-  const elPrice = electronics.reduce((acc, el) => acc + (el.price_per_unit || el.cost_per_unit || 0) * (el.quantity || 1), 0);
+  const elPrice = electronics.reduce((acc, el) => acc + (el.price_per_unit ?? 0) * (el.quantity || 1), 0);
 
   const isEmpty = parts.length === 0 && hardware.length === 0 && electronics.length === 0;
   const isCompact = mode === 'compact';
@@ -280,7 +280,7 @@ export function AssemblyExpandedRow({
                       const qty = part.quantity || 1;
                       const pWeight = (part.weight_g || 0) * qty;
                       const pCost = (part.base_cost || 0) * qty;
-                      const pPrice = (part.final_price || part.base_cost || 0) * qty;
+                      const pPrice = (part.final_price ?? 0) * qty;
                       const pProfit = pPrice - pCost;
                       const pProfitDisplay = pProfit < 0
                         ? `−${formatCurrency(Math.abs(pProfit), currencySymbol)}`
@@ -472,7 +472,7 @@ export function AssemblyExpandedRow({
                       const isMatched = isHwMatch(item);
                       const qty = item.quantity || 1;
                       const hCost = (item.cost_per_unit || 0) * qty;
-                      const hPrice = (item.price_per_unit || item.cost_per_unit || 0) * qty;
+                      const hPrice = (item.price_per_unit ?? 0) * qty;
                       const hProfit = hPrice - hCost;
                       const hProfitDisplay = hProfit < 0
                         ? `−${formatCurrency(Math.abs(hProfit), currencySymbol)}`
@@ -565,7 +565,7 @@ export function AssemblyExpandedRow({
                       const isMatched = isElMatch(item);
                       const qty = item.quantity || 1;
                       const eCost = (item.cost_per_unit || 0) * qty;
-                      const ePrice = (item.price_per_unit || item.cost_per_unit || 0) * qty;
+                      const ePrice = (item.price_per_unit ?? 0) * qty;
                       const eProfit = ePrice - eCost;
                       const eProfitDisplay = eProfit < 0
                         ? `−${formatCurrency(Math.abs(eProfit), currencySymbol)}`
@@ -657,7 +657,7 @@ export function AssemblyExpandedRow({
               <span className="tabular-nums text-white font-bold">{formatCurrency(finalPrice, currencySymbol)}</span>
             </div>
             <div className={profit < 0 ? 'text-rose-400' : profit > 0 ? 'text-emerald-400' : 'text-neutral-300'}>
-              <span className="block text-[10px] uppercase tracking-wide text-neutral-500">Прибыль</span>
+              <span className="block text-[10px] uppercase tracking-wide text-neutral-500">Плановая прибыль</span>
               <span className="tabular-nums font-bold">{profitDisplay} ({marginPercent}%)</span>
             </div>
           </div>
@@ -767,7 +767,7 @@ export function AssemblyExpandedRow({
                 const qty = part.quantity || 1;
                 const unitCost = part.base_cost || 0;
                 const totalPartCost = unitCost * qty;
-                const unitPrice = part.final_price || part.base_cost || 0;
+                const unitPrice = part.final_price ?? 0;
                 const totalPartPrice = unitPrice * qty;
                 const partProfit = totalPartPrice - totalPartCost;
                 const partMargin = totalPartPrice > 0 ? (partProfit / totalPartPrice) * 100 : 0;
@@ -1118,7 +1118,7 @@ export function AssemblyExpandedRow({
                 const qty = item.quantity || 1;
                 const unitCost = item.cost_per_unit || 0;
                 const totalHwCost = unitCost * qty;
-                const unitPrice = item.price_per_unit || item.cost_per_unit || 0;
+                const unitPrice = item.price_per_unit ?? 0;
                 const totalHwPrice = unitPrice * qty;
                 const hwProfit = totalHwPrice - totalHwCost;
                 const hwMargin = totalHwPrice > 0 ? (hwProfit / totalHwPrice) * 100 : 0;
@@ -1346,7 +1346,7 @@ export function AssemblyExpandedRow({
                 const qty = item.quantity || 1;
                 const unitCost = item.cost_per_unit || 0;
                 const totalElCost = unitCost * qty;
-                const unitPrice = item.price_per_unit || item.cost_per_unit || 0;
+                const unitPrice = item.price_per_unit ?? 0;
                 const totalElPrice = unitPrice * qty;
                 const elProfit = totalElPrice - totalElCost;
                 const elMargin = totalElPrice > 0 ? (elProfit / totalElPrice) * 100 : 0;
@@ -1568,7 +1568,7 @@ export function AssemblyExpandedRow({
           </div>
           <div className="h-7 w-px bg-white/10 hidden sm:block" />
           <div className={profit < 0 ? 'text-rose-400' : profit > 0 ? 'text-emerald-400' : 'text-neutral-300'}>
-            <span className="block text-[10px] uppercase tracking-wide text-neutral-500">Прибыль</span>
+            <span className="block text-[10px] uppercase tracking-wide text-neutral-500">Плановая прибыль</span>
             <span className="tabular-nums font-bold">{profitDisplay} ({marginPercent}%)</span>
           </div>
         </div>

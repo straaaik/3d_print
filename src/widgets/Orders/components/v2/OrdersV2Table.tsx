@@ -1,3 +1,4 @@
+import { NumberInput } from '../../../../shared/ui/NumberInput';
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -13,7 +14,7 @@ import {
   ALL_STATUSES,
   ALL_CLIENTS,
 } from '../../types';
-import { formatMoney, roundTo2, getDeadlineInfo } from '../../helpers';
+import { calculateOrderFinancials, formatMoney, roundTo2, getDeadlineInfo } from '../../helpers';
 import { formatOrderNumber, getPaymentBadgeInfo, getStatusBadgeV2 } from './types';
 import {
   ChevronUp,
@@ -467,6 +468,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
 
   // Начать редактирование ячейки
   const startEditing = (order: Order, field: EditableField, initialVal: string | number | undefined | null) => {
+    if ((field === 'quantity' || field === 'cost') && order.items?.length) { onOpenEditModal(order); return; }
     setContextMenu(null);
     setActiveDatePicker(null);
     setActiveStatusDropdown(null);
@@ -496,7 +498,7 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
           if (order.type === 'expense') {
             onInlineUpdate(order.id, { amount: cleanAmount, payment: cleanAmount, payments: [cleanAmount] });
           } else {
-            onInlineUpdate(order.id, { amount: cleanAmount });
+            onInlineUpdate(order.id, { amount: cleanAmount, ...(order.items?.length ? { agreed_price: cleanAmount } : {}) });
           }
         }
         break;
@@ -1012,8 +1014,8 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                   // Финансовые расчеты
                   const isIncome = order.type === 'income';
                   const isExpense = order.type === 'expense';
-                  const netProfit = isIncome ? (order.amount || 0) - (order.cost || 0) : -(order.amount || 0);
-                  const marginPercent = isIncome && (order.amount || 0) > 0 ? ((netProfit / order.amount) * 100) : 0;
+                  const netProfit = isIncome ? calculateOrderFinancials(order).actualProfit : -(order.amount || 0);
+                  const marginPercent = isIncome && (order.payment || 0) > 0 ? ((netProfit / order.payment) * 100) : 0;
                   const markupPercent = isIncome && (order.cost || 0) > 0 ? ((netProfit / order.cost) * 100) : 0;
                   const debtAmount = Math.max(0, (order.amount || 0) - (order.payment || 0));
                   const paidAmount = order.payment || 0;
@@ -1136,18 +1138,18 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                       {/* 3. ТИП И СТАТУС ОПЛАТЫ (ПЕРЕКЛЮЧЕНИЕ ТИПА В 1 КЛИК) */}
                       <td className="py-2.5 px-3 whitespace-nowrap text-center">
                         <div className="flex flex-col items-center gap-1">
-                          <button
+                          <button disabled={Boolean(order.id)}
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              onToggleType(order);
+                              if (!order.id) onToggleType(order);
                             }}
                             className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border cursor-pointer ${
                               isIncome
                                 ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
                                 : 'bg-rose-500/10 text-rose-300 border-rose-500/30 hover:bg-rose-500/20'
                             }`}
-                            title="Клик для переключения Доход / Расход"
+                            title="Тип сохранённой записи защищён; создайте отдельный заказ или расход"
                           >
                             {isIncome ? 'Доход' : 'Расход'}
                           </button>
@@ -1339,15 +1341,15 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
 
                             {isIncome && (
                               editingCell?.orderId === order.id && editingCell?.field === 'quantity' ? (
-                                <input
+                                <NumberInput label="Сумма"
                                   ref={inputRef as React.RefObject<HTMLInputElement>}
-                                  type="number"
-                                  min="1"
-                                  value={editValue}
-                                  onChange={(e) => setEditValue(e.target.value)}
+
+                                  min={1}
+                                  value={Number(editValue) || 0}
+                                  onChange={value => setEditValue(String(value ?? ''))}
                                   onBlur={() => commitEdit(order, 'quantity', editValue)}
                                   onKeyDown={(e) => handleKeyDown(e, order, 'quantity')}
-                                  className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-neutral-400 font-mono text-xs p-0 m-0 w-12 text-center shadow-none"
+
                                 />
                               ) : (
                                 <span
@@ -1624,20 +1626,18 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                       <td className="py-2.5 px-3 whitespace-nowrap text-right font-mono text-xs">
                         {editingCell?.orderId === order.id && editingCell?.field === 'payment' ? (
                           <div className="inline-flex items-center justify-end gap-1 font-mono text-xs" onClick={(e) => e.stopPropagation()}>
-                            <input
+                            <NumberInput label="Сумма"
                               ref={inputRef as React.RefObject<HTMLInputElement>}
-                              type="text"
-                              inputMode="decimal"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
+
+
+                              value={Number(editValue) || 0}
+                              onChange={value => setEditValue(String(value ?? ''))}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') commitEdit(order, 'payment', editValue);
                                 if (e.key === 'Escape') setEditingCell(null);
                               }}
                               onBlur={() => commitEdit(order, 'payment', editValue)}
-                              className={`w-20 bg-neutral-900 border rounded px-1.5 py-0.5 text-right font-mono text-xs focus:outline-none ${
-                                isExpense ? 'border-rose-500 text-rose-400' : 'border-emerald-500 text-emerald-400'
-                              }`}
+
                             />
                             <span className="text-neutral-500 font-normal select-none text-xs">₽</span>
                           </div>
@@ -2027,8 +2027,8 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                   // Расчетные величины
                   const isIncome = order.type === 'income';
                   const isExpense = order.type === 'expense';
-                  const netProfit = isIncome ? (order.amount || 0) - (order.cost || 0) : -(order.amount || 0);
-                  const marginPercent = isIncome && (order.amount || 0) > 0 ? ((netProfit / order.amount) * 100) : 0;
+                  const netProfit = isIncome ? calculateOrderFinancials(order).actualProfit : -(order.amount || 0);
+                  const marginPercent = isIncome && (order.payment || 0) > 0 ? ((netProfit / order.payment) * 100) : 0;
                   const debtAmount = Math.max(0, (order.amount || 0) - (order.payment || 0));
                   const paidAmount = order.payment || 0;
                   const totalAmount = order.amount || 0;
@@ -2112,18 +2112,18 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
 
                       {/* 2. ТИП (ПЕРЕКЛЮЧЕНИЕ В 1 КЛИК) */}
                       <td className="py-2 px-3 whitespace-nowrap text-center">
-                        <button
+                        <button disabled={Boolean(order.id)}
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            onToggleType(order);
+                            if (!order.id) onToggleType(order);
                           }}
                           className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border cursor-pointer ${
                             isIncome
                               ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30 hover:bg-emerald-500/20'
                               : 'bg-rose-500/10 text-rose-300 border-rose-500/30 hover:bg-rose-500/20'
                           }`}
-                          title="Клик для переключения Доход / Расход"
+                          title="Тип сохранённой записи защищён; создайте отдельный заказ или расход"
                         >
                           {isIncome ? 'Доход' : 'Расход'}
                         </button>
@@ -2289,15 +2289,15 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
 
                             {isIncome && (
                               editingCell?.orderId === order.id && editingCell?.field === 'quantity' ? (
-                                <input
+                                <NumberInput label="Сумма"
                                   ref={inputRef as React.RefObject<HTMLInputElement>}
-                                  type="number"
-                                  min="1"
-                                  value={editValue}
-                                  onChange={(e) => setEditValue(e.target.value)}
+
+                                  min={1}
+                                  value={Number(editValue) || 0}
+                                  onChange={value => setEditValue(String(value ?? ''))}
                                   onBlur={() => commitEdit(order, 'quantity', editValue)}
                                   onKeyDown={(e) => handleKeyDown(e, order, 'quantity')}
-                                  className="bg-transparent border-none outline-none focus:outline-none focus:ring-0 text-neutral-400 font-mono text-xs p-0 m-0 w-12 text-center shadow-none"
+
                                 />
                               ) : (
                                 <span
@@ -2518,20 +2518,18 @@ export const OrdersV2Table = React.memo(function OrdersV2Table({
                       <td className="py-2 px-3 whitespace-nowrap text-right font-mono text-xs w-36">
                         {editingCell?.orderId === order.id && editingCell?.field === 'payment' ? (
                           <div className="inline-flex items-center justify-end gap-1 font-mono text-xs" onClick={(e) => e.stopPropagation()}>
-                            <input
+                            <NumberInput label="Сумма"
                               ref={inputRef as React.RefObject<HTMLInputElement>}
-                              type="text"
-                              inputMode="decimal"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
+
+
+                              value={Number(editValue) || 0}
+                              onChange={value => setEditValue(String(value ?? ''))}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') commitEdit(order, 'payment', editValue);
                                 if (e.key === 'Escape') setEditingCell(null);
                               }}
                               onBlur={() => commitEdit(order, 'payment', editValue)}
-                              className={`w-20 bg-neutral-900 border rounded px-1.5 py-0.5 text-right font-mono text-xs focus:outline-none ${
-                                isExpense ? 'border-rose-500 text-rose-400' : 'border-emerald-500 text-emerald-400'
-                              }`}
+
                             />
                             <span className="text-neutral-500 font-normal select-none text-xs">₽</span>
                           </div>

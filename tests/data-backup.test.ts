@@ -69,3 +69,13 @@ test('backup parsing rejects malformed nested order contacts', () => {
 
   assert.throws(() => parseDataBackup(malformed), /orders\[0\]\.contacts\[0\]/);
 });
+
+test('legacy export and parse own independent nested copies', () => {
+  const source = structuredClone(snapshot);
+  const backup = createDataBackup(source);
+  const parsed = parseDataBackup(backup);
+  parsed.orders![0].contacts![0].value = 'changed';
+  backup.orders[0].title = 'edited';
+  assert.equal(source.orders[0].title, 'Bracket');
+  assert.equal(backup.orders[0].contacts![0].value, '+70000000000');
+});

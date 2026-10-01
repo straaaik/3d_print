@@ -6,6 +6,8 @@ import {
   type ReceiptTemplate,
 } from '../src/shared/lib/receiptTemplate';
 import { formatCurrency } from '../src/shared/lib/format';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 test('parseReceiptTemplate returns default template for null or invalid JSON', () => {
   assert.deepEqual(parseReceiptTemplate(null), DEFAULT_RECEIPT_TEMPLATE);
@@ -72,8 +74,6 @@ test('extra service names never append "(за весь заказ)", but append 
 });
 
 test('receipt modal and template tab enforce non-editable totals, prominent payment details, and no double pluses', () => {
-  const { readFileSync } = require('node:fs');
-  const { resolve } = require('node:path');
 
   const modalSource = readFileSync(resolve('src/widgets/Calculator/ClientReceiptModal.tsx'), 'utf8');
   const templateTabSource = readFileSync(resolve('src/widgets/SettingsForm/components/ReceiptTemplateTab.tsx'), 'utf8');
@@ -182,8 +182,6 @@ test('header visibility options default to true and can be toggled individually 
   assert.equal(collapsedHeader.hasAnyHeaderContent, false);
 
   // 5. Verify source files wire up the header flags and guards
-  const { readFileSync } = require('node:fs');
-  const { resolve } = require('node:path');
   const modalSource = readFileSync(resolve('src/widgets/Calculator/ClientReceiptModal.tsx'), 'utf8');
   const templateTabSource = readFileSync(resolve('src/widgets/SettingsForm/components/ReceiptTemplateTab.tsx'), 'utf8');
 

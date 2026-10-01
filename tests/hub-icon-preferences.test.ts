@@ -31,7 +31,7 @@ test('getHubIconSrc возвращает правильные пути для в
   }
 
   // При передаче неизвестного стиля переключается на безопасный дефолт
-  assert.equal(getHubIconSrc('calculator', 'unknown' as any), '/images/hub/cyber/calculator.png');
+  assert.equal(getHubIconSrc('calculator', 'unknown' as Parameters<typeof getHubIconSrc>[1]), '/images/hub/cyber/calculator.png');
 });
 
 test('HUB_ICON_STYLES содержит ровно 2 зарегистрированных стиля с описаниями и превью', () => {

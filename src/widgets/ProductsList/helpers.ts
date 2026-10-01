@@ -1,15 +1,21 @@
 import { SavedCalculation, Order, AssemblyPrintedPart, AssemblyHardwareItem, AssemblyElectronicsItem, CostItem, ProductCollection } from '../../shared/types';
+import type { FinishedStockBalance } from '../../shared/types/foundation';
 import { WarehouseMetrics, SalesStatInfo, CatalogTableRow } from './types';
+import { formatCurrency } from '../../shared/lib/format';
 import { getCategoryConfig } from '../../shared/lib/costCategories';
 
 import {
   round2,
   calculateAssemblyTotals,
-  calculateWarehouseMetrics,
+  calcMarginPercent,
   AssemblyTotalsResult
 } from '../../shared/lib/formulas';
 
 export { round2 };
+
+export function formatCatalogProfit(value: number, currency: string = '₽'): string {
+  return (value > 0 ? '+' : '') + formatCurrency(value, currency);
+}
 
 export function calcAssemblyTotals(
   parts: AssemblyPrintedPart[],
@@ -22,8 +28,31 @@ export function calcAssemblyTotals(
   return calculateAssemblyTotals(parts, hardware, assemblyLaborMinutes, laborRate, isOwnerLabor, electronics);
 }
 
-export function getWarehouseMetrics(savedCalculations: SavedCalculation[]): WarehouseMetrics {
-  return calculateWarehouseMetrics(savedCalculations);
+/** Onhand cost comes from the ledger; saved batch prices remain the retail plan. */
+export function getWarehouseMetrics(savedCalculations: SavedCalculation[], balances?: FinishedStockBalance[],
+  historicalProducts: SavedCalculation[] = []): WarehouseMetrics {
+  const products = new Map([...historicalProducts, ...savedCalculations].map(item => [item.id, item]));
+  const accounted = new Set<string>();
+  let totalUnits = 0, inStockPositionsCount = 0, totalRetailValue = 0, totalCostValue = 0;
+  const add = (quantity: number, unitCost: number, product?: SavedCalculation) => {
+    if (quantity <= 0) return;
+    totalUnits += quantity; inStockPositionsCount += 1;
+    totalCostValue += quantity * unitCost;
+    if (product) totalRetailValue += quantity * (product.final_price ?? 0) / Math.max(1, product.quantity ?? 1);
+  };
+  for (const balance of balances ?? []) {
+    accounted.add(balance.source_product_id);
+    add(balance.quantity, balance.average_unit_cost, products.get(balance.source_product_id));
+  }
+  // Owner state may still be loading on a legacy install. Never override a canonical zero balance.
+  for (const product of savedCalculations) {
+    if (!accounted.has(product.id)) add(product.stock_quantity ?? 0,
+      (product.base_cost ?? 0) / Math.max(1, product.quantity ?? 1), product);
+  }
+  totalRetailValue = round2(totalRetailValue); totalCostValue = round2(totalCostValue);
+  const potentialProfit = round2(totalRetailValue - totalCostValue);
+  return { totalUnits, inStockPositionsCount, totalRetailValue, totalCostValue, potentialProfit,
+    profitMargin: calcMarginPercent(potentialProfit, totalRetailValue) };
 }
 
 /**
@@ -113,9 +142,7 @@ export function prepareDraftOrderFromProduct(item: SavedCalculation) {
 
     const partsCost = parts.reduce((acc, p) => acc + (p.final_price || 0) * (p.quantity || 1), 0);
     const hwCost = hardware.reduce((acc, h) => acc + (h.cost_per_unit || 0) * (h.quantity || 1), 0);
-    const hwPrice = hardware.reduce((acc, h) => acc + (h.price_per_unit || 0) * (h.quantity || 1), 0);
     const elCost = electronics.reduce((acc, el) => acc + (el.cost_per_unit || 0) * (el.quantity || 1), 0);
-    const elPrice = electronics.reduce((acc, el) => acc + (el.price_per_unit || 0) * (el.quantity || 1), 0);
     const laborCost = item.assembly_labor_cost || 0;
 
     const unitPrintHours = parts.reduce((acc, p) => {
@@ -124,11 +151,9 @@ export function prepareDraftOrderFromProduct(item: SavedCalculation) {
     }, 0);
     totalPrintHours = unitPrintHours * orderQty;
 
-    const unitCost = partsCost + hwCost + elCost + laborCost;
-    const unitAmount = partsCost + hwPrice + elPrice + laborCost;
-
-    cost = Math.round(unitCost * orderQty * 100) / 100;
-    amount = Math.round(unitAmount * orderQty * 100) / 100;
+    // Composition is descriptive; the explicitly saved batch totals are authoritative.
+    cost = round2(item.base_cost ?? 0);
+    amount = round2(item.final_price ?? 0);
     notes = `Составная сборка: ${item.name} (${parts.length} дет, ${hardware.length} мет, ${electronics.length > 0 ? `${electronics.length} эл, ` : ''}${orderQty} шт)`;
 
     if (partsCost > 0) {
@@ -165,7 +190,7 @@ export function prepareDraftOrderFromProduct(item: SavedCalculation) {
     totalPrintHours = unitPrintHours * orderQty;
 
     const unitCost = (item.base_cost || 0) / itemQty;
-    const unitAmount = (item.final_price || item.base_cost || 0) / itemQty;
+    const unitAmount = (item.final_price ?? 0) / itemQty;
 
     cost = Math.round(unitCost * orderQty * 100) / 100;
     amount = Math.round(unitAmount * orderQty * 100) / 100;

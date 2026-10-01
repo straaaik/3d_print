@@ -1,5 +1,11 @@
 export type MaterialDifficultyCategory = 'pla_petg' | 'abs_asa' | 'tpu_flex' | 'nylon_cf';
 
+export function resolveMaterialDifficulty(filament: { name: string; material_difficulty_id?: string | null }): MaterialDifficultyConfig | null {
+  if (filament.material_difficulty_id === undefined) return detectMaterialDifficulty(filament.name);
+  if (filament.material_difficulty_id === null) return null;
+  return MATERIAL_DIFFICULTY_CONFIGS[filament.material_difficulty_id as MaterialDifficultyCategory] ?? null;
+}
+
 export interface MaterialDifficultyConfig {
   id: MaterialDifficultyCategory;
   name: string;

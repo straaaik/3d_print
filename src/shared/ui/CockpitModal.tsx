@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useIsClient } from './useIsClient';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -109,10 +110,7 @@ export function CockpitModal({
     };
   }, [isOpen]);
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useIsClient();
 
   const sizeClass = maxWidthClasses[maxWidth] || maxWidthClasses.lg;
 

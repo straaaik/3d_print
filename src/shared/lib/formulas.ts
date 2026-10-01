@@ -14,13 +14,14 @@ import type {
   Settings,
   SavedCalculation,
   CustomCostItem,
+  CustomCostMode,
   AssemblyPrintedPart,
   AssemblyHardwareItem,
   AssemblyElectronicsItem,
   Order
 } from '../types';
 import { timeToHours } from './format';
-import { detectMaterialDifficulty } from './materialDifficulty';
+import { resolveMaterialDifficulty } from './materialDifficulty';
 import type { MaterialDifficultyConfig } from './materialDifficulty';
 
 // ============================================================================
@@ -166,6 +167,7 @@ export interface CustomCostBreakdownItem {
   isPerUnit: boolean;
   totalAmount: number;
   target: 'cost' | 'profit';
+  mode: CustomCostMode;
 }
 
 export interface DetailedCalculationResult {
@@ -177,6 +179,7 @@ export interface DetailedCalculationResult {
   customCostsTotal: number;
   customCostsExpenseTotal: number;
   customCostsProfitTotal: number;
+  customCostsNoMarkupTotal: number;
   customCostsBreakdown: CustomCostBreakdownItem[];
 
   printDirectCost: number;
@@ -204,6 +207,10 @@ export interface DetailedCalculationResult {
   minOrderPrice: number;
   isMinOrderApplied: boolean;
   calculatedFinalPrice: number;
+  computedFinalPrice: number;
+  agreedPrice: number | null;
+  priceAdjustment: number;
+  isBelowCost: boolean;
 
   totalBaseCost: number;
   totalFinalPrice: number;
@@ -212,6 +219,7 @@ export interface DetailedCalculationResult {
   finalPricePerUnit: number;
 
   profitTotal: number;
+  plannedProfit: number;
   profitPerUnit: number;
   marginPercent: number;
   markupPercent: number;
@@ -234,6 +242,7 @@ export interface CalculateCostParams {
   discountAmount?: number;
   urgencyPercent?: number;
   urgencyAmount?: number;
+  agreedPrice?: number | null;
   filament: Filament | null;
   printer: Printer | null;
   settings: Settings | null;
@@ -319,13 +328,16 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
   const customCostsBreakdown: CustomCostBreakdownItem[] = [];
   let customCostsExpenseTotal = 0;
   let customCostsProfitTotal = 0;
+  let customCostsNoMarkupTotal = 0;
 
   for (const item of customCostItems) {
     if (!item.isEnabled) continue;
-    const itemAmount = item.amount || 0;
+    // Legacy signed adjustments must not be silently repriced by the new modes.
+    const itemAmount = Number.isFinite(item.amount) ? item.amount : 0;
     const isPerUnit = Boolean(item.isPerUnit);
     const itemTotal = isPerUnit ? itemAmount * safeQuantity : itemAmount;
-    const target: 'cost' | 'profit' = item.target === 'profit' ? 'profit' : 'cost';
+    const mode: CustomCostMode = item.mode ?? (item.target === 'profit' ? 'profit_only' : 'cost_with_markup');
+    const target: 'cost' | 'profit' = mode === 'profit_only' ? 'profit' : 'cost';
 
     customCostsBreakdown.push({
       id: item.id,
@@ -334,23 +346,28 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
       isPerUnit,
       totalAmount: itemTotal,
       target,
+      mode,
     });
 
     if (target === 'profit') {
       customCostsProfitTotal += itemTotal;
+    } else if (mode === 'cost_no_markup') {
+      customCostsNoMarkupTotal += itemTotal;
+      customCostsExpenseTotal += itemTotal;
     } else {
       customCostsExpenseTotal += itemTotal;
     }
   }
   customCostsExpenseTotal = round2(customCostsExpenseTotal);
   customCostsProfitTotal = round2(customCostsProfitTotal);
+  customCostsNoMarkupTotal = round2(customCostsNoMarkupTotal);
   const customCostsTotal = round2(customCostsExpenseTotal + customCostsProfitTotal);
 
   // 8. Итого себестоимость (Печать + Брак + Наемный труд + Услуги в себестоимость)
   const totalBaseCost = round2(printBaseSubtotal + laborInCost + customCostsExpenseTotal);
 
   // 9. Определение сложности материала и наценки
-  const materialDifficulty = filament ? detectMaterialDifficulty(filament.name) : null;
+  const materialDifficulty = filament ? resolveMaterialDifficulty(filament) : null;
 
   let effectiveMarkupPercent: number;
   if (customMarkupPercent !== undefined) {
@@ -365,7 +382,7 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
   }
 
   // Коэффициент наценки умножает всю сумму себестоимости (печать, брак, наемный труд и услуги в себестоимость)
-  const printFinalPrice = round2(totalBaseCost * (1 + effectiveMarkupPercent / 100));
+  const printFinalPrice = round2((totalBaseCost - customCostsNoMarkupTotal) * (1 + effectiveMarkupPercent / 100) + customCostsNoMarkupTotal);
 
   // 10. Базовая розничная цена (включает себестоимость с наценкой + личный труд в прибыль + услуги в прибыль)
   const baseRetailPrice = round2(printFinalPrice + (isOwnerLabor ? laborCost : 0) + customCostsProfitTotal);
@@ -386,7 +403,12 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
   const calculatedFinalPrice = priceAfterDiscount;
   const minOrderPrice = settings?.min_order_price ?? 0;
   const isMinOrderApplied = minOrderPrice > 0 && calculatedFinalPrice < minOrderPrice && (baseRetailPrice > 0 || calculatedFinalPrice > 0);
-  const totalFinalPrice = isMinOrderApplied ? minOrderPrice : calculatedFinalPrice;
+  const computedFinalPrice = round2(isMinOrderApplied ? minOrderPrice : calculatedFinalPrice);
+  const agreedPrice = params.agreedPrice !== null && params.agreedPrice !== undefined &&
+    Number.isFinite(params.agreedPrice) && params.agreedPrice >= 0 ? round2(params.agreedPrice) : null;
+  const totalFinalPrice = agreedPrice ?? computedFinalPrice;
+  const priceAdjustment = round2(totalFinalPrice - computedFinalPrice);
+  const isBelowCost = totalFinalPrice < totalBaseCost;
 
   // 14. Поштучные показатели
   const baseCostPerUnit = round2(totalBaseCost / safeQuantity);
@@ -409,6 +431,7 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
     customCostsTotal,
     customCostsExpenseTotal,
     customCostsProfitTotal,
+    customCostsNoMarkupTotal,
     customCostsBreakdown,
     printDirectCost,
     printBaseSubtotal,
@@ -431,15 +454,136 @@ export function calculatePrintCost(params: CalculateCostParams): DetailedCalcula
     minOrderPrice,
     isMinOrderApplied,
     calculatedFinalPrice,
+    computedFinalPrice,
+    agreedPrice,
+    priceAdjustment,
+    isBelowCost,
     totalBaseCost,
     totalFinalPrice,
     baseCostPerUnit,
     finalPricePerUnit,
     profitTotal,
+    plannedProfit: profitTotal,
     profitPerUnit,
     marginPercent,
     markupPercent,
   };
+}
+
+export interface FinancialOutcome {
+  plannedProfit: number;
+  actualProfit: number;
+  debt: number;
+}
+
+/** Financial indicators use the amount actually received, never the order's expected price. */
+export function calculateFinancialOutcome(finalPrice: number, cost: number, payment: number): FinancialOutcome {
+  const safePrice = Number.isFinite(finalPrice) ? Math.max(0, finalPrice) : 0;
+  const safeCost = Number.isFinite(cost) ? Math.max(0, cost) : 0;
+  const safePayment = Number.isFinite(payment) ? Math.max(0, payment) : 0;
+  return {
+    plannedProfit: round2(safePrice - safeCost),
+    actualProfit: round2(safePayment - safeCost),
+    debt: round2(Math.max(0, safePrice - safePayment)),
+  };
+}
+
+export interface ProjectCalculationLine {
+  inputs?: CalculateCostParams;
+  /** Display quantity only. result already contains the full batch price and cost. */
+  quantity: number;
+  result: DetailedCalculationResult;
+}
+
+export interface CalculateProjectTotalsParams {
+  lines: ProjectCalculationLine[];
+  urgencyPercent?: number;
+  urgencyAmount?: number;
+  discountPercent?: number;
+  discountAmount?: number;
+  minOrderPrice?: number;
+  agreedPrice?: number | null;
+  payment?: number;
+}
+
+export interface ProjectTotalsResult extends FinancialOutcome {
+  marginPercent: number;
+  quantity: number;
+  payment: number;
+  totalBaseCost: number;
+  baseRetailPrice: number;
+  urgencyPercent: number;
+  urgencyAmount: number;
+  urgencyCost: number;
+  priceWithUrgency: number;
+  discountPercent: number;
+  discountAmount: number;
+  discountTotal: number;
+  calculatedFinalPrice: number;
+  minOrderPrice: number;
+  isMinOrderApplied: boolean;
+  computedFinalPrice: number;
+  agreedPrice: number | null;
+  priceAdjustment: number;
+  totalFinalPrice: number;
+  profitTotal: number;
+  isBelowCost: boolean;
+}
+
+/** Applies project adjustments to finalized line totals, without repeating line discounts. */
+export function calculateProjectTotals(params: CalculateProjectTotalsParams): ProjectTotalsResult {
+  const positive = (value: number | undefined) => Number.isFinite(value) ? Math.max(0, value ?? 0) : 0;
+  const quantity = params.lines.reduce((total, line) => total + Math.max(0, Math.trunc(positive(line.quantity))), 0);
+  const totalBaseCost = round2(params.lines.reduce((total, line) => total + positive(line.result.totalBaseCost), 0));
+  const baseRetailPrice = round2(params.lines.reduce((total, line) => total + positive(line.result.totalFinalPrice), 0));
+  const urgencyPercent = positive(params.urgencyPercent);
+  const urgencyAmount = positive(params.urgencyAmount);
+  const urgencyCost = calcUrgencyFee(baseRetailPrice, urgencyPercent, urgencyAmount);
+  const priceWithUrgency = round2(baseRetailPrice + urgencyCost);
+  const discountPercent = positive(params.discountPercent);
+  const discountAmount = positive(params.discountAmount);
+  const discountTotal = calcDiscountTotal(priceWithUrgency, discountPercent, discountAmount);
+  const calculatedFinalPrice = round2(Math.max(0, priceWithUrgency - discountTotal));
+  const minOrderPrice = positive(params.minOrderPrice);
+  const isMinOrderApplied = minOrderPrice > 0 && calculatedFinalPrice < minOrderPrice &&
+    (baseRetailPrice > 0 || calculatedFinalPrice > 0);
+  const computedFinalPrice = round2(isMinOrderApplied ? minOrderPrice : calculatedFinalPrice);
+  const agreedPrice = params.agreedPrice !== null && params.agreedPrice !== undefined &&
+    Number.isFinite(params.agreedPrice) && params.agreedPrice >= 0 ? round2(params.agreedPrice) : null;
+  const totalFinalPrice = agreedPrice ?? computedFinalPrice;
+  const priceAdjustment = round2(totalFinalPrice - computedFinalPrice);
+  const financial = calculateFinancialOutcome(totalFinalPrice, totalBaseCost, params.payment ?? 0);
+  const payment = Number.isFinite(params.payment) ? Math.max(0, params.payment ?? 0) : 0;
+
+  return {
+    quantity, payment, totalBaseCost, baseRetailPrice, urgencyPercent, urgencyAmount, urgencyCost,
+    priceWithUrgency, discountPercent, discountAmount, discountTotal, calculatedFinalPrice,
+    minOrderPrice, isMinOrderApplied, computedFinalPrice, agreedPrice, priceAdjustment,
+    totalFinalPrice, profitTotal: financial.plannedProfit, isBelowCost: totalFinalPrice < totalBaseCost,
+    marginPercent: calcMarginPercent(financial.plannedProfit, totalFinalPrice),
+    ...financial,
+  };
+}
+
+/** Weight/time in each result already describe its batch; never multiply them by quantity again. */
+export function calculateProjectResources(lines: ProjectCalculationLine[]) {
+  const positive = (value: number | undefined) => Number.isFinite(value) ? Math.max(0, value ?? 0) : 0;
+  const materials = new Map<string, { id: string; name: string; grams: number }>();
+  let weightG = 0;
+  let printHours = 0;
+  for (const line of lines) {
+    const input = line.inputs;
+    if (!input) continue;
+    const weight = Number.isFinite(input.weightG) ? Math.max(0, input.weightG) : 0;
+    weightG += weight;
+    printHours += positive(input.days) * 24 + positive(input.hours) + positive(input.minutes) / 60;
+    if (weight > 0) {
+      const id = input.filament?.id ?? 'unselected';
+      const current = materials.get(id) ?? { id, name: input.filament?.name ?? 'Материал не выбран', grams: 0 };
+      materials.set(id, { ...current, grams: current.grams + weight });
+    }
+  }
+  return { positionCount: lines.length, weightG, printHours, materials: [...materials.values()] };
 }
 
 
@@ -627,12 +771,16 @@ export function calculateWarehouseMetrics(savedCalculations: SavedCalculation[])
 // 6. ФОРМУЛЫ ЗАКАЗОВ И ФИНАНСОВ (ORDERS FINANCIALS & KPI)
 // ============================================================================
 
-export interface OrderFinancialsResult {
+export interface OrderFinancialsResult extends FinancialOutcome {
   baseAmount: number;
   urgencyCost: number;
   priceWithUrgency: number;
   discountTotal: number;
   finalAmount: number;
+  computedFinalAmount: number;
+  agreedPrice: number | null;
+  priceAdjustment: number;
+  payment: number;
 }
 
 /**
@@ -640,7 +788,9 @@ export interface OrderFinancialsResult {
  */
 export function calculateOrderFinancials(order: Partial<Order> | null | undefined): OrderFinancialsResult {
   if (!order) {
-    return { baseAmount: 0, urgencyCost: 0, priceWithUrgency: 0, discountTotal: 0, finalAmount: 0 };
+    return { baseAmount: 0, urgencyCost: 0, priceWithUrgency: 0, discountTotal: 0, finalAmount: 0,
+      computedFinalAmount: 0, agreedPrice: null, priceAdjustment: 0, payment: 0,
+      ...calculateFinancialOutcome(0, 0, 0) };
   }
   const base = Math.max(0, order.base_amount !== undefined ? order.base_amount : (order.amount || 0));
 
@@ -664,7 +814,11 @@ export function calculateOrderFinancials(order: Partial<Order> | null | undefine
   }
   discountTotal = round2(discountTotal);
 
-  const finalAmount = round2(Math.max(0, priceWithUrgency - discountTotal));
+  const computedFinalAmount = round2(Math.max(0, priceWithUrgency - discountTotal));
+  const agreedPrice = typeof order.agreed_price === 'number' && Number.isFinite(order.agreed_price)
+    && order.agreed_price >= 0 ? round2(order.agreed_price) : null;
+  const finalAmount = agreedPrice ?? computedFinalAmount;
+  const payment = Number.isFinite(order.payment) ? Math.max(0, order.payment ?? 0) : 0;
 
   return {
     baseAmount: base,
@@ -672,11 +826,14 @@ export function calculateOrderFinancials(order: Partial<Order> | null | undefine
     priceWithUrgency,
     discountTotal,
     finalAmount,
+    computedFinalAmount, agreedPrice, priceAdjustment: round2(finalAmount - computedFinalAmount), payment,
+    ...calculateFinancialOutcome(finalAmount, order.cost ?? 0, payment),
   };
 }
 
 export interface OrdersSummaryKPIResult {
   totalIncome: number;
+  receivedPayments: number;
   totalExpenses: number;
   netProfitTotal: number;
   totalMarginPercent: number;
@@ -697,6 +854,7 @@ export function calculateOrdersSummaryKPI(orders: Order[]): OrdersSummaryKPIResu
 
   // Выручка
   const totalIncome = round2(incomeOrders.reduce((sum, o) => sum + (o.amount || 0), 0));
+  const receivedPayments = round2(incomeOrders.reduce((sum, o) => sum + Math.max(0, o.payment || 0), 0));
 
   // Расходы (прямые расходы + производственная себестоимость выполненных заказов)
   const directExpenses = expenseOrders.reduce((sum, o) => sum + (o.amount || 0), 0);
@@ -707,14 +865,14 @@ export function calculateOrdersSummaryKPI(orders: Order[]): OrdersSummaryKPIResu
   const netProfitTotal = round2(
     orders.reduce((acc, o) => {
       if (o.type === 'income') {
-        return acc + ((o.amount || 0) - (o.cost || 0));
+        return acc + calculateFinancialOutcome(o.amount || 0, o.cost || 0, o.payment || 0).actualProfit;
       }
       return acc - (o.amount || 0);
     }, 0)
   );
 
   // Маржинальность
-  const totalMarginPercent = calcMarginPercent(netProfitTotal, totalIncome);
+  const totalMarginPercent = calcMarginPercent(netProfitTotal, receivedPayments);
 
   // Неоплаченные остатки
   const unpaidSum = round2(
@@ -732,6 +890,7 @@ export function calculateOrdersSummaryKPI(orders: Order[]): OrdersSummaryKPIResu
 
   return {
     totalIncome,
+    receivedPayments,
     totalExpenses,
     netProfitTotal,
     totalMarginPercent,

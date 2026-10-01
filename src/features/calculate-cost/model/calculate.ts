@@ -1,3 +1,4 @@
+import { productToCalculatorForm, calculatorFormToProductUpdates } from '../../../shared/lib/productCalculation';
 import { Filament, Printer, Settings, SavedCalculation } from '../../../shared/types';
 import {
   calculatePrintCost,
@@ -43,35 +44,13 @@ export function recalculateAllProducts(
       return item;
     }
 
-    const res = calculateCost({
-      weightG: item.weight_g || 0,
-      hours: item.hours || 0,
-      minutes: item.minutes || 0,
-      laborMinutes: item.labor_minutes ?? settings?.labor_time_minutes ?? 15,
-      laborRatePerHour: item.labor_rate_per_hour,
-      isOwnerLabor: item.is_owner_labor,
-      isLaborPerUnit: item.is_labor_per_unit,
-      markupPercent: item.markup_percent,
-      defectPercent: item.defect_percent,
-      discountPercent: item.discount_percent,
-      discountAmount: item.discount_amount,
-      urgencyPercent: item.urgency_percent,
-      urgencyAmount: item.urgency_amount,
-      customCostItems: item.custom_cost_items,
-      quantity: item.quantity || 1,
-      filament: liveFilament || null,
-      printer: livePrinter || null,
-      settings,
-    });
+    const form = productToCalculatorForm(item, filaments, printers);
+    form.isOwnerLabor = item.is_owner_labor ?? item.calculation_snapshot?.inputs.isOwnerLabor ?? settings?.is_owner_labor_default ?? true;
+    form.isLaborPerUnit = item.is_labor_per_unit ?? item.calculation_snapshot?.inputs.isLaborPerUnit ?? settings?.is_labor_per_unit_default ?? false;
+    const updates = calculatorFormToProductUpdates(form,
+      { filaments, printers, settings, product: item });
+    return { ...item, ...updates };
 
-    return {
-      ...item,
-      filament_name: liveFilament ? liveFilament.name : item.filament_name,
-      filament_color: liveFilament ? liveFilament.color : item.filament_color,
-      printer_name: livePrinter ? livePrinter.name : item.printer_name,
-      base_cost: round2(res.totalBaseCost),
-      final_price: round2(res.totalFinalPrice),
-    };
   });
 
   // 2. Затем пересчитываем составные сборки на основе обновленных деталей
@@ -137,7 +116,7 @@ export function recalculateAllProducts(
       item.assembly_hardware || [],
       laborMins,
       laborRate,
-      isOwnerLabor
+      isOwnerLabor, item.assembly_electronics || []
     );
 
     return {
@@ -145,7 +124,7 @@ export function recalculateAllProducts(
       assembly_parts: updatedParts,
       assembly_labor_cost: assemblyTotals.laborCost,
       base_cost: assemblyTotals.grandBaseCost,
-      final_price: assemblyTotals.grandFinalPrice,
+      final_price: item.agreed_price ?? assemblyTotals.grandFinalPrice,
     };
   });
 

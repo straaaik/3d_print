@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useCallback, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useMotionValue, animate } from 'motion/react';
 import { AlertTriangle, Check, X } from 'lucide-react';
+import { useIsClient } from './useIsClient';
 
 export interface RoundDeleteModalProps {
   isOpen: boolean;
@@ -81,7 +82,7 @@ export function RoundDeleteModal({
   isDeleting = false,
   children,
 }: RoundDeleteModalProps) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
   const [isHovered, setIsHovered] = useState(false);
   const [isHolding, setIsHolding] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
@@ -89,7 +90,7 @@ export function RoundDeleteModal({
   const [exitMode, setExitMode] = useState<'confirm' | 'cancel' | null>(null);
 
   const progress = useMotionValue(0);
-  const animRef = useRef<any>(null);
+  const animRef = useRef<ReturnType<typeof animate> | null>(null);
   const titleId = useId();
   const orbitPathId = useId();
 
@@ -115,13 +116,20 @@ export function RoundDeleteModal({
     }, 520);
   }, [isDeleting, exitMode]);
 
-  // Сброс состояния при открытии/закрытии
-  useEffect(() => {
+  const [previousIsOpen, setPreviousIsOpen] = useState(isOpen);
+  if (previousIsOpen !== isOpen) {
+    setPreviousIsOpen(isOpen);
     if (!isOpen) {
       setIsHovered(false);
       setIsHolding(false);
       setIsConfirmed(false);
       setExitMode(null);
+    }
+  }
+
+  // Сброс внешнего анимационного контроллера при закрытии.
+  useEffect(() => {
+    if (!isOpen) {
       if (animRef.current) animRef.current.stop();
       progress.set(0);
     }
@@ -151,10 +159,6 @@ export function RoundDeleteModal({
       };
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Начало удержания — нарастание прогресса с бархатной кривой
   const startHold = () => {

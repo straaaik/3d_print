@@ -1,4 +1,6 @@
 'use client';
+import { NumberInput } from '../../../shared/ui/NumberInput';
+
 
 import React, { useState, useEffect, useEffectEvent, useMemo, useRef } from 'react';
 import { usePageRouter as useRouter } from '../../../shared/ui/page-transition/PageTransitionLink';
@@ -50,6 +52,11 @@ import {
   Calculator as CalculatorIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useInventory } from '../../../entities/model/InventoryProvider';
+import { useAuth } from '../../../entities/model/AuthProvider';
+import { OrderItemsEditor, OrderItemsFinancials } from './OrderItemsEditor';
+import { areOrderItemsLocked, buildOrderItem, summarizeOrderItems } from '../orderItems';
+import { createProductionRecipe } from '../../../shared/lib/productionRecipe';
 
 type OrderModalTab = 'item' | 'pricing' | 'status' | 'client' | 'tech';
 
@@ -136,6 +143,8 @@ export function OrderFormModal({
   allOrders = [],
 }: OrderFormModalProps) {
   const router = useRouter();
+  const inventory = useInventory();
+  const { currentUser } = useAuth();
   const { printers, filaments, settings } = useData();
   const [activeTab, setActiveTab] = useState<OrderModalTab>('item');
   const [productSearchQuery, setProductSearchQuery] = useState('');
@@ -436,7 +445,7 @@ export function OrderFormModal({
       isClosingRef.current = false;
       queueMicrotask(initializeModal);
     }
-  }, [isOpen, order?.id, printers, filaments, settings]);
+  }, [isOpen, order?.id]);
 
   const liveFilament = useMemo(() => {
     if (selectedFilament) {
@@ -621,9 +630,11 @@ export function OrderFormModal({
   const financials = calculateOrderFinancials(order);
   const totalAmount = financials.finalAmount || 0;
   const costVal = order.cost || 0;
-  const profitVal = roundTo2(isIncome ? totalAmount - costVal : -totalAmount);
+  const profitVal = isIncome ? financials.actualProfit : -totalAmount;
+  const multiItem = isIncome && order.items !== undefined;
+  const itemsLocked = multiItem && areOrderItemsLocked(order, inventory.state);
   const remainingDebt = Math.max(0, roundTo2(totalAmount - (order.payment || 0)));
-  const marginPercent = totalAmount > 0 && isIncome ? (profitVal / totalAmount) * 100 : 0;
+  const marginPercent = (order.payment ?? 0) > 0 && isIncome ? (profitVal / order.payment!) * 100 : 0;
   const paymentRatio = totalAmount > 0 ? Math.min(1, Math.max(0, (order.payment || 0) / totalAmount)) : 0;
 
   const tabsList = isIncome ? ORDER_TABS : EXPENSE_TABS;
@@ -830,6 +841,21 @@ export function OrderFormModal({
   };
 
   const handleSelectProduct = (prod: SavedCalculation) => {
+    if (multiItem) {
+      if (itemsLocked) return;
+      const sourceFilamentId = prod.filament_id ?? prod.calculation_snapshot?.inputs.filament?.id
+            ?? filaments.find(row => row.name === prod.filament_name && (!prod.filament_color || row.color === prod.filament_color))?.id;
+          const variantId = inventory.state?.variants.find(row => row.id === sourceFilamentId || row.legacy_filament_id === sourceFilamentId)?.id;
+      let item;
+      try {
+        const recipe = prod.type === 'assembly' && inventory.state
+          ? createProductionRecipe(prod, inventory.state, savedCalculations, filaments, printers, settings) : undefined;
+        item = buildOrderItem(prod, 1, { userId: currentUser?.id ?? inventory.state?.user_id ?? 'anonymous',
+          orderId: order.id ?? '', variantId, filaments, printers, settings, recipe });
+      } catch (failure) { setFormErrors({ title: true }); console.error(failure); return; }
+      setOrder(summarizeOrderItems({ ...order, title: order.title || prod.name }, [...order.items!, item]));
+      return;
+    }
     const orderQty = Math.max(1, Number(order.quantity) || 1);
     const itemQty = Math.max(1, prod.quantity || 1);
     const unitPrice = roundTo2((prod.final_price || prod.base_cost || 0) / itemQty);
@@ -1095,10 +1121,12 @@ export function OrderFormModal({
     if (!order.title || !order.title.trim()) {
       errors.title = true;
     }
-    if (order.amount === undefined || order.amount === null || isNaN(order.amount) || order.amount <= 0) {
+    if (order.amount === undefined || order.amount === null || isNaN(order.amount) || order.amount < 0) {
       errors.amount = true;
     }
 
+    if (multiItem && (!order.items?.length || order.items.some(item => !item.name.trim()
+      || (item.snapshot.calculation?.inputs.weightG && !item.snapshot.recipe?.materials.length)))) errors.title = true;
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
       if (errors.title) {
@@ -1164,7 +1192,7 @@ export function OrderFormModal({
             role="dialog"
             aria-modal="true"
             aria-labelledby="order-modal-title"
-            className="relative w-full max-w-[1240px] h-[92vh] max-h-[860px] min-h-[580px] my-auto rounded-2xl border border-white/20 bg-neutral-950/98 shadow-[0_30px_100px_rgba(0,0,0,0.95)] backdrop-blur-2xl overflow-hidden z-10 flex flex-col font-mono"
+            className="relative w-full max-w-[1240px] h-[92vh] max-h-[860px] min-h-0 my-auto rounded-2xl border border-white/20 bg-neutral-950/98 shadow-[0_30px_100px_rgba(0,0,0,0.95)] backdrop-blur-2xl overflow-hidden z-10 flex flex-col font-mono"
           >
             {/* 1. Верхняя панель (Cockpit Topbar: LEDs + Title + Type Switcher + live time) */}
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-2.5 bg-neutral-900/60 shrink-0 gap-3">
@@ -1211,7 +1239,8 @@ export function OrderFormModal({
               <div className="bg-neutral-950/90 border border-white/10 p-1 rounded-xl h-9 flex items-center gap-1 shrink-0 shadow-inner">
                 <button
                   type="button"
-                  onClick={() => setOrder({ ...order, type: 'income' })}
+                  disabled={Boolean(order.id)} title={order.id ? 'Тип сохранённой записи защищён; создайте отдельный заказ' : undefined}
+                  onClick={() => setOrder({ ...order, type: 'income', items: order.items ?? [], payment: 0, payments: [] })}
                   className={`flex items-center gap-1.5 px-3 h-full rounded-lg text-xs font-medium cursor-pointer group ${
                     isIncome
                       ? 'bg-neutral-800 border border-white/15 text-white shadow-sm font-semibold'
@@ -1226,7 +1255,8 @@ export function OrderFormModal({
 
                 <button
                   type="button"
-                  onClick={() => setOrder({ ...order, type: 'expense' })}
+                  disabled={Boolean(order.id)} title={order.id ? 'Тип сохранённой записи защищён; создайте отдельный расход' : undefined}
+                  onClick={() => setOrder({ ...order, type: 'expense', payment: 0, payments: [] })}
                   className={`flex items-center gap-1.5 px-3 h-full rounded-lg text-xs font-medium cursor-pointer group ${
                     !isIncome
                       ? 'bg-neutral-800 border border-white/15 text-white shadow-sm font-semibold'
@@ -1251,13 +1281,13 @@ export function OrderFormModal({
             {/* 2. Трёхколоночная рабочая консоль с поддержкой переключения разделов колёсиком */}
             <div
               onWheel={handleWheelNavigation}
-              className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden"
+              className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-y-auto lg:overflow-hidden"
             >
 
               {/* ========================================================================= */}
               {/* КОЛОНКА 1: РАЗДЕЛЫ ЗАКАЗА (SERVICES / НАВИГАЦИЯ)                          */}
               {/* ========================================================================= */}
-              <div className="w-full lg:w-[240px] shrink-0 border-b lg:border-b-0 lg:border-r border-[#222226] bg-[#111113] flex flex-col justify-between p-4 overflow-hidden select-none">
+              <div className="w-full lg:w-[240px] h-[400px] lg:h-auto max-h-[400px] lg:max-h-none min-h-0 shrink-0 border-b lg:border-b-0 lg:border-r border-[#222226] bg-[#111113] flex flex-col justify-between p-4 overflow-hidden select-none">
                 <div className="space-y-3 flex-1 flex flex-col min-h-0">
                   {/* Список блоков заказа */}
                   <div className="space-y-1.5 shrink-0">
@@ -1313,7 +1343,7 @@ export function OrderFormModal({
 
                   {/* Встроенный интерактивный каталог 3D-моделей на всю высоту */}
                   {isIncome && savedCalculations && savedCalculations.length > 0 && (
-                    <div className="pt-2.5 border-t border-[#1e1e24] space-y-1.5 flex-1 flex flex-col min-h-0">
+                    <div className="pt-2.5 border-t border-[#1e1e24] space-y-1.5 flex-1 flex flex-col min-h-[140px] lg:min-h-0">
                       <div className="text-[10px] font-mono text-[#71717a] uppercase tracking-wider px-1 flex items-center justify-between shrink-0">
                         <span>КАТАЛОГ 3D-МОДЕЛЕЙ</span>
                         <span className="text-[#a1a1aa] text-[10px]">
@@ -1346,7 +1376,7 @@ export function OrderFormModal({
                       <div
                         onWheel={(e) => e.stopPropagation()}
                         data-scrollable="true"
-                        className="flex flex-col gap-1 overflow-y-auto flex-1 min-h-0 w-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden overscroll-contain"
+                        className="flex flex-col gap-1 overflow-y-auto flex-1 min-h-[80px] lg:min-h-0 w-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden overscroll-contain"
                       >
                         {filteredProducts.length > 0 ? (
                           filteredProducts.map(prod => {
@@ -1357,6 +1387,8 @@ export function OrderFormModal({
                               <button
                                 key={prod.id}
                                 type="button"
+                                disabled={itemsLocked}
+                                title={itemsLocked ? 'После начала выполнения состав заказа защищён' : undefined}
                                 onClick={() => handleSelectProduct(prod)}
                                 className={`w-full py-1.5 px-2 rounded-lg font-mono text-left cursor-pointer border flex flex-col gap-0.5 group shrink-0 ${
                                   isSelected
@@ -1392,7 +1424,7 @@ export function OrderFormModal({
 
                   {/* Встроенный каталог «Расходы, которые уже были» (для расходов) */}
                   {!isIncome && (
-                    <div className="pt-2.5 border-t border-[#1e1e24] space-y-1.5 flex-1 flex flex-col min-h-0">
+                    <div className="pt-2.5 border-t border-[#1e1e24] space-y-1.5 flex-1 flex flex-col min-h-[140px] lg:min-h-0">
                       <div className="text-[10px] font-mono text-[#71717a] uppercase tracking-wider px-1 flex items-center justify-between shrink-0">
                         <span>РАСХОДЫ, КОТОРЫЕ БЫЛИ</span>
                         <span className="text-[#a1a1aa] text-[10px]">
@@ -1425,7 +1457,7 @@ export function OrderFormModal({
                       <div
                         onWheel={(e) => e.stopPropagation()}
                         data-scrollable="true"
-                        className="flex flex-col gap-1 overflow-y-auto flex-1 min-h-0 w-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden overscroll-contain"
+                        className="flex flex-col gap-1 overflow-y-auto flex-1 min-h-[80px] lg:min-h-0 w-full [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden overscroll-contain"
                       >
                         {filteredPastExpenses.length > 0 ? (
                           filteredPastExpenses.map(exp => {
@@ -1495,13 +1527,15 @@ export function OrderFormModal({
               {/* ========================================================================= */}
               {/* КОЛОНКА 2: ЦЕНТРАЛЬНАЯ РАБОЧАЯ ОБЛАСТЬ (ВВОД ДАННЫХ)                      */}
               {/* ========================================================================= */}
-              <div className="flex-1 flex flex-col min-w-0 bg-[#18181c] overflow-hidden">
+              <div className="flex-1 flex flex-col min-w-0 min-h-[320px] lg:min-h-0 shrink-0 lg:shrink bg-[#18181c] lg:overflow-hidden">
 
                 {/* Верхняя строка статуса раздела */}
                 <div className="px-6 py-3 border-b border-[#26262b] flex items-center justify-between gap-3 bg-[#18181c] shrink-0">
                   <div className="flex items-center gap-2 font-mono text-xs">
                     <span className="text-[#71717a] uppercase tracking-wider font-medium">
+
                       {activeTab === 'item' && (isIncome ? 'РАЗДЕЛ 01 · ИЗДЕЛИЕ, ТИРАЖ И ПАРАМЕТРЫ ПЕЧАТИ' : 'РАЗДЕЛ 01 · ДЕТАЛИ И КАТЕГОРИЯ РАСХОДА')}
+
                       {activeTab === 'pricing' && (isIncome ? 'РАЗДЕЛ 02 · ФИНАНСЫ, СЕБЕСТОИМОСТЬ И ОПЛАТА' : 'РАЗДЕЛ 02 · СУММА ЗАТРАТ И ДАТА ПЛАТЕЖА')}
                       {activeTab === 'status' && 'РАЗДЕЛ 03 · СРОКИ СДАЧИ И СТАТУС ВЫПОЛНЕНИЯ'}
                       {activeTab === 'client' && 'РАЗДЕЛ 04 · КЛИЕНТ, КАНАЛ СВЯЗИ И ДОСТАВКА'}
@@ -1510,8 +1544,14 @@ export function OrderFormModal({
                   </div>
                 </div>
 
-                {/* Контент центральной области без прокрутки */}
-                <div className="flex-1 p-4 space-y-2.5 flex flex-col justify-between overflow-hidden">
+                {/* Прокручиваемая центральная область с единственным редактором текущего раздела */}
+                <div aria-label="Содержимое раздела заказа" data-scrollable="true"
+                  className="flex-1 min-h-0 p-4 space-y-2.5 flex flex-col justify-between overflow-y-auto overscroll-contain">
+                  {activeTab === 'item' && multiItem && <OrderItemsEditor order={order} onChange={setOrder}
+                        filaments={filaments} printers={printers} settings={settings} state={inventory.state}
+                        userId={currentUser?.id ?? inventory.state?.user_id ?? 'anonymous'} currency={settings?.currency ?? '₽'} />}
+                  {activeTab === 'pricing' && multiItem && <OrderItemsFinancials order={order} onChange={setOrder}
+                        state={inventory.state} currency={settings?.currency ?? '₽'} />}
 
                   <div className="space-y-3">
                     {/* Главная цифра Hero Stat / Нативный минималистичный ввод */}
@@ -1519,7 +1559,7 @@ export function OrderFormModal({
                       {/* ========================================================================= */}
                       {/* РАЗДЕЛ 1: ИЗДЕЛИЕ, ТИРАЖ И ПАРАМЕТРЫ ПЕЧАТИ                               */}
                       {/* ========================================================================= */}
-                      {activeTab === 'item' && (
+                      {activeTab === 'item' && !multiItem && (
                         <div className="space-y-2.5">
                           {isIncome ? (
                             <>
@@ -1543,14 +1583,14 @@ export function OrderFormModal({
                               <div className="space-y-1 max-w-xl">
                                 <div className="flex items-baseline gap-2.5">
                                   {/* Поле ввода цифры */}
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    max="9999"
-                                    value={order.quantity || 1}
-                                    onChange={e => handleQuantityChange(parseInt(e.target.value) || 1)}
-                                    className="text-4xl sm:text-5xl font-light font-mono text-white tracking-tight bg-transparent border-none focus:outline-none p-0 inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text selection:bg-white/20"
-                                    style={{ width: `${Math.max(1, String(order.quantity || 1).length) * 0.65 + 0.15}em` }}
+                                  <NumberInput label="Количество"
+
+                                    min={1}
+                                    max={9999}
+                                    value={Number(order.quantity || 1) || 0}
+                                    onChange={value => handleQuantityChange(parseInt(String(value ?? '')) || 1)}
+
+
                                   />
 
                                   {/* Вертикальные кнопки + сверху и - снизу */}
@@ -1880,7 +1920,7 @@ export function OrderFormModal({
                       {/* ========================================================================= */}
                       {/* РАЗДЕЛ 2: ФИНАНСЫ, СЕБЕСТОИМОСТЬ И МИНИ-КАЛЬКУЛЯТОР 3D-ПЕЧАТИ             */}
                       {/* ========================================================================= */}
-                      {activeTab === 'pricing' && (
+                      {activeTab === 'pricing' && !multiItem && (
                         <div className="space-y-4">
                           {isIncome ? (
                             <>
@@ -1916,15 +1956,15 @@ export function OrderFormModal({
                                     {/* 1. Главная базовая стоимость заказа клиенту */}
                                     <div className="space-y-2 max-w-xl">
                                       <div className="flex items-baseline gap-2">
-                                        <input
-                                          type="number"
+                                        <NumberInput label="Сумма"
+
                                           step="0.01"
-                                          min="0"
+                                          min={0}
                                           placeholder="0"
-                                          value={order.base_amount !== undefined ? order.base_amount : (order.amount || '')}
-                                          onChange={e => handleUpdateBaseAmount(e.target.value)}
-                                          className="text-5xl sm:text-6xl font-light font-mono text-white tracking-tight bg-transparent border-none focus:outline-none p-0 inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text selection:bg-white/20"
-                                          style={{ width: `${Math.max(1, String(order.base_amount || order.amount || 0).length) * 0.65 + 0.15}em` }}
+                                          value={Number(order.base_amount !== undefined ? order.base_amount : (order.amount || '')) || 0}
+                                          onChange={value => handleUpdateBaseAmount(String(value ?? ''))}
+
+
                                         />
                                         <span className="text-base text-[#71717a] font-mono select-none">₽ стоимость клиенту</span>
                                       </div>
@@ -2079,18 +2119,18 @@ export function OrderFormModal({
                                                 {/* Правая часть: нативное поле ввода цены в точности как у стоимости клиента */}
                                                 {isSelected ? (
                                                   <div className="flex items-baseline gap-1.5 font-mono">
-                                                    <input
-                                                      type="number"
-                                                      min="0"
+                                                    <NumberInput label="Сумма"
+
+                                                      min={0}
                                                       step="any"
                                                       placeholder="0"
-                                                      value={activeItem.amount !== undefined ? activeItem.amount : ''}
-                                                      onChange={e => {
-                                                        const val = parseFloat(e.target.value) || 0;
+                                                      value={Number(activeItem.amount !== undefined ? activeItem.amount : '') || 0}
+                                                      onChange={value => {
+                                                        const val = parseFloat(String(value ?? '')) || 0;
                                                         handleUpdateExtraCostCategoryAmount(opt.category, val);
                                                       }}
-                                                      className="text-lg sm:text-xl font-light font-mono text-white tracking-tight bg-transparent border-none focus:outline-none p-0 inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text selection:bg-white/20 text-right"
-                                                      style={{ width: `${Math.max(1, String(activeItem.amount || 0).length) * 0.65 + 0.2}em` }}
+
+
                                                       autoFocus={!activeItem.amount}
                                                     />
                                                     <span className="text-xs text-[#71717a] select-none">₽</span>
@@ -2137,14 +2177,14 @@ export function OrderFormModal({
                                                 </div>
 
                                                 <div className="flex items-baseline gap-1.5 font-mono">
-                                                  <input
-                                                    type="number"
+                                                  <NumberInput label="Сумма"
+
                                                     placeholder="0"
-                                                    min="0"
-                                                    value={customCostAmountInput}
-                                                    onChange={e => setCustomCostAmountInput(e.target.value)}
-                                                    className="text-lg sm:text-xl font-light font-mono text-white tracking-tight bg-transparent border-none focus:outline-none p-0 inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-right cursor-text selection:bg-white/20"
-                                                    style={{ width: `${Math.max(1, String(customCostAmountInput || 0).length) * 0.65 + 0.2}em` }}
+                                                    min={0}
+                                                    value={Number(customCostAmountInput) || 0}
+                                                    onChange={value => setCustomCostAmountInput(String(value ?? ''))}
+
+
                                                     onKeyDown={e => {
                                                       if (e.key === 'Enter') handleCreateCustomExtraCostItem();
                                                       if (e.key === 'Escape') setIsAddingCustomCost(false);
@@ -2190,15 +2230,15 @@ export function OrderFormModal({
                                             <span className="text-white text-xs font-mono whitespace-nowrap shrink-0">{formatMoney(parseFloat(manualBaseCost) || 0)}</span>
                                           </div>
                                           <div className="flex items-baseline gap-2">
-                                            <input
-                                              type="number"
+                                            <NumberInput label="Себестоимость"
+
                                               step="0.01"
-                                              min="0"
+                                              min={0}
                                               placeholder="0"
-                                              value={manualBaseCost}
-                                              onChange={e => handleUpdateManualBaseCost(e.target.value)}
-                                              className="text-3xl sm:text-4xl font-light font-mono text-white tracking-tight bg-transparent border-none focus:outline-none p-0 inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text selection:bg-white/20"
-                                              style={{ width: `${Math.max(1, String(manualBaseCost || 0).length) * 0.65 + 0.15}em` }}
+                                              value={Number(manualBaseCost) || 0}
+                                              onChange={value => handleUpdateManualBaseCost(String(value ?? ''))}
+
+
                                             />
                                             <span className="text-sm text-[#71717a] font-mono select-none whitespace-nowrap">₽ печать/заготовка</span>
                                           </div>
@@ -2233,17 +2273,17 @@ export function OrderFormModal({
                                             <span className="text-white text-xs font-mono whitespace-nowrap shrink-0">{formatMoney(order.payment || 0)}</span>
                                           </div>
                                           <div className="flex items-baseline gap-2">
-                                            <input
-                                              type="number"
+                                            <NumberInput label="Оплата"
+
                                               step="0.01"
-                                              min="0"
+                                              min={0}
                                               placeholder="0"
-                                              value={order.payment || ''}
-                                              onChange={e => {
-                                                handlePaymentTotalChange(parseFloat(e.target.value) || 0);
+                                              value={Number(order.payment || '') || 0}
+                                              onChange={value => {
+                                                handlePaymentTotalChange(parseFloat(String(value ?? '')) || 0);
                                               }}
-                                              className="text-3xl sm:text-4xl font-light font-mono text-white tracking-tight bg-transparent border-none focus:outline-none p-0 inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text selection:bg-white/20"
-                                              style={{ width: `${Math.max(1, String(order.payment || 0).length) * 0.65 + 0.15}em` }}
+
+
                                             />
                                             <span className="text-sm text-[#71717a] font-mono select-none whitespace-nowrap">₽ внесено</span>
                                           </div>
@@ -2298,15 +2338,15 @@ export function OrderFormModal({
                                           </span>
                                         </div>
                                         <div className="flex items-baseline gap-2">
-                                          <input
-                                            type="number"
-                                            min="0"
+                                          <NumberInput label="Вес печати, г"
+
+                                            min={0}
                                             step="any"
                                             placeholder="0"
-                                            value={calcWeight}
-                                            onChange={e => setCalcWeight(e.target.value)}
-                                            className="text-2xl sm:text-3xl font-light font-mono text-white tracking-tight bg-transparent border-none focus:outline-none p-0 inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text selection:bg-white/20"
-                                            style={{ width: `${Math.max(1, String(calcWeight || 0).length) * 0.65 + 0.15}em` }}
+                                            value={Number(calcWeight) || 0}
+                                            onChange={value => setCalcWeight(String(value ?? ''))}
+
+
                                           />
                                           <span className="text-sm text-[#71717a] font-mono">г на 1 шт</span>
                                         </div>
@@ -2345,27 +2385,27 @@ export function OrderFormModal({
                                           </span>
                                         </div>
                                         <div className="flex items-baseline gap-2 font-mono text-2xl sm:text-3xl font-light text-white tracking-tight">
-                                          <input
-                                            type="number"
-                                            min="0"
-                                            max="999"
+                                          <NumberInput label="Часы печати"
+
+                                            min={0}
+                                            max={999}
                                             placeholder="0"
-                                            value={calcHours}
-                                            onChange={e => setCalcHours(e.target.value)}
-                                            className="bg-transparent border-none focus:outline-none p-0 inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text selection:bg-white/20"
-                                            style={{ width: `${Math.max(1, String(calcHours || 0).length) * 0.65 + 0.15}em` }}
+                                            value={Number(calcHours) || 0}
+                                            onChange={value => setCalcHours(String(value ?? ''))}
+
+
                                           />
                                           <span className="text-xs font-normal text-[#71717a] mr-2">ч</span>
 
-                                          <input
-                                            type="number"
-                                            min="0"
-                                            max="59"
+                                          <NumberInput label="Минуты печати"
+
+                                            min={0}
+                                            max={59}
                                             placeholder="0"
-                                            value={calcMinutes}
-                                            onChange={e => setCalcMinutes(e.target.value)}
-                                            className="bg-transparent border-none focus:outline-none p-0 inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text selection:bg-white/20"
-                                            style={{ width: `${Math.max(1, String(calcMinutes || 0).length) * 0.65 + 0.15}em` }}
+                                            value={Number(calcMinutes) || 0}
+                                            onChange={value => setCalcMinutes(String(value ?? ''))}
+
+
                                           />
                                           <span className="text-xs font-normal text-[#71717a]">мин</span>
                                         </div>
@@ -2414,15 +2454,15 @@ export function OrderFormModal({
                                           </span>
                                         </div>
                                         <div className="flex items-baseline gap-2">
-                                          <input
-                                            type="number"
-                                            min="0"
+                                          <NumberInput label="Наценка, %"
+
+                                            min={0}
                                             step="5"
                                             placeholder="0"
-                                            value={calcMarkup}
-                                            onChange={e => setCalcMarkup(e.target.value)}
-                                            className="text-2xl sm:text-3xl font-light font-mono text-[#34d399] tracking-tight bg-transparent border-none focus:outline-none p-0 inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text selection:bg-white/20"
-                                            style={{ width: `${Math.max(1, String(calcMarkup || 0).length) * 0.65 + 0.15}em` }}
+                                            value={Number(calcMarkup) || 0}
+                                            onChange={value => setCalcMarkup(String(value ?? ''))}
+
+
                                           />
                                           <span className="text-sm text-[#71717a] font-mono">% наценка</span>
                                         </div>
@@ -2461,15 +2501,15 @@ export function OrderFormModal({
                                           </span>
                                         </div>
                                         <div className="flex items-baseline gap-2">
-                                          <input
-                                            type="number"
-                                            min="0"
-                                            max="100"
+                                          <NumberInput label="Брак, %"
+
+                                            min={0}
+                                            max={100}
                                             placeholder="0"
-                                            value={calcDefect}
-                                            onChange={e => setCalcDefect(e.target.value)}
-                                            className="text-2xl sm:text-3xl font-light font-mono text-amber-300 tracking-tight bg-transparent border-none focus:outline-none p-0 inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text selection:bg-white/20"
-                                            style={{ width: `${Math.max(1, String(calcDefect || 0).length) * 0.65 + 0.15}em` }}
+                                            value={Number(calcDefect) || 0}
+                                            onChange={value => setCalcDefect(String(value ?? ''))}
+
+
                                           />
                                           <span className="text-sm text-[#71717a] font-mono">% брак</span>
                                         </div>
@@ -2522,14 +2562,14 @@ export function OrderFormModal({
                                           </button>
                                         </div>
                                         <div className="flex items-baseline gap-2">
-                                          <input
-                                            type="number"
-                                            min="0"
+                                          <NumberInput label="Труд, минуты"
+
+                                            min={0}
                                             placeholder="0"
-                                            value={calcLaborMinutes}
-                                            onChange={e => setCalcLaborMinutes(e.target.value)}
-                                            className="text-2xl sm:text-3xl font-light font-mono text-white tracking-tight bg-transparent border-none focus:outline-none p-0 inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text selection:bg-white/20"
-                                            style={{ width: `${Math.max(1, String(calcLaborMinutes || 0).length) * 0.65 + 0.15}em` }}
+                                            value={Number(calcLaborMinutes) || 0}
+                                            onChange={value => setCalcLaborMinutes(String(value ?? ''))}
+
+
                                           />
                                           <span className="text-sm text-[#71717a] font-mono">мин (~{roundTo2(miniCalcResult.laborCost)} ₽)</span>
                                         </div>
@@ -2652,15 +2692,15 @@ export function OrderFormModal({
                                                   <span>{cat.name}</span>
                                                 </span>
                                                 <div className="flex items-center gap-1 bg-neutral-950 border border-white/20 rounded px-1.5 py-0.5">
-                                                  <input
-                                                    type="number"
-                                                    min="0"
-                                                    value={activeItem.amount || ''}
-                                                    onChange={e => {
-                                                      const val = parseFloat(e.target.value) || 0;
+                                                  <NumberInput label="Сумма"
+
+                                                    min={0}
+                                                    value={Number(activeItem.amount || '') || 0}
+                                                    onChange={value => {
+                                                      const val = parseFloat(String(value ?? '')) || 0;
                                                       setCalcCustomCosts(prev => prev.map(i => i.id === cat.id ? { ...i, amount: val } : i));
                                                     }}
-                                                    className="w-12 text-right bg-transparent text-white font-bold font-mono focus:outline-none text-xs"
+
                                                     placeholder="0"
                                                   />
                                                   <span className="text-[#71717a] text-[10px]">₽</span>
@@ -2776,15 +2816,15 @@ export function OrderFormModal({
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 items-start pt-2">
                               <div className="space-y-3">
                                 <div className="flex items-baseline gap-2">
-                                  <input
-                                    type="number"
+                                  <NumberInput label="Сумма"
+
                                     step="0.01"
-                                    min="0"
+                                    min={0}
                                     placeholder="0"
-                                    value={order.amount || ''}
-                                    onChange={e => setOrder({ ...order, amount: parseFloat(e.target.value) || 0 })}
-                                    className="text-5xl sm:text-6xl font-light font-mono text-white tracking-tight bg-transparent border-none focus:outline-none p-0 inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text selection:bg-white/20"
-                                    style={{ width: `${Math.max(1, String(order.amount || 0).length) * 0.65 + 0.15}em` }}
+                                    value={Number(order.amount || '') || 0}
+                                    onChange={value => setOrder({ ...order, amount: parseFloat(String(value ?? '')) || 0 })}
+
+
                                   />
                                   <span className="text-base text-[#71717a] font-mono select-none">₽ сумма расхода</span>
                                 </div>
@@ -3046,7 +3086,7 @@ export function OrderFormModal({
                   </div>
 
                   {/* 4 Нижних тайла телеметрии с реальными данными заказа или расхода */}
-                  <div className="grid grid-cols-4 gap-2 pt-2.5 border-t border-[#26262b]">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2.5 border-t border-[#26262b]">
                     {isIncome ? (
                       <>
                         <div className="border border-[#2a2a30] bg-[#121214]/90 rounded-md p-2 font-mono">
@@ -3270,7 +3310,7 @@ export function OrderFormModal({
 
                       <div className="flex items-baseline justify-between text-[#71717a]">
                         <span>Себестоимость:</span>
-                        <span className="text-[#d4d4d8]">-{formatMoney(costVal)}</span>
+                        <span className="text-[#d4d4d8]">{costVal > 0 ? '-' : ''}{formatMoney(costVal)}</span>
                       </div>
 
                       <div className="flex items-baseline justify-between text-white font-semibold pt-1 border-t border-[#222226]">
@@ -3279,7 +3319,7 @@ export function OrderFormModal({
                       </div>
 
                       <div className="flex items-baseline justify-between text-[#a1a1aa]">
-                        <span>Чистая прибыль:</span>
+                        <span>Фактическая прибыль:</span>
                         <span className="text-white">
                           {profitVal >= 0 ? `+${formatMoney(profitVal)}` : formatMoney(profitVal)} ({marginPercent.toFixed(0)}%)
                         </span>

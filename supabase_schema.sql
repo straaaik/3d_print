@@ -1198,3 +1198,1743 @@ grant execute on function public.get_workshop_spatial() to authenticated;
 grant execute on function public.save_workshop_spatial(jsonb,bigint) to authenticated;
 
 commit;
+
+-- BEGIN BUSINESS FOUNDATION 20260929
+-- Phase 1 foundation. Run after the existing 3D Labs base schema.
+-- Additive only: no recalculation, stock consumption or legacy row deletion.
+begin;
+
+create unique index if not exists filaments_owner_identity on public.filaments(user_id, id);
+create unique index if not exists products_owner_identity on public.saved_calculations(user_id, id);
+create unique index if not exists orders_owner_identity on public.orders(user_id, id);
+
+create table if not exists public.filament_manufacturers (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  name text not null check (length(btrim(name)) > 0),
+  unique(user_id, id), unique(user_id, name)
+);
+create table if not exists public.material_types (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  name text not null check (length(btrim(name)) > 0),
+  difficulty_id text,
+  unique(user_id, id), unique(user_id, name)
+);
+create table if not exists public.material_lines (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  manufacturer_id uuid,
+  material_type_id uuid,
+  name text not null check (length(btrim(name)) > 0),
+  unique(user_id, id),
+  foreign key(user_id, manufacturer_id) references public.filament_manufacturers(user_id, id),
+  foreign key(user_id, material_type_id) references public.material_types(user_id, id)
+);
+create table if not exists public.filament_variants (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  material_line_id uuid,
+  legacy_filament_id uuid,
+  name text not null,
+  color text not null default '#808080',
+  stock_g numeric(20,6) not null default 0 check (stock_g >= 0 and stock_g <> 'NaN'::numeric),
+  average_cost_per_g numeric(20,8) not null default 0 check (average_cost_per_g >= 0 and average_cost_per_g <> 'NaN'::numeric),
+  revision bigint not null default 0 check (revision >= 0),
+  unique(user_id, id), unique(user_id, legacy_filament_id),
+  foreign key(user_id, material_line_id) references public.material_lines(user_id, id),
+  foreign key(user_id, legacy_filament_id) references public.filaments(user_id, id) on delete set null (legacy_filament_id)
+);
+create table if not exists public.filament_purchases (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  variant_id uuid not null,
+  weight_g numeric(20,6) not null check (weight_g > 0 and weight_g <> 'NaN'::numeric),
+  total_price numeric(20,6) not null check (total_price >= 0 and total_price <> 'NaN'::numeric),
+  purchased_at timestamptz not null default now(),
+  event_key text not null check (length(event_key) > 0),
+  unique(user_id, id), unique(user_id, event_key),
+  foreign key(user_id, variant_id) references public.filament_variants(user_id, id)
+);
+create table if not exists public.calculation_projects (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  name text not null,
+  revision bigint not null default 0 check (revision >= 0),
+  discount_percent numeric(8,4) not null default 0 check (discount_percent between 0 and 100),
+  discount_amount numeric(20,6) not null default 0 check (discount_amount >= 0 and discount_amount <> 'NaN'::numeric),
+  urgency_percent numeric(12,4) not null default 0 check (urgency_percent >= 0 and urgency_percent <> 'NaN'::numeric),
+  urgency_amount numeric(20,6) not null default 0 check (urgency_amount >= 0 and urgency_amount <> 'NaN'::numeric),
+  agreed_price numeric(20,6) check (agreed_price >= 0 and agreed_price <> 'NaN'::numeric),
+  unique(user_id, id)
+);
+create table if not exists public.calculation_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  project_id uuid not null,
+  product_id uuid,
+  name text not null,
+  sort_order integer not null default 0 check (sort_order >= 0),
+  quantity integer not null check (quantity > 0),
+  inputs jsonb not null check (jsonb_typeof(inputs) = 'object'),
+  result jsonb not null check (jsonb_typeof(result) = 'object'),
+  recipe jsonb not null check (jsonb_typeof(recipe) = 'object'),
+  unique(user_id, id),
+  foreign key(user_id, project_id) references public.calculation_projects(user_id, id) on delete cascade,
+  foreign key(user_id, product_id) references public.saved_calculations(user_id, id) on delete set null (product_id)
+);
+create table if not exists public.order_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  order_id uuid,
+  source_order_id text not null,
+  product_id uuid,
+  name text not null,
+  quantity integer not null check (quantity > 0),
+  unit_cost numeric(20,8) not null check (unit_cost >= 0 and unit_cost <> 'NaN'::numeric),
+  total_cost numeric(20,6) not null check (total_cost >= 0 and total_cost <> 'NaN'::numeric),
+  unit_price numeric(20,8) not null check (unit_price >= 0 and unit_price <> 'NaN'::numeric),
+  total_price numeric(20,6) not null check (total_price >= 0 and total_price <> 'NaN'::numeric),
+  cost_provenance text not null check (cost_provenance in ('legacy','estimate','finished_stock','production','mixed')),
+  fulfilled_quantity integer not null default 0 check (fulfilled_quantity between 0 and quantity),
+  production_quantity integer not null default 0 check (production_quantity between 0 and fulfilled_quantity),
+  snapshot jsonb not null check (jsonb_typeof(snapshot) = 'object' and snapshot->>'version' IS NOT DISTINCT FROM '1' and jsonb_typeof(snapshot->'order') IS NOT DISTINCT FROM 'object'),
+  legacy_key text,
+  unique(user_id, id), unique(user_id, legacy_key),
+  foreign key(user_id, order_id) references public.orders(user_id, id) on delete set null (order_id),
+  foreign key(user_id, product_id) references public.saved_calculations(user_id, id) on delete set null (product_id)
+);
+create table if not exists public.production_events (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  event_key text not null check (length(event_key) > 0),
+  product_id uuid,
+  order_item_id uuid,
+  quantity integer not null check (quantity > 0),
+  unit_cost numeric(20,8) not null check (unit_cost >= 0 and unit_cost <> 'NaN'::numeric),
+  recipe_snapshot jsonb not null check (jsonb_typeof(recipe_snapshot) = 'object'),
+  unique(user_id, id), unique(user_id, event_key),
+  foreign key(user_id, product_id) references public.saved_calculations(user_id, id) on delete set null (product_id),
+  foreign key(user_id, order_item_id) references public.order_items(user_id, id)
+);
+create table if not exists public.filament_movements (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  variant_id uuid not null,
+  event_key text not null check (length(event_key) > 0),
+  source text not null check (source in ('purchase','production','order','manual_adjustment','opening_balance','finished_return')),
+  source_id text not null,
+  delta_g numeric(20,6) not null check (delta_g <> 'NaN'::numeric),
+  unit_cost_per_g numeric(20,8) not null check (unit_cost_per_g >= 0 and unit_cost_per_g <> 'NaN'::numeric),
+  balance_after_g numeric(20,6) not null check (balance_after_g >= 0 and balance_after_g <> 'NaN'::numeric),
+  unique(user_id, id), unique(user_id, event_key, variant_id),
+  foreign key(user_id, variant_id) references public.filament_variants(user_id, id)
+);
+create table if not exists public.filament_deficits (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  variant_id uuid not null,
+  event_key text not null check (length(event_key) > 0),
+  source_id text not null,
+  grams numeric(20,6) not null check (grams > 0 and grams <> 'NaN'::numeric),
+  unique(user_id, id), unique(user_id, event_key, variant_id),
+  foreign key(user_id, variant_id) references public.filament_variants(user_id, id)
+);
+create table if not exists public.finished_stock_balances (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  product_id uuid,
+  source_product_id text not null,
+  quantity integer not null default 0 check (quantity >= 0),
+  average_unit_cost numeric(20,8) not null default 0 check (average_unit_cost >= 0 and average_unit_cost <> 'NaN'::numeric),
+  revision bigint not null default 0 check (revision >= 0),
+  unique(user_id, id), unique(user_id, source_product_id),
+  foreign key(user_id, product_id) references public.saved_calculations(user_id, id) on delete set null (product_id)
+);
+create table if not exists public.finished_stock_movements (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  product_id uuid,
+  source_product_id text not null,
+  order_item_id uuid,
+  production_event_id uuid,
+  event_key text not null check (length(event_key) > 0),
+  source text not null check (source in ('purchase','production','order','manual_adjustment','opening_balance','finished_return')),
+  delta_quantity integer not null,
+  unit_cost numeric(20,8) not null check (unit_cost >= 0 and unit_cost <> 'NaN'::numeric),
+  balance_after integer not null check (balance_after >= 0),
+  unique(user_id, id), unique(user_id, event_key, source_product_id),
+  foreign key(user_id, product_id) references public.saved_calculations(user_id, id) on delete set null (product_id),
+  foreign key(user_id, order_item_id) references public.order_items(user_id, id),
+  foreign key(user_id, production_event_id) references public.production_events(user_id, id)
+);
+
+-- Owner-leading indexes support both RLS filtering and child lookups.
+create index if not exists material_lines_manufacturer on public.material_lines(user_id, manufacturer_id);
+create index if not exists material_lines_type on public.material_lines(user_id, material_type_id);
+create index if not exists filament_variants_line on public.filament_variants(user_id, material_line_id);
+create index if not exists filament_purchases_history on public.filament_purchases(user_id, variant_id, purchased_at);
+create index if not exists calculation_items_project on public.calculation_items(user_id, project_id, sort_order);
+create index if not exists calculation_items_product on public.calculation_items(user_id, product_id);
+create index if not exists order_items_order on public.order_items(user_id, order_id);
+create index if not exists order_items_source_order on public.order_items(user_id, source_order_id);
+create index if not exists order_items_product on public.order_items(user_id, product_id);
+create index if not exists production_events_product on public.production_events(user_id, product_id);
+create index if not exists production_events_item on public.production_events(user_id, order_item_id);
+create index if not exists filament_movements_history on public.filament_movements(user_id, variant_id, created_at);
+create index if not exists filament_deficits_variant on public.filament_deficits(user_id, variant_id);
+create index if not exists finished_balances_product on public.finished_stock_balances(user_id, product_id);
+create index if not exists finished_movements_product on public.finished_stock_movements(user_id, product_id, created_at);
+create index if not exists finished_movements_item on public.finished_stock_movements(user_id, order_item_id);
+create index if not exists finished_movements_production on public.finished_stock_movements(user_id, production_event_id);
+
+do $policies$
+declare t text;
+begin
+  foreach t in array array['filament_manufacturers','material_types','material_lines','filament_variants',
+    'filament_purchases','calculation_projects','calculation_items','order_items','production_events',
+    'filament_movements','filament_deficits','finished_stock_balances','finished_stock_movements']
+  loop
+    execute format('alter table public.%I enable row level security', t);
+    execute format('revoke all on public.%I from anon, authenticated', t);
+    execute format('grant select, insert, update, delete on public.%I to authenticated', t);
+    execute format('drop policy if exists owner_access on public.%I', t);
+    execute format('create policy owner_access on public.%I for all to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id)', t);
+  end loop;
+  -- Client writes to audit rows are append-only. Production RPCs will own transitions.
+  foreach t in array array['filament_purchases','filament_movements','filament_deficits','production_events','finished_stock_movements']
+  loop
+    execute format('revoke update, delete on public.%I from authenticated', t);
+  end loop;
+end
+$policies$;
+
+-- Safe one-time financial backfill. Do not join current product pricing or infer
+-- historical material consumption from a legacy order's status.
+insert into public.order_items(id, user_id, created_at, order_id, source_order_id, product_id,
+  name, quantity, unit_cost, total_cost, unit_price, total_price, cost_provenance,
+  fulfilled_quantity, production_quantity, snapshot, legacy_key)
+select o.id, o.user_id, o.created_at, o.id, o.id::text,
+  case when exists(select 1 from public.saved_calculations p where p.id = o.product_id and p.user_id = o.user_id) then o.product_id end,
+  o.title, coalesce(o.quantity, 1)::integer, o.cost / coalesce(o.quantity, 1), o.cost,
+  o.amount / coalesce(o.quantity, 1), o.amount, 'legacy', 0, 0,
+  jsonb_build_object('version',1,'order',to_jsonb(o),'calculation',null,'recipe',null), o.id::text
+from public.orders o
+where o.type = 'income' and o.user_id is not null
+  and coalesce(o.quantity, 1) between 1 and 2147483647
+  and coalesce(o.quantity, 1) = trunc(coalesce(o.quantity, 1))
+  and o.amount >= 0 and o.amount < 100000000000000
+  and o.cost >= 0 and o.cost < 100000000000000
+  and not exists(select 1 from public.order_items i where i.user_id = o.user_id and i.source_order_id = o.id::text)
+on conflict do nothing;
+
+commit;
+
+-- END BUSINESS FOUNDATION 20260929
+
+-- BEGIN INVENTORY TRANSACTIONS 20260929
+-- Phase 2. Apply after supabase_migration_20260929_business_foundation.sql.
+-- No cloud SQL is executed by the application automatically.
+begin;
+
+create table if not exists public.business_state_revisions (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  revision bigint not null default 0 check (revision >= 0)
+);
+create table if not exists public.business_operation_receipts (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  event_key text not null,
+  command jsonb not null,
+  revision bigint not null,
+  created_at timestamptz not null default now(),
+  primary key(user_id, event_key)
+);
+alter table public.business_state_revisions enable row level security;
+alter table public.business_operation_receipts enable row level security;
+revoke all on public.business_state_revisions, public.business_operation_receipts from public, anon, authenticated;
+grant select on public.business_state_revisions, public.business_operation_receipts to authenticated;
+drop policy if exists owner_read on public.business_state_revisions;
+create policy owner_read on public.business_state_revisions for select to authenticated using ((select auth.uid()) = user_id);
+drop policy if exists owner_read on public.business_operation_receipts;
+create policy owner_read on public.business_operation_receipts for select to authenticated using ((select auth.uid()) = user_id);
+
+create or replace function public.business_inventory_snapshot()
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  owner_id uuid := auth.uid();
+  result jsonb;
+  mapping record;
+  rows_json jsonb;
+begin
+  if owner_id is null then raise exception 'AUTH_REQUIRED'; end if;
+  -- The same owner lock also protects readers from observing mixed table revisions.
+  perform pg_advisory_xact_lock(hashtextextended('business_inventory:' || owner_id::text, 0));
+  result := jsonb_build_object('version', 1, 'user_id', owner_id,
+    'revision', coalesce((select revision from public.business_state_revisions where user_id = owner_id), 0));
+  for mapping in select * from (values
+    ('manufacturers','filament_manufacturers'), ('materialTypes','material_types'),
+    ('materialLines','material_lines'), ('variants','filament_variants'),
+    ('purchases','filament_purchases'), ('filamentMovements','filament_movements'),
+    ('deficits','filament_deficits'), ('projects','calculation_projects'),
+    ('calculationItems','calculation_items'), ('orderItems','order_items'),
+    ('productionEvents','production_events'), ('finishedBalances','finished_stock_balances'),
+    ('finishedMovements','finished_stock_movements')) as m(key, relation)
+  loop
+    execute format('select coalesce(jsonb_agg(to_jsonb(r) order by r.created_at,r.id), ''[]''::jsonb) from public.%I r where user_id = $1', mapping.relation)
+      into rows_json using owner_id;
+    result := result || jsonb_build_object(mapping.key, rows_json);
+  end loop;
+  return result;
+end $$;
+
+create or replace function public.commit_business_inventory(p_expected_revision bigint, p_command jsonb, p_state jsonb)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  owner_id uuid := auth.uid();
+  event_id text := p_command->>'id';
+  stored_command jsonb;
+  current_revision bigint;
+  mapping record;
+  rows_json jsonb;
+  invalid boolean;
+  assignments text;
+begin
+  if owner_id is null then raise exception 'AUTH_REQUIRED'; end if;
+  if jsonb_typeof(p_command) is distinct from 'object' or event_id is null or length(event_id) not between 1 and 160 then
+    raise exception 'INVALID_COMMAND';
+  end if;
+  if p_state->>'user_id' is distinct from owner_id::text or p_state->>'version' is distinct from '1' then
+    raise exception 'INVALID_OWNER_OR_VERSION';
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended('business_inventory:' || owner_id::text, 0));
+  select command into stored_command from public.business_operation_receipts where user_id = owner_id and event_key = event_id;
+  if found then
+    if stored_command <> p_command then raise exception 'IDEMPOTENCY_KEY_REUSED'; end if;
+    return public.business_inventory_snapshot();
+  end if;
+  insert into public.business_state_revisions(user_id) values (owner_id) on conflict do nothing;
+  select revision into current_revision from public.business_state_revisions where user_id = owner_id for update;
+  if p_expected_revision is distinct from current_revision then raise exception 'BUSINESS_REVISION_CONFLICT'; end if;
+
+  -- Dependency order. All writes are rolled back if any constraint or revision check fails.
+  for mapping in select * from (values
+    ('manufacturers','filament_manufacturers',false), ('materialTypes','material_types',false),
+    ('materialLines','material_lines',false), ('variants','filament_variants',false),
+    ('purchases','filament_purchases',true), ('projects','calculation_projects',false),
+    ('calculationItems','calculation_items',false), ('orderItems','order_items',false),
+    ('productionEvents','production_events',true), ('filamentMovements','filament_movements',true),
+    ('deficits','filament_deficits',true), ('finishedBalances','finished_stock_balances',false),
+    ('finishedMovements','finished_stock_movements',true)) as m(key, relation, immutable)
+  loop
+    rows_json := p_state->mapping.key;
+    if jsonb_typeof(rows_json) is distinct from 'array' then raise exception 'INVALID_COLLECTION: %', mapping.key; end if;
+    if exists(select from jsonb_array_elements(rows_json) r where r->>'user_id' is distinct from owner_id::text) then
+      raise exception 'CROSS_OWNER_ROW';
+    end if;
+    -- No silent deletion, no cross-owner PK collision, no audit edits.
+    execute format('select exists(select from public.%1$I old where old.user_id = $1 and not exists '
+      '(select from jsonb_populate_recordset(null::public.%1$I,$2) incoming where incoming.id = old.id))', mapping.relation)
+      into invalid using owner_id, rows_json;
+    if invalid then raise exception 'INVENTORY_DELETION_NOT_SUPPORTED: %', mapping.key; end if;
+    execute format('select exists(select from jsonb_populate_recordset(null::public.%1$I,$2) incoming '
+      'join public.%1$I old on old.id = incoming.id where old.user_id <> $1)', mapping.relation)
+      into invalid using owner_id, rows_json;
+    if invalid then raise exception 'CROSS_OWNER_ID'; end if;
+    if mapping.immutable then
+      execute format('select exists(select from jsonb_populate_recordset(null::public.%1$I,$2) incoming '
+        'join public.%1$I old on old.id = incoming.id where old.user_id = $1 and to_jsonb(old) <> to_jsonb(incoming))', mapping.relation)
+        into invalid using owner_id, rows_json;
+      if invalid then raise exception 'IMMUTABLE_AUDIT_ROW: %', mapping.key; end if;
+      execute format('insert into public.%1$I select incoming.* from jsonb_populate_recordset(null::public.%1$I,$1) incoming on conflict(id) do nothing', mapping.relation)
+        using rows_json;
+    else
+      select string_agg(format('%1$I = excluded.%1$I', a.attname), ',') into assignments
+        from pg_attribute a where a.attrelid = format('public.%I', mapping.relation)::regclass
+        and a.attnum > 0 and not a.attisdropped and a.attname not in ('id','user_id','created_at');
+      execute format('insert into public.%1$I select incoming.* from jsonb_populate_recordset(null::public.%1$I,$1) incoming '
+        'on conflict(id) do update set %2$s where public.%1$I.user_id = excluded.user_id', mapping.relation, assignments)
+        using rows_json;
+    end if;
+  end loop;
+  -- Keep the legacy product view consistent while later stages adopt the ledger.
+  update public.saved_calculations p set stock_quantity = b.quantity
+    from public.finished_stock_balances b where b.user_id = owner_id and p.user_id = owner_id and p.id = b.product_id;
+  update public.business_state_revisions set revision = current_revision + 1 where user_id = owner_id;
+  insert into public.business_operation_receipts(user_id,event_key,command,revision)
+    values (owner_id,event_id,p_command,current_revision + 1);
+  return public.business_inventory_snapshot();
+end $$;
+revoke all on function public.business_inventory_snapshot() from public, anon;
+revoke all on function public.commit_business_inventory(bigint,jsonb,jsonb) from public, anon;
+grant execute on function public.business_inventory_snapshot() to authenticated;
+grant execute on function public.commit_business_inventory(bigint,jsonb,jsonb) to authenticated;
+
+commit;
+-- END INVENTORY TRANSACTIONS 20260929
+
+-- BEGIN LEGACY INVENTORY BRIDGE 20260930
+-- Stage 2 compatibility bridge. Apply after the business foundation and inventory
+-- transaction migrations. Keep legacy order RPCs usable until stage 5 replaces them.
+begin;
+
+create or replace function public.legacy_stock_inventory_bridge()
+returns trigger language plpgsql security definer set search_path = '' as $$
+declare
+  owner_id uuid := new.user_id;
+  old_stock integer := coalesce(old.stock_quantity, 0);
+  new_stock integer := coalesce(new.stock_quantity, 0);
+  balance public.finished_stock_balances%rowtype;
+  event_id uuid;
+  order_id text := nullif(pg_catalog.current_setting('business_inventory.legacy_order_id', true), '');
+  command_id text := nullif(pg_catalog.current_setting('business_inventory.legacy_command_id', true), '');
+  movement_cost numeric;
+  movement_key text;
+begin
+  if owner_id is null or old.user_id is distinct from owner_id then
+    raise exception 'LEGACY_INVENTORY_OWNER_CHANGED';
+  end if;
+  if old_stock = new_stock then return new; end if;
+  -- The original save returns and reserves even an unchanged reservation.
+  -- Ignore those temporary writes: only its final legacy projection matters.
+  if pg_catalog.current_setting('business_inventory.legacy_skip_bridge', true) = 'on' then
+    return new;
+  end if;
+
+  -- Known order RPC wrappers take this lock before their first row lock. The
+  -- transaction RPC holds it already when it writes its legacy projection.
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('business_inventory:' || owner_id::text, 0));
+  select * into balance from public.finished_stock_balances
+    where user_id = owner_id and source_product_id = new.id::text for update;
+  if not found then
+    -- A product made by the old editor may not have an opening balance yet.
+    insert into public.finished_stock_balances(
+      user_id, product_id, source_product_id, quantity, average_unit_cost)
+    values (owner_id, new.id, new.id::text, old_stock,
+      coalesce(pg_catalog.round((old.base_cost / nullif(old.quantity, 0))::numeric, 8), 0))
+    returning * into balance;
+  end if;
+
+  -- commit_business_inventory has already written the authoritative ledger.
+  -- Its following saved_calculations update must not create a second movement
+  -- or increment the revision again.
+  if balance.quantity = new_stock then return new; end if;
+  if balance.quantity <> old_stock then
+    raise exception 'LEGACY_INVENTORY_STALE' using hint = 'Reload inventory before changing legacy stock';
+  end if;
+
+  movement_cost := balance.average_unit_cost;
+  if order_id is not null and new_stock > old_stock then
+    select m.unit_cost into movement_cost from public.finished_stock_movements m
+      where m.user_id = owner_id and m.source_product_id = new.id::text
+        and m.source = 'order' and m.delta_quantity < 0
+        and m.event_key like 'legacy-order:' || order_id || ':%'
+      order by m.created_at desc, m.id desc limit 1;
+    -- Historical orders predate the immutable reservation ledger. Their actual
+    -- basis cannot be reconstructed; explicitly retain current average cost.
+    movement_cost := coalesce(movement_cost, balance.average_unit_cost);
+  end if;
+  update public.finished_stock_balances
+    set quantity = new_stock, revision = revision + 1,
+      average_unit_cost = case when new_stock > old_stock then
+        pg_catalog.round((old_stock * balance.average_unit_cost
+          + (new_stock - old_stock) * movement_cost) / new_stock, 8)
+        else balance.average_unit_cost end
+    where id = balance.id and user_id = owner_id;
+  event_id := pg_catalog.gen_random_uuid();
+  movement_key := case when order_id is null then 'legacy-stock:' || event_id::text
+    else 'legacy-order:' || order_id || ':' || coalesce(command_id, event_id::text)
+      || case when new_stock > old_stock then ':release' else ':reserve' end end;
+  insert into public.finished_stock_movements(
+    user_id, product_id, source_product_id, event_key, source, created_at,
+    delta_quantity, unit_cost, balance_after)
+  values (owner_id, new.id, new.id::text, movement_key,
+    case when order_id is null then 'manual_adjustment' else 'order' end,
+    pg_catalog.clock_timestamp(), new_stock - old_stock, movement_cost, new_stock);
+  insert into public.business_state_revisions(user_id, revision) values (owner_id, 1)
+    on conflict (user_id) do update
+      set revision = public.business_state_revisions.revision + 1;
+  return new;
+end $$;
+
+revoke all on function public.legacy_stock_inventory_bridge() from public, anon, authenticated;
+drop trigger if exists legacy_stock_inventory_bridge on public.saved_calculations;
+create trigger legacy_stock_inventory_bridge
+  after update of stock_quantity on public.saved_calculations
+  for each row when (old.stock_quantity is distinct from new.stock_quantity)
+  execute function public.legacy_stock_inventory_bridge();
+
+create or replace function public.legacy_inventory_has_rows(p_owner uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists(select 1 from public.filament_manufacturers where user_id = p_owner)
+    or exists(select 1 from public.material_types where user_id = p_owner)
+    or exists(select 1 from public.material_lines where user_id = p_owner)
+    or exists(select 1 from public.filament_variants where user_id = p_owner)
+    or exists(select 1 from public.filament_purchases where user_id = p_owner)
+    or exists(select 1 from public.filament_movements where user_id = p_owner)
+    or exists(select 1 from public.filament_deficits where user_id = p_owner)
+    or exists(select 1 from public.calculation_projects where user_id = p_owner)
+    or exists(select 1 from public.calculation_items where user_id = p_owner)
+    or exists(select 1 from public.order_items where user_id = p_owner)
+    or exists(select 1 from public.production_events where user_id = p_owner)
+    or exists(select 1 from public.finished_stock_balances where user_id = p_owner)
+    or exists(select 1 from public.finished_stock_movements where user_id = p_owner)
+$$;
+revoke all on function public.legacy_inventory_has_rows(uuid) from public, anon, authenticated;
+
+-- Preserve the existing implementations. Guarded renames make the migration
+-- repeatable and leave installations without optional legacy RPCs untouched.
+do $rename$
+declare
+  pair text[];
+begin
+  foreach pair slice 1 in array array[
+    array['save_order_with_inventory(jsonb)', 'legacy_save_order_with_inventory_unlocked'],
+    array['delete_orders_atomic(uuid[])', 'legacy_delete_orders_atomic_unlocked'],
+    array['restore_orders_snapshot(jsonb)', 'legacy_restore_orders_snapshot_unlocked'],
+    array['restore_saved_calculations_snapshot(jsonb)', 'legacy_restore_saved_calculations_snapshot_unlocked'],
+    array['restore_database_snapshot(jsonb)', 'legacy_restore_database_snapshot_unlocked'],
+    array['business_inventory_snapshot()', 'legacy_business_inventory_snapshot_without_orders']
+  ] loop
+    if pg_catalog.to_regprocedure('public.' || pair[2] || substring(pair[1] from pg_catalog.strpos(pair[1], '('))) is null
+       and pg_catalog.to_regprocedure('public.' || pair[1]) is not null then
+      execute format('alter function public.%s rename to %I', pair[1], pair[2]);
+    end if;
+    if pg_catalog.to_regprocedure('public.' || pair[2] || substring(pair[1] from pg_catalog.strpos(pair[1], '('))) is not null then
+      execute format('revoke all on function public.%s from public, anon, authenticated',
+        pair[2] || substring(pair[1] from pg_catalog.strpos(pair[1], '(')));
+    end if;
+  end loop;
+end $rename$;
+
+-- The wrapper's owner lock precedes the row locks in the original functions.
+do $wrappers$
+begin
+  if pg_catalog.to_regprocedure('public.legacy_business_inventory_snapshot_without_orders()') is not null then
+    execute $create$create or replace function public.business_inventory_snapshot()
+    returns jsonb language plpgsql security definer set search_path = '' as $body$
+    declare owner_id uuid := auth.uid(); result jsonb;
+    begin
+      if owner_id is null then raise exception 'AUTH_REQUIRED'; end if;
+      result := public.legacy_business_inventory_snapshot_without_orders();
+      return result || pg_catalog.jsonb_build_object('legacyOrders',
+        (select coalesce(pg_catalog.jsonb_agg(pg_catalog.to_jsonb(o) order by o.created_at, o.id), '[]'::jsonb)
+         from public.orders o where o.user_id = owner_id),
+        'legacyProducts',
+        (select coalesce(pg_catalog.jsonb_agg(pg_catalog.to_jsonb(p) order by p.id), '[]'::jsonb)
+         from public.saved_calculations p where p.user_id = owner_id));
+    end $body$$create$;
+    execute 'revoke all on function public.business_inventory_snapshot() from public, anon';
+    execute 'grant execute on function public.business_inventory_snapshot() to authenticated';
+  end if;
+  if pg_catalog.to_regprocedure('public.legacy_save_order_with_inventory_unlocked(jsonb)') is not null then
+    execute $create$create or replace function public.save_order_with_inventory(p_order jsonb)
+    returns jsonb language plpgsql security definer set search_path = '' as $body$
+    declare
+      owner_id uuid := auth.uid(); order_id uuid; old_order public.orders%rowtype; result jsonb;
+      previous_order text := coalesce(pg_catalog.current_setting('business_inventory.legacy_order_id', true), '');
+      previous_skip text := coalesce(pg_catalog.current_setting('business_inventory.legacy_skip_bridge', true), '');
+    begin
+      if owner_id is null then raise exception 'UNAUTHENTICATED'; end if;
+      perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('business_inventory:' || owner_id::text, 0));
+      begin order_id := nullif(p_order->>'id', '')::uuid;
+      exception when invalid_text_representation then order_id := null; end;
+      order_id := coalesce(order_id, pg_catalog.gen_random_uuid());
+      select * into old_order from public.orders where id = order_id and user_id = owner_id for update;
+      perform pg_catalog.set_config('business_inventory.legacy_order_id', order_id::text, true);
+      perform pg_catalog.set_config('business_inventory.legacy_skip_bridge',
+        case when old_order.id is not null
+          and old_order.type is not distinct from p_order->>'type'
+          and old_order.product_id is not distinct from nullif(p_order->>'product_id', '')::uuid
+          and coalesce(old_order.quantity, 0) = coalesce((p_order->>'quantity')::numeric, 0)
+          then 'on' else '' end, true);
+      result := public.legacy_save_order_with_inventory_unlocked(
+        p_order || pg_catalog.jsonb_build_object('id', order_id));
+      perform pg_catalog.set_config('business_inventory.legacy_order_id', previous_order, true);
+      perform pg_catalog.set_config('business_inventory.legacy_skip_bridge', previous_skip, true);
+      return result;
+    exception when others then
+      perform pg_catalog.set_config('business_inventory.legacy_order_id', previous_order, true);
+      perform pg_catalog.set_config('business_inventory.legacy_skip_bridge', previous_skip, true);
+      raise;
+    end $body$$create$;
+    execute 'revoke all on function public.save_order_with_inventory(jsonb) from public, anon';
+    execute 'grant execute on function public.save_order_with_inventory(jsonb) to authenticated';
+  end if;
+  if pg_catalog.to_regprocedure('public.legacy_delete_orders_atomic_unlocked(uuid[])') is not null then
+    execute $create$create or replace function public.delete_orders_atomic(p_ids uuid[])
+    returns integer language plpgsql security definer set search_path = '' as $body$
+    declare
+      owner_id uuid := auth.uid(); order_id uuid; deleted integer := 0;
+      previous_order text := coalesce(pg_catalog.current_setting('business_inventory.legacy_order_id', true), '');
+      previous_skip text := coalesce(pg_catalog.current_setting('business_inventory.legacy_skip_bridge', true), '');
+    begin
+      if owner_id is null then raise exception 'UNAUTHENTICATED'; end if;
+      perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('business_inventory:' || owner_id::text, 0));
+      perform pg_catalog.set_config('business_inventory.legacy_skip_bridge', '', true);
+      -- One order at a time identifies each return's reservation basis; the
+      -- encompassing transaction and owner lock still make the batch atomic.
+      for order_id in select o.id from public.orders o
+        where o.user_id = owner_id and o.id = any(p_ids) order by o.id for update
+      loop
+        perform pg_catalog.set_config('business_inventory.legacy_order_id', order_id::text, true);
+        deleted := deleted + public.legacy_delete_orders_atomic_unlocked(array[order_id]);
+      end loop;
+      perform pg_catalog.set_config('business_inventory.legacy_order_id', previous_order, true);
+      perform pg_catalog.set_config('business_inventory.legacy_skip_bridge', previous_skip, true);
+      return deleted;
+    exception when others then
+      perform pg_catalog.set_config('business_inventory.legacy_order_id', previous_order, true);
+      perform pg_catalog.set_config('business_inventory.legacy_skip_bridge', previous_skip, true);
+      raise;
+    end $body$$create$;
+    execute 'revoke all on function public.delete_orders_atomic(uuid[]) from public, anon';
+    execute 'grant execute on function public.delete_orders_atomic(uuid[]) to authenticated';
+  end if;
+  if pg_catalog.to_regprocedure('public.legacy_restore_orders_snapshot_unlocked(jsonb)') is not null then
+    execute $create$create or replace function public.restore_orders_snapshot(p_orders jsonb)
+    returns integer language plpgsql security definer set search_path = '' as $body$
+    declare owner_id uuid := auth.uid(); item jsonb; removed_ids uuid[]; restored integer := 0;
+    begin
+      if owner_id is null then raise exception 'UNAUTHENTICATED'; end if;
+      perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('business_inventory:' || owner_id::text, 0));
+      if pg_catalog.jsonb_typeof(p_orders) is distinct from 'array' then raise exception 'INVALID_ORDER_SNAPSHOT'; end if;
+      -- Release missing/changed reservations before adding any new ones. Keep
+      -- unchanged reservations (and their immutable basis) for financial edits.
+      select coalesce(array_agg(o.id), array[]::uuid[]) into removed_ids
+      from public.orders o where o.user_id = owner_id and not exists (
+        select 1 from pg_catalog.jsonb_array_elements(p_orders) incoming(item)
+        where nullif(incoming.item->>'id', '')::uuid = o.id
+          and o.type is not distinct from incoming.item->>'type'
+          and o.product_id is not distinct from nullif(incoming.item->>'product_id', '')::uuid
+          and coalesce(o.quantity, 0) = coalesce((incoming.item->>'quantity')::numeric, 0));
+      perform public.delete_orders_atomic(removed_ids);
+      for item in select value from pg_catalog.jsonb_array_elements(p_orders) loop
+        perform public.save_order_with_inventory(item);
+        restored := restored + 1;
+      end loop;
+      return restored;
+    end $body$$create$;
+    execute 'revoke all on function public.restore_orders_snapshot(jsonb) from public, anon';
+    execute 'grant execute on function public.restore_orders_snapshot(jsonb) to authenticated';
+  end if;
+  if pg_catalog.to_regprocedure('public.legacy_restore_saved_calculations_snapshot_unlocked(jsonb)') is not null then
+    execute $create$create or replace function public.restore_saved_calculations_snapshot(p_items jsonb)
+    returns integer language plpgsql security definer set search_path = '' as $body$
+    declare owner_id uuid := auth.uid();
+    begin
+      if owner_id is null then raise exception 'UNAUTHENTICATED'; end if;
+      perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('business_inventory:' || owner_id::text, 0));
+      if public.legacy_inventory_has_rows(owner_id) then raise exception 'FOUNDATION_INVENTORY_RESTORE_BLOCKED'; end if;
+      return public.legacy_restore_saved_calculations_snapshot_unlocked(p_items);
+    end $body$$create$;
+    execute 'revoke all on function public.restore_saved_calculations_snapshot(jsonb) from public, anon';
+    execute 'grant execute on function public.restore_saved_calculations_snapshot(jsonb) to authenticated';
+  end if;
+  if pg_catalog.to_regprocedure('public.legacy_restore_database_snapshot_unlocked(jsonb)') is not null then
+    execute $create$create or replace function public.restore_database_snapshot(p_snapshot jsonb)
+    returns void language plpgsql security definer set search_path = '' as $body$
+    declare owner_id uuid := auth.uid();
+    begin
+      if owner_id is null then raise exception 'UNAUTHENTICATED'; end if;
+      perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('business_inventory:' || owner_id::text, 0));
+      if public.legacy_inventory_has_rows(owner_id) then raise exception 'FOUNDATION_INVENTORY_RESTORE_BLOCKED'; end if;
+      perform public.legacy_restore_database_snapshot_unlocked(p_snapshot);
+    end $body$$create$;
+    execute 'revoke all on function public.restore_database_snapshot(jsonb) from public, anon';
+    execute 'grant execute on function public.restore_database_snapshot(jsonb) to authenticated';
+  end if;
+end $wrappers$;
+
+-- Route offline-queued legacy order operations through the same owner lock,
+-- revision and idempotency receipts as inventory commands. Legacy functions
+-- still own their original business semantics (including insufficient stock).
+create or replace function public.business_apply_legacy_order(p_command jsonb)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare
+  owner_id uuid := auth.uid();
+  event_id text := p_command->>'id';
+  operation_kind text := p_command->>'kind';
+  stored_command jsonb;
+  previous_revision bigint;
+  current_revision bigint;
+  order_ids uuid[];
+  previous_command text := coalesce(pg_catalog.current_setting('business_inventory.legacy_command_id', true), '');
+begin
+  if owner_id is null then raise exception 'AUTH_REQUIRED'; end if;
+  if pg_catalog.jsonb_typeof(p_command) is distinct from 'object'
+     or event_id is null or length(event_id) not between 1 and 160
+     or nullif(p_command->>'occurredAt', '') is null then
+    raise exception 'INVALID_COMMAND';
+  end if;
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('business_inventory:' || owner_id::text, 0));
+  select command into stored_command from public.business_operation_receipts
+    where user_id = owner_id and event_key = event_id;
+  if found then
+    if stored_command <> p_command then raise exception 'IDEMPOTENCY_KEY_REUSED'; end if;
+    return public.business_inventory_snapshot();
+  end if;
+  insert into public.business_state_revisions(user_id) values (owner_id) on conflict do nothing;
+  select revision into previous_revision from public.business_state_revisions
+    where user_id = owner_id for update;
+  perform pg_catalog.set_config('business_inventory.legacy_command_id', event_id, true);
+
+  if operation_kind = 'saveLegacyOrder' then
+    if pg_catalog.jsonb_typeof(p_command->'order') is distinct from 'object' then
+      raise exception 'INVALID_LEGACY_ORDER';
+    end if;
+    perform public.save_order_with_inventory(p_command->'order');
+  elsif operation_kind = 'deleteLegacyOrders' then
+    if pg_catalog.jsonb_typeof(p_command->'orderIds') is distinct from 'array' then
+      raise exception 'INVALID_LEGACY_ORDER_IDS';
+    end if;
+    select coalesce(array_agg(value::uuid), array[]::uuid[]) into order_ids
+      from pg_catalog.jsonb_array_elements_text(p_command->'orderIds') as ids(value);
+    perform public.delete_orders_atomic(order_ids);
+  elsif operation_kind = 'restoreLegacyOrders' then
+    if pg_catalog.jsonb_typeof(p_command->'orders') is distinct from 'array' then
+      raise exception 'INVALID_LEGACY_ORDERS';
+    end if;
+    perform public.restore_orders_snapshot(p_command->'orders');
+  else
+    raise exception 'INVALID_LEGACY_ORDER_OPERATION';
+  end if;
+
+  -- Stock changes have already bumped the revision in the trigger. Financial
+  -- edits with no stock delta still need a revision so other tabs reload.
+  select revision into current_revision from public.business_state_revisions
+    where user_id = owner_id;
+  if current_revision = previous_revision then
+    update public.business_state_revisions set revision = revision + 1
+      where user_id = owner_id returning revision into current_revision;
+  end if;
+  insert into public.business_operation_receipts(user_id,event_key,command,revision)
+    values (owner_id,event_id,p_command,current_revision);
+  perform pg_catalog.set_config('business_inventory.legacy_command_id', previous_command, true);
+  return public.business_inventory_snapshot();
+exception when others then
+  perform pg_catalog.set_config('business_inventory.legacy_command_id', previous_command, true);
+  raise;
+end $$;
+revoke all on function public.business_apply_legacy_order(jsonb) from public, anon;
+grant execute on function public.business_apply_legacy_order(jsonb) to authenticated;
+
+commit;
+
+-- END LEGACY INVENTORY BRIDGE 20260930
+
+-- BEGIN CALCULATION PROJECTS 20260930
+-- Phase 3: retain removed calculation positions as archived snapshots.
+-- Run in Supabase Dashboard → SQL Editor after the foundation migration.
+-- Existing transactional RPC persists this column via its generic collection writer.
+begin;
+alter table public.calculation_items
+  add column if not exists archived boolean not null default false;
+create or replace function public.business_save_calculation_project(p_expected_revision bigint, p_command jsonb, p_state jsonb)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  owner_id uuid := auth.uid();
+  project_id uuid := (p_command#>>'{project,id}')::uuid;
+  stored_command jsonb;
+  previous_revision bigint;
+  desired_revision bigint;
+begin
+  if owner_id is null then raise exception 'AUTH_REQUIRED'; end if;
+  if p_command->>'kind' is distinct from 'saveProject' or p_command#>>'{project,user_id}' is distinct from owner_id::text
+    or p_state->>'user_id' is distinct from owner_id::text or project_id is null then raise exception 'INVALID_PROJECT'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('business_inventory:' || owner_id::text,0));
+  select command into stored_command from public.business_operation_receipts
+    where user_id=owner_id and event_key=p_command->>'id';
+  if found then
+    if stored_command<>p_command then raise exception 'IDEMPOTENCY_KEY_REUSED'; end if;
+    return public.business_inventory_snapshot();
+  end if;
+  select revision into previous_revision from public.calculation_projects where id=project_id and user_id=owner_id;
+  if found and previous_revision is distinct from (p_command#>>'{project,revision}')::bigint
+    then raise exception 'BUSINESS_PROJECT_REVISION_CONFLICT: local draft retained'; end if;
+  desired_revision := case when previous_revision is null then 0 else previous_revision+1 end;
+  if not exists(select from jsonb_array_elements(p_state->'projects') p where p->>'id'=project_id::text
+    and p->>'user_id'=owner_id::text and (p->>'revision')::bigint=desired_revision)
+    then raise exception 'INVALID_PROJECT_STATE'; end if;
+  return public.commit_business_inventory(p_expected_revision,p_command,p_state);
+end $$;
+revoke all on function public.business_save_calculation_project(bigint,jsonb,jsonb) from public, anon;
+grant execute on function public.business_save_calculation_project(bigint,jsonb,jsonb) to authenticated;
+commit;
+
+-- END CALCULATION PROJECTS 20260930
+
+
+-- BEGIN PROJECT ORDERS 20260930
+-- Phase 3: create a project order head and all position snapshots in one transaction.
+-- Apply after foundation, inventory transactions, legacy bridge and calculation projects.
+begin;
+alter table public.orders add column if not exists agreed_price numeric(20,6)
+  check (agreed_price >= 0 and agreed_price <> 'NaN'::numeric);
+create or replace function public.business_create_project_order(p_expected_revision bigint, p_command jsonb, p_state jsonb)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  owner_id uuid := auth.uid();
+  event_id text := p_command->>'id';
+  head jsonb := p_command->'order';
+  order_id uuid := (head->>'id')::uuid;
+  stored_command jsonb;
+  incoming jsonb;
+  declared_item jsonb;
+  position integer := 0;
+  item_cost numeric := 0;
+  item_quantity bigint := 0;
+  item_count integer := 0;
+begin
+  if owner_id is null then raise exception 'AUTH_REQUIRED'; end if;
+  if p_command->>'kind' is distinct from 'createProjectOrder' or event_id is null
+    or length(event_id) not between 1 and 160 or p_state->>'user_id' is distinct from owner_id::text
+    or head->>'user_id' is distinct from owner_id::text then raise exception 'INVALID_PROJECT_ORDER'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('business_inventory:' || owner_id::text, 0));
+  select command into stored_command from public.business_operation_receipts where user_id=owner_id and event_key=event_id;
+  if found then
+    if stored_command <> p_command then raise exception 'IDEMPOTENCY_KEY_REUSED'; end if;
+    return public.business_inventory_snapshot();
+  end if;
+  if p_expected_revision is distinct from coalesce((select revision from public.business_state_revisions where user_id=owner_id),0)
+    then raise exception 'BUSINESS_REVISION_CONFLICT'; end if;
+  if order_id is null or exists(select from public.orders where id=order_id)
+    or head->>'type' is distinct from 'income' or nullif(head->>'product_id','') is not null
+    or head->>'status' is distinct from 'Не в работе'
+    or jsonb_typeof(p_command->'itemIds') is distinct from 'array'
+    or jsonb_typeof(p_command#>'{draft,items}') is distinct from 'array'
+    or jsonb_array_length(p_command->'itemIds')=0
+    or jsonb_array_length(p_command->'itemIds')<>jsonb_array_length(p_command#>'{draft,items}')
+    then raise exception 'INVALID_PROJECT_ORDER'; end if;
+  for declared_item in select value from jsonb_array_elements(p_command#>'{draft,items}') loop
+    select value into incoming from jsonb_array_elements(p_state->'orderItems')
+      where value->>'id'=p_command->'itemIds'->>position;
+    if incoming is null or incoming->>'user_id' is distinct from owner_id::text
+      or incoming->>'order_id' is distinct from order_id::text
+      or incoming->>'source_order_id' is distinct from order_id::text
+      or incoming->>'name' is distinct from declared_item->>'name'
+      or incoming->>'quantity' is distinct from declared_item->>'quantity'
+      or incoming->'snapshot' is distinct from declared_item->'snapshot'
+      or incoming->>'cost_provenance' is distinct from 'estimate'
+      or incoming->>'fulfilled_quantity' is distinct from '0'
+      or incoming->>'production_quantity' is distinct from '0'
+      or exists(select from public.order_items where id=(incoming->>'id')::uuid)
+      or not exists(select from public.calculation_items where id=(declared_item->>'calculation_item_id')::uuid
+        and user_id=owner_id and project_id=(p_command#>>'{draft,projectId}')::uuid)
+      then raise exception 'INVALID_PROJECT_ORDER_ITEM'; end if;
+    item_cost := item_cost + (incoming->>'total_cost')::numeric;
+    item_quantity := item_quantity + (incoming->>'quantity')::integer;
+    item_count := item_count + 1;
+    position := position + 1;
+  end loop;
+  if item_cost is distinct from (head->>'cost')::numeric or item_quantity is distinct from (head->>'quantity')::bigint
+    or item_count<>(select count(*) from jsonb_array_elements(p_state->'orderItems') where value->>'source_order_id'=order_id::text)
+    then raise exception 'INVALID_PROJECT_ORDER_TOTAL'; end if;
+  -- No product_id on the legacy head: reservation/production belongs to the separate positions.
+  perform public.save_order_with_inventory(head);
+  update public.orders set agreed_price=nullif(head->>'agreed_price','')::numeric where id=order_id and user_id=owner_id;
+  -- FK/ownership/finite constraints and receipt are checked by the same transactional writer.
+  return public.commit_business_inventory(p_expected_revision,p_command,p_state);
+end $$;
+revoke all on function public.business_create_project_order(bigint,jsonb,jsonb) from public, anon;
+grant execute on function public.business_create_project_order(bigint,jsonb,jsonb) to authenticated;
+commit;
+
+-- END PROJECT ORDERS 20260930
+
+-- BEGIN CATALOG TEMPLATES 20260930
+-- Phase 4. Apply after all phase 1–3 migrations, in Supabase SQL Editor.
+-- Catalog metadata never represents production or a material return.
+begin;
+alter table public.saved_calculations
+  add column if not exists catalog_revision bigint not null default 0 check (catalog_revision >= 0),
+  add column if not exists catalog_archived boolean not null default false,
+  add column if not exists calculation_snapshot jsonb
+    check (calculation_snapshot is null or jsonb_typeof(calculation_snapshot) is not distinct from 'object'
+      and calculation_snapshot->>'version' is not distinct from '1'
+      and jsonb_typeof(calculation_snapshot->'inputs') is not distinct from 'object'
+      and jsonb_typeof(calculation_snapshot->'result') is not distinct from 'object'),
+  add column if not exists agreed_price numeric(20,6)
+    check (agreed_price >= 0 and agreed_price <> 'NaN'::numeric);
+
+create or replace function public.business_apply_catalog(p_expected_revision bigint, p_command jsonb, p_state jsonb)
+returns jsonb language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  owner_id uuid := auth.uid();
+  stored_command jsonb;
+  before_state jsonb;
+  incoming jsonb;
+  previous jsonb;
+  target_id uuid;
+  affected boolean;
+  expected bigint;
+  assignments text;
+  collection text;
+  restore_id text;
+begin
+  if owner_id is null then raise exception 'AUTH_REQUIRED'; end if;
+  if coalesce(p_command->>'kind','') not in ('saveCatalogProduct','archiveCatalogProducts','restoreCatalog')
+    or p_command->>'id' is null or p_state->>'user_id' is distinct from owner_id::text
+    or jsonb_typeof(p_state->'legacyProducts') is distinct from 'array'
+    then raise exception 'INVALID_CATALOG_COMMAND'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('business_inventory:'||owner_id::text,0));
+  select command into stored_command from public.business_operation_receipts
+    where user_id=owner_id and event_key=p_command->>'id';
+  if found then
+    if stored_command<>p_command then raise exception 'IDEMPOTENCY_KEY_REUSED'; end if;
+    return public.business_inventory_snapshot();
+  end if;
+  before_state := public.business_inventory_snapshot();
+  if p_expected_revision is distinct from (before_state->>'revision')::bigint
+    then raise exception 'BUSINESS_REVISION_CONFLICT'; end if;
+  if p_command->>'kind'='archiveCatalogProducts' and jsonb_typeof(p_command->'productIds') is distinct from 'array'
+    or p_command->>'kind'='restoreCatalog' and jsonb_typeof(p_command->'products') is distinct from 'array'
+    then raise exception 'INVALID_CATALOG_COMMAND'; end if;
+  if exists(select from jsonb_array_elements(p_state->'legacyProducts') p where p->>'user_id' is distinct from owner_id::text)
+    or exists(select from public.saved_calculations old where old.user_id=owner_id and not exists
+      (select from jsonb_array_elements(p_state->'legacyProducts') p where p->>'id'=old.id::text))
+    or (select count(*) from jsonb_array_elements(p_state->'legacyProducts')) <>
+       (select count(distinct p->>'id') from jsonb_array_elements(p_state->'legacyProducts') p)
+    then raise exception 'INVALID_CATALOG_STATE'; end if;
+  -- Every non-catalog resource and every existing physical balance is unchanged.
+  foreach collection in array array['manufacturers','materialTypes','materialLines','variants','purchases',
+    'filamentMovements','deficits','projects','calculationItems','orderItems','productionEvents'] loop
+    if p_state->collection is distinct from before_state->collection then raise exception 'CATALOG_CHANGED_INVENTORY'; end if;
+  end loop;
+  if exists(select from jsonb_array_elements(before_state->'finishedBalances') old where not exists
+    (select from jsonb_array_elements(p_state->'finishedBalances') p where p=old))
+    or exists(select from jsonb_array_elements(before_state->'finishedMovements') old where not exists
+    (select from jsonb_array_elements(p_state->'finishedMovements') p where p=old))
+    then raise exception 'CATALOG_CHANGED_INVENTORY'; end if;
+  if p_command->>'kind'='saveCatalogProduct' then
+    target_id := (p_command#>>'{product,id}')::uuid;
+    select to_jsonb(p) into previous from public.saved_calculations p where id=target_id and user_id=owner_id;
+    if target_id is null or coalesce(p_command->>'isNew','') not in ('true','false')
+      or (p_command->>'isNew'='true' and exists(select from public.saved_calculations where id=target_id))
+      or (p_command->>'isNew'='false' and (previous is null
+        or (previous->>'catalog_revision')::bigint is distinct from (p_command->>'expectedRevision')::bigint))
+      then raise exception 'BUSINESS_CATALOG_REVISION_CONFLICT: local editor retained'; end if;
+    if not exists(select from jsonb_array_elements(p_state->'legacyProducts') p where p->>'id'=target_id::text)
+      then raise exception 'INVALID_CATALOG_STATE'; end if;
+  end if;
+  if p_command->>'kind'='restoreCatalog' and p_command ? 'productIds' then
+    if jsonb_typeof(p_command->'productIds') is distinct from 'array' then raise exception 'INVALID_CATALOG_STATE'; end if;
+    for restore_id in select value from jsonb_array_elements_text(p_command->'productIds') as ids(value) loop
+      select to_jsonb(p) into previous from public.saved_calculations p where p.id=restore_id::uuid and p.user_id=owner_id;
+      if previous is null or (previous->>'catalog_revision')::bigint is distinct from
+        (p_command->'expectedRevisions'->>restore_id)::bigint
+        then raise exception 'BUSINESS_CATALOG_REVISION_CONFLICT: Undo retained'; end if;
+    end loop;
+  end if;
+  select string_agg(format('%1$I=excluded.%1$I',a.attname),',') into assignments
+    from pg_attribute a where a.attrelid='public.saved_calculations'::regclass
+    and a.attnum>0 and not a.attisdropped and a.attname not in ('id','user_id','created_at','stock_quantity');
+  for incoming in select value from jsonb_array_elements(p_state->'legacyProducts') loop
+    select to_jsonb(p) into previous from public.saved_calculations p where id=(incoming->>'id')::uuid and user_id=owner_id;
+    affected := case p_command->>'kind'
+      when 'saveCatalogProduct' then incoming->>'id'=target_id::text
+      when 'archiveCatalogProducts' then p_command->'productIds' ? (incoming->>'id')
+      else not (p_command ? 'productIds') or p_command->'productIds' ? (incoming->>'id') end;
+    if not affected then continue; end if;
+    if exists(select from public.saved_calculations where id=(incoming->>'id')::uuid and user_id<>owner_id)
+      then raise exception 'CROSS_OWNER_ID'; end if;
+    expected := case when previous is null then 0 else (previous->>'catalog_revision')::bigint+1 end;
+    -- Undo keeps already-archived rows unchanged.
+    if incoming->>'catalog_revision' is distinct from expected::text and incoming is distinct from previous
+      then raise exception 'INVALID_CATALOG_REVISION'; end if;
+    if previous is not null and incoming->>'catalog_revision'=(previous->>'catalog_revision') then continue; end if;
+    if p_command->>'kind'='archiveCatalogProducts' and incoming->>'catalog_archived' is distinct from 'true'
+      then raise exception 'INVALID_CATALOG_ARCHIVE'; end if;
+    if p_command->>'kind'='saveCatalogProduct' and incoming->>'catalog_archived' is distinct from 'false'
+      then raise exception 'INVALID_CATALOG_ARCHIVE'; end if;
+    -- Full template replacement clears optional parameters explicitly, preserving identity and stock.
+    incoming := incoming || jsonb_build_object('user_id',owner_id,
+      'created_at',coalesce(previous->'created_at',incoming->'created_at',to_jsonb(now())),
+      'stock_quantity',coalesce(previous->'stock_quantity',incoming->'stock_quantity','0'::jsonb));
+    execute format('insert into public.saved_calculations select r.* from jsonb_populate_record(null::public.saved_calculations,$1) r '
+      'on conflict(id) do update set %s where saved_calculations.user_id=excluded.user_id',assignments) using incoming;
+  end loop;
+  -- New templates may only add opening balances, never alter existing stock or produce units.
+  if exists(select from jsonb_array_elements(p_state->'finishedBalances') b
+    where not exists(select from jsonb_array_elements(before_state->'finishedBalances') old where old=b)
+    and (exists(select from jsonb_array_elements(before_state->'finishedBalances') old where old->>'id'=b->>'id')
+      or not exists(select from public.saved_calculations p where p.user_id=owner_id
+        and p.id::text=b->>'source_product_id' and coalesce(p.stock_quantity,0)=(b->>'quantity')::integer
+        and abs((b->>'average_unit_cost')::numeric-p.base_cost/p.quantity)<=0.00000001 and b->>'revision'='0')))
+    or exists(select from jsonb_array_elements(p_state->'finishedMovements') m
+      where not exists(select from jsonb_array_elements(before_state->'finishedMovements') old where old=m)
+      and (m->>'source' is distinct from 'opening_balance'
+        or m->>'event_key' is distinct from 'opening:finished:'||(m->>'source_product_id')
+        or exists(select from jsonb_array_elements(before_state->'finishedBalances') b where b->>'source_product_id'=m->>'source_product_id')
+        or not exists(select from jsonb_array_elements(p_state->'finishedBalances') b
+          where b->>'source_product_id'=m->>'source_product_id' and (b->>'quantity')::integer>0
+            and b->>'quantity'=m->>'delta_quantity' and b->>'quantity'=m->>'balance_after'
+            and abs((b->>'average_unit_cost')::numeric-(m->>'unit_cost')::numeric)<=0.00000001)))
+    then raise exception 'CATALOG_CHANGED_INVENTORY'; end if;
+  return public.commit_business_inventory(p_expected_revision,p_command,p_state);
+end $$;
+revoke all on function public.business_apply_catalog(bigint,jsonb,jsonb) from public, anon;
+grant execute on function public.business_apply_catalog(bigint,jsonb,jsonb) to authenticated;
+commit;
+-- END CATALOG TEMPLATES 20260930
+
+-- BEGIN ORDER LIFECYCLE 20261001
+-- Phase 5: order snapshots, available-stock allocation and physical production.
+-- Apply after the six phase 1–4 migrations. Never runs production during migration.
+begin;
+alter table public.orders add column if not exists order_revision bigint not null default 0 check(order_revision >= 0);
+alter table public.orders add column if not exists order_archived boolean not null default false;
+alter table public.order_items add column if not exists reserved_quantity integer default 0 check(reserved_quantity >= 0);
+alter table public.order_items add column if not exists returned_quantity integer default 0 check(returned_quantity >= 0);
+alter table public.order_items add column if not exists archived boolean default false;
+create index if not exists orders_active_owner on public.orders(user_id,order_archived);
+
+-- Only the validated RPCs may write snapshots and immutable inventory facts.
+-- SELECT remains owner-scoped under the existing RLS policies.
+do $$ declare relation_name text; begin
+  foreach relation_name in array array['orders','saved_calculations','filament_manufacturers','material_types','material_lines','filament_variants',
+    'filament_purchases','filament_movements','filament_deficits','calculation_projects','calculation_items','order_items',
+    'production_events','finished_stock_balances','finished_stock_movements','business_state_revisions','business_operation_receipts'] loop
+    execute format('revoke insert,update,delete on public.%I from authenticated,anon',relation_name);
+  end loop;
+  if to_regprocedure('public.business_commit_inventory_internal(bigint,jsonb,jsonb)') is null then
+    alter function public.commit_business_inventory(bigint,jsonb,jsonb) rename to business_commit_inventory_internal;
+  end if;
+end $$;
+revoke all on function public.business_commit_inventory_internal(bigint,jsonb,jsonb) from public,anon,authenticated;
+revoke all on function public.business_create_project_order(bigint,jsonb,jsonb) from public,anon,authenticated;
+
+create or replace function public.commit_business_inventory(p_expected_revision bigint,p_command jsonb,p_state jsonb)
+returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
+declare owner_id uuid:=auth.uid(); original jsonb; stored_command jsonb; row_item jsonb;
+begin
+  if owner_id is null then raise exception 'AUTH_REQUIRED'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('business_inventory:'||owner_id::text,0));
+  select command into stored_command from public.business_operation_receipts where user_id=owner_id and event_key=p_command->>'id';
+  if found then
+    if stored_command is distinct from p_command then raise exception 'IDEMPOTENCY_KEY_REUSED'; end if;
+    return public.business_inventory_snapshot();
+  end if;
+  original:=public.business_inventory_snapshot();
+  if coalesce(p_command->>'kind','') not in ('bootstrap','purchase','produce','adjustFinished',
+    'saveManufacturer','saveMaterialType','saveMaterialLine','saveVariant','saveProject',
+    'saveCatalogProduct','archiveCatalogProducts','restoreCatalog') then raise exception 'INVALID_INVENTORY_COMMAND_KIND'; end if;
+  if exists(select from jsonb_array_elements(original->'orderItems') old where not exists
+    (select from jsonb_array_elements(p_state->'orderItems') incoming where incoming=old))
+    then raise exception 'ORDER_ITEMS_REQUIRE_ATOMIC_API'; end if;
+  for row_item in select value from jsonb_array_elements(p_state->'orderItems') incoming where not exists
+    (select from jsonb_array_elements(original->'orderItems') old where old->>'id'=incoming->>'id') loop
+    if p_command->>'kind'<>'bootstrap' or row_item->>'cost_provenance'<>'legacy'
+      or (row_item->>'fulfilled_quantity')::integer<>0 or (row_item->>'production_quantity')::integer<>0
+      or row_item#>'{snapshot,calculation}' is distinct from 'null'::jsonb
+      or row_item#>'{snapshot,recipe}' is distinct from 'null'::jsonb
+      or not exists(select from public.orders o where o.user_id=owner_id and o.id::text=row_item->>'source_order_id'
+        and o.type='income' and o.cost=(row_item->>'total_cost')::numeric and o.amount=(row_item->>'total_price')::numeric
+        and o.quantity=(row_item->>'quantity')::integer)
+      then raise exception 'ORDER_ITEMS_REQUIRE_ATOMIC_API'; end if;
+  end loop;
+  if exists(select from jsonb_array_elements(p_state->'productionEvents') p where p->>'order_item_id' is not null
+    and not exists(select from public.production_events old where old.user_id=owner_id and old.id=(p->>'id')::uuid))
+    or exists(select from jsonb_array_elements(p_state->'finishedMovements') m where m->>'order_item_id' is not null
+      and not exists(select from public.finished_stock_movements old where old.user_id=owner_id and old.id=(m->>'id')::uuid))
+    then raise exception 'ORDER_ALLOCATION_REQUIRES_ATOMIC_API'; end if;
+  return public.business_commit_inventory_internal(p_expected_revision,p_command,p_state);
+end $$;
+revoke all on function public.commit_business_inventory(bigint,jsonb,jsonb) from public,anon;
+grant execute on function public.commit_business_inventory(bigint,jsonb,jsonb) to authenticated;
+
+create or replace function public.business_apply_order(p_expected_revision bigint,p_command jsonb,p_state jsonb)
+returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
+declare
+  owner_id uuid:=auth.uid();
+  event_id text:=p_command->>'id';
+  command_kind text:=p_command->>'kind';
+  stored_command jsonb;
+  original jsonb;
+  original_head jsonb;
+  head jsonb;
+  item jsonb;
+  production jsonb;
+  material jsonb;
+  current_cost numeric;
+  required_grams numeric;
+  accounted_grams numeric;
+  actual_item_cost numeric;
+  produced_delta integer;
+  reserved_delta integer;
+  returned_delta integer;
+  stock_balance jsonb;
+  stock_movement jsonb;
+  stock_quantity integer;
+  stock_average numeric;
+  return_basis numeric;
+  old_item jsonb;
+  mapping record;
+  target_ids text[];
+  target_id text;
+  columns_list text;
+  assignments text;
+  new_number bigint;
+  invalid boolean;
+begin
+  if owner_id is null then raise exception 'AUTH_REQUIRED'; end if;
+  if jsonb_typeof(p_command) is distinct from 'object' or event_id is null
+    or length(event_id) not between 1 and 160 or coalesce(command_kind,'') not in
+      ('saveBusinessOrder','createProjectOrder','archiveBusinessOrders','restoreBusinessOrders','returnOrderFinished')
+    or p_state->>'user_id' is distinct from owner_id::text then raise exception 'INVALID_ORDER_COMMAND'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('business_inventory:'||owner_id::text,0));
+  select command into stored_command from public.business_operation_receipts where user_id=owner_id and event_key=event_id;
+  if found then
+    if stored_command<>p_command then raise exception 'IDEMPOTENCY_KEY_REUSED'; end if;
+    return public.business_inventory_snapshot();
+  end if;
+  if p_expected_revision is distinct from coalesce((select revision from public.business_state_revisions where user_id=owner_id),0)
+    then raise exception 'BUSINESS_REVISION_CONFLICT'; end if;
+  original:=public.business_inventory_snapshot();
+  if jsonb_typeof(p_state->'legacyOrders') is distinct from 'array' or jsonb_typeof(p_state->'orderItems') is distinct from 'array'
+    then raise exception 'INVALID_ORDER_STATE'; end if;
+  if command_kind in ('saveBusinessOrder','createProjectOrder') then
+    target_id:=p_command#>>'{order,id}';
+    if target_id is null or p_command#>>'{order,user_id}' is distinct from owner_id::text then raise exception 'INVALID_ORDER_OWNER'; end if;
+    target_ids:=array[target_id];
+  elsif command_kind in ('archiveBusinessOrders','restoreBusinessOrders') then
+    if jsonb_typeof(p_command->'orderIds') is distinct from 'array' then raise exception 'INVALID_ORDER_IDS'; end if;
+    select array_agg(value) into target_ids from jsonb_array_elements_text(p_command->'orderIds');
+    target_ids:=coalesce(target_ids,array[]::text[]);
+  else
+    select source_order_id into target_id from public.order_items where id=(p_command->>'orderItemId')::uuid and user_id=owner_id;
+    if target_id is null or coalesce((p_command->>'quantity')::integer,0)<=0 then raise exception 'INVALID_FINISHED_RETURN'; end if;
+    target_ids:=array[target_id];
+  end if;
+  -- No unrelated catalog, project, purchase or dictionary changes in an order transaction.
+  foreach target_id in array array['legacyProducts','manufacturers','materialTypes','materialLines','purchases','projects','calculationItems'] loop
+    if p_state->target_id is distinct from original->target_id then raise exception 'ORDER_CHANGED_UNRELATED_STATE: %',target_id; end if;
+  end loop;
+  -- Every head remains present; archived orders retain their FK and financial history.
+  if exists(select from jsonb_array_elements(original->'legacyOrders') old where not exists
+      (select from jsonb_array_elements(p_state->'legacyOrders') incoming where incoming->>'id'=old->>'id'))
+    or exists(select from jsonb_array_elements(p_state->'legacyOrders') incoming
+      where incoming->>'user_id' is distinct from owner_id::text)
+    or exists(select from jsonb_array_elements(p_state->'legacyOrders') incoming group by incoming->>'id' having count(*)>1)
+    then raise exception 'INVALID_ORDER_HEADS'; end if;
+  for head in select value from jsonb_array_elements(p_state->'legacyOrders') loop
+    select value into original_head from jsonb_array_elements(original->'legacyOrders') where value->>'id'=head->>'id';
+    if not (head->>'id'=any(target_ids)) then
+      if head is distinct from original_head then raise exception 'ORDER_CHANGED_UNRELATED_HEAD'; end if;
+      continue;
+    end if;
+    if coalesce(head->>'type','') not in ('income','expense')
+      or coalesce(head->>'status','') not in ('Не в работе','Моделирование','Ждет печати','Печать','Ждет покраски','Покраска','Ждет отправки','Отправлен','Готово')
+      or jsonb_typeof(head->'amount') is distinct from 'number' or (head->>'amount')::numeric<0
+      or jsonb_typeof(head->'cost') is distinct from 'number' or (head->>'cost')::numeric<0
+      or (head->>'payment' is not null and (jsonb_typeof(head->'payment')<>'number' or (head->>'payment')::numeric<0))
+      or (head->>'agreed_price' is not null and (jsonb_typeof(head->'agreed_price')<>'number' or (head->>'agreed_price')::numeric<0))
+      then raise exception 'INVALID_ORDER_FINANCIALS'; end if;
+    if original_head is not null and head->>'type' is distinct from original_head->>'type'
+      then raise exception 'ORDER_TYPE_IS_IMMUTABLE'; end if;
+    if command_kind='saveBusinessOrder' then
+      if (p_command->>'isNew')::boolean then
+        if original_head is not null or coalesce((head->>'order_revision')::bigint,-1)<>0 then raise exception 'ORDER_ID_OCCUPIED'; end if;
+      else
+        if original_head is null or coalesce((original_head->>'order_revision')::bigint,0) is distinct from (p_command->>'expectedRevision')::bigint
+          then raise exception 'BUSINESS_ORDER_REVISION_CONFLICT:%',head->>'id'; end if;
+        if (head->>'order_revision')::bigint<>coalesce((original_head->>'order_revision')::bigint,0)+1
+          then raise exception 'INVALID_ORDER_REVISION'; end if;
+      end if;
+      if (head-array['cost','quantity','order_revision','created_at','order_number','order_archived','items']) is distinct from
+        ((p_command->'order')-array['cost','quantity','order_revision','created_at','order_number','order_archived','items'])
+        then raise exception 'ORDER_HEAD_DOES_NOT_MATCH_COMMAND'; end if;
+    elsif command_kind='createProjectOrder' then
+      if original_head is not null or coalesce((head->>'order_revision')::bigint,0)<>0
+        or head->>'type' is distinct from 'income' or head->>'status' is distinct from 'Не в работе'
+        or not exists(select from public.calculation_projects where user_id=owner_id and id=(p_command#>>'{draft,projectId}')::uuid)
+        then raise exception 'INVALID_PROJECT_ORDER'; end if;
+      if jsonb_typeof(p_command#>'{draft,items}') is distinct from 'array'
+        or jsonb_array_length(p_command#>'{draft,items}')=0
+        or jsonb_array_length(p_command#>'{draft,items}')<>jsonb_array_length(p_command->'itemIds')
+        or exists(select from jsonb_array_elements(p_command#>'{draft,items}') draft_item
+          where not exists(select from public.calculation_items c where c.user_id=owner_id
+            and c.id=(draft_item->>'calculation_item_id')::uuid
+            and c.project_id=(p_command#>>'{draft,projectId}')::uuid))
+        then raise exception 'INVALID_PROJECT_ORDER_ITEMS'; end if;
+    elsif original_head is null then raise exception 'ORDER_NOT_FOUND';
+    end if;
+    if command_kind='restoreBusinessOrders' then
+      if coalesce((original_head->>'order_revision')::bigint,0) is distinct from
+        (p_command->'expectedRevisions'->>(head->>'id'))::bigint
+        then raise exception 'BUSINESS_ORDER_REVISION_CONFLICT:%',head->>'id'; end if;
+      if (head->>'order_revision')::bigint<>coalesce((original_head->>'order_revision')::bigint,0)+1
+        then raise exception 'INVALID_ORDER_REVISION'; end if;
+    end if;
+    if command_kind='archiveBusinessOrders' and head->>'order_archived' is distinct from 'true'
+      then raise exception 'INVALID_ORDER_ARCHIVE'; end if;
+    if command_kind='returnOrderFinished' and (head-'order_revision') is distinct from (original_head-'order_revision')
+      then raise exception 'RETURN_CHANGED_FINANCIAL_HISTORY'; end if;
+    if head->>'type'='income' and exists(select from jsonb_array_elements(p_state->'orderItems') p
+        where p->>'source_order_id'=head->>'id' and not coalesce((p->>'archived')::boolean,false)) then
+      if abs((head->>'cost')::numeric-(select sum((p->>'total_cost')::numeric) from jsonb_array_elements(p_state->'orderItems') p
+          where p->>'source_order_id'=head->>'id' and not coalesce((p->>'archived')::boolean,false)))>0.005
+        then raise exception 'INVALID_ORDER_COST'; end if;
+      if (head->>'quantity')::integer is distinct from (select sum((p->>'quantity')::integer)
+        from jsonb_array_elements(p_state->'orderItems') p where p->>'source_order_id'=head->>'id' and not coalesce((p->>'archived')::boolean,false))
+        then raise exception 'INVALID_ORDER_TOTAL_QUANTITY'; end if;
+    end if;
+    if exists(select from public.orders where id=(head->>'id')::uuid and user_id<>owner_id) then raise exception 'CROSS_OWNER_ID'; end if;
+    if original_head is not null then
+      head:=head||jsonb_build_object('created_at',original_head->'created_at','order_number',original_head->'order_number');
+    else
+      select coalesce(max(order_number),1000)+1 into new_number from public.orders where user_id=owner_id;
+      head:=head||jsonb_build_object('order_number',new_number,'order_revision',0,'order_archived',false);
+    end if;
+    select string_agg(format('%I',a.attname),','),string_agg(format('%1$I=excluded.%1$I',a.attname),',') filter
+      (where a.attname not in ('id','user_id','created_at','order_number')) into columns_list,assignments
+      from pg_attribute a where a.attrelid='public.orders'::regclass and a.attnum>0 and not a.attisdropped;
+    execute format('insert into public.orders(%s) select %s from jsonb_populate_record(null::public.orders,$1)
+      on conflict(id) do update set %s where public.orders.user_id=excluded.user_id',columns_list,columns_list,assignments) using head;
+  end loop;
+  if exists(select from unnest(target_ids) required_id(value) where not exists(select from public.orders where user_id=owner_id and orders.id::text=required_id.value))
+    then raise exception 'ORDER_NOT_FOUND'; end if;
+  for item in select value from jsonb_array_elements(p_state->'orderItems') loop
+    select value into old_item from jsonb_array_elements(original->'orderItems') where value->>'id'=item->>'id';
+    if not (item->>'source_order_id'=any(target_ids)) then
+      if item is distinct from old_item then raise exception 'ORDER_CHANGED_UNRELATED_ITEM'; end if;
+      continue;
+    end if;
+    if old_item is not null and (item-array['unit_cost','total_cost','cost_provenance','fulfilled_quantity','production_quantity',
+        'reserved_quantity','returned_quantity','archived']) is distinct from (old_item-array['unit_cost','total_cost','cost_provenance',
+        'fulfilled_quantity','production_quantity','reserved_quantity','returned_quantity','archived'])
+      then raise exception 'IMMUTABLE_ORDER_SNAPSHOT'; end if;
+    if old_item is not null and coalesce((item->>'production_quantity')::integer,0)<coalesce((old_item->>'production_quantity')::integer,0)
+      then raise exception 'PRODUCTION_CANNOT_BE_REVERSED'; end if;
+    select coalesce(sum(p.quantity),0) into produced_delta
+      from jsonb_populate_recordset(null::public.production_events,p_state->'productionEvents') p
+      where p.order_item_id=(item->>'id')::uuid and not exists(select from public.production_events known where known.id=p.id);
+    select coalesce(-sum(m.delta_quantity) filter(where m.source='order'),0),
+        coalesce(sum(m.delta_quantity) filter(where m.source='finished_return'),0) into reserved_delta,returned_delta
+      from jsonb_populate_recordset(null::public.finished_stock_movements,p_state->'finishedMovements') m
+      where m.order_item_id=(item->>'id')::uuid and not exists(select from public.finished_stock_movements known where known.id=m.id);
+    if (item->>'production_quantity')::integer<>coalesce((old_item->>'production_quantity')::integer,0)+produced_delta
+      or coalesce((item->>'reserved_quantity')::integer,0)<>coalesce((old_item->>'reserved_quantity')::integer,0)+reserved_delta
+      or (item->>'fulfilled_quantity')::integer<>coalesce((old_item->>'fulfilled_quantity')::integer,0)+produced_delta+reserved_delta
+      or coalesce((item->>'returned_quantity')::integer,0)<>coalesce((old_item->>'returned_quantity')::integer,0)+returned_delta
+      then raise exception 'ORDER_ALLOCATION_COUNTERS_DO_NOT_MATCH_LEDGER'; end if;
+    if old_item is not null and coalesce((item->>'fulfilled_quantity')::integer,0)<=coalesce((old_item->>'fulfilled_quantity')::integer,0)
+      and (item->'total_cost' is distinct from old_item->'total_cost' or item->'unit_cost' is distinct from old_item->'unit_cost'
+        or item->'cost_provenance' is distinct from old_item->'cost_provenance')
+      then raise exception 'IMMUTABLE_ORDER_ACTUAL_COST'; end if;
+    if item->>'cost_provenance'<>'legacy' and (old_item is null or
+      coalesce((item->>'fulfilled_quantity')::integer,0)>coalesce((old_item->>'fulfilled_quantity')::integer,0)) then
+      select coalesce(-sum(m.delta_quantity*m.unit_cost),0) into actual_item_cost
+        from jsonb_populate_recordset(null::public.finished_stock_movements,p_state->'finishedMovements') m
+        where m.order_item_id=(item->>'id')::uuid and m.source='order';
+      actual_item_cost:=actual_item_cost+coalesce((select sum(p.quantity*p.unit_cost)
+        from jsonb_populate_recordset(null::public.production_events,p_state->'productionEvents') p
+        where p.order_item_id=(item->>'id')::uuid),0)
+        +((item->>'quantity')::integer-(item->>'fulfilled_quantity')::integer)
+        *coalesce((item#>>'{snapshot,calculation,result,totalBaseCost}')::numeric,
+          (item#>>'{snapshot,order,cost}')::numeric,(item->>'total_cost')::numeric)/(item->>'quantity')::integer;
+      if abs(actual_item_cost-(item->>'total_cost')::numeric)>0.000001
+        or abs((item->>'unit_cost')::numeric*(item->>'quantity')::integer-actual_item_cost)>0.000001
+        then raise exception 'ORDER_ACTUAL_COST_LEDGER_MISMATCH'; end if;
+    end if;
+    if coalesce((item->>'reserved_quantity')::integer,0)>coalesce((item->>'fulfilled_quantity')::integer,0)
+      or coalesce((item->>'returned_quantity')::integer,0)>coalesce((item->>'fulfilled_quantity')::integer,0)
+      then raise exception 'INVALID_ORDER_ALLOCATION'; end if;
+  end loop;
+  if exists(select from jsonb_populate_recordset(null::public.finished_stock_movements,p_state->'finishedMovements') m
+    where not exists(select from public.finished_stock_movements known where known.id=m.id)
+      and (m.source not in ('order','finished_return') or not exists(select from jsonb_array_elements(p_state->'orderItems') p
+        where p->>'source_order_id'=any(target_ids) and p->>'id'=m.order_item_id::text
+          and p->>'product_id'=m.source_product_id)
+        or (m.source='finished_return' and (command_kind<>'returnOrderFinished' or m.order_item_id::text<>p_command->>'orderItemId'))))
+    then raise exception 'INVALID_ORDER_ALLOCATION_MOVEMENT'; end if;
+  if command_kind='saveBusinessOrder' then
+    if p_command ? 'items' then
+      if jsonb_typeof(p_command->'items') is distinct from 'array' then raise exception 'INVALID_ORDER_DRAFT_ITEMS'; end if;
+      if (select coalesce(jsonb_agg(p->>'id' order by p->>'id'),'[]') from jsonb_array_elements(p_state->'orderItems') p
+        where p->>'source_order_id'=any(target_ids) and not coalesce((p->>'archived')::boolean,false)) is distinct from
+        (select coalesce(jsonb_agg(p->>'id' order by p->>'id'),'[]') from jsonb_array_elements(p_command->'items') p)
+        then raise exception 'ORDER_ITEMS_DO_NOT_MATCH_COMMAND'; end if;
+      if exists(select from jsonb_array_elements(p_command->'items') draft_item where not exists
+        (select from jsonb_array_elements(p_state->'orderItems') incoming where incoming->>'id'=draft_item->>'id'
+          and (incoming-array['unit_cost','total_cost','cost_provenance','fulfilled_quantity','production_quantity',
+            'reserved_quantity','returned_quantity','archived']) is not distinct from
+          (draft_item-array['unit_cost','total_cost','cost_provenance','fulfilled_quantity','production_quantity',
+            'reserved_quantity','returned_quantity','archived']))) then raise exception 'ORDER_DRAFT_SNAPSHOT_MISMATCH'; end if;
+    elsif (select coalesce(jsonb_agg(p->>'id' order by p->>'id'),'[]') from jsonb_array_elements(p_state->'orderItems') p
+      where p->>'source_order_id'=any(target_ids) and not coalesce((p->>'archived')::boolean,false)) is distinct from
+      (select coalesce(jsonb_agg(p->>'id' order by p->>'id'),'[]') from jsonb_array_elements(original->'orderItems') p
+        where p->>'source_order_id'=any(target_ids) and not coalesce((p->>'archived')::boolean,false))
+      then raise exception 'METADATA_CHANGED_ORDER_ITEMS'; end if;
+  end if;
+  if command_kind='createProjectOrder' then
+    if (select coalesce(jsonb_agg(p->>'id' order by p->>'id'),'[]') from jsonb_array_elements(p_state->'orderItems') p
+      where p->>'source_order_id'=any(target_ids)) is distinct from
+      (select coalesce(jsonb_agg(p order by p),'[]') from jsonb_array_elements_text(p_command->'itemIds') p)
+      or exists(select from jsonb_array_elements(p_command#>'{draft,items}') with ordinality d(value,ordinal)
+        where not exists(select from jsonb_array_elements(p_state->'orderItems') incoming
+          where incoming->>'id'=p_command->'itemIds'->>(d.ordinal::integer-1)
+            and incoming->'snapshot'=d.value->'snapshot' and incoming->'quantity'=d.value->'quantity'
+            and incoming->'name'=d.value->'name' and incoming->'product_id'=d.value->'product_id'
+            and incoming->'total_price'=d.value->'total_price' and incoming->'unit_price'=d.value->'unit_price'))
+      then raise exception 'PROJECT_ORDER_ITEMS_DO_NOT_MATCH_COMMAND'; end if;
+  end if;
+  -- A printed position cannot be replaced by a new ID after rolling back status.
+  if command_kind='saveBusinessOrder' and exists(select from jsonb_array_elements(original->'orderItems') old
+    where old->>'source_order_id'=any(target_ids) and not coalesce((old->>'archived')::boolean,false)
+      and ((old->>'production_quantity')::integer>0 or exists(select from public.finished_stock_movements m
+        where m.user_id=owner_id and m.order_item_id=(old->>'id')::uuid
+          and m.event_key like '%:fulfill:'||(old->>'id')))
+      and exists(select from jsonb_array_elements(p_state->'orderItems') incoming
+        where incoming->>'id'=old->>'id' and coalesce((incoming->>'archived')::boolean,false)))
+    then raise exception 'PRINTED_ORDER_ITEMS_CANNOT_BE_REPLACED'; end if;
+  if command_kind='saveBusinessOrder' and exists(select from jsonb_array_elements(original->'orderItems') old
+    where old->>'source_order_id'=any(target_ids) and not coalesce((old->>'archived')::boolean,false)
+      and ((old->>'production_quantity')::integer>0 or exists(select from public.finished_stock_movements m
+        where m.user_id=owner_id and m.order_item_id=(old->>'id')::uuid
+          and m.event_key like '%:fulfill:'||(old->>'id'))))
+    and (select coalesce(jsonb_agg(p->>'id' order by p->>'id'),'[]') from jsonb_array_elements(p_state->'orderItems') p
+      where p->>'source_order_id'=any(target_ids) and not coalesce((p->>'archived')::boolean,false)) is distinct from
+      (select coalesce(jsonb_agg(p->>'id' order by p->>'id'),'[]') from jsonb_array_elements(original->'orderItems') p
+        where p->>'source_order_id'=any(target_ids) and not coalesce((p->>'archived')::boolean,false))
+    then raise exception 'PRINTED_ORDER_ITEMS_CANNOT_BE_REPLACED'; end if;
+  if command_kind='returnOrderFinished' then
+    select value into item from jsonb_array_elements(p_state->'orderItems') where value->>'id'=p_command->>'orderItemId';
+    select value into old_item from jsonb_array_elements(original->'orderItems') where value->>'id'=p_command->>'orderItemId';
+    if item is null or old_item is null or item->>'product_id' is null
+      or coalesce((item->>'returned_quantity')::integer,0)-coalesce((old_item->>'returned_quantity')::integer,0)
+        is distinct from (p_command->>'quantity')::integer
+      or (item-array['returned_quantity']) is distinct from (old_item-array['returned_quantity'])
+      then raise exception 'INVALID_FINISHED_RETURN'; end if;
+    if coalesce((select sum(m.delta_quantity) from jsonb_populate_recordset(null::public.finished_stock_movements,p_state->'finishedMovements') m
+      where m.order_item_id=(p_command->>'orderItemId')::uuid and m.source='finished_return'
+        and not exists(select from public.finished_stock_movements known where known.id=m.id)),0)
+      is distinct from (p_command->>'quantity')::integer then raise exception 'INVALID_FINISHED_RETURN_MOVEMENT'; end if;
+  end if;
+  -- Replay only the new movements to verify their historical/weighted basis.
+  for stock_balance in select value from jsonb_array_elements(p_state->'finishedBalances') loop
+    select coalesce((b->>'quantity')::integer,0),coalesce((b->>'average_unit_cost')::numeric,0)
+      into stock_quantity,stock_average from jsonb_array_elements(original->'finishedBalances') b
+      where b->>'source_product_id'=stock_balance->>'source_product_id';
+    stock_quantity:=coalesce(stock_quantity,0); stock_average:=coalesce(stock_average,0);
+    for stock_movement in select value from jsonb_array_elements(p_state->'finishedMovements') m
+      where m->>'source_product_id'=stock_balance->>'source_product_id'
+        and not exists(select from public.finished_stock_movements known where known.id=(m->>'id')::uuid) loop
+      if stock_movement->>'event_key' is distinct from event_id
+        and left(stock_movement->>'event_key',length(event_id)+1) is distinct from event_id||':'
+        then raise exception 'ORDER_MOVEMENT_DOES_NOT_MATCH_COMMAND'; end if;
+      if (stock_movement->>'delta_quantity')::integer<0 then
+        if -(stock_movement->>'delta_quantity')::integer>stock_quantity
+          or abs((stock_movement->>'unit_cost')::numeric-stock_average)>0.000001
+          then raise exception 'ORDER_RESERVE_BASIS_MISMATCH'; end if;
+      elsif (stock_movement->>'delta_quantity')::integer>0 then
+        select value into old_item from jsonb_array_elements(original->'orderItems') i where i->>'id'=stock_movement->>'order_item_id';
+        if old_item is null or (old_item->>'fulfilled_quantity')::integer<=0 then raise exception 'INVALID_RETURN_ALLOCATION'; end if;
+        select coalesce(-sum(m.delta_quantity*m.unit_cost),0) into return_basis
+          from jsonb_populate_recordset(null::public.finished_stock_movements,original->'finishedMovements') m
+          where m.order_item_id=(old_item->>'id')::uuid and m.source='order';
+        return_basis:=return_basis+coalesce((select sum(p.quantity*p.unit_cost)
+          from jsonb_populate_recordset(null::public.production_events,original->'productionEvents') p
+          where p.order_item_id=(old_item->>'id')::uuid),0);
+        if not exists(select from public.finished_stock_movements m where m.user_id=owner_id and m.order_item_id=(old_item->>'id')::uuid and m.source='order')
+          and not exists(select from public.production_events p where p.user_id=owner_id and p.order_item_id=(old_item->>'id')::uuid)
+          then return_basis:=(old_item->>'total_cost')::numeric; end if;
+        return_basis:=return_basis/(old_item->>'fulfilled_quantity')::integer;
+        if abs((stock_movement->>'unit_cost')::numeric-return_basis)>0.000001 then raise exception 'ORDER_RETURN_BASIS_MISMATCH'; end if;
+        stock_average:=(stock_quantity*stock_average+(stock_movement->>'delta_quantity')::integer*return_basis)
+          /(stock_quantity+(stock_movement->>'delta_quantity')::integer);
+      end if;
+      stock_quantity:=stock_quantity+(stock_movement->>'delta_quantity')::integer;
+      if (stock_movement->>'balance_after')::integer<>stock_quantity then raise exception 'ORDER_MOVEMENT_BALANCE_MISMATCH'; end if;
+    end loop;
+    if (stock_balance->>'quantity')::integer<>stock_quantity
+      or abs((stock_balance->>'average_unit_cost')::numeric-stock_average)>0.000001
+      then raise exception 'ORDER_FINISHED_BASIS_MISMATCH'; end if;
+  end loop;
+  -- Allocation cannot create or erase on-hand inventory without immutable movements.
+  if exists(select from jsonb_populate_recordset(null::public.finished_stock_balances,p_state->'finishedBalances') incoming
+    left join public.finished_stock_balances old on old.id=incoming.id and old.user_id=owner_id
+    where incoming.quantity<>coalesce(old.quantity,0)+coalesce((select sum(m.delta_quantity)
+      from jsonb_populate_recordset(null::public.finished_stock_movements,p_state->'finishedMovements') m
+      where m.user_id=owner_id and m.source_product_id=incoming.source_product_id
+        and not exists(select from public.finished_stock_movements known where known.id=m.id)),0))
+    then raise exception 'ORDER_FINISHED_LEDGER_MISMATCH'; end if;
+  if exists(select from jsonb_populate_recordset(null::public.filament_variants,p_state->'variants') incoming
+    join public.filament_variants old on old.id=incoming.id and old.user_id=owner_id
+    where abs(incoming.stock_g-old.stock_g-coalesce((select sum(m.delta_g)
+      from jsonb_populate_recordset(null::public.filament_movements,p_state->'filamentMovements') m
+      where m.user_id=owner_id and m.variant_id=incoming.id
+        and not exists(select from public.filament_movements known where known.id=m.id)),0))>0.000001
+      or incoming.average_cost_per_g<>old.average_cost_per_g)
+    then raise exception 'ORDER_MATERIAL_LEDGER_MISMATCH'; end if;
+  if exists(select from jsonb_populate_recordset(null::public.production_events,p_state->'productionEvents') incoming
+    where not exists(select from public.production_events old where old.id=incoming.id)
+      and not exists(select from jsonb_array_elements(p_state->'orderItems') p
+        where p->>'id'=incoming.order_item_id::text and p->>'source_order_id'=any(target_ids)))
+    then raise exception 'ORDER_PRODUCTION_SOURCE_MISMATCH'; end if;
+  for production in select value from jsonb_array_elements(p_state->'productionEvents') p
+    where not exists(select from public.production_events known where known.id=(p->>'id')::uuid) loop
+    select value into item from jsonb_array_elements(p_state->'orderItems') where value->>'id'=production->>'order_item_id';
+    select value into head from jsonb_array_elements(p_state->'legacyOrders') where value->>'id'=item->>'source_order_id';
+    if command_kind<>'saveBusinessOrder' or head->>'status' not in
+      ('Печать','Ждет покраски','Покраска','Ждет отправки','Отправлен','Готово')
+      or production->'recipe_snapshot' is distinct from item#>'{snapshot,recipe}'
+      or production->'product_id' is distinct from item->'product_id'
+      then raise exception 'INVALID_ORDER_PRODUCTION'; end if;
+    current_cost:=(production#>>'{recipe_snapshot,non_material_unit_cost}')::numeric;
+    for material in select jsonb_build_object('variant_id',m->>'variant_id',
+        'grams_per_unit',sum(round((m->>'grams_per_unit')::numeric,6)))
+      from jsonb_array_elements(production#>'{recipe_snapshot,materials}') m group by m->>'variant_id' loop
+      required_grams:=(material->>'grams_per_unit')::numeric*(production->>'quantity')::integer;
+      select coalesce(-sum(delta_g),0) into accounted_grams
+        from jsonb_populate_recordset(null::public.filament_movements,p_state->'filamentMovements')
+        where source_id=production->>'id' and variant_id=(material->>'variant_id')::uuid;
+      accounted_grams:=accounted_grams+coalesce((select sum(grams)
+        from jsonb_populate_recordset(null::public.filament_deficits,p_state->'deficits')
+        where source_id=production->>'id' and variant_id=(material->>'variant_id')::uuid),0);
+      if abs(required_grams-accounted_grams)>0.000001 then raise exception 'ORDER_PRODUCTION_GRAMS_MISMATCH'; end if;
+      current_cost:=current_cost+(material->>'grams_per_unit')::numeric*
+        (select average_cost_per_g from public.filament_variants where id=(material->>'variant_id')::uuid and user_id=owner_id);
+    end loop;
+    if current_cost is null or abs(current_cost-(production->>'unit_cost')::numeric)>0.000001
+      then raise exception 'ORDER_PRODUCTION_COST_MISMATCH'; end if;
+  end loop;
+  -- Reuses ownership/FK/finite checks, append-only audit and receipt in the same transaction.
+  return public.business_commit_inventory_internal(p_expected_revision,p_command,p_state);
+end $$;
+revoke all on function public.business_apply_order(bigint,jsonb,jsonb) from public,anon;
+grant execute on function public.business_apply_order(bigint,jsonb,jsonb) to authenticated;
+
+-- Pending pre-upgrade single-product commands must also accept a shortage.
+-- The public compatibility wrapper from phase 2 supplies the same owner lock and ledger context.
+create or replace function public.legacy_save_order_with_inventory_unlocked(p_order jsonb)
+returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
+declare
+  owner_id uuid:=auth.uid();
+  target_order_id uuid:=coalesce(nullif(p_order->>'id','')::uuid,gen_random_uuid());
+  old_head public.orders%rowtype;
+  product_id uuid:=nullif(p_order->>'product_id','')::uuid;
+  requested integer:=coalesce((p_order->>'quantity')::integer,1);
+  reserved integer:=0;
+  head jsonb;
+  saved jsonb;
+  columns_list text;
+  assignments text;
+  next_number bigint;
+begin
+  if owner_id is null then raise exception 'AUTH_REQUIRED'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('business_inventory:'||owner_id::text,0));
+  select * into old_head from public.orders where id=target_order_id and user_id=owner_id for update;
+  if exists(select from public.orders where id=target_order_id and user_id<>owner_id) then raise exception 'CROSS_OWNER_ID'; end if;
+  if old_head.order_archived or exists(select from public.order_items where user_id=owner_id
+    and source_order_id=target_order_id::text and cost_provenance<>'legacy') then
+    raise exception 'ORDER_REQUIRES_ATOMIC_ITEM_API';
+  end if;
+  if old_head.id is not null and (old_head.type is distinct from p_order->>'type' or old_head.product_id is distinct from product_id
+    or old_head.quantity is distinct from requested) then raise exception 'ORDER_ITEM_EDIT_REQUIRES_ATOMIC_API'; end if;
+  if old_head.id is null and p_order->>'type'='income' and product_id is not null then
+    if requested<=0 then raise exception 'INVALID_ORDER_QUANTITY'; end if;
+    select least(coalesce(stock_quantity,0),requested) into reserved from public.saved_calculations
+      where id=product_id and user_id=owner_id for update;
+    if not found then raise exception 'PRODUCT_NOT_FOUND'; end if;
+    update public.saved_calculations set stock_quantity=greatest(0,coalesce(stock_quantity,0)-reserved)
+      where id=product_id and user_id=owner_id;
+  end if;
+  -- Metadata/payment changes do not return/re-reserve old inventory or revalue it.
+  if old_head.id is not null then
+    next_number:=old_head.order_number;
+  else
+    select coalesce(max(order_number),1000)+1 into next_number from public.orders where user_id=owner_id;
+  end if;
+  head:=(coalesce(to_jsonb(old_head),'{}'::jsonb)||p_order)-'items';
+  head:=head||jsonb_build_object('id',target_order_id,'user_id',owner_id,'order_number',next_number,
+    'created_at',coalesce(old_head.created_at,nullif(p_order->>'created_at','')::timestamptz,now()),
+    'order_revision',case when old_head.id is null then 0 else old_head.order_revision+1 end,
+    'cost',coalesce(old_head.cost,nullif(p_order->>'cost','')::numeric,0),
+    'order_archived',false,'payment',coalesce(nullif(p_order->>'payment','')::numeric,old_head.payment,0),
+    'payments',coalesce(p_order->'payments',to_jsonb(old_head.payments),'[]'::jsonb));
+  select string_agg(format('%I',a.attname),','),string_agg(format('%1$I=excluded.%1$I',a.attname),',') filter
+    (where a.attname not in ('id','user_id','created_at','order_number')) into columns_list,assignments
+    from pg_attribute a where a.attrelid='public.orders'::regclass and a.attnum>0 and not a.attisdropped;
+  execute format('insert into public.orders(%s) select %s from jsonb_populate_record(null::public.orders,$1)
+    on conflict(id) do update set %s where public.orders.user_id=excluded.user_id',columns_list,columns_list,assignments) using head;
+  select to_jsonb(o) into saved from public.orders o where id=target_order_id and user_id=owner_id;
+  if saved->>'type'='income' and requested>0 and not exists(select from public.order_items
+      where user_id=owner_id and source_order_id=target_order_id::text) then
+    insert into public.order_items(id,user_id,order_id,source_order_id,product_id,name,quantity,
+      unit_cost,total_cost,unit_price,total_price,cost_provenance,fulfilled_quantity,production_quantity,
+      snapshot,legacy_key,reserved_quantity,returned_quantity,archived)
+    values(target_order_id,owner_id,target_order_id,target_order_id::text,product_id,coalesce(saved->>'title','Order'),requested,
+      (saved->>'cost')::numeric/requested,(saved->>'cost')::numeric,
+      (saved->>'amount')::numeric/requested,(saved->>'amount')::numeric,'legacy',reserved,0,
+      jsonb_build_object('version',1,'order',saved,'calculation',null,'recipe',null),target_order_id::text,reserved,0,false);
+  end if;
+  return saved;
+end $$;
+revoke all on function public.legacy_save_order_with_inventory_unlocked(jsonb) from public,anon,authenticated;
+
+-- Compatibility deletion also retains parents/audit and releases only the actual
+-- preprint reserve. Modern snapshots must use the revisioned atomic API.
+create or replace function public.legacy_delete_orders_atomic_unlocked(p_ids uuid[])
+returns integer language plpgsql security definer set search_path=public,pg_temp as $$
+declare
+  owner_id uuid:=auth.uid();
+  old_head public.orders%rowtype;
+  item public.order_items%rowtype;
+  released integer;
+  changed integer:=0;
+begin
+  if owner_id is null then raise exception 'AUTH_REQUIRED'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('business_inventory:'||owner_id::text,0));
+  for old_head in select * from public.orders where user_id=owner_id and id=any(p_ids) and not order_archived for update loop
+    if exists(select from public.order_items where user_id=owner_id and source_order_id=old_head.id::text
+      and cost_provenance<>'legacy') then raise exception 'ORDER_REQUIRES_ATOMIC_ITEM_API'; end if;
+    for item in select * from public.order_items where user_id=owner_id and source_order_id=old_head.id::text and not coalesce(archived,false) loop
+      released:=greatest(0,coalesce(item.reserved_quantity,0)-coalesce(item.returned_quantity,0));
+      if old_head.status in ('Не в работе','Моделирование','Ждет печати') and item.production_quantity=0
+        and released>0 and item.product_id is not null then
+        update public.saved_calculations set stock_quantity=coalesce(stock_quantity,0)+released
+          where id=item.product_id and user_id=owner_id;
+        update public.order_items set returned_quantity=coalesce(returned_quantity,0)+released where id=item.id;
+      end if;
+      update public.order_items set archived=true where id=item.id;
+    end loop;
+    update public.orders set order_archived=true,order_revision=order_revision+1 where id=old_head.id;
+    changed:=changed+1;
+  end loop;
+  return changed;
+end $$;
+revoke all on function public.legacy_delete_orders_atomic_unlocked(uuid[]) from public,anon,authenticated;
+commit;
+
+-- END ORDER LIFECYCLE 20261001
+
+-- BEGIN BUSINESS MAINTENANCE 20261001
+-- Phase 6. Apply after order_lifecycle. Complete same-owner restore only.
+-- Explicit user maintenance is the only operation that replaces audit history.
+begin;
+alter table public.business_state_revisions add column if not exists generation bigint not null default 0 check(generation >= 0);
+
+do $$ begin
+  if to_regprocedure('public.business_snapshot_before_maintenance()') is null then
+    alter function public.business_inventory_snapshot() rename to business_snapshot_before_maintenance;
+  end if;
+end $$;
+revoke all on function public.business_snapshot_before_maintenance() from public,anon,authenticated;
+create or replace function public.business_inventory_snapshot()
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare result jsonb;
+begin
+  result:=public.business_snapshot_before_maintenance();
+  return result || jsonb_build_object('generation',coalesce((select generation from public.business_state_revisions where user_id=auth.uid()),0));
+end $$;
+revoke all on function public.business_inventory_snapshot() from public,anon;
+grant execute on function public.business_inventory_snapshot() to authenticated;
+
+create or replace function public.business_database_snapshot()
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare owner_id uuid:=auth.uid(); result jsonb; relation_name text; rows_json jsonb;
+begin
+  if owner_id is null then raise exception 'AUTH_REQUIRED'; end if;
+  result:=jsonb_build_object('business',public.business_inventory_snapshot());
+  foreach relation_name in array array['printers','filaments','settings','collections','saved_calculations','orders','monthly_goals'] loop
+    execute format('select coalesce(jsonb_agg(to_jsonb(r)),''[]''::jsonb) from public.%I r where user_id=$1',relation_name) into rows_json using owner_id;
+    result:=result||jsonb_build_object(relation_name,rows_json);
+  end loop;
+  return result;
+end $$;
+revoke all on function public.business_database_snapshot() from public,anon;
+grant execute on function public.business_database_snapshot() to authenticated;
+
+create or replace function public.business_assert_generation(p_command jsonb)
+returns void language plpgsql security definer set search_path='' as $$
+declare owner_id uuid:=auth.uid(); current_generation bigint;
+begin
+  if owner_id is null then raise exception 'AUTH_REQUIRED'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('business_inventory:'||owner_id::text,0));
+  -- An acknowledged old request remains retryable after a reset.
+  if exists(select from public.business_operation_receipts where user_id=owner_id and event_key=p_command->>'id') then return; end if;
+  select coalesce(generation,0) into current_generation from public.business_state_revisions where user_id=owner_id;
+  if coalesce((p_command->>'generation')::bigint,0) is distinct from coalesce(current_generation,0) then
+    raise exception 'BUSINESS_GENERATION_CONFLICT';
+  end if;
+end $$;
+revoke all on function public.business_assert_generation(jsonb) from public,anon,authenticated;
+
+-- Keep existing validation/receipt behavior behind generation-aware entry points.
+do $wrap$ declare api text; internal_name text; definition text; begin
+  foreach api in array array['commit_business_inventory','business_apply_order','business_apply_catalog','business_save_calculation_project'] loop
+    internal_name:=api||'_before_maintenance';
+    if to_regprocedure(format('public.%I(bigint,jsonb,jsonb)',internal_name)) is null then
+      execute format('alter function public.%I(bigint,jsonb,jsonb) rename to %I',api,internal_name);
+    end if;
+    execute format('revoke all on function public.%I(bigint,jsonb,jsonb) from public,anon,authenticated',internal_name);
+    execute format($fn$create or replace function public.%I(p_expected_revision bigint,p_command jsonb,p_state jsonb)
+      returns jsonb language plpgsql security definer set search_path='' as $body$
+      begin perform public.business_assert_generation(p_command);
+        return public.%I(p_expected_revision,p_command,p_state); end $body$;$fn$,api,internal_name);
+    execute format('revoke all on function public.%I(bigint,jsonb,jsonb) from public,anon',api);
+    execute format('grant execute on function public.%I(bigint,jsonb,jsonb) to authenticated',api);
+  end loop;
+  if to_regprocedure('public.business_apply_legacy_order_before_maintenance(jsonb)') is null then
+    alter function public.business_apply_legacy_order(jsonb) rename to business_apply_legacy_order_before_maintenance;
+  end if;
+  -- The modern legacy command has already checked its epoch. Its internal calls
+  -- bypass raw legacy entry points, which cannot safely identify old queued work.
+  foreach api in array array['save_order_with_inventory','restore_orders_snapshot'] loop
+    internal_name:='business_'||api||'_compat_internal';
+    if to_regprocedure(format('public.%I(jsonb)',internal_name)) is null then
+      execute format('alter function public.%I(jsonb) rename to %I',api,internal_name);
+    end if;
+    execute format('revoke all on function public.%I(jsonb) from public,anon,authenticated',internal_name);
+    definition:=pg_get_functiondef('public.business_apply_legacy_order_before_maintenance(jsonb)'::regprocedure);
+    definition:=replace(definition,'public.'||api||'(','public.'||internal_name||'(');
+    execute definition;
+    execute format($fn$create or replace function public.%I(%I jsonb) returns %s language plpgsql security definer set search_path='' as $body$
+      begin perform public.business_assert_generation('{}'::jsonb); %s public.%I(%I); end $body$;$fn$,
+      api,case when api='save_order_with_inventory' then 'p_order' else 'p_orders' end,
+      case when api='save_order_with_inventory' then 'jsonb' else 'integer' end,'return',internal_name,
+      case when api='save_order_with_inventory' then 'p_order' else 'p_orders' end);
+    execute format('revoke all on function public.%I(jsonb) from public,anon',api);
+    execute format('grant execute on function public.%I(jsonb) to authenticated',api);
+  end loop;
+  if to_regprocedure('public.business_delete_orders_compat_internal(uuid[])') is null then
+    alter function public.delete_orders_atomic(uuid[]) rename to business_delete_orders_compat_internal;
+  end if;
+  definition:=pg_get_functiondef('public.business_apply_legacy_order_before_maintenance(jsonb)'::regprocedure);
+  execute replace(definition,'public.delete_orders_atomic(','public.business_delete_orders_compat_internal(');
+end $wrap$;
+revoke all on function public.business_apply_legacy_order_before_maintenance(jsonb),public.business_delete_orders_compat_internal(uuid[]) from public,anon,authenticated;
+create or replace function public.business_apply_legacy_order(p_command jsonb)
+returns jsonb language plpgsql security definer set search_path='' as $$
+begin perform public.business_assert_generation(p_command); return public.business_apply_legacy_order_before_maintenance(p_command); end $$;
+create or replace function public.delete_orders_atomic(p_ids uuid[])
+returns integer language plpgsql security definer set search_path='' as $$
+begin perform public.business_assert_generation('{}'::jsonb); return public.business_delete_orders_compat_internal(p_ids); end $$;
+revoke all on function public.business_apply_legacy_order(jsonb),public.delete_orders_atomic(uuid[]) from public,anon;
+grant execute on function public.business_apply_legacy_order(jsonb),public.delete_orders_atomic(uuid[]) to authenticated;
+
+-- Incomplete legacy restore endpoints must never resurrect a pre-reset cache.
+do $legacy$ declare api text; internal_name text; parameter_name text; return_name text; call_keyword text; begin
+  foreach api in array array['restore_database_snapshot','restore_saved_calculations_snapshot','restore_collections_snapshot'] loop
+    internal_name:=api||'_before_maintenance';
+    if to_regprocedure(format('public.%I(jsonb)',internal_name)) is null and to_regprocedure(format('public.%I(jsonb)',api)) is not null then
+      execute format('alter function public.%I(jsonb) rename to %I',api,internal_name);
+    end if;
+    if to_regprocedure(format('public.%I(jsonb)',internal_name)) is null then continue; end if;
+    select proargnames[1],prorettype::regtype::text into parameter_name,return_name from pg_proc where oid=to_regprocedure(format('public.%I(jsonb)',internal_name));
+    call_keyword:=case when return_name='void' then 'perform' else 'return' end;
+    execute format('revoke all on function public.%I(jsonb) from public,anon,authenticated',internal_name);
+    execute format($fn$create or replace function public.%I(%I jsonb) returns %s language plpgsql security definer set search_path='' as $body$
+      begin perform public.business_assert_generation('{}'::jsonb); %s public.%I(%I); end $body$;$fn$,api,parameter_name,return_name,call_keyword,internal_name,parameter_name);
+    execute format('revoke all on function public.%I(jsonb) from public,anon',api);
+    execute format('grant execute on function public.%I(jsonb) to authenticated',api);
+  end loop;
+end $legacy$;
+
+create or replace function public.business_restore_snapshot(p_expected_revision bigint,p_command jsonb,p_snapshot jsonb)
+returns jsonb language plpgsql security definer set search_path='' as $$
+declare
+  owner_id uuid:=auth.uid(); state jsonb:=p_snapshot->'business'; mapping record; relation_name text;
+  current_revision bigint; current_generation bigint; stored jsonb; receipt jsonb;
+  rows_json jsonb; row_json jsonb; invalid boolean;
+begin
+  if owner_id is null then raise exception 'AUTH_REQUIRED'; end if;
+  if p_command->>'kind' is distinct from 'restoreBusinessSnapshot' or nullif(p_command->>'id','') is null
+    or length(p_command->>'id')>160 or nullif(p_command->>'occurredAt','') is null then raise exception 'INVALID_MAINTENANCE_COMMAND'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('business_inventory:'||owner_id::text,0));
+  receipt:=p_command||jsonb_build_object('snapshotHash',md5(p_snapshot::text));
+  select command into stored from public.business_operation_receipts where user_id=owner_id and event_key=p_command->>'id';
+  if found then
+    if stored is distinct from receipt then raise exception 'IDEMPOTENCY_KEY_REUSED'; end if;
+    return public.business_inventory_snapshot();
+  end if;
+  insert into public.business_state_revisions(user_id) values(owner_id) on conflict do nothing;
+  select revision,generation into current_revision,current_generation from public.business_state_revisions where user_id=owner_id for update;
+  if p_expected_revision is distinct from current_revision or (p_command->>'generation')::bigint is distinct from current_generation then
+    raise exception 'BUSINESS_MAINTENANCE_REVISION_CONFLICT'; end if;
+  if state->>'version' is distinct from '1' or state->>'user_id' is distinct from owner_id::text then raise exception 'INVALID_OWNER_OR_VERSION'; end if;
+  foreach relation_name in array array['printers','filaments','settings','collections','saved_calculations','orders','monthly_goals'] loop
+    if jsonb_typeof(p_snapshot->relation_name) is distinct from 'array' then raise exception 'INCOMPLETE_MAINTENANCE_SNAPSHOT: %',relation_name; end if;
+    if exists(select from jsonb_array_elements(p_snapshot->relation_name) r where r ? 'user_id' and r->>'user_id' is distinct from owner_id::text) then raise exception 'CROSS_OWNER_ROW'; end if;
+  end loop;
+  -- Check all row boundaries and foreign primary-key collisions before deletion.
+  for mapping in select * from (values
+    ('manufacturers','filament_manufacturers'),('materialTypes','material_types'),('materialLines','material_lines'),
+    ('variants','filament_variants'),('purchases','filament_purchases'),('projects','calculation_projects'),
+    ('calculationItems','calculation_items'),('orderItems','order_items'),('productionEvents','production_events'),
+    ('filamentMovements','filament_movements'),('deficits','filament_deficits'),('finishedBalances','finished_stock_balances'),
+    ('finishedMovements','finished_stock_movements')) m(key,relation) loop
+    rows_json:=state->mapping.key;
+    if jsonb_typeof(rows_json) is distinct from 'array' then raise exception 'INVALID_COLLECTION: %',mapping.key; end if;
+    if exists(select from jsonb_array_elements(rows_json) r where r->>'user_id' is distinct from owner_id::text) then raise exception 'CROSS_OWNER_ROW'; end if;
+    execute format('select exists(select from jsonb_populate_recordset(null::public.%1$I,$2) incoming join public.%1$I old on incoming.id=old.id where old.user_id<>$1)',mapping.relation)
+      into invalid using owner_id,rows_json;
+    if invalid then raise exception 'CROSS_OWNER_ID'; end if;
+  end loop;
+  -- Nested snapshots are historical facts, but their identities still belong to this owner.
+  if exists(with recursive nested(value) as (
+    select p_snapshot union all select child from nested n cross join lateral (
+      select v as child from jsonb_each(case when jsonb_typeof(n.value)='object' then n.value else '{}'::jsonb end) e(k,v)
+      union all select v from jsonb_array_elements(case when jsonb_typeof(n.value)='array' then n.value else '[]'::jsonb end) e(v)
+    ) c) select from nested where jsonb_typeof(value)='object' and value ? 'user_id' and value->>'user_id' is distinct from owner_id::text)
+    then raise exception 'CROSS_OWNER_SNAPSHOT'; end if;
+  foreach relation_name in array array['finished_stock_movements','filament_movements','filament_deficits','production_events',
+    'order_items','calculation_items','calculation_projects','filament_purchases','finished_stock_balances','filament_variants',
+    'material_lines','material_types','filament_manufacturers'] loop
+    execute format('delete from public.%I where user_id=$1',relation_name) using owner_id;
+  end loop;
+  perform public.legacy_restore_database_snapshot_unlocked(p_snapshot-'business');
+  for mapping in select * from (values
+    ('manufacturers','filament_manufacturers'),('materialTypes','material_types'),('materialLines','material_lines'),
+    ('variants','filament_variants'),('purchases','filament_purchases'),('projects','calculation_projects'),
+    ('calculationItems','calculation_items'),('orderItems','order_items'),('productionEvents','production_events'),
+    ('filamentMovements','filament_movements'),('deficits','filament_deficits'),('finishedBalances','finished_stock_balances'),
+    ('finishedMovements','finished_stock_movements')) m(key,relation) loop
+    execute format('insert into public.%1$I select r.* from jsonb_populate_recordset(null::public.%1$I,$1) r',mapping.relation) using state->mapping.key;
+  end loop;
+  if exists(select from public.order_items where user_id=owner_id and (coalesce(reserved_quantity,0)+production_quantity<>fulfilled_quantity
+    or coalesce(returned_quantity,0)>fulfilled_quantity)) then raise exception 'INVALID_ALLOCATION_COUNTERS'; end if;
+  if exists(select from public.order_items i where i.user_id=owner_id and not exists
+    (select from public.orders o where o.user_id=owner_id and o.id::text=i.source_order_id and o.type='income'))
+    then raise exception 'INVALID_ORDER_REFERENCE'; end if;
+  if exists(select from public.orders o where o.user_id=owner_id and o.product_id is not null and not exists
+    (select from public.saved_calculations p where p.id=o.product_id and p.user_id=owner_id)) then raise exception 'CROSS_OWNER_PRODUCT'; end if;
+  if exists(select from public.orders o where o.user_id=owner_id and o.type='income' and not o.order_archived and
+    o.cost is distinct from (select coalesce(sum(i.total_cost),0) from public.order_items i where i.user_id=owner_id and i.source_order_id=o.id::text and not coalesce(i.archived,false)))
+    then raise exception 'ORDER_COST_SNAPSHOT_MISMATCH'; end if;
+  -- JSON recipes have no relational FK: validate their material identities explicitly.
+  for row_json in select recipe from public.calculation_items where user_id=owner_id union all
+    select recipe_snapshot from public.production_events where user_id=owner_id union all
+    select snapshot->'recipe' from public.order_items where user_id=owner_id and snapshot->'recipe'<>'null'::jsonb loop
+    if row_json->>'version' is distinct from '1' or jsonb_typeof(row_json->'materials') is distinct from 'array'
+      or jsonb_typeof(row_json->'non_material_unit_cost') is distinct from 'number'
+      or (row_json->>'non_material_unit_cost')::numeric<0 or exists(select from jsonb_array_elements(row_json->'materials') m where
+        jsonb_typeof(m->'grams_per_unit') is distinct from 'number' or (m->>'grams_per_unit')::numeric<=0
+        or not exists(select from public.filament_variants v where v.user_id=owner_id and v.id::text=m->>'variant_id'))
+      then raise exception 'INVALID_RECIPE_REFERENCE'; end if;
+  end loop;
+  update public.saved_calculations p set stock_quantity=b.quantity from public.finished_stock_balances b where p.user_id=owner_id and b.user_id=owner_id and p.id=b.product_id;
+  update public.business_state_revisions set revision=current_revision+1,generation=current_generation+1 where user_id=owner_id;
+  insert into public.business_operation_receipts(user_id,event_key,command,revision) values(owner_id,p_command->>'id',receipt,current_revision+1);
+  return public.business_inventory_snapshot();
+end $$;
+revoke all on function public.business_restore_snapshot(bigint,jsonb,jsonb) from public,anon;
+grant execute on function public.business_restore_snapshot(bigint,jsonb,jsonb) to authenticated;
+commit;
+
+-- END BUSINESS MAINTENANCE 20261001

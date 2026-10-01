@@ -1,4 +1,6 @@
 'use client';
+import { NumberInput } from '../../../../shared/ui/NumberInput';
+
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
@@ -13,7 +15,7 @@ import {
   ContactType,
   PaymentItem
 } from '../../types';
-import { formatMoney, getDeadlineInfo, roundTo2 } from '../../helpers';
+import { calculateOrderFinancials, formatMoney, getDeadlineInfo, roundTo2 } from '../../helpers';
 import { TableDeadlinePicker } from './TableDeadlinePicker';
 import { getContactHref } from './OrderContactsModal';
 import { formatOrderNumber } from './types';
@@ -43,6 +45,7 @@ import {
   Search,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { OrderItemReceipts } from '../OrderItemsEditor';
 
 export const EXPENSE_CATEGORIES_CONFIG: {
   label: string;
@@ -747,7 +750,7 @@ function OrderRowDrawerEditor({
       }
     } else {
       if (num !== order.amount) {
-        onInlineUpdate(order.id, { amount: num });
+        onInlineUpdate(order.id, { amount: num, ...(order.items?.length ? { agreed_price: num } : {}) });
         showSavedBadge();
       }
     }
@@ -771,8 +774,8 @@ function OrderRowDrawerEditor({
   const totalAmount = parseFloat(amount.replace(/\s+/g, '').replace(',', '.')) || 0;
   const totalCost = parseFloat(cost.replace(/\s+/g, '').replace(',', '.')) || 0;
   const paid = parseFloat(payment.replace(/\s+/g, '').replace(',', '.')) || 0;
-  const netProfit = totalAmount - totalCost;
-  const marginPercent = totalAmount > 0 ? ((netProfit / totalAmount) * 100).toFixed(1) : '0';
+  const netProfit = calculateOrderFinancials({ ...order, amount: totalAmount, cost: totalCost, payment: paid }).actualProfit;
+  const marginPercent = totalAmount > 0 ? ((netProfit / Math.max(paid, 1)) * 100).toFixed(1) : '0';
   const debt = Math.max(0, totalAmount - paid);
   const paidPercent = totalAmount > 0
     ? Math.min(100, Math.max(0, (paid / totalAmount) * 100))
@@ -1060,17 +1063,17 @@ function OrderRowDrawerEditor({
           </div>
 
           {/* Количество штук (Тираж) по правому краю с кнопками + и − (скрыт для расхода) */}
-          {!isExpense && (
+          {!isExpense && !order.items?.length && (
             <div className="flex items-baseline gap-1.5 shrink-0 select-none pl-2 border-l border-white/10">
-              <input
-                type="number"
-                min="1"
-                max="9999"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
+              <NumberInput label="Количество"
+
+                min={1}
+                max={9999}
+                value={Number(quantity) || 0}
+                onChange={value => setQuantity(String(value ?? ''))}
                 onBlur={handleQuantityBlur}
-                className="text-2xl font-light font-mono tracking-tight bg-transparent border-none focus:outline-none p-0 inline-block text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text text-white"
-                style={{ width: `${Math.max(1, String(quantity || 1).length) * 0.65 + 0.15}em` }}
+
+
               />
 
               {/* Вертикальные кнопки + сверху и − снизу */}
@@ -1103,6 +1106,7 @@ function OrderRowDrawerEditor({
       </div>
 
       {/* ========================================================================= */}
+      {order.items?.length ? <OrderItemReceipts items={order.items} /> : null}
       {/* 3. ДВУХКОЛОНОЧНЫЙ БЛОК: РАЗДЕЛ 02 + РАЗДЕЛ 03                              */}
       {/* ========================================================================= */}
       {isExpense ? (
@@ -1252,18 +1256,18 @@ function OrderRowDrawerEditor({
                     СУММА СПИСАНИЯ
                   </div>
                   <div className="flex items-baseline gap-2">
-                    <input
-                      type="text"
-                      inputMode="decimal"
+                    <NumberInput label="Сумма"
+
+
                       placeholder="0"
-                      value={amount}
-                      onChange={(e) => {
-                        setAmount(e.target.value);
-                        setPayment(e.target.value);
+                      value={Number(amount) || 0}
+                      onChange={value => {
+                        setAmount(String(value ?? ''));
+                        setPayment(String(value ?? ''));
                       }}
                       onBlur={handleAmountBlur}
-                      className="text-3xl sm:text-4xl font-light font-mono text-white tracking-tight bg-transparent border-none focus:outline-none p-0 inline-block cursor-text selection:bg-white/20"
-                      style={{ width: `${Math.max(1, String(amount || 0).length) * 0.65 + 0.15}em` }}
+
+
                     />
                     <span className="text-base font-mono select-none text-rose-400 font-medium">
                       ₽ расход
@@ -1566,15 +1570,15 @@ function OrderRowDrawerEditor({
                       СТОИМОСТЬ КЛИЕНТУ
                     </div>
                     <div className="flex items-baseline gap-1.5">
-                      <input
-                        type="text"
-                        inputMode="decimal"
+                      <NumberInput label="Сумма"
+
+
                         placeholder="0"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
+                        value={Number(amount) || 0}
+                        onChange={value => setAmount(String(value ?? ''))}
                         onBlur={handleAmountBlur}
-                        className="text-2xl sm:text-3xl font-light font-mono text-white tracking-tight bg-transparent border-none focus:outline-none p-0 inline-block cursor-text selection:bg-white/20"
-                        style={{ width: `${Math.max(1, String(amount || 0).length) * 0.65 + 0.15}em` }}
+
+
                       />
                       <span className="text-sm font-mono select-none text-[#71717a]">
                         ₽ сумма
@@ -1589,15 +1593,17 @@ function OrderRowDrawerEditor({
                       <span className="text-white text-xs font-mono">{formatMoney(totalCost)}</span>
                     </div>
                     <div className="flex items-baseline gap-1.5">
-                      <input
-                        type="text"
-                        inputMode="decimal"
+                      <NumberInput label="Себестоимость"
+
+
                         placeholder="0"
-                        value={cost}
-                        onChange={(e) => setCost(e.target.value)}
+                        disabled={Boolean(order.items?.length)}
+                        hint={order.items?.length ? "Себестоимость сохранена в физических позициях заказа" : undefined}
+                        value={Number(cost) || 0}
+                        onChange={value => setCost(String(value ?? ''))}
                         onBlur={handleCostBlur}
-                        className="text-xl sm:text-2xl font-light font-mono text-white tracking-tight bg-transparent border-none focus:outline-none p-0 inline-block cursor-text selection:bg-white/20"
-                        style={{ width: `${Math.max(1, String(cost || 0).length) * 0.65 + 0.15}em` }}
+
+
                       />
                       <span className="text-xs font-mono select-none text-[#71717a]">
                         ₽ себест.
@@ -1632,15 +1638,15 @@ function OrderRowDrawerEditor({
                     </div>
                     <div className="flex items-baseline justify-between gap-2">
                       <div className="flex items-baseline gap-1.5">
-                        <input
-                          type="text"
-                          inputMode="decimal"
+                        <NumberInput label="Оплата"
+
+
                           placeholder="0"
-                          value={payment}
-                          onChange={(e) => setPayment(e.target.value)}
+                          value={Number(payment) || 0}
+                          onChange={value => setPayment(String(value ?? ''))}
                           onBlur={handlePaymentBlur}
-                          className="text-2xl sm:text-3xl font-light font-mono text-white tracking-tight bg-transparent border-none focus:outline-none p-0 inline-block cursor-text selection:bg-white/20"
-                          style={{ width: `${Math.max(1, String(payment || 0).length) * 0.65 + 0.15}em` }}
+
+
                         />
                         <span className="text-sm font-mono select-none text-[#71717a]">
                           ₽ внесено
@@ -1692,7 +1698,7 @@ function OrderRowDrawerEditor({
 
                     {/* Чистая прибыль */}
                     <div className="flex items-center justify-between text-[11px] text-[#71717a] pt-0.5">
-                      <span>Чистая прибыль:</span>
+                      <span>Фактическая прибыль:</span>
                       <div className="flex items-baseline gap-1.5">
                         <span className={`font-medium ${netProfit >= 0 ? 'text-white' : 'text-[#f87171]'}`}>
                           {netProfit >= 0 ? `+${formatMoney(netProfit)}` : formatMoney(netProfit)}

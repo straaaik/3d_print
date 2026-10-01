@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useState } from 'react';
+import { useIsClient } from './useIsClient';
 import { createPortal } from 'react-dom';
 import { AlertOctagon, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { motion, AnimatePresence, type TargetAndTransition, type Transition } from 'motion/react';
@@ -132,10 +133,7 @@ export function Modal({
     };
   }, [isOpen, onClose]);
 
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = useIsClient();
 
   const styleConfig = variantStyles[variant];
   const animConfig = modalVariants[variant];

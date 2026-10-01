@@ -1,5 +1,6 @@
 'use client';
 
+import { NumberInput } from '../../../shared/ui/NumberInput';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Clock, MoreHorizontal } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -783,12 +784,11 @@ export function NativeDualDateCalendar({
       <div className="space-y-1 pt-1">
         <div className="flex items-baseline gap-2.5">
           {/* Поле ввода цифры в фирменном стиле */}
-          <input
-            type="number"
-            min="0"
-            max="9999"
-            value={daysInput}
-            onChange={e => handleDaysInputChange(e.target.value)}
+          <NumberInput label="Срок выполнения, дни"
+            min={0}
+            max={9999}
+            value={Number(daysInput) || 0}
+            onChange={value => handleDaysInputChange(String(value ?? 0))}
             placeholder="0"
             className="text-2xl sm:text-3xl font-light font-mono text-white tracking-tight bg-transparent border-none focus:outline-none p-0 inline-block [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text selection:bg-white/20"
             style={{ width: `${Math.max(1, String(daysInput || 0).length) * 0.65 + 0.15}em` }}

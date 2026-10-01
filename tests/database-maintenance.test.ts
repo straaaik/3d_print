@@ -2,11 +2,82 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   clearAllDatabaseTablesWithClient,
+  exportCompleteDataBackup,
   resetAndSeedDatabaseWithClient,
   restoreDatabaseSnapshotWithClient,
+  restoreAllSavedCalculations,
   STORAGE_KEYS,
 } from '../src/shared/api/db';
 import { createDataBackup } from '../src/shared/lib/dataBackup';
+import { emptyFoundationState, foundationStorageKey } from '../src/shared/lib/foundationStorage';
+import { getStorageScope } from '../src/shared/lib/storageScope';
+
+test('complete reset keeps a recovery bundle and durable intent; incomplete catalog restore still rejects', async () => {
+  await withBrowserStorage(async storage => {
+    const owner = getStorageScope();
+    const state = emptyFoundationState(owner);
+    state.variants.push({ id: 'v', user_id: owner, created_at: '2026-09-29T12:00:00Z',
+      material_line_id: null, legacy_filament_id: null, name: 'PLA', color: '#fff',
+      stock_g: 500, average_cost_per_g: 1, revision: 0 });
+    const raw = JSON.stringify(state);
+    storage.setItem(foundationStorageKey(owner), raw);
+    let calls = 0;
+    const client = { ...createAtomicClient(), rpc: async () => { calls += 1; return { error: null }; } };
+    await assert.rejects(restoreAllSavedCalculations([]), /складскую историю/);
+    assert.equal(calls, 0);
+    assert.equal(storage.getItem(foundationStorageKey(owner)), raw);
+    await clearAllDatabaseTablesWithClient(client);
+    assert.equal(calls, 1);
+    const next = JSON.parse(storage.getItem(foundationStorageKey(owner))!);
+    assert.equal(next.variants.length, 0);
+    assert.equal(next.generation, 1);
+    assert.equal(next.pendingMaintenance.snapshot.business.variants.length, 0);
+    const recovery = JSON.parse(storage.getItem(`3d_business_maintenance_recovery::user:${owner}`)!);
+    assert.equal(recovery.business.variants[0].stock_g, 500);
+  });
+});
+
+test('complete reset moves an expense-only outbox to recovery instead of replaying it', async () => {
+  await withBrowserStorage(async storage => {
+    const owner = getStorageScope();
+    const state = { ...emptyFoundationState(owner), legacyOrders: [], pendingInventory: [
+      { kind: 'saveLegacyOrder', id: 'expense-pending', occurredAt: '2026-09-30T12:00:00Z' },
+    ] };
+    const raw = JSON.stringify(state);
+    storage.setItem(foundationStorageKey(owner), raw);
+    await clearAllDatabaseTablesWithClient(null);
+    const next = JSON.parse(storage.getItem(foundationStorageKey(owner))!);
+    assert.deepEqual(next.pendingInventory, []);
+    assert.equal(next.pendingMaintenance.generation, 0);
+    const recovery = JSON.parse(storage.getItem(`3d_business_maintenance_recovery::user:${owner}`)!);
+    assert.equal(recovery.business.pendingInventory[0].id, 'expense-pending');
+  });
+});
+
+test('repeated maintenance never nests earlier snapshots into backups or recovery', async () => {
+  await withBrowserStorage(async storage => {
+    const owner = getStorageScope();
+    const state = emptyFoundationState(owner);
+    state.variants.push({ id: 'v', user_id: owner, created_at: '2026-09-29T12:00:00Z',
+      material_line_id: null, legacy_filament_id: null, name: 'PLA', color: '#fff',
+      stock_g: 500, average_cost_per_g: 1, revision: 0 });
+    storage.setItem(foundationStorageKey(owner), JSON.stringify(state));
+    const sizes: number[] = [];
+    for (let round = 0; round < 4; round++) {
+      await clearAllDatabaseTablesWithClient(null);
+      sizes.push(storage.getItem(foundationStorageKey(owner))!.length);
+    }
+    assert.ok(sizes[3] <= sizes[1] * 1.2, `stored state keeps constant size, got ${sizes.join(',')}`);
+    const recovery = JSON.parse(storage.getItem(`3d_business_maintenance_recovery::user:${owner}`)!);
+    assert.equal(recovery.business.pendingMaintenance, undefined);
+    assert.equal(recovery.business.maintenanceRecovery, undefined);
+    const backup = exportCompleteDataBackup();
+    assert.equal((backup.business as unknown as Record<string, unknown>).pendingMaintenance, undefined);
+    const nested = (backup.business as unknown as { maintenanceRecovery?: { before?: { business?: Record<string, unknown> } } }).maintenanceRecovery;
+    assert.equal(nested?.before?.business?.maintenanceRecovery, undefined);
+    assert.equal(nested?.before?.business?.pendingMaintenance, undefined);
+  });
+});
 
 class MemoryStorage {
   private readonly values = new Map<string, string>();
@@ -18,11 +89,15 @@ class MemoryStorage {
 
 function withBrowserStorage(run: (storage: MemoryStorage) => Promise<void> | void) {
   const originalWindow = Object.getOwnPropertyDescriptor(globalThis, 'window');
+  const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
   const storage = new MemoryStorage();
   Object.defineProperty(globalThis, 'window', { configurable: true, value: { localStorage: storage } });
+  Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { locks: { request: async (_name: string, callback: () => unknown) => callback() } } });
   return Promise.resolve(run(storage)).finally(() => {
     if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow);
     else Reflect.deleteProperty(globalThis, 'window');
+    if (originalNavigator) Object.defineProperty(globalThis, 'navigator', originalNavigator);
+    else Reflect.deleteProperty(globalThis, 'navigator');
   });
 }
 

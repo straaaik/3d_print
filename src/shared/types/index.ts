@@ -18,6 +18,8 @@ export interface Filament {
   weight_g: number;
   price: number;
   color?: string;
+  /** Explicit material-type difficulty; undefined only for legacy records. */
+  material_difficulty_id?: string | null;
 }
 
 export interface AssemblyPrintedPart {
@@ -56,6 +58,8 @@ export interface AssemblyElectronicsItem {
   price_per_unit: number;
 }
 
+export type CustomCostMode = 'profit_only' | 'cost_with_markup' | 'cost_no_markup';
+
 export interface CustomCostItem {
   id: string;
   name: string;
@@ -63,6 +67,7 @@ export interface CustomCostItem {
   isPerUnit?: boolean; // начисляется на каждую единицу изделия или фиксированно на весь заказ
   isEnabled: boolean;  // включен ли пункт в расчет
   target?: 'cost' | 'profit'; // 'cost' = в себестоимость (расход), 'profit' = в чистую прибыль
+  mode?: CustomCostMode; // явный режим имеет приоритет над legacy target
 }
 
 export interface ProductCollection {
@@ -77,6 +82,10 @@ export interface ProductCollection {
 }
 
 export interface SavedCalculation {
+  catalog_revision?: number;
+  catalog_archived?: boolean;
+  calculation_snapshot?: { version: 1; inputs: import('../lib/formulas').CalculateCostParams;
+    result: import('../lib/formulas').DetailedCalculationResult } | null;
   id: string;
   user_id?: string;
   created_at?: string;
@@ -91,6 +100,7 @@ export interface SavedCalculation {
   quantity: number;
   base_cost: number;
   final_price: number;
+  agreed_price?: number | null;
 
   // Привязка к коллекции
   collection_id?: string;
@@ -194,6 +204,10 @@ export interface PaymentItem {
 }
 
 export interface Order {
+  /** UI projection/input only; persisted atomically in the separate order_items table. */
+  items?: import('./foundation').OrderItem[];
+  order_revision?: number;
+  order_archived?: boolean;
   id: string;
   user_id?: string;
   order_number?: number; // Автоматический уникальный номер заказа (1001, 1002...)
@@ -210,6 +224,7 @@ export interface Order {
   discount_percent?: number;
   discount_amount?: number;
   amount: number;
+  agreed_price?: number | null;
   cost: number;
   cost_items?: CostItem[]; // Детализированный список пунктов расхода
   payments?: (number | PaymentItem)[]; // Список отдельных транзакций оплаты (число или транзакция с датой)

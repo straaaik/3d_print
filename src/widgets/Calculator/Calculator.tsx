@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useSyncExternalStore } from 'react';
-import { usePageRouter as useRouter } from '../../shared/ui/page-transition/PageTransitionLink';
+import React, { useCallback, useRef, useState, useEffect, useMemo, useSyncExternalStore } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useData } from '../../entities/model/DataProvider';
 import { useToast } from '../../entities/model/ToastProvider';
 import { calculateCost } from '../../features/calculate-cost/model/calculate';
-import { calculatorPricingSnapshot, parseCalculatorNumber, resolveCalculatorSelection } from '../../features/calculate-cost/model/calculatorState';
+import { parseCalculatorNumber, resolveCalculatorSelection } from '../../features/calculate-cost/model/calculatorState';
 import { formatCurrency } from '../../shared/lib/format';
 import { Tooltip, CustomTooltip } from '../../shared/ui/Tooltip';
 import { CockpitButton } from '../../shared/ui/CockpitButton';
@@ -32,10 +31,29 @@ import {
   Sparkles
 } from 'lucide-react';
 import { usePersistentState } from '../../shared/lib/usePersistentState';
-import { detectMaterialDifficulty } from '../../shared/lib/materialDifficulty';
+import { resolveMaterialDifficulty } from '../../shared/lib/materialDifficulty';
 import { CockpitDropdown } from '../../shared/ui/CockpitDropdown';
 import { ClientReceiptModal } from './ClientReceiptModal';
 import { MotionRevealDiv } from '../../shared/ui/MotionPrimitives';
+import { NumberInput } from '../../shared/ui/NumberInput';
+import { CalculationReceipt } from '../../shared/ui/CalculationReceipt';
+import { useAuth } from '../../entities/model/AuthProvider';
+import { useInventory } from '../../entities/model/InventoryProvider';
+import { useOrderModal } from '../../entities/model/OrderModalContext';
+import { useCalculationProjectDraft } from './useCalculationProjectDraft';
+import { ProjectWorkspaceControls } from './ProjectWorkspaceControls';
+import { draftItemInputs, emptyCalculatorForm, updateDraftForm, type CalculatorFormDraft, type CalculationDraft } from '../../shared/lib/calculationDraft';
+import { calculateProjectTotals } from '../../shared/lib/formulas';
+import { createProjectOrderDraft, getCalculationProjectItems } from '../../shared/lib/calculationProjects';
+import { calculatorFormToProductUpdates, productToCalculatorForm, type ProductCalculatorForm } from '../../shared/lib/productCalculation';
+import type { CalculationItem } from '../../shared/types/foundation';
+import type { CustomCostMode, CustomCostItem } from '../../shared/types';
+
+const CUSTOM_COST_MODES = [
+  { value: 'profit_only', label: 'В прибыль' },
+  { value: 'cost_with_markup', label: 'Себестоимость + наценка' },
+  { value: 'cost_no_markup', label: 'Себестоимость без наценки' },
+];
 
 const PRODUCT_CATEGORIES_STORAGE_KEY = 'custom_product_categories';
 const SERVER_PRODUCT_CATEGORIES_SNAPSHOT = JSON.stringify(INITIAL_PRODUCT_CATEGORIES);
@@ -65,48 +83,86 @@ function getServerProductCategoriesSnapshot() {
 }
 
 export function Calculator() {
-  const router = useRouter();
   const { navigate: curtainNavigate } = usePixelCurtain();
   const { showWarning, showSuccess } = useToast();
-  const {
-    isOnline,
-    filaments,
-    printers,
-    settings,
-    collections,
-    addSavedCalculation,
-    calcWeight: weightG,
-    setCalcWeight: setWeightG,
-    calcDays: days,
-    setCalcDays: setDays,
-    calcHours: hours,
-    setCalcHours: setHours,
-    calcMinutes: minutes,
-    setCalcMinutes: setMinutes,
-    calcQuantity: quantity,
-    setCalcQuantity: setQuantity,
-    calcFilamentId: filamentId,
-    setCalcFilamentId: setFilamentId,
-    calcPrinterId: printerId,
-    setCalcPrinterId: setPrinterId,
-    calcLaborMinutes,
-    setCalcLaborMinutes,
-    calcLaborRate,
-    calcMarkup,
-    setCalcMarkup,
-    calcDefect,
-    setCalcDefect,
-    calcIsOwnerLabor,
-    setCalcIsOwnerLabor,
-    calcIsLaborPerUnit,
-    calcDiscountType,
-    calcDiscountValue,
-    calcUrgencyType,
-    calcUrgencyValue,
-    calcCustomCostItems,
-    setCalcCustomCostItems,
-    resetCalculator
-  } = useData();
+  const data = useData();
+  const { isOnline, filaments, printers, settings, collections, addSavedCalculation } = data;
+  const { currentUser, isLoading: isAuthLoading } = useAuth();
+  const inventory = useInventory();
+  const { openProjectOrder } = useOrderModal();
+  const ownerId = currentUser?.id ?? 'anonymous';
+  const initialForm = useMemo<CalculatorFormDraft>(() => ({
+    weight: data.calcWeight, days: data.calcDays, hours: data.calcHours, minutes: data.calcMinutes,
+    quantity: data.calcQuantity, filamentId: data.calcFilamentId, printerId: data.calcPrinterId,
+    laborMinutes: data.calcLaborMinutes, laborRate: data.calcLaborRate, markup: data.calcMarkup,
+    defect: data.calcDefect, isOwnerLabor: data.calcIsOwnerLabor, isLaborPerUnit: data.calcIsLaborPerUnit,
+    discountType: data.calcDiscountType, discountValue: data.calcDiscountValue,
+    urgencyType: data.calcUrgencyType, urgencyValue: data.calcUrgencyValue, customCosts: data.calcCustomCostItems,
+  }), [data.calcWeight, data.calcDays, data.calcHours, data.calcMinutes, data.calcQuantity, data.calcFilamentId,
+    data.calcPrinterId, data.calcLaborMinutes, data.calcLaborRate, data.calcMarkup, data.calcDefect,
+    data.calcIsOwnerLabor, data.calcIsLaborPerUnit, data.calcDiscountType, data.calcDiscountValue,
+    data.calcUrgencyType, data.calcUrgencyValue, data.calcCustomCostItems]);
+  const { draft, update: updateDraft, error: draftError } = useCalculationProjectDraft(ownerId,
+    !isAuthLoading && !data.isLoading, initialForm);
+  const activeItem = draft?.items.find(item => item.id === draft.activeItemId);
+  const form = activeItem?.form ?? initialForm;
+  const editingProduct = activeItem?.productId ? data.savedCalculations.find(row => row.id === activeItem.productId) : undefined;
+  const productDirty = Boolean(activeItem?.productEditBaseline && (
+    activeItem.name !== activeItem.productEditBaseline.name
+    || JSON.stringify(form) !== JSON.stringify(activeItem.productEditBaseline.form)));
+  const anyProductDirty = Boolean(draft?.items.some(item => item.productEditBaseline && (
+    item.name !== item.productEditBaseline.name || JSON.stringify(item.form) !== JSON.stringify(item.productEditBaseline.form))));
+  const updateWorkspace = (change: CalculationDraft | ((draft: CalculationDraft) => CalculationDraft)) => {
+    updateDraft(previous => {
+      const next = typeof change === 'function' ? change(previous) : change;
+      const removesEditedProduct = previous.items.some(item => item.productEditBaseline && (
+        item.name !== item.productEditBaseline.name || JSON.stringify(item.form) !== JSON.stringify(item.productEditBaseline.form))
+        && (next.project.id !== previous.project.id || !next.items.some(row => row.id === item.id)));
+      if (removesEditedProduct && !window.confirm('Несохранённые параметры товара будут удалены из черновика. Продолжить?')) return previous;
+      return next;
+    });
+  };
+  useEffect(() => {
+    if (!anyProductDirty) return;
+    const beforeUnload = (event: BeforeUnloadEvent) => { event.preventDefault(); };
+    const navigate = (event: MouseEvent) => {
+      const link = (event.target as HTMLElement)?.closest('a[href]');
+      if (link && !window.confirm('Параметры товара не сохранены в каталог. Покинуть редактор? Черновик останется в проекте.')) {
+        event.preventDefault(); event.stopPropagation();
+      }
+    };
+    window.addEventListener('beforeunload', beforeUnload);
+    document.addEventListener('click', navigate, true);
+    return () => { window.removeEventListener('beforeunload', beforeUnload); document.removeEventListener('click', navigate, true); };
+  }, [anyProductDirty]);
+  const { weight: weightG, days, hours, minutes, quantity, filamentId, printerId,
+    laborMinutes: calcLaborMinutes, laborRate: calcLaborRate, markup: calcMarkup, defect: calcDefect,
+    isOwnerLabor: calcIsOwnerLabor, isLaborPerUnit: calcIsLaborPerUnit, discountType: calcDiscountType,
+    discountValue: calcDiscountValue, urgencyType: calcUrgencyType, urgencyValue: calcUrgencyValue,
+    customCosts: calcCustomCostItems } = form;
+  const patchForm = useCallback((patch: Partial<CalculatorFormDraft>) => {
+    updateDraft(previous => updateDraftForm(previous, previous.activeItemId, patch));
+  }, [updateDraft]);
+  const setWeightG = useCallback((value: string) => patchForm({ weight: value }), [patchForm]);
+  const setDays = useCallback((value: string) => patchForm({ days: value }), [patchForm]);
+  const setHours = useCallback((value: string) => patchForm({ hours: value }), [patchForm]);
+  const setMinutes = useCallback((value: string) => patchForm({ minutes: value }), [patchForm]);
+  const setQuantity = useCallback((value: string) => patchForm({ quantity: value }), [patchForm]);
+  const setFilamentId = useCallback((value: string) => patchForm({ filamentId: value }), [patchForm]);
+  const setPrinterId = useCallback((value: string) => patchForm({ printerId: value }), [patchForm]);
+  const setCalcLaborMinutes = (value: string) => patchForm({ laborMinutes: value });
+  const setCalcMarkup = (value: string) => patchForm({ markup: value });
+  const setCalcDefect = (value: string) => patchForm({ defect: value });
+  const setCalcIsOwnerLabor = (value: boolean) => patchForm({ isOwnerLabor: value });
+  const setCalcCustomCostItems = (change: CustomCostItem[] | ((items: CustomCostItem[]) => CustomCostItem[])) => {
+    updateDraft(previous => {
+      const item = previous.items.find(row => row.id === previous.activeItemId)!;
+      return updateDraftForm(previous, item.id, { customCosts: typeof change === 'function' ? change(item.form.customCosts) : change });
+    });
+  };
+  const resetCalculator = () => patchForm({ ...emptyCalculatorForm(), agreedPrice: '', discountExtraAmount: '0', urgencyExtraAmount: '0' });
+  const [isSavingProject, setIsSavingProject] = useState(false);
+  const projectSaveLock = useRef(false);
 
   // Состояние модалки сохранения в каталог
   const categoriesSnapshot = useSyncExternalStore(
@@ -132,7 +188,7 @@ export function Calculator() {
   const [newCostName, setNewCostName] = useState('');
   const [newCostAmount, setNewCostAmount] = useState('100');
   const [newCostIsPerUnit, setNewCostIsPerUnit] = useState(false);
-  const [newCostTarget, setNewCostTarget] = useState<'cost' | 'profit'>('cost');
+  const [newCostMode, setNewCostMode] = useState<CustomCostMode>('cost_with_markup');
 
   // Режим ввода наценки: процент (%) или коэффициент (x)
   const [markupMode, setMarkupMode] = usePersistentState<'percent' | 'ratio'>('3d_calc_markup_mode', 'percent');
@@ -147,16 +203,20 @@ export function Calculator() {
   const [copied, setCopied] = useState(false);
   const [isClientReceiptOpen, setIsClientReceiptOpen] = useState(false);
 
-  const selectedFilament = resolveCalculatorSelection(filaments, filamentId);
-  const selectedPrinter = resolveCalculatorSelection(printers, printerId, settings?.default_printer_id);
+  const selectedFilament = form.preserveResourceSelection ? filaments.find(row => row.id === filamentId) ?? null
+    : resolveCalculatorSelection(filaments, filamentId);
+  const selectedPrinter = form.preserveResourceSelection ? printers.find(row => row.id === printerId) ?? null
+    : resolveCalculatorSelection(printers, printerId, settings?.default_printer_id);
 
   useEffect(() => {
+    if (!draft || form.preserveResourceSelection) return;
     if (selectedFilament && filamentId !== selectedFilament.id) setFilamentId(selectedFilament.id);
-  }, [selectedFilament, filamentId, setFilamentId]);
+  }, [selectedFilament, filamentId, setFilamentId, draft, form.preserveResourceSelection]);
 
   useEffect(() => {
+    if (!draft || form.preserveResourceSelection) return;
     if (selectedPrinter && printerId !== selectedPrinter.id) setPrinterId(selectedPrinter.id);
-  }, [selectedPrinter, printerId, setPrinterId]);
+  }, [selectedPrinter, printerId, setPrinterId, draft, form.preserveResourceSelection]);
 
   const currencySymbol = settings?.currency ?? '₽';
   const defaultDefectValue = settings?.default_defect_percent ?? 5;
@@ -164,59 +224,90 @@ export function Calculator() {
   const defaultLaborMinutesValue = settings?.labor_time_minutes ?? 15;
 
   const currentLaborMinutes = calcLaborMinutes !== '' ? calcLaborMinutes : defaultLaborMinutesValue.toString();
-  const currentLaborRate = calcLaborRate !== '' ? calcLaborRate : defaultLaborRateValue.toString();
 
   const safeQuantity = Math.max(1, parseCalculatorNumber(quantity, true));
 
-  // Расчет стоимости
-  const result = useMemo(() => calculateCost({
-    weightG: parseCalculatorNumber(weightG),
-    days: parseCalculatorNumber(days, true),
-    hours: parseCalculatorNumber(hours, true),
-    minutes: parseCalculatorNumber(minutes, true),
-    laborMinutes: parseCalculatorNumber(currentLaborMinutes, true),
-    laborRatePerHour: parseCalculatorNumber(currentLaborRate),
-    isOwnerLabor: calcIsOwnerLabor,
-    isLaborPerUnit: calcIsLaborPerUnit,
-    markupPercent: calcMarkup !== '' ? parseCalculatorNumber(calcMarkup) : undefined,
-    defectPercent: calcDefect !== '' ? parseCalculatorNumber(calcDefect) : undefined,
-    discountPercent: calcDiscountType === 'percent' ? (parseFloat(calcDiscountValue) || 0) : 0,
-    discountAmount: calcDiscountType === 'fixed' ? (parseFloat(calcDiscountValue) || 0) : 0,
-    urgencyPercent: calcUrgencyType === 'percent' ? (parseFloat(calcUrgencyValue) || 0) : 0,
-    urgencyAmount: calcUrgencyType === 'fixed' ? (parseFloat(calcUrgencyValue) || 0) : 0,
-    customCostItems: calcCustomCostItems,
-    quantity: safeQuantity,
-    filament: selectedFilament,
-    printer: selectedPrinter,
-    settings,
-  }), [
-    weightG,
-    days,
-    hours,
-    minutes,
-    currentLaborMinutes,
-    currentLaborRate,
-    calcIsOwnerLabor,
-    calcIsLaborPerUnit,
-    calcMarkup,
-    calcDefect,
-    calcDiscountType,
-    calcDiscountValue,
-    calcUrgencyType,
-    calcUrgencyValue,
-    calcCustomCostItems,
-    safeQuantity,
-    selectedFilament,
-    selectedPrinter,
-    settings
-  ]);
+  // All cards and the original editor use the same financial engine.
+  const projectItems = useMemo<CalculationItem[]>(() => draft ? draft.items.map((item, index) => {
+    const inputs = draftItemInputs(item.form, filaments, printers, settings);
+    const calculated = calculateCost(inputs);
+    const variant = inventory.state?.variants.find(row => row.id === inputs.filament?.id
+      || row.legacy_filament_id === inputs.filament?.id);
+    const saved = inventory.state?.calculationItems.find(row => row.id === item.id);
+    const product = item.productId ? data.savedCalculations.find(row => row.id === item.productId) : undefined;
+    return { id: item.id, user_id: draft.user_id, project_id: draft.project.id,
+      created_at: saved?.created_at ?? draft.project.created_at, name: item.name, sort_order: index,
+      quantity: inputs.quantity ?? 1, product_id: item.productId, inputs, result: calculated,
+      recipe: { version: 1, materials: variant && inputs.weightG > 0
+        ? [{ variant_id: variant.id, grams_per_unit: inputs.weightG / (inputs.quantity ?? 1) }] : [],
+        non_material_unit_cost: (calculated.totalBaseCost - calculated.materialCost) / (inputs.quantity ?? 1),
+        product_snapshot: product ? { ...structuredClone(product), catalog_revision: item.productRevision ?? product.catalog_revision ?? 0 } : null } };
+  }) : [], [draft, filaments, printers, settings, inventory.state, data.savedCalculations]);
+  const result = projectItems.find(item => item.id === activeItem?.id)?.result
+    ?? calculateCost(draftItemInputs(form, filaments, printers, settings));
+  const projectTotals = useMemo(() => calculateProjectTotals({ lines: projectItems,
+    discountPercent: draft?.project.discount_percent, discountAmount: draft?.project.discount_amount,
+    urgencyPercent: draft?.project.urgency_percent, urgencyAmount: draft?.project.urgency_amount,
+    agreedPrice: draft?.project.agreed_price, payment: 0 }), [projectItems, draft?.project]);
+
+  const persistProject = async () => {
+    if (!draft || !inventory.state || projectSaveLock.current) return null;
+    if (projectItems.some(item => !item.name.trim())) throw new Error('Укажите названия всех расчётов.');
+    if (projectItems.some(item => item.inputs.weightG > 0 && item.recipe.materials.length === 0)) {
+      throw new Error('Выберите складской филамент для каждого расчёта с весом.');
+    }
+    projectSaveLock.current = true;
+    setIsSavingProject(true);
+    try {
+      const view = await inventory.execute({ kind: 'saveProject', id: crypto.randomUUID(),
+        occurredAt: new Date().toISOString(), project: draft.project, items: projectItems });
+      const savedProject = view.state.projects.find(project => project.id === draft.project.id)!;
+      updateDraft(previous => previous.project.id === savedProject.id
+        ? { ...previous, project: { ...previous.project, revision: savedProject.revision } } : previous);
+      return { project: savedProject, items: getCalculationProjectItems(view.state, savedProject.id),
+        pendingCount: view.pendingCount };
+    } finally { projectSaveLock.current = false; setIsSavingProject(false); }
+  };
+  const handleSaveProject = async () => {
+    try {
+      const saved = await persistProject();
+      if (saved) showSuccess(saved.pendingCount ? 'Проект сохранён локально и поставлен в очередь синхронизации.' : 'Проект сохранён.');
+    } catch (error) { showWarning(error instanceof Error ? error.message : 'Не удалось сохранить проект.'); }
+  };
+  const handleLoadProject = (projectId: string) => {
+    if (!draft || !inventory.state) return;
+    const project = inventory.state.projects.find(row => row.id === projectId && row.user_id === ownerId);
+    const items = getCalculationProjectItems(inventory.state, projectId);
+    if (!project || items.length === 0) return;
+    if (anyProductDirty && !window.confirm('Загрузка проекта заменит несохранённые параметры товара. Продолжить?')) return;
+    updateDraft({ version: 1, user_id: ownerId, project: structuredClone(project),
+      activeItemId: items[0].id, compareItemIds: [], items: items.map(item => {
+        const input = item.inputs;
+        const string = (value: number | undefined) => value === undefined ? '' : String(value);
+        const loadedForm: CalculatorFormDraft = { weight: string(input.weightG), days: string(input.days), hours: string(input.hours),
+            minutes: string(input.minutes), quantity: String(item.quantity),
+            filamentId: input.filament?.id ?? '', printerId: input.printer?.id ?? '',
+            laborMinutes: string(input.laborMinutes), laborRate: string(input.laborRatePerHour),
+            markup: string(input.markupPercent), defect: string(input.defectPercent),
+            isOwnerLabor: input.isOwnerLabor ?? true, isLaborPerUnit: input.isLaborPerUnit ?? false,
+            discountType: 'percent', discountValue: String(input.discountPercent ?? 0),
+            discountExtraAmount: String(input.discountAmount ?? 0),
+            urgencyType: 'percent', urgencyValue: String(input.urgencyPercent ?? 0),
+            urgencyExtraAmount: String(input.urgencyAmount ?? 0),
+            agreedPrice: input.agreedPrice == null ? '' : String(input.agreedPrice), preserveResourceSelection: true,
+            customCosts: structuredClone(input.customCostItems ?? []) };
+        return { id: item.id, name: item.name, productId: item.product_id, form: loadedForm,
+          ...(item.product_id ? { productRevision: item.recipe.product_snapshot?.catalog_revision ?? 0,
+            productEditBaseline: { name: item.name, form: structuredClone(loadedForm) } } : {}) };
+      }) });
+  };
 
   const currentMarkup = calcMarkup !== '' ? calcMarkup : result.appliedMarkupPercent.toString();
   const currentDefect = calcDefect !== '' ? calcDefect : defaultDefectValue.toString();
 
   // Определение базового коэффициента/наценки из настроек с учетом сложности выбранного пластика
   const baseMaterialDifficulty = useMemo(() => {
-    return selectedFilament ? detectMaterialDifficulty(selectedFilament.name) : null;
+    return selectedFilament ? resolveMaterialDifficulty(selectedFilament) : null;
   }, [selectedFilament]);
 
   const baseMarkupPercent = useMemo(() => {
@@ -290,62 +381,47 @@ export function Calculator() {
   };
 
   const handleOpenSaveModal = () => {
-    setStockQuantity(quantity || '1');
+    setStockQuantity('0');
+    if (editingProduct) {
+      setCalculationName(activeItem?.name ?? editingProduct.name);
+      setCalculationCategory(editingProduct.category ?? 'Разное');
+      setCalculationTags(editingProduct.tags?.join(', ') ?? '');
+      setSelectedCollectionId(editingProduct.collection_id ?? 'none');
+      setStlUrl(editingProduct.stl_url ?? ''); setStlFileName(editingProduct.stl_file_name ?? '');
+      setStlFileData(editingProduct.stl_file_data ?? '');
+    }
     setIsSaveModalOpen(true);
   };
 
-  const handleCreateOrderDirectly = () => {
-    if (!selectedFilament) {
-      showWarning('Выберите филамент для 3D-печати', 'Внимание');
-      return;
-    }
-    const printHoursVal = (parseCalculatorNumber(days, true)) * 24 + (parseCalculatorNumber(hours, true)) + (parseCalculatorNumber(minutes, true)) / 60;
-    const printDays = Math.floor(printHoursVal / 24);
-    const leadTimeDays = Math.max(1, printDays + 2);
+  const productForm = (): ProductCalculatorForm => ({
+    ...(editingProduct ? productToCalculatorForm(editingProduct, filaments, printers) : {
+      name: '', filamentName: 'Не выбран', printerName: 'Не выбран',
+      agreedPrice: '', discountExtraAmount: '0', urgencyExtraAmount: '0',
+    }), ...form, name: activeItem?.name ?? '', agreedPrice: form.agreedPrice ?? '',
+    discountExtraAmount: form.discountExtraAmount ?? '0', urgencyExtraAmount: form.urgencyExtraAmount ?? '0',
+  });
+  const handleUpdateProduct = async () => {
+    if (!editingProduct || !activeItem || isSubmitting) return;
+    const itemId = activeItem.id;
+    const submitted = structuredClone({ name: activeItem.name, form });
+    setIsSubmitting(true);
+    try {
+      const patch = calculatorFormToProductUpdates(productForm(), { filaments, printers, settings, product: editingProduct });
+      const updated = await data.updateSavedCalculation({ ...editingProduct, ...patch,
+        catalog_revision: activeItem.productRevision ?? editingProduct.catalog_revision ?? 0 });
+      updateDraft(previous => ({ ...previous, items: previous.items.map(item => item.id === itemId ? {
+        ...item, productRevision: updated.catalog_revision ?? 0, productEditBaseline: submitted,
+      } : item) }));
+      showSuccess('Параметры товара обновлены.');
+    } catch (error) { showWarning(error instanceof Error ? error.message : 'Не удалось обновить товар.'); }
+    finally { setIsSubmitting(false); }
+  };
 
-    const targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() + leadTimeDays);
-    const deadlineStr = `${String(targetDate.getDate()).padStart(2, '0')}.${String(targetDate.getMonth() + 1).padStart(2, '0')}.${targetDate.getFullYear()}`;
-
-    const costItems: Array<{ id: string; category: string; amount: number }> = [];
-    if (result.materialCost > 0) {
-      costItems.push({ id: 'c-mat', category: `Нить (${selectedFilament.name})`, amount: Math.round(result.materialCost * 100) / 100 });
-    }
-    if (result.electricityCost > 0 || result.depreciationCost > 0) {
-      costItems.push({ id: 'c-print', category: 'Электроэнергия и амортизация', amount: Math.round((result.electricityCost + result.depreciationCost) * 100) / 100 });
-    }
-    if (result.defectCost > 0) {
-      costItems.push({ id: 'c-defect', category: 'Брак и тесты', amount: Math.round(result.defectCost * 100) / 100 });
-    }
-    if (result.laborCost > 0 && !calcIsOwnerLabor) {
-      costItems.push({ id: 'c-labor', category: 'Работа мастера', amount: Math.round(result.laborCost * 100) / 100 });
-    }
-    (calcCustomCostItems || []).filter(i => i.isEnabled && i.amount > 0 && i.target !== 'profit').forEach((ci, idx) => {
-      costItems.push({
-        id: `c-cust-${idx}`,
-        category: ci.name,
-        amount: Math.round((ci.isPerUnit ? ci.amount * safeQuantity : ci.amount) * 100) / 100,
-      });
-    });
-
-    const safeQty = safeQuantity;
-    const draftTitle = `3D-печать: ${selectedFilament.name} (${weightG || 0}г)`;
-
-    const draft = {
-      title: draftTitle,
-      quantity: safeQty,
-      base_amount: result.totalFinalPrice,
-      amount: result.totalFinalPrice,
-      cost: result.totalBaseCost,
-      cost_items: costItems.length > 0 ? costItems : [{ id: 'init-1', category: 'Печать', amount: result.totalBaseCost }],
-      deadline: deadlineStr,
-      notes: `Пластик: ${selectedFilament.name}${selectedFilament.color ? ` (${selectedFilament.color})` : ''}, Вес: ${weightG || 0}г, Время: ${hours || 0}ч ${minutes || 0}м, Принтер: ${selectedPrinter?.name || 'Основной'}`,
-    };
-
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('draft_order_from_product', JSON.stringify(draft));
-    }
-    router.push('/orders');
+  const handleCreateOrderDirectly = async () => {
+    try {
+      const saved = await persistProject();
+      if (saved) openProjectOrder(createProjectOrderDraft(saved.project, saved.items));
+    } catch (error) { showWarning(error instanceof Error ? error.message : 'Не удалось подготовить заказ проекта.'); }
   };
 
   const handleSaveCalculation = async (e: React.FormEvent) => {
@@ -361,41 +437,15 @@ export function Calculator() {
     try {
       const chosenCol = selectedCollectionId !== 'none' ? collections.find(c => c.id === selectedCollectionId) : undefined;
 
+      const calculation = calculatorFormToProductUpdates({ ...productForm(), name: calculationName.trim() },
+        { filaments, printers, settings });
       await addSavedCalculation({
-        name: calculationName.trim(),
-        category: calculationCategory,
-        tags: parsedTags,
-        stock_quantity: parseInt(stockQuantity) || 0,
-        collection_id: chosenCol ? chosenCol.id : undefined,
-        collection_name: chosenCol ? chosenCol.name : undefined,
-        filament_name: selectedFilament?.name || 'Не выбран',
-        filament_color: selectedFilament?.color || '#ffffff',
-        printer_name: selectedPrinter?.name || 'Не выбран',
-        weight_g: parseCalculatorNumber(weightG),
-        hours: (parseCalculatorNumber(days, true)) * 24 + (parseCalculatorNumber(hours, true)),
-        minutes: parseCalculatorNumber(minutes, true),
-        quantity: safeQuantity,
-        base_cost: result.totalBaseCost,
-        final_price: result.totalFinalPrice,
-
-        filament_id: selectedFilament?.id,
-        printer_id: selectedPrinter?.id,
-        ...calculatorPricingSnapshot({
-          laborMinutes: currentLaborMinutes,
-          laborRate: currentLaborRate,
-          markup: currentMarkup,
-          defect: currentDefect,
-        }),
-        is_owner_labor: calcIsOwnerLabor,
-        is_labor_per_unit: calcIsLaborPerUnit,
-        discount_percent: calcDiscountType === 'percent' && parseFloat(calcDiscountValue) > 0 ? parseFloat(calcDiscountValue) : undefined,
-        discount_amount: calcDiscountType === 'fixed' && parseFloat(calcDiscountValue) > 0 ? parseFloat(calcDiscountValue) : undefined,
-        urgency_percent: calcUrgencyType === 'percent' && parseFloat(calcUrgencyValue) > 0 ? parseFloat(calcUrgencyValue) : undefined,
-        urgency_amount: calcUrgencyType === 'fixed' && parseFloat(calcUrgencyValue) > 0 ? parseFloat(calcUrgencyValue) : undefined,
-        custom_cost_items: calcCustomCostItems && calcCustomCostItems.length > 0 ? calcCustomCostItems : undefined,
-
-        stl_url: stlUrl.trim() || undefined,
-        stl_file_name: stlFileName || undefined,
+        name: calculationName.trim(), filament_name: '', printer_name: '',
+        weight_g: 0, hours: 0, minutes: 0, quantity: 1, base_cost: 0, final_price: 0,
+        ...calculation, category: calculationCategory, tags: parsedTags,
+        stock_quantity: Math.max(0, parseCalculatorNumber(stockQuantity, true)),
+        collection_id: chosenCol?.id, collection_name: chosenCol?.name,
+        stl_url: stlUrl.trim() || undefined, stl_file_name: stlFileName || undefined,
         stl_file_data: stlFileData || undefined,
       });
       showSuccess(`Товар «${calculationName.trim()}» успешно сохранен в каталог!`, 'Товар создан');
@@ -409,7 +459,7 @@ export function Calculator() {
       setStlFileName('');
       setStlFileData('');
     } catch (err) {
-      console.error('Ошибка сохранения расчета:', err);
+      showWarning(err instanceof Error ? err.message : 'Не удалось сохранить расчёт.');
     } finally {
       setIsSubmitting(false);
     }
@@ -458,7 +508,7 @@ export function Calculator() {
               <Tooltip content="Закрыть калькулятор и перейти на главную">
                 <button
                   type="button"
-                  onClick={() => curtainNavigate('/')}
+                  onClick={() => { if (!anyProductDirty || window.confirm('Покинуть редактор товара? Черновик сохранён в проекте.')) curtainNavigate('/'); }}
                   className="w-3 h-3 rounded-full bg-red-500/80 border border-red-400/40 hover:bg-red-500 cursor-pointer outline-none shadow-sm shadow-red-500/30"
                 />
               </Tooltip>
@@ -513,6 +563,45 @@ export function Calculator() {
         </div>
 
         {/* 2. ТЕЛО КАЛЬКУЛЯТОРА С АНИМАЦИЕЙ ПЕРЕХОДА */}
+        {activeItem?.productId && <div className="flex flex-wrap items-center gap-3 border-b border-white/10 px-5 py-3 font-mono text-xs">
+          <span>Редактирование товара: {editingProduct?.name ?? activeItem.name}{productDirty ? ' · изменён' : ''}</span>
+          <CockpitButton onClick={handleUpdateProduct} disabled={!editingProduct || isSubmitting}>Обновить товар</CockpitButton>
+          <CockpitButton onClick={handleOpenSaveModal} disabled={isSubmitting}>Сохранить как новый товар</CockpitButton>
+          <NumberInput label="Договорная цена товара" value={form.agreedPrice ? parseCalculatorNumber(form.agreedPrice) : null}
+            onChange={value => patchForm({ agreedPrice: value === null ? '' : String(value) })}
+            allowEmpty aria-label="Договорная цена товара" placeholder="По расчёту" min={0} />
+          {!editingProduct && <span role="alert">Товар архивирован или недоступен. Можно сохранить новый товар.</span>}
+        </div>}
+        {draft && <ProjectWorkspaceControls draft={draft} lines={projectItems} totals={projectTotals}
+          projects={inventory.state?.projects.filter(project => project.user_id === ownerId) ?? []}
+          onUpdate={updateWorkspace} onSave={handleSaveProject} onLoad={handleLoadProject}
+          isSaving={isSavingProject} mode={inventory.mode} pendingCount={inventory.pendingCount}
+          currency={currencySymbol} />}
+        {(draftError || inventory.error) && <p role="alert" className="px-5 py-3 font-mono text-xs text-amber-400">
+          {draftError || inventory.error}
+        </p>}
+        {draft && inventory.error?.includes('BUSINESS_PROJECT_REVISION_CONFLICT') && <div className="px-5 pb-3">
+          <CockpitButton disabled={isSavingProject} onClick={async () => {
+            setIsSavingProject(true);
+            try {
+              let view = await inventory.resolveProjectConflict(draft.project.id);
+              const current = view.state.projects.find(row => row.id === draft.project.id);
+              if (!view.syncError && view.resolvedProjectId !== draft.project.id && current) {
+                view = await inventory.execute({ kind: 'saveProject', id: crypto.randomUUID(), occurredAt: new Date().toISOString(),
+                  project: { ...draft.project, revision: current.revision }, items: projectItems });
+              }
+              const project = view.state.projects.find(row => row.id === draft.project.id);
+              if (project) updateDraft(previous => ({ ...previous, project: { ...previous.project, revision: project.revision } }));
+              if (view.syncError) showWarning(view.syncError);
+              else showSuccess('Ваша версия проекта сохранена.');
+            } catch (error) { showWarning(error instanceof Error ? error.message : 'Не удалось разрешить конфликт.'); }
+            finally { setIsSavingProject(false); }
+          }}>Сохранить мою версию поверх серверной</CockpitButton>
+        </div>}
+        {!draft && <p role="status" className="px-5 py-3 font-mono text-xs text-neutral-400">
+          {isAuthLoading || data.isLoading ? 'Загрузка проекта…' : 'Черновик проекта недоступен.'}
+        </p>}
+        <fieldset disabled={!draft} className="min-w-0 border-0 p-0 m-0">
         <CockpitContentTransition>
           <div className="p-5 sm:p-6 bg-gradient-to-b from-neutral-950 to-neutral-900/90">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 items-start">
@@ -1125,21 +1214,11 @@ export function Calculator() {
                           </Tooltip>
 
                           {/* Переключатель: в себестоимость / в прибыль */}
-                          <Tooltip content={activeItem.target === 'profit' ? 'Сумма идет в чистую прибыль мастера' : 'Сумма идет в прямую себестоимость изделия (расход)'}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setCalcCustomCostItems(prev => prev.map(i => i.id === cat.id ? { ...i, target: i.target === 'profit' ? 'cost' : 'profit' } : i));
-                              }}
-                              className={`px-1.5 py-0.5 rounded text-[10px] border cursor-pointer font-bold ${
-                                activeItem.target === 'profit'
-                                  ? 'bg-emerald-950/60 text-emerald-300 border-emerald-700/50'
-                                  : 'bg-neutral-950 text-neutral-300 border-white/15 hover:text-white'
-                              }`}
-                            >
-                              {activeItem.target === 'profit' ? 'в прибыль' : 'в себест.'}
-                            </button>
-                          </Tooltip>
+                          <CockpitDropdown ariaLabel={`Режим расхода: ${activeItem.name}`}
+                            value={activeItem.mode ?? (activeItem.target === 'profit' ? 'profit_only' : 'cost_with_markup')}
+                            options={CUSTOM_COST_MODES} onChange={value => setCalcCustomCostItems(previous => previous.map(cost =>
+                              cost.id === activeItem.id ? { ...cost, mode: value as CustomCostMode,
+                                target: value === 'profit_only' ? 'profit' : 'cost' } : cost))} />
 
                           {/* Кнопка закрыть / убрать */}
                           <Tooltip content="Убрать услугу">
@@ -1170,6 +1249,7 @@ export function Calculator() {
                             isPerUnit: cat.isPerUnit ?? false,
                             isEnabled: true,
                             target: cat.defaultTarget ?? 'cost',
+                            mode: cat.defaultTarget === 'profit' ? 'profit_only' : 'cost_with_markup',
                           }]);
                         }}
                         className="px-2.5 py-1.5 rounded-lg text-xs border cursor-pointer flex items-center gap-1 bg-white/[0.02] hover:bg-white/[0.06] text-neutral-400 border-white/10 hover:border-white/20 hover:text-white"
@@ -1221,21 +1301,11 @@ export function Calculator() {
                         </button>
                       </Tooltip>
 
-                      <Tooltip content={customItem.target === 'profit' ? 'Сумма идет в чистую прибыль мастера' : 'Сумма идет в прямую себестоимость изделия (расход)'}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCalcCustomCostItems(prev => prev.map(i => i.id === customItem.id ? { ...i, target: i.target === 'profit' ? 'cost' : 'profit' } : i));
-                          }}
-                          className={`px-1.5 py-0.5 rounded text-[10px] border cursor-pointer font-bold ${
-                            customItem.target === 'profit'
-                              ? 'bg-emerald-950/60 text-emerald-300 border-emerald-700/50'
-                              : 'bg-neutral-950 text-neutral-300 border-white/15 hover:text-white'
-                          }`}
-                        >
-                          {customItem.target === 'profit' ? 'в прибыль' : 'в себест.'}
-                        </button>
-                      </Tooltip>
+                          <CockpitDropdown ariaLabel={`Режим расхода: ${customItem.name}`}
+                            value={customItem.mode ?? (customItem.target === 'profit' ? 'profit_only' : 'cost_with_markup')}
+                            options={CUSTOM_COST_MODES} onChange={value => setCalcCustomCostItems(previous => previous.map(cost =>
+                              cost.id === customItem.id ? { ...cost, mode: value as CustomCostMode,
+                                target: value === 'profit_only' ? 'profit' : 'cost' } : cost))} />
 
                       <Tooltip content="Удалить расход">
                         <button
@@ -1308,15 +1378,8 @@ export function Calculator() {
                         >
                           {newCostIsPerUnit ? 'за шт' : 'за заказ'}
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setNewCostTarget(newCostTarget === 'profit' ? 'cost' : 'profit')}
-                          className={`flex-1 h-8 rounded-lg text-[10px] border cursor-pointer font-bold ${
-                            newCostTarget === 'profit' ? 'bg-emerald-950/60 text-emerald-300 border-emerald-700/50' : 'bg-neutral-950 text-neutral-300 border-white/15 hover:text-white'
-                          }`}
-                        >
-                          {newCostTarget === 'profit' ? 'в прибыль' : 'в себест.'}
-                        </button>
+                        <CockpitDropdown ariaLabel="Режим нового расхода" value={newCostMode}
+                          options={CUSTOM_COST_MODES} onChange={value => setNewCostMode(value as CustomCostMode)} />
                         <button
                           type="button"
                           onClick={() => {
@@ -1328,12 +1391,13 @@ export function Calculator() {
                               amount: parseFloat(newCostAmount) || 0,
                               isPerUnit: newCostIsPerUnit,
                               isEnabled: true,
-                              target: newCostTarget,
+                              mode: newCostMode,
+                              target: newCostMode === 'profit_only' ? 'profit' : 'cost',
                             }]);
                             setNewCostName('');
                             setNewCostAmount('100');
                             setNewCostIsPerUnit(false);
-                            setNewCostTarget('cost');
+                            setNewCostMode('cost_with_markup');
                             setIsAddingCustomCost(false);
                           }}
                           className="px-3 h-8 bg-white text-neutral-950 font-bold rounded-lg hover:bg-neutral-200 cursor-pointer text-xs shrink-0"
@@ -1345,10 +1409,51 @@ export function Calculator() {
                   </MotionRevealDiv>
                 )}
               </div>
+
+              {/* ================= 3. СЕКЦИЯ: ЦЕНООБРАЗОВАНИЕ ПОЗИЦИИ ================= */}
+              <div className="flex items-center justify-between border-b border-white/10 pb-2 pt-2">
+                <span className="font-mono text-xs text-neutral-400 uppercase tracking-wider">
+                  ЦЕНООБРАЗОВАНИЕ ПОЗИЦИИ
+                </span>
+                <span className="hidden sm:inline font-mono text-[11px] text-neutral-500">
+                  Скидка, срочность и ставка труда этой карточки
+                </span>
+              </div>
+
+              <div key={activeItem?.id} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 p-3.5 rounded-xl space-y-3 transition-colors duration-150">
+                  <CockpitDropdown label="Скидка позиции" ariaLabel="Режим скидки позиции" value={calcDiscountType}
+                    options={[{ value: 'percent', label: 'Процент' }, { value: 'fixed', label: `Сумма, ${currencySymbol}` }]}
+                    onChange={value => patchForm({ discountType: value as 'percent' | 'fixed' })} />
+                  <NumberInput label={calcDiscountType === 'percent' ? 'Скидка позиции, %' : `Скидка позиции, ${currencySymbol}`}
+                    min={0} max={calcDiscountType === 'percent' ? 100 : undefined}
+                    value={parseCalculatorNumber(calcDiscountValue)}
+                    onChange={value => patchForm({ discountValue: String(calcDiscountType === 'percent'
+                      ? Math.min(100, Math.max(0, value ?? 0)) : Math.max(0, value ?? 0)) })} />
+                </div>
+                <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 p-3.5 rounded-xl space-y-3 transition-colors duration-150">
+                  <CockpitDropdown label="Срочность позиции" ariaLabel="Режим срочности позиции" value={calcUrgencyType}
+                    options={[{ value: 'percent', label: 'Процент' }, { value: 'fixed', label: `Сумма, ${currencySymbol}` }]}
+                    onChange={value => patchForm({ urgencyType: value as 'percent' | 'fixed' })} />
+                  <NumberInput label={calcUrgencyType === 'percent' ? 'Срочность позиции, %' : `Срочность позиции, ${currencySymbol}`}
+                    min={0} value={parseCalculatorNumber(calcUrgencyValue)}
+                    onChange={value => patchForm({ urgencyValue: String(Math.max(0, value ?? 0)) })} />
+                </div>
+                <div className="bg-white/[0.03] border border-white/10 hover:border-white/20 p-3.5 rounded-xl flex flex-col justify-between gap-3 transition-colors duration-150">
+                  <NumberInput label={`Стоимость часа труда, ${currencySymbol}`} value={calcLaborRate === '' ? null : parseCalculatorNumber(calcLaborRate)}
+                    min={0} allowEmpty hint={`По умолчанию: ${defaultLaborRateValue} ${currencySymbol}/ч`}
+                    onChange={value => patchForm({ laborRate: value === null ? '' : String(Math.max(0, value)) })} />
+                  <CockpitButton isActive={calcIsLaborPerUnit} onClick={() => patchForm({ isLaborPerUnit: !calcIsLaborPerUnit })}>
+                    {calcIsLaborPerUnit ? 'Труд за каждую деталь' : 'Труд за партию'}
+                  </CockpitButton>
+                </div>
+              </div>
             </div>
 
             {/* ===================== ПРАВАЯ КОЛОНКА: ЧЕК (MUTED MATTE RECEIPT) ===================== */}
-            <div className="w-full">
+            <div className="w-full space-y-4">
+              {draft && <CalculationReceipt kind="project" title="Смета всего проекта" lines={projectItems}
+                result={projectTotals} currency={currencySymbol} />}
               <div className="w-full bg-[var(--cockpit-accent-color,#D2CCBB)] text-neutral-950 shadow-[0_20px_50px_rgba(0,0,0,0.6)] rounded-none p-5 relative overflow-hidden flex flex-col justify-between space-y-4 select-none">
 
               <div>
@@ -1425,7 +1530,7 @@ export function Calculator() {
                     )}
 
                     {/* Дополнительные расходы в себестоимость */}
-                    {result.customCostsBreakdown.filter(item => item.target === 'cost').map((item) => (
+                    {result.customCostsBreakdown.filter(item => (item.mode ?? (item.target === 'profit' ? 'profit_only' : 'cost_with_markup')) !== 'profit_only').map((item) => (
                       <div key={item.id} className="flex items-baseline justify-between">
                         <span className="shrink-0">• {item.name}</span>
                         <span className="flex-1 mx-2 border-b border-dotted border-neutral-600/40" />
@@ -1495,14 +1600,14 @@ export function Calculator() {
 
                     {result.discountTotal > 0 && (
                       <div className="flex items-baseline justify-between text-emerald-900 font-bold">
-                        <span className="shrink-0">• Скидка на заказ</span>
+                        <span className="shrink-0">• Скидка позиции</span>
                         <span className="flex-1 mx-2 border-b border-dotted border-neutral-600/40" />
                         <span className="whitespace-nowrap tabular-nums">-{formatCurrency(result.discountTotal, currencySymbol)}</span>
                       </div>
                     )}
 
                     {/* Дополнительные услуги в прибыль */}
-                    {result.customCostsBreakdown.filter(item => item.target === 'profit').map((item) => (
+                    {result.customCostsBreakdown.filter(item => (item.mode ?? (item.target === 'profit' ? 'profit_only' : 'cost_with_markup')) === 'profit_only').map((item) => (
                       <div key={item.id} className="flex items-baseline justify-between">
                         <span className="shrink-0">• {item.name}</span>
                         <span className="flex-1 mx-2 border-b border-dotted border-neutral-600/40" />
@@ -1580,7 +1685,7 @@ export function Calculator() {
                   className="w-full py-3 rounded-full bg-neutral-950 text-white hover:bg-neutral-800 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ShoppingBag className="w-3.5 h-3.5" />
-                  <span>В Заказы (Оформить)</span>
+                  <span>Создать заказ проекта</span>
                 </button>
 
                 {/* Кнопка экспорта чека для покупателя (PNG / PDF) */}
@@ -1627,6 +1732,7 @@ export function Calculator() {
           </div>
         </div>
         </CockpitContentTransition>
+        </fieldset>
 
         {/* 3. ПОДВАЛ КОНСОЛИ (В ТОЧНОСТИ КАК НА СКРИНШОТЕ) */}
         <div className="border-t border-white/10 px-5 py-2.5 bg-neutral-950 flex items-center justify-between text-[11px] font-mono text-neutral-500">

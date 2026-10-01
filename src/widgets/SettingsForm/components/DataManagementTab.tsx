@@ -7,7 +7,7 @@ import { CockpitModal } from '../../../shared/ui/CockpitModal';
 import { RoundDeleteModal } from '../../../shared/ui/RoundDeleteModal';
 import { useToast } from '../../../entities/model/ToastProvider';
 import { useData } from '../../../entities/model/DataProvider';
-import { createDataBackup } from '../../../shared/lib/dataBackup';
+import { exportCompleteDataBackup } from '../../../shared/api/db';
 import {
   Download,
   Upload,
@@ -43,11 +43,8 @@ export function DataManagementTab({
   const {
     filaments,
     printers,
-    settings,
     savedCalculations,
     collections,
-    orders,
-    monthlyGoals,
     seedRandomData,
     clearAllData,
     restoreBackup,
@@ -61,15 +58,7 @@ export function DataManagementTab({
     if (typeof window === 'undefined') return;
 
     try {
-      const backup = createDataBackup({
-        filaments,
-        printers,
-        settings,
-        savedCalculations,
-        collections,
-        orders,
-        monthlyGoals,
-      });
+      const backup = exportCompleteDataBackup();
 
       const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(backup, null, 2));
       const downloadAnchor = document.createElement('a');
@@ -82,7 +71,7 @@ export function DataManagementTab({
       showToast('Резервная копия успешно экспортирована в JSON файл!', 'success');
     } catch (err) {
       console.error(err);
-      showToast('Ошибка при экспорте резервной копии.', 'error');
+      showToast(err instanceof Error ? err.message : 'Ошибка при экспорте резервной копии.', 'error');
     }
   };
 
@@ -158,7 +147,7 @@ export function DataManagementTab({
       >
         <div className="flex flex-col gap-4">
           <p className="text-xs text-neutral-400 font-sans leading-relaxed">
-            Выгрузите полный слепок вашей базы (оборудование, палитру пластика, калькуляции, настройки и коллекции) в отдельный JSON-файл для надежного хранения или переноса на другое устройство.
+            Сохраните оборудование, товары, заказы, проекты, складские движения и черновик расчёта в JSON-файл. Полная копия восстанавливается в том же аккаунте; несинхронизированные операции сохраняются для восстановления.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">

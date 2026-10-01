@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown } from 'lucide-react';
 import { normalizeHex } from '../../lib/colorUtils';
+import { useIsClient } from '../useIsClient';
 
 interface ColorPickerTriggerProps {
   value: string;
@@ -24,16 +25,12 @@ export function ColorPickerTrigger({
   children,
 }: ColorPickerTriggerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
   const [coords, setCoords] = useState<{ top: number; left: number; isTop: boolean } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const hex = normalizeHex(value);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const updateCoords = useCallback(() => {
     if (!buttonRef.current) return;

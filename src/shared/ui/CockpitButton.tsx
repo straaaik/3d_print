@@ -48,7 +48,7 @@ export const CockpitButton = React.forwardRef<HTMLButtonElement, CockpitButtonPr
         disabled={disabled}
         style={{
           ...style,
-          ...(accentColor ? ({ ['--cbtn-accent' as any]: accentColor } as React.CSSProperties) : {}),
+          ...(accentColor ? ({ '--cbtn-accent': accentColor } as React.CSSProperties) : {}),
         }}
         className={`group/cbtn font-mono flex items-center gap-1.5 cursor-pointer border rounded-lg transition-colors duration-150 ${sizeStyles} ${
           fullWidth ? 'w-full justify-center' : ''

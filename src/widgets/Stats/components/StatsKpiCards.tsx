@@ -84,7 +84,7 @@ export function StatsKpiCards({ kpi, deltas, mode, goal }: StatsKpiCardsProps) {
     },
     {
       id: 'result', label: labels.result, value: kpi.result, unit: '₽', icon: TrendingUp, tone: resultTone,
-      formula: `${labels.revenue} − расходы`, footer: kpi.result >= 0 ? 'Положительный результат' : 'Расходы выше дохода', delta: deltas.result,
+      formula: 'Полученные оплаты − себестоимость заказов − прямые расходы', footer: kpi.result >= 0 ? 'Положительный результат' : 'Расходы выше дохода', delta: deltas.result,
     },
     {
       id: 'plan', label: 'План', value: goal?.target || 0, unit: '₽', icon: Target,
@@ -99,7 +99,7 @@ export function StatsKpiCards({ kpi, deltas, mode, goal }: StatsKpiCardsProps) {
     },
     {
       id: 'margin', label: 'Маржинальность', value: kpi.margin, unit: '%', icon: Percent, tone: kpi.margin >= 20 ? 'emerald' as const : 'amber' as const,
-      formula: `${labels.result} / ${labels.revenue} × 100`, footer: kpi.margin >= 20 ? 'Рабочий диапазон' : 'Ниже контрольных 20%', delta: deltas.margin,
+      formula: `${labels.result} / полученные оплаты × 100`, footer: kpi.margin >= 20 ? 'Рабочий диапазон' : 'Ниже контрольных 20%', delta: deltas.margin,
     },
     {
       id: 'averageCheck', label: 'Средний чек', value: kpi.averageCheck, unit: '₽', icon: ReceiptText, tone: 'cyan' as const,

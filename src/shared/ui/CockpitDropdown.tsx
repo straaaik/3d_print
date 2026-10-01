@@ -356,11 +356,11 @@ export function CockpitDropdown({
   const hasStatusDot = !multiSelect && !hideStatusDot && !LeadingIcon && Boolean(selectedOption?.color || selectedOption?.statusDotColor);
 
   return (
-    <div className={`relative inline-flex items-center ${variant === 'input' ? 'w-full' : ''} ${className}`} ref={containerRef}>
+    <div className={`relative inline-flex ${label || sublabel ? 'flex-col items-stretch w-full' : 'items-center'} ${variant === 'input' ? 'w-full' : ''} ${className}`} ref={containerRef}>
       {/* Метки поля ввода */}
       {(label || sublabel) && (
-        <div className="flex items-center justify-between gap-2 text-[10px] font-mono uppercase tracking-wider select-none mb-1">
-          {label && <label className="font-bold text-neutral-300">{label}</label>}
+        <div className="flex items-center justify-between gap-2 text-xs font-mono select-none mb-1.5">
+          {label && <label className="text-neutral-400 uppercase tracking-wider">{label}</label>}
           {sublabel && <span className="text-neutral-500 text-[9px]">{sublabel}</span>}
         </div>
       )}

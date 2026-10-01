@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Order,
   OrderStatus,
@@ -12,6 +12,7 @@ import {
 } from './types';
 import {
   saveOrder,
+  getOrders,
   deleteOrder,
   deleteOrders,
   restoreAllOrders,
@@ -21,6 +22,7 @@ import {
 } from '../../shared/api/db';
 import { useData } from '../../entities/model/DataProvider';
 import { useToast } from '../../entities/model/ToastProvider';
+import { useAuth } from '../../entities/model/AuthProvider';
 import { useOrderModal } from '../../entities/model/OrderModalContext';
 import {
   DeleteOrderModal
@@ -43,6 +45,7 @@ import {
   getOrderMonthKey,
   formatMonthKeyLabel,
   getCurrentRealMonthKey,
+  calculateOrderFinancials,
   calculateOrdersSummaryKPI
 } from './helpers';
 import { usePersistentState } from '../../shared/lib/usePersistentState';
@@ -85,7 +88,13 @@ export function OrdersTable({
   const contextMenuRef = useRef<HTMLDivElement | null>(null);
 
   // Стек истории для Alt+Z / Ctrl+Z
-  const [historyStack, setHistoryStack] = useState<Order[][]>([]);
+  type OrderHistory = { ownerId: string | undefined; orders: Order[]; orderIds: string[]; expectedRevisions: Record<string, number>; activeItemIds: Record<string, string[]> };
+  const { currentUser } = useAuth();
+  const [historyStack, setHistoryStack] = useState<OrderHistory[]>([]);
+  const historyRef = useRef<OrderHistory[]>([]);
+  const historyOwner = useRef(currentUser?.id);
+  const undoPending = useRef(false);
+  useLayoutEffect(() => { historyOwner.current = currentUser?.id; historyRef.current = []; queueMicrotask(() => setHistoryStack([])); }, [currentUser?.id]);
   const { showSuccess, showWarning, showInfo } = useToast();
   const {
     savedCalculations,
@@ -192,7 +201,7 @@ export function OrdersTable({
           amount: parsedAmount,
           cost: parsedCost,
           cost_items: parsedCostItems,
-          payments: [0],
+          payments: [],
           payment: 0,
           client: 'Авито',
           contacts: [],
@@ -231,26 +240,46 @@ export function OrdersTable({
     };
   }, [setContextMenu]);
 
-  // Сохранение в историю для Undo
-  const pushToHistory = useCallback((currentOrders: Order[]) => {
-    setHistoryStack(prev => [...prev.slice(-25), JSON.parse(JSON.stringify(currentOrders))]);
-  }, []);
-
-  // Undo (Alt+Z)
-  const handleUndo = useCallback(async () => {
-    if (historyStack.length === 0) {
-      showWarning('Нет действий для отмены', 'История');
-      return;
+  // Capture before our action; register only successfully changed IDs and post-action revisions.
+  const pushToHistory = useCallback((currentOrders: Order[]): OrderHistory => ({
+    ownerId: currentUser?.id, orders: structuredClone(currentOrders), orderIds: [], expectedRevisions: {},
+    activeItemIds: Object.fromEntries(currentOrders.map(row => [row.id, row.items?.filter(item => !item.archived).map(item => item.id) ?? []])),
+  }), [currentUser?.id]);
+  const recordHistory = useCallback((entry: OrderHistory, rows: Array<{ id: string; order_revision?: number }>) => {
+    if (entry.ownerId !== historyOwner.current) return false;
+    for (const row of rows) {
+      if (!entry.orders.some(previous => previous.id === row.id) && 'type' in row) {
+        const created = row as Order;
+        entry.orders.push({ ...structuredClone(created), order_archived: true });
+        entry.activeItemIds[created.id] = created.items?.filter(item => !item.archived).map(item => item.id) ?? [];
+      }
     }
-
-    const previousState = historyStack[historyStack.length - 1];
-    await restoreAllOrders(previousState);
-    setHistoryStack(prev => prev.slice(0, -1));
-    setOrders(previousState);
-    window.dispatchEvent(new Event('orders_updated'));
-
-    showInfo('Изменение отменено (Alt+Z)', 'История');
-  }, [historyStack, setOrders, showWarning, showInfo]);
+    entry.orderIds = rows.map(row => row.id);
+    entry.expectedRevisions = Object.fromEntries(rows.map(row => [row.id, row.order_revision ?? 0]));
+    historyRef.current = [...historyRef.current.slice(-25), entry]; setHistoryStack([...historyRef.current]); return true;
+  }, []);
+  const handleUndo = useCallback(async () => {
+    if (undoPending.current) return;
+    const entry = historyRef.current.at(-1);
+    if (!entry) { showWarning('Нет действий для отмены', 'История'); return; }
+    undoPending.current = true;
+    try {
+      await restoreAllOrders(entry.orders.filter(row => entry.orderIds.includes(row.id)), {
+        orderIds: entry.orderIds, expectedRevisions: entry.expectedRevisions, activeItemIds: entry.activeItemIds,
+      });
+      if (entry.ownerId !== historyOwner.current) return;
+      const index = historyRef.current.indexOf(entry);
+      for (const id of entry.orderIds) {
+        const older = historyRef.current.slice(0, index).findLast(row => row.orderIds.includes(id));
+        if (older) older.expectedRevisions[id] = entry.expectedRevisions[id] + 1;
+      }
+      historyRef.current = historyRef.current.filter(row => row !== entry); setHistoryStack([...historyRef.current]);
+      setOrders(await getOrders());
+      window.dispatchEvent(new Event('orders_updated'));
+      showInfo('Изменение отменено. Физический учёт и производство сохранены.', 'История');
+    } catch (failure) { showWarning(failure instanceof Error ? failure.message : 'Не удалось отменить изменение.', 'История'); }
+    finally { undoPending.current = false; }
+  }, [setOrders, showWarning, showInfo]);
 
   // Горячие клавиши Alt+Z и Ctrl+Z
   useEffect(() => {
@@ -317,6 +346,7 @@ export function OrdersTable({
   // Вычисляемые KPI для выбранного месяца
   const {
     totalIncome,
+    receivedPayments,
     totalExpenses,
     netProfitTotal,
     totalMarginPercent,
@@ -435,8 +465,8 @@ export function OrdersTable({
       let bValue: unknown;
 
       if (sortField === 'net_profit') {
-        aValue = a.type === 'income' ? (a.amount || 0) - (a.cost || 0) : -(a.amount || 0);
-        bValue = b.type === 'income' ? (b.amount || 0) - (b.cost || 0) : -(b.amount || 0);
+        aValue = a.type === 'income' ? calculateOrderFinancials(a).actualProfit : -(a.amount || 0);
+        bValue = b.type === 'income' ? calculateOrderFinancials(b).actualProfit : -(b.amount || 0);
       } else if (sortField === 'debt') {
         aValue = a.type === 'income' ? Math.max(0, (a.amount || 0) - (a.payment || 0)) : 0;
         bValue = b.type === 'income' ? Math.max(0, (b.amount || 0) - (b.payment || 0)) : 0;
@@ -499,16 +529,23 @@ export function OrdersTable({
 
   // Дублирование
   const handleDuplicateOrder = async (order: Order) => {
-    pushToHistory(orders);
+    const history = pushToHistory(orders);
     const duplicated = {
       ...order,
       id: undefined,
+      order_revision: undefined, order_archived: false,
+      items: order.items?.every(item => item.snapshot.calculation) ? order.items.map(item => ({ ...structuredClone(item), id: crypto.randomUUID(), order_id: null, source_order_id: '',
+        fulfilled_quantity: 0, production_quantity: 0, reserved_quantity: 0, returned_quantity: 0, archived: false,
+        cost_provenance: 'estimate' as const, unit_cost: item.snapshot.calculation?.result.baseCostPerUnit ?? item.unit_cost,
+        total_cost: item.snapshot.calculation?.result.totalBaseCost ?? item.total_cost })) : undefined,
+      payment: 0, payments: [], status: 'Не в работе' as const,
       order_number: undefined,
       title: `${order.title} (копия)`,
       created_at: new Date().toISOString(),
     };
     const saved = await saveOrder(duplicated);
-    setOrders(prev => [saved, ...prev]);
+    if (!recordHistory(history, [saved])) return;
+    setOrders(prev => [saved, ...prev.filter(row => row.id !== saved.id)]);
     showSuccess(`Заказ #${saved.order_number} продублирован`, 'Заказ');
   };
 
@@ -517,19 +554,23 @@ export function OrdersTable({
     const targetOrder = orders.find(o => o.id === orderId);
     if (!targetOrder) return;
 
-    pushToHistory(orders);
+    const history = pushToHistory(orders);
     const updated: Order = { ...targetOrder, ...updates };
 
-    setOrders(prev => prev.map(o => (o.id === orderId ? updated : o)));
-    await saveOrder(updated);
+    try {
+      const saved = await saveOrder(updated);
+      if (!recordHistory(history, [saved])) return;
+      setOrders(prev => prev.map(o => o.id === orderId ? saved : o));
+    } catch (failure) { showWarning(failure instanceof Error ? failure.message : 'Не удалось сохранить заказ.'); return; }
     window.dispatchEvent(new Event('orders_updated'));
-  }, [orders, pushToHistory, setOrders]);
+  }, [orders, pushToHistory, recordHistory, setOrders, showWarning]);
 
   // Удаление одной записи
   const handleConfirmDelete = async () => {
     if (!orderToDelete) return;
-    pushToHistory(orders);
+    const history = pushToHistory(orders);
     await deleteOrder(orderToDelete.id);
+    if (!recordHistory(history, [{ id: orderToDelete.id, order_revision: (orderToDelete.order_revision ?? 0) + 1 }])) return;
     setOrders(prev => prev.filter(o => o.id !== orderToDelete.id));
     showInfo(`Запись #${orderToDelete.order_number || ''} удалена (Alt+Z для отмены)`, 'Удаление');
     setOrderToDelete(null);
@@ -540,8 +581,9 @@ export function OrdersTable({
   const handleConfirmClearMonth = async () => {
     if (selectedMonthKey === 'all') {
       if (orders.length === 0) return;
-      pushToHistory(orders);
+      const history = pushToHistory(orders);
       await deleteOrders(orders.map(order => order.id));
+      if (!recordHistory(history, orders.map(row => ({ id: row.id, order_revision: (row.order_revision ?? 0) + 1 })))) return;
       setOrders([]);
       showInfo('Все записи журнала заказов очищены (Alt+Z для отмены)', 'Очистка');
       setIsClearMonthModalOpen(false);
@@ -552,8 +594,9 @@ export function OrdersTable({
     const idsToDelete = monthFilteredOrders.map(o => o.id);
     if (idsToDelete.length === 0) return;
 
-    pushToHistory(orders);
+    const history = pushToHistory(orders);
     await deleteOrders(idsToDelete);
+    if (!recordHistory(history, monthFilteredOrders.map(row => ({ id: row.id, order_revision: (row.order_revision ?? 0) + 1 })))) return;
     setOrders(prev => prev.filter(o => getOrderMonthKey(o) !== selectedMonthKey));
     showInfo(`Все записи за ${formatMonthKeyLabel(selectedMonthKey)} очищены (Alt+Z для отмены)`, 'Очистка месяца');
     setIsClearMonthModalOpen(false);
@@ -572,21 +615,18 @@ export function OrdersTable({
 
   // Быстрое изменение статуса
   const handleUpdateStatus = async (order: Order, newStatus: OrderStatus) => {
-    pushToHistory(orders);
+    const history = pushToHistory(orders);
     const updated: Order = { ...order, status: newStatus };
-    setOrders(prev => prev.map(o => (o.id === order.id ? updated : o)));
-    await saveOrder(updated);
+    try {
+      const saved = await saveOrder(updated); if (!recordHistory(history, [saved])) return;
+      setOrders(prev => prev.map(o => o.id === order.id ? saved : o));
+    } catch (failure) { showWarning(failure instanceof Error ? failure.message : 'Не удалось сохранить заказ.'); return; }
     showSuccess(`Статус заказа #${order.order_number} изменен на «${newStatus}»`, 'Статус');
   };
 
   // Переключение типа (Доход / Расход)
-  const handleToggleType = async (order: Order) => {
-    pushToHistory(orders);
-    const newType = order.type === 'income' ? 'expense' : 'income';
-    const updated: Order = { ...order, type: newType };
-    setOrders(prev => prev.map(o => (o.id === order.id ? updated : o)));
-    await saveOrder(updated);
-    showSuccess(`Тип записи #${order.order_number} изменен на ${newType === 'income' ? '«Доход»' : '«Расход»'}`, 'Тип записи');
+  const handleToggleType = () => {
+    showWarning('Тип сохранённой записи защищён. Создайте отдельный расход или новый заказ.', 'Тип записи');
   };
 
   return (
@@ -601,6 +641,7 @@ export function OrdersTable({
         totalOrdersCount={sortedOrders.length}
         onLoadMore={() => setVisibleCount(prev => Math.min(prev + ORDERS_CHUNK_SIZE, sortedOrders.length))}
         onShowAll={() => setVisibleCount(sortedOrders.length)}
+        receivedPayments={receivedPayments}
         totalIncome={totalIncome}
         totalExpenses={totalExpenses}
         netProfitTotal={netProfitTotal}

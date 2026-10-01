@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useMemo } from 'react';
+import React, { useRef, useEffect, useLayoutEffect, useState, useMemo, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import {
   CatalogTableRow,
@@ -15,7 +15,9 @@ import {
   Printer,
   Settings
 } from '../../../../shared/types';
+import { formatCatalogProfit } from '../../helpers';
 import { formatCurrency } from '../../../../shared/lib/format';
+import { canCloseProductEditor } from '../../../../shared/lib/productCalculation';
 import { round2 } from '../../../../shared/lib/formulas';
 import { calculateCost } from '../../../../features/calculate-cost/model/calculate';
 import { ProductCategory, getCategoryLucideIcon } from '../../../../shared/lib/categories';
@@ -55,6 +57,7 @@ import { CockpitStatusPill } from '../../../../shared/ui/CockpitTable/CockpitSta
 import { ProductRowDrawer } from './ProductRowDrawer';
 import { AssemblyExpandedRow } from './AssemblyExpandedRow';
 import { MotionPulse, MotionRevealDiv } from '../../../../shared/ui/MotionPrimitives';
+import { useIsClient } from '../../../../shared/ui/useIsClient';
 
 import {
   ROW_ELEVATION_EASE,
@@ -68,6 +71,16 @@ import {
 export const PRODUCTS_EXPANDED_COLUMNS = '112px 96px 144px minmax(220px,1.5fr) 136px 128px 144px 144px 144px 144px 112px 96px 160px';
 export const PRODUCTS_COMPACT_COLUMNS = '112px 136px minmax(200px,1.5fr) 128px 120px 136px 156px 144px 160px';
 const SURFACE_EASE = ROW_ELEVATION_EASE;
+const MOBILE_QUERY = '(max-width: 1023px)';
+function subscribeMobileLayout(callback: () => void) {
+  const media = window.matchMedia(MOBILE_QUERY);
+  media.addEventListener('change', callback);
+  return () => media.removeEventListener('change', callback);
+}
+const mobileLayoutSnapshot = () => window.matchMedia(MOBILE_QUERY).matches;
+const serverMobileLayoutSnapshot = () => false;
+const isCatalogProductRow = (row: CatalogTableRow | null | undefined): row is Extract<CatalogTableRow, { rowKind: 'product' }> =>
+  row?.rowKind === 'product' && !row.isPart && !row.id.toLowerCase().startsWith('prt-');
 
 export function formatPriceRange(min: number, max: number, symbol: string): string {
   if (min === max) {
@@ -337,7 +350,7 @@ interface ProductsV2TableProps {
   onStartRename: (itemOrCol: SavedCalculation | ProductCollection) => void;
 
   // Действия и инлайн-обновление
-  onInlineUpdateProduct?: (productId: string, updates: Partial<SavedCalculation>) => void;
+  onInlineUpdateProduct?: (productId: string, updates: Partial<SavedCalculation>) => Promise<void> | void;
   onInlineUpdateCollection?: (collectionId: string, updates: Partial<ProductCollection>) => void;
   onSetStock: (item: SavedCalculation, newStock: number) => void;
   onOpenCategoryModal: (item: SavedCalculation) => void;
@@ -383,6 +396,7 @@ interface ProductsV2TableProps {
 type EditableProductField = 'name' | 'final_price' | 'base_cost' | 'stock_quantity' | 'weight_g' | 'hours' | 'minutes';
 
 export const ProductsV2Table = React.memo(function ProductsV2Table({
+  rows,
   visibleRows,
   visibleCount,
   totalRowsCount,
@@ -394,7 +408,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
   searchQuery,
   isExpanded = false,
   expandedItemIds,
-  onToggleExpand,
+  onToggleExpand: onToggleExpandRow,
   onInlineUpdateProduct,
   onInlineUpdateCollection,
   onSetStock,
@@ -435,7 +449,51 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
   // Локальное состояние для строки в фокусе (парение), если не передано внешнее
   const [internalElevatedRow, setInternalElevatedRow] = useState<CatalogTableRow | null>(null);
   const elevatedRow = externalElevatedRow !== undefined ? externalElevatedRow : internalElevatedRow;
-  const setElevatedRow = externalSetElevatedRow || setInternalElevatedRow;
+  const isClient = useIsClient();
+  const isMobileLayout = useSyncExternalStore(subscribeMobileLayout, mobileLayoutSnapshot, serverMobileLayoutSnapshot);
+  const [editorHost] = useState(() => typeof document === 'undefined' ? null : document.createElement('div'));
+  const mobileEditorSlotsRef = useRef(new Map<string, HTMLDivElement>());
+  const desktopEditorSlotsRef = useRef(new Map<string, HTMLDivElement>());
+  const retainedEditorSlotRef = useRef<HTMLDivElement>(null);
+  let editorRow: CatalogTableRow | null = null;
+  if (isCatalogProductRow(elevatedRow)) {
+    const topLevelRow = rows.find(row => row.id === elevatedRow.id);
+    const childProduct = rows.flatMap(row => row.rowKind === 'collection' ? row.childItems : [])
+      .find(item => item.id === elevatedRow.id);
+    editorRow = topLevelRow ?? (childProduct ? { ...elevatedRow, item: childProduct, name: childProduct.name,
+      final_price: childProduct.final_price, base_cost: childProduct.base_cost, stock_quantity: childProduct.stock_quantity ?? 0,
+      weight_g: childProduct.weight_g, hours: childProduct.hours, minutes: childProduct.minutes } : elevatedRow);
+  }
+  const editorRowId = editorRow?.id;
+  const editorRowVisible = Boolean(editorRowId && visibleRows.some(row => row.id === editorRowId
+    || (row.rowKind === 'collection' && expandedItemIds[row.id]
+      && row.childItems.some(item => item.id === editorRowId))));
+  // Move one stable portal host between responsive slots so resizing preserves the local draft.
+  useLayoutEffect(() => {
+    if (!isClient || !editorHost || !editorRowId) return;
+    const slots = isMobileLayout ? mobileEditorSlotsRef.current : desktopEditorSlotsRef.current;
+    const slot = editorRowVisible ? slots.get(editorRowId) : retainedEditorSlotRef.current;
+    if (slot && editorHost.parentElement !== slot) slot.appendChild(editorHost);
+  });
+  const updateElevatedRow = externalSetElevatedRow || setInternalElevatedRow;
+  const setElevatedRow = (next: CatalogTableRow | null): boolean => {
+    if (elevatedRow?.id !== next?.id && elevatedRow?.rowKind === 'product'
+      && !canCloseProductEditor(elevatedRow.item.id, window)) return false;
+    updateElevatedRow(next);
+    return true;
+  };
+  const onToggleExpand = (id: string) => {
+    if (expandedItemIds[id] && elevatedRow?.rowKind === 'product') {
+      const owner = rows.find(row => row.id === id);
+      const hidesEditor = elevatedRow.parentCollectionId === id
+        || (owner?.rowKind === 'product' && elevatedRow.isPart
+          && (elevatedRow.parentCollectionName === owner.name || elevatedRow.id.startsWith(`prt-${id}`)))
+        || (owner?.rowKind === 'collection' && elevatedRow.isPart
+          && owner.childItems.some(item => item.name === elevatedRow.parentCollectionName));
+      if (hidesEditor && !setElevatedRow(null)) return;
+    }
+    onToggleExpandRow(id);
+  };
   const lastElevatedCloseTimeRef = useRef<number>(0);
 
   // Состояние скопированного ID для тултипа
@@ -627,6 +685,17 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
   return (
     <div className="border border-white/10 rounded-xl overflow-hidden flex flex-col font-sans select-none bg-neutral-950/40">
 
+      {editorRow && !editorRowVisible && (
+        <motion.section initial={false} animate={{ opacity: 1 }} transition={surfaceTransition}
+          className="relative z-50 border-b border-white/15 bg-neutral-950/95"
+          aria-label="Редактор скрытого товара" onClick={event => event.stopPropagation()}>
+          <p role="status" className="px-4 pt-3 font-mono text-xs text-amber-400">
+            Открытый товар скрыт текущей выборкой. Черновик доступен для сохранения или отмены.
+          </p>
+          <div ref={retainedEditorSlotRef} data-product-editor-slot="retained" />
+        </motion.section>
+      )}
+
       {/* 1. МОБИЛЬНАЯ ВЕРСИЯ (КАРТОЧКИ < lg) */}
       <div className="lg:hidden p-3 space-y-2">
         {visibleRows.map((row) => {
@@ -673,7 +742,8 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
               }}
               tabIndex={0}
               role="button"
-              onClick={() => {
+              onClick={(event) => {
+                event.stopPropagation();
                 if (isCol || isAsm) {
                   onToggleExpand(row.id);
                 } else {
@@ -681,6 +751,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                 }
               }}
               onKeyDown={(e) => {
+                if (e.target !== e.currentTarget) return;
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   if (isCol || isAsm) {
@@ -780,8 +851,8 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                   <span>•</span>
                   <span className="text-emerald-400">
                     {isCol
-                      ? `+${formatCurrency(row.totalProfit || 0, currencySymbol)}`
-                      : `+${(row.final_price || 0) - (row.base_cost || 0)} ${currencySymbol}`}
+                      ? formatCatalogProfit(row.totalProfit ?? 0, currencySymbol)
+                      : formatCatalogProfit((row.final_price ?? 0) - (row.base_cost ?? 0), currencySymbol)}
                   </span>
                 </div>
 
@@ -804,6 +875,22 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
 
                 </div>
               </div>
+
+              <AnimatePresence initial={false}>
+                {isElevated && isCatalogProductRow(row) && (
+                  <motion.div key={`mobile-editor-${row.id}`}
+                    initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={shouldReduceMotion ? { duration: 0 } : {
+                      height: { duration: DRAWER_EXPAND_DURATION, ease: ROW_ELEVATION_EASE },
+                      opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
+                    }} className="overflow-hidden" onClick={event => event.stopPropagation()}
+                    onKeyDown={event => event.stopPropagation()}>
+                    <div ref={node => { if (node) mobileEditorSlotsRef.current.set(row.id, node);
+                      else mobileEditorSlotsRef.current.delete(row.id); }} data-product-editor-slot="mobile" />
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Раскрытый состав в карточке на мобильных устройствах */}
               <AnimatePresence initial={false}>
@@ -853,9 +940,9 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                               created_at: childProd.created_at,
                             };
                             return (
+                              <React.Fragment key={childProd.id}>
                               <div
-                                key={childProd.id}
-                                onClick={() => setElevatedRow(childRow)}
+                                onClick={() => setElevatedRow(elevatedRow?.id === childRow.id ? null : childRow)}
                                 className="p-2.5 rounded-lg border flex items-center justify-between gap-2 cursor-pointer transition-colors"
                                 style={{
                                   borderWidth: '1.5px',
@@ -883,6 +970,22 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   dot={(childProd.stock_quantity || 0) > 0}
                                 />
                               </div>
+                              <AnimatePresence initial={false}>
+                                {elevatedRow?.id === childRow.id && (
+                                  <motion.div key={`mobile-child-editor-${childRow.id}`}
+                                    initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={shouldReduceMotion ? { duration: 0 } : {
+                                      height: { duration: DRAWER_EXPAND_DURATION, ease: ROW_ELEVATION_EASE },
+                                      opacity: { duration: DRAWER_OPACITY_DURATION, ease: ROW_ELEVATION_EASE },
+                                    }} className="overflow-hidden" onClick={event => event.stopPropagation()}
+                                    onKeyDown={event => event.stopPropagation()}>
+                                    <div ref={node => { if (node) mobileEditorSlotsRef.current.set(childRow.id, node);
+                                      else mobileEditorSlotsRef.current.delete(childRow.id); }} data-product-editor-slot="mobile" />
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                              </React.Fragment>
                             );
                           })}
                         </div>
@@ -931,7 +1034,8 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
 
       {/* 2. ОСНОВНОЕ ТЕЛО ТАБЛИЦЫ (ДЕСКТОП >= lg) */}
       <div
-        onClick={() => {
+        onClick={(event) => {
+          event.stopPropagation();
           if (elevatedRow) setElevatedRow(null);
         }}
         className={`hidden lg:block overflow-x-auto w-full custom-scrollbar p-1.5 sm:p-2.5 relative ${
@@ -1076,13 +1180,13 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                   </div>
                 </th>
 
-                {/* 10. ПРИБЫЛЬ / МАРЖА */}
+                {/* 10. ПЛАН / МАРЖА */}
                 <th
                   onClick={() => onSort('profit')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right min-w-0"
                 >
                   <div className="flex items-center justify-end gap-1">
-                    <span>ПРИБЫЛЬ / МАРЖА</span>
+                    <span>ПЛАН / МАРЖА</span>
                     {renderSortIndicator('profit')}
                   </div>
                 </th>
@@ -1475,7 +1579,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 type="button"
                                 onClick={(e) => handleStockDelta(e, prodRow, -1)}
                                 className="w-5 h-5 rounded flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white cursor-pointer"
-                                title="Уменьшить остаток на 1"
+                                title="Ручная корректировка остатка −1"
                               >
                                 <Minus className="w-2.5 h-2.5" />
                               </button>
@@ -1492,7 +1596,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 type="button"
                                 onClick={(e) => handleStockDelta(e, prodRow, 1)}
                                 className="w-5 h-5 rounded flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white cursor-pointer"
-                                title="Увеличить остаток на 1"
+                                title="Ручная корректировка остатка +1"
                               >
                                 <Plus className="w-2.5 h-2.5" />
                               </button>
@@ -1534,7 +1638,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                             )}
                           </td>
 
-                          {/* 10. ПРИБЫЛЬ / МАРЖА */}
+                          {/* 10. ПЛАН / МАРЖА */}
                           <td className="py-2.5 px-3 whitespace-nowrap text-right font-mono text-xs min-w-0">
                             <div className="flex flex-col items-end gap-0.5 leading-tight">
                               <span className={`font-bold tabular-nums ${profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -1627,27 +1731,34 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   className="w-full overflow-hidden"
                                   style={{ willChange: 'height, opacity' }}
                                 >
-                                  <ProductRowDrawer
-                                    row={prodRow}
-                                    collectionColor={undefined}
-                                    currencySymbol={currencySymbol}
-                                    onInlineUpdateProduct={onInlineUpdateProduct}
-                                    onInlineUpdateCollection={onInlineUpdateCollection}
-                                    onSetStock={onSetStock}
-                                    onOpenEditAssembly={onOpenEditAssembly}
-                                    onOpenStlModal={onOpenStlModal}
-                                    onLoadIntoCalculator={onLoadIntoCalculator}
-                                    onCreateOrder={onCreateOrder}
-                                    onOpenEditCollection={onOpenEditCollection}
-                                    onOpenAddVariantModal={onOpenAddVariantModal}
-                                    onClose={() => {
-                                      lastElevatedCloseTimeRef.current = Date.now();
-                                      setElevatedRow(null);
-                                    }}
-                                    categoriesList={categoriesList}
-                                    filaments={filaments}
-                                    salesStat={salesStat}
-                                  />
+                                  {isCatalogProductRow(prodRow) && isClient ? (
+                                    <div ref={node => { if (node) desktopEditorSlotsRef.current.set(prodRow.id, node);
+                                      else desktopEditorSlotsRef.current.delete(prodRow.id); }} data-product-editor-slot="desktop" />
+                                  ) : (
+                                    <ProductRowDrawer
+                                      row={prodRow}
+                                      collectionColor={undefined}
+                                      currencySymbol={currencySymbol}
+                                      onInlineUpdateProduct={onInlineUpdateProduct}
+                                      onInlineUpdateCollection={onInlineUpdateCollection}
+                                      onSetStock={onSetStock}
+                                      onOpenEditAssembly={onOpenEditAssembly}
+                                      onOpenStlModal={onOpenStlModal}
+                                      onLoadIntoCalculator={onLoadIntoCalculator}
+                                      onCreateOrder={onCreateOrder}
+                                      onOpenEditCollection={onOpenEditCollection}
+                                      onOpenAddVariantModal={onOpenAddVariantModal}
+                                      onClose={() => {
+                                        lastElevatedCloseTimeRef.current = Date.now();
+                                        setElevatedRow(null);
+                                      }}
+                                      categoriesList={categoriesList}
+                                      filaments={filaments}
+                                      printers={printers}
+                                      settings={settings}
+                                      salesStat={salesStat}
+                                    />
+                                  )}
                                 </motion.div>
                               </td>
                             )}
@@ -1975,10 +2086,10 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                             </span>
                           </td>
 
-                          {/* 10. ПРИБЫЛЬ / МАРЖА */}
+                          {/* 10. ПЛАН / МАРЖА */}
                           <td className="py-2.5 px-3 whitespace-nowrap text-right font-mono text-xs min-w-0">
                             <span className="font-bold text-emerald-400 tabular-nums">
-                              +{formatCurrency(colRow.totalProfit, currencySymbol)}
+                              {formatCatalogProfit(colRow.totalProfit, currencySymbol)}
                             </span>
                           </td>
 
@@ -2268,13 +2379,13 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                   </div>
                 </th>
 
-                {/* 8. ПРИБЫЛЬ / МАРЖА */}
+                {/* 8. ПЛАН / МАРЖА */}
                 <th
                   onClick={() => onSort('profit')}
                   className="py-2.5 px-3 font-semibold cursor-pointer hover:text-white group text-right min-w-0"
                 >
                   <div className="flex items-center justify-end gap-1">
-                    <span>ПРИБЫЛЬ / МАРЖА</span>
+                    <span>ПЛАН / МАРЖА</span>
                     {renderSortIndicator('profit')}
                   </div>
                 </th>
@@ -2637,7 +2748,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 type="button"
                                 onClick={(e) => handleStockDelta(e, prodRow, -1)}
                                 className="w-5 h-5 rounded flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white cursor-pointer"
-                                title="Уменьшить остаток на 1"
+                                title="Ручная корректировка остатка −1"
                               >
                                 <Minus className="w-2.5 h-2.5" />
                               </button>
@@ -2656,7 +2767,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                 type="button"
                                 onClick={(e) => handleStockDelta(e, prodRow, 1)}
                                 className="w-5 h-5 rounded flex items-center justify-center border border-white/10 bg-white/5 hover:bg-white/15 text-neutral-400 hover:text-white cursor-pointer"
-                                title="Увеличить остаток на 1"
+                                title="Ручная корректировка остатка +1"
                               >
                                 <Plus className="w-2.5 h-2.5" />
                               </button>
@@ -2682,7 +2793,7 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                             </div>
                           </td>
 
-                          {/* 8. ПРИБЫЛЬ / МАРЖА */}
+                          {/* 8. ПЛАН / МАРЖА */}
                           <td className="py-2.5 px-3 whitespace-nowrap text-right font-mono text-xs min-w-0">
                             <div className="flex flex-col items-end gap-0.5 leading-tight">
                               <AnimatedPriceNumber
@@ -2757,27 +2868,34 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                                   className="w-full overflow-hidden"
                                   style={{ willChange: 'height, opacity' }}
                                 >
-                                  <ProductRowDrawer
-                                    row={prodRow}
-                                    collectionColor={undefined}
-                                    currencySymbol={currencySymbol}
-                                    onInlineUpdateProduct={onInlineUpdateProduct}
-                                    onInlineUpdateCollection={onInlineUpdateCollection}
-                                    onSetStock={onSetStock}
-                                    onOpenEditAssembly={onOpenEditAssembly}
-                                    onOpenStlModal={onOpenStlModal}
-                                    onLoadIntoCalculator={onLoadIntoCalculator}
-                                    onCreateOrder={onCreateOrder}
-                                    onOpenEditCollection={onOpenEditCollection}
-                                    onOpenAddVariantModal={onOpenAddVariantModal}
-                                    onClose={() => {
-                                      lastElevatedCloseTimeRef.current = Date.now();
-                                      setElevatedRow(null);
-                                    }}
-                                    categoriesList={categoriesList}
-                                    filaments={filaments}
-                                    salesStat={salesStat}
-                                  />
+                                  {isCatalogProductRow(prodRow) && isClient ? (
+                                    <div ref={node => { if (node) desktopEditorSlotsRef.current.set(prodRow.id, node);
+                                      else desktopEditorSlotsRef.current.delete(prodRow.id); }} data-product-editor-slot="desktop" />
+                                  ) : (
+                                    <ProductRowDrawer
+                                      row={prodRow}
+                                      collectionColor={undefined}
+                                      currencySymbol={currencySymbol}
+                                      onInlineUpdateProduct={onInlineUpdateProduct}
+                                      onInlineUpdateCollection={onInlineUpdateCollection}
+                                      onSetStock={onSetStock}
+                                      onOpenEditAssembly={onOpenEditAssembly}
+                                      onOpenStlModal={onOpenStlModal}
+                                      onLoadIntoCalculator={onLoadIntoCalculator}
+                                      onCreateOrder={onCreateOrder}
+                                      onOpenEditCollection={onOpenEditCollection}
+                                      onOpenAddVariantModal={onOpenAddVariantModal}
+                                      onClose={() => {
+                                        lastElevatedCloseTimeRef.current = Date.now();
+                                        setElevatedRow(null);
+                                      }}
+                                      categoriesList={categoriesList}
+                                      filaments={filaments}
+                                      printers={printers}
+                                      settings={settings}
+                                      salesStat={salesStat}
+                                    />
+                                  )}
                                 </motion.div>
                               </td>
                             )}
@@ -3105,11 +3223,11 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
                             </div>
                           </td>
 
-                          {/* 8. ПРИБЫЛЬ / МАРЖА */}
+                          {/* 8. ПЛАН / МАРЖА */}
                           <td className="py-2.5 px-3 whitespace-nowrap text-right font-mono text-xs min-w-0">
                             <div className="flex flex-col items-end gap-0.5 leading-tight">
                               <span className="font-bold text-emerald-400 tabular-nums">
-                                +{formatCurrency(colRow.totalProfit, currencySymbol)}
+                                {formatCatalogProfit(colRow.totalProfit, currencySymbol)}
                               </span>
                             </div>
                           </td>
@@ -3263,6 +3381,19 @@ export const ProductsV2Table = React.memo(function ProductsV2Table({
           </table>
         )}
       </div>
+
+      {isClient && editorHost && editorRow && createPortal(
+        <ProductRowDrawer key={editorRow.id} row={editorRow} currencySymbol={currencySymbol}
+          collectionColor={editorRow.rowKind === 'product' ? editorRow.parentCollectionColor : undefined}
+          onInlineUpdateProduct={onInlineUpdateProduct} onInlineUpdateCollection={onInlineUpdateCollection}
+          onSetStock={onSetStock} onOpenEditAssembly={onOpenEditAssembly} onOpenStlModal={onOpenStlModal}
+          onLoadIntoCalculator={onLoadIntoCalculator} onCreateOrder={onCreateOrder}
+          onOpenEditCollection={onOpenEditCollection} onOpenAddVariantModal={onOpenAddVariantModal}
+          onClose={() => { if (setElevatedRow(null)) lastElevatedCloseTimeRef.current = Date.now(); }}
+          categoriesList={categoriesList} filaments={filaments} printers={printers} settings={settings}
+          salesStat={salesStatsMap.get(editorRow.id)} />,
+        editorHost,
+      )}
 
       {/* ПОРТАЛЬНОЕ ВЫПАДАЮЩЕЕ МЕНЮ КАТЕГОРИЙ */}
       <TableCategoryDropdownPortal

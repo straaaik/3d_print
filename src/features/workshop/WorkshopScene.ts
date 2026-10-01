@@ -4,7 +4,7 @@ import { HDRLoader } from 'three/examples/jsm/loaders/HDRLoader.js';
 import { ScenePresentation } from './scenePresentation';
 import { animate, type AnimationPlaybackControls } from 'motion';
 import { acquireAssets, releaseAssets, type Assets, type SceneBuild } from './sceneGeometry';
-import { roomOrigin, findRoomAt, type FurnitureKind, snap, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, pickWorkshopTarget, footprint, slotWorld, calculatePanDelta, calculateOrbitAngles, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget, calculateGroupMove, resolvePlacementPosition, defaultRoomLabels, type Furniture, type Room, type Workshop, type Slot, type ModelKey, type Placement } from './model';
+import { roomOrigin, findRoomAt, type FurnitureKind, snap, validFurniture, snapFurnitureToNeighbors, pickWorkshopTarget, footprint, slotWorld, calculatePanDelta, calculateOrbitAngles, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget, calculateGroupMove, resolvePlacementPosition, defaultRoomLabels, type Furniture, type Room, type Workshop, type Slot, type ModelKey, type Placement } from './model';
 import { buildSpatialWorkshop, workshopBounds } from './spatialScene';
 import { SpatialAuthoring, type SpatialCallbacks } from './spatialAuthoring';
 import { isFilamentFurniture } from './model';
@@ -98,7 +98,8 @@ export interface WorkshopHotkeyContext {
     getSelectedLabelId: () => string | null;
     setSelectedLabel: (id: string | null) => void;
   };
-  down?: any;
+  down?: { x: number; y: number; target: THREE.Vector3; azimuth: number;
+    furnitureId: string; start: THREE.Vector3; origin: THREE.Vector3; right: boolean } | null;
   dragged?: boolean;
   grid?: number;
   floor?: THREE.Plane;
@@ -1645,7 +1646,7 @@ export class WorkshopScene {
       let worldZ = o.z + (lbl.v - 0.5) * room.depth;
       let worldY = 0.05;
 
-      let hudWorldX = worldX;
+      const hudWorldX = worldX;
       let hudWorldZ = worldZ;
       let hudWorldY = worldY;
 
@@ -2315,8 +2316,8 @@ export class WorkshopScene {
           }
         } else {
           const fOrigin = roomOrigin(this.data, f.roomId);
-          let worldX = fOrigin.x + (d.gizmoAxis === 'x' ? snap(f.x + step, this.grid) : f.x);
-          let worldZ = fOrigin.z + (d.gizmoAxis === 'z' ? snap(f.z + step, this.grid) : f.z);
+          const worldX = fOrigin.x + (d.gizmoAxis === 'x' ? snap(f.x + step, this.grid) : f.x);
+          const worldZ = fOrigin.z + (d.gizmoAxis === 'z' ? snap(f.z + step, this.grid) : f.z);
           const targetRoom = findRoomAt(this.data, worldX, worldZ) ?? this.data.rooms.find((r) => r.id === f.roomId);
           if (targetRoom) {
             const targetOrigin = roomOrigin(this.data, targetRoom.id);

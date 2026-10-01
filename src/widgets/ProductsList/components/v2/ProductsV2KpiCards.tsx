@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatCatalogProfit } from '../../helpers';
 import { formatCurrency } from '@/shared/lib/format';
 import { TrendingUp, TrendingDown, Layers, ArrowUpRight, Boxes } from 'lucide-react';
 import { Tooltip } from '@/shared/ui/Tooltip';
@@ -42,9 +43,9 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
   totalProductsCount,
 }: ProductsV2KpiCardsProps) {
   const costRatio = totalRetailValue > 0 ? (totalCostValue / totalRetailValue) * 100 : 0;
-  const averagePrice = totalProductsCount > 0 ? Math.round(totalRetailValue / Math.max(1, totalUnits || totalProductsCount)) : 0;
-  const averageCost = totalProductsCount > 0 ? Math.round(totalCostValue / Math.max(1, totalUnits || totalProductsCount)) : 0;
-  const averageProfit = totalProductsCount > 0 ? Math.round(potentialProfit / Math.max(1, totalUnits || totalProductsCount)) : 0;
+  const averagePrice = totalUnits > 0 ? Math.round(totalRetailValue / totalUnits) : 0;
+  const averageCost = totalUnits > 0 ? Math.round(totalCostValue / totalUnits) : 0;
+  const averageProfit = totalUnits > 0 ? Math.round(potentialProfit / totalUnits) : 0;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2.5 sm:gap-3 select-none">
@@ -120,7 +121,7 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
         )}
       </CockpitTiltCard>
 
-      {/* КАРТОЧКА 2: СЕБЕСТОИМОСТЬ СКЛАДА */}
+      {/* КАРТОЧКА 2: УЧЁТНАЯ СТОИМОСТЬ СКЛАДА */}
       <CockpitTiltCard
         tone="rose"
         className="p-3 sm:p-3.5 flex flex-col justify-between"
@@ -128,7 +129,7 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
           <div className="flex h-full flex-col justify-between font-mono text-[10px]">
             <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
               <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
-                СЕБЕСТОИМОСТЬ
+                УЧЁТНАЯ СТОИМОСТЬ
               </span>
             </div>
             <div className="my-auto space-y-2 py-1">
@@ -141,8 +142,8 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
                 <span className="font-semibold text-white tabular-nums">{formatCurrency(averageCost, currencySymbol)}</span>
               </div>
               <div className="flex items-center justify-between text-neutral-300">
-                <span className="text-neutral-400">Рентабельность:</span>
-                <span className="font-bold text-emerald-400 tabular-nums">{(100 - costRatio).toFixed(1)}%</span>
+                <span className="text-neutral-400">Плановая маржа:</span>
+                <span className="font-bold text-emerald-400 tabular-nums">{profitMargin.toFixed(1)}%</span>
               </div>
             </div>
           </div>
@@ -151,7 +152,7 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
         <div>
           <div className="flex items-center justify-between text-neutral-400 mb-1.5">
             <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
-              СЕБЕСТОИМОСТЬ
+              УЧЁТНАЯ СТОИМОСТЬ
             </span>
             <div className="p-1 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">
               <TrendingDown className="w-3 h-3" />
@@ -175,9 +176,9 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
               <span className="text-neutral-300 font-semibold">{formatCurrency(averageCost, currencySymbol)}</span>
             </div>
             <div className="flex items-center justify-between text-neutral-400 pt-0.5 border-t border-white/5">
-              <span>Рентабельность:</span>
+              <span>Плановая маржа:</span>
               <span className="text-emerald-400 font-bold px-1.5 py-0.2 rounded bg-emerald-500/10 border border-emerald-500/20">
-                {(100 - costRatio).toFixed(1)}%
+                {profitMargin.toFixed(1)}%
               </span>
             </div>
           </div>
@@ -199,7 +200,7 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
           <div className="flex h-full flex-col justify-between font-mono text-[10px]">
             <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
               <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
-                ПРИБЫЛЬ СКЛАДА
+                ПЛАН ПРОДАЖИ
               </span>
             </div>
             <div className="my-auto space-y-2 py-1">
@@ -208,12 +209,12 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
                 <span className="font-bold text-emerald-400 tabular-nums">{profitMargin.toFixed(1)}%</span>
               </div>
               <div className="flex items-center justify-between text-neutral-300">
-                <span className="text-neutral-400">Ср. прибыль/шт:</span>
-                <span className="font-semibold text-white tabular-nums">+{formatCurrency(averageProfit, currencySymbol)}</span>
+                <span className="text-neutral-400">Потенциал/шт:</span>
+                <span className="font-semibold text-white tabular-nums">{formatCatalogProfit(averageProfit, currencySymbol)}</span>
               </div>
               <div className="flex items-center justify-between text-neutral-300">
-                <span className="text-neutral-400">Оценка прибыли:</span>
-                <span className="font-bold text-emerald-400 tabular-nums">+{formatCurrency(potentialProfit, currencySymbol)}</span>
+                <span className="text-neutral-400">Плановая прибыль:</span>
+                <span className="font-bold text-emerald-400 tabular-nums">{formatCatalogProfit(potentialProfit, currencySymbol)}</span>
               </div>
             </div>
           </div>
@@ -222,24 +223,26 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
         <div>
           <div className="flex items-center justify-between text-neutral-400 mb-1.5">
             <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
-              ПРИБЫЛЬ СКЛАДА
+              ПЛАН ПРОДАЖИ
             </span>
             <div className="p-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               <TrendingUp className="w-3 h-3" />
             </div>
           </div>
 
-          <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-400 tracking-tight leading-none mt-0.5">
-            +{formatCurrency(potentialProfit, currencySymbol)}
+          <div className={`text-xl sm:text-2xl font-bold font-mono tracking-tight leading-none mt-0.5 ${potentialProfit < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+            {formatCatalogProfit(potentialProfit, currencySymbol)}
           </div>
         </div>
+
+        <p className="mt-2 text-[10px] font-mono text-neutral-500">Фактическая прибыль — по оплатам заказов.</p>
 
         {/* Полоса прогресса маржинальности */}
         <div className="mt-2">
           <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden relative">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-teal-500 to-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.5)]"
-              style={{ width: `${Math.min(100, Math.max(5, profitMargin))}%` }}
+              className="h-full rounded-full bg-emerald-400"
+              style={{ width: `${Math.min(100, Math.max(0, profitMargin))}%` }}
             />
           </div>
         </div>
@@ -260,17 +263,17 @@ export const ProductsV2KpiCards = React.memo(function ProductsV2KpiCards({
               </span>
             </div>
 
-            <Tooltip content="Средняя расчетная маржинальность товаров в каталоге">
+            <Tooltip content="План продажи готового остатка: сохранённая цена за штуку минус учётная стоимость. Фактическая прибыль считается в заказах: получено оплат минус себестоимость.">
               <span className="text-neutral-400 text-[10px]">
-                {profitMargin >= 50 ? 'Высокая' : 'Стандарт'}
+                {potentialProfit < 0 ? 'Убыток в плане' : profitMargin >= 50 ? 'Высокая' : 'Стандарт'}
               </span>
             </Tooltip>
           </div>
 
           {isExpanded && (
             <div className="flex items-center justify-between text-neutral-400 pt-0.5 border-t border-white/5">
-              <span>Ср. прибыль/шт:</span>
-              <span className="text-emerald-400 font-bold">+{formatCurrency(averageProfit, currencySymbol)}</span>
+              <span>Потенциал/шт:</span>
+              <span className="text-emerald-400 font-bold">{formatCatalogProfit(averageProfit, currencySymbol)}</span>
             </div>
           )}
         </div>

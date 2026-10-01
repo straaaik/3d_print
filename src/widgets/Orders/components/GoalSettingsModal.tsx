@@ -6,6 +6,7 @@ import { Check, RotateCcw } from 'lucide-react';
 import { formatMoney } from '../helpers';
 import { Tooltip } from '../../../shared/ui/Tooltip';
 import { AnimatedPriceNumber } from '../../../shared/ui/AnimatedPriceNumber';
+import { NumberInput } from '../../../shared/ui/NumberInput';
 import { CockpitButton } from '../../../shared/ui/CockpitButton';
 
 interface GoalSettingsModalProps {
@@ -161,7 +162,7 @@ function GoalSettingsModalContent({
   }, [onClose]);
 
   const numericGoal = useMemo(() => {
-    return Number(goalAmount.replace(/\D/g, '') || 0);
+    return Number(goalAmount.replace(',', '.')) || 0;
   }, [goalAmount]);
 
   const handleSave = (e?: React.FormEvent) => {
@@ -251,18 +252,8 @@ function GoalSettingsModalContent({
                   {/* Волновой серовато-зеленый слой заполнения */}
                   <WaveFill percent={progressPercent} />
 
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={goalAmount ? Number(goalAmount).toLocaleString('ru-RU') : ''}
-                    onChange={(e) => {
-                      const numericOnly = e.target.value.replace(/\D/g, '');
-                      setGoalAmount(numericOnly);
-                    }}
-                    placeholder="0"
-                    autoFocus
-                    className="relative z-10 bg-transparent border-none focus:outline-none p-0 text-2xl sm:text-3xl font-light font-mono text-white placeholder-[#52525b] w-full tracking-tight"
-                  />
+                  <NumberInput label="Сумма финансовой цели" value={Number(goalAmount) || 0} min={0}
+                    onChange={value => setGoalAmount(String(value ?? 0))} autoFocus />
 
                   {(numericGoal > 0 || currentGoal > 0) && (
                     <button

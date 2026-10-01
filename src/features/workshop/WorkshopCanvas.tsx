@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { RotateCcw, RotateCw, X, Save, Eye, ZoomIn, ZoomOut, Type, MousePointer2, Plus, Paintbrush, Eraser, Check, Pencil, Trash2, AlertTriangle, Move } from 'lucide-react';
+import { RotateCcw, RotateCw, X, Save, Eye, ZoomIn, ZoomOut, MousePointer2, Plus, Paintbrush, Eraser, Check, Pencil, Trash2, AlertTriangle, Move } from 'lucide-react';
 import type { WorkshopScene, HoverPlacementInfo, LabelScreenTransform } from './WorkshopScene';
 import type { FurnitureKind, ModelKey, Room, RoomLabel, Workshop } from './model';
 import type { Filament, Printer } from '../../shared/types';
@@ -68,7 +68,6 @@ export function WorkshopCanvas(props: WorkshopCanvasProps) {
   }, [props]);
   const [status, setStatus] = useState('Загрузка 3D-сцены…');
   const [hoverPlacement, setHoverPlacement] = useState<HoverPlacementInfo | null>(null);
-  const [authoringHint,setAuthoringHint]=useState<string|null>(null);
   const [showControls,setShowControls]=useState(false);
   const [gridBuilderActive, setGridBuilderActive] = useState(false);
   const [gridBuilderTool, setGridBuilderTool] = useState<'brush' | 'eraser'>('brush');
@@ -76,25 +75,26 @@ export function WorkshopCanvas(props: WorkshopCanvasProps) {
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [roomName, setRoomName] = useState(props.room.name);
-  useEffect(() => {
+  const [previousRoom, setPreviousRoom] = useState({ id: props.room.id, name: props.room.name });
+  if (previousRoom.id !== props.room.id || previousRoom.name !== props.room.name) {
+    setPreviousRoom({ id: props.room.id, name: props.room.name });
     setRoomName(props.room.name);
-  }, [props.room.id, props.room.name]);
+  }
   const [isDeleteRoomConfirmOpen, setIsDeleteRoomConfirmOpen] = useState(false);
   const [collisionToast, setCollisionToast] = useState<string | null>(null);
   const collisionToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [labelTransform, setLabelTransform] = useState<LabelScreenTransform | null>(null);
   const [isEditingText, setIsEditingText] = useState(false);
-  const [editingText, setEditingText] = useState('');
+  const [editingText, setEditingText] = useState(props.selectedLabel?.text ?? '');
   const inlineInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (props.selectedLabel) {
-      setEditingText(props.selectedLabel.text);
-    } else {
-      setIsEditingText(false);
-    }
-  }, [props.selectedLabel?.id, props.selectedLabel?.text]);
+  const [previousLabel, setPreviousLabel] = useState({ id: props.selectedLabel?.id, text: props.selectedLabel?.text });
+  if (previousLabel.id !== props.selectedLabel?.id || previousLabel.text !== props.selectedLabel?.text) {
+    setPreviousLabel({ id: props.selectedLabel?.id, text: props.selectedLabel?.text });
+    if (props.selectedLabel) setEditingText(props.selectedLabel.text);
+    else setIsEditingText(false);
+  }
 
   useEffect(() => {
     if (isEditingText && inlineInputRef.current) {
@@ -171,11 +171,17 @@ export function WorkshopCanvas(props: WorkshopCanvasProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [gridBuilderActive]);
 
-  useEffect(() => {
-    if (!props.edit && gridBuilderActive) {
-      handleCancelGridBuilder();
+  const [previousEdit, setPreviousEdit] = useState(props.edit);
+  if (previousEdit !== props.edit) {
+    setPreviousEdit(props.edit);
+    if (!props.edit) {
+      setGridBuilderActive(false);
+      setGridTileCount(0);
     }
-  }, [props.edit, gridBuilderActive]);
+  }
+  useEffect(() => {
+    if (!props.edit) scene.current?.cancelGridRoomBuilder();
+  }, [props.edit]);
 
   useEffect(() => {
     let cancelled = false;
@@ -201,7 +207,7 @@ export function WorkshopCanvas(props: WorkshopCanvasProps) {
           onUpdateLabel: (...args)=>latest.current.onUpdateLabel?.(...args),
           onDeleteLabel: (roomId, labelId)=>latest.current.onDeleteRoomLabel?.(roomId, labelId),
           onPlaceLabel: (rId, surf, u, v, text, col, sz, rot) => latest.current.onPlaceLabel(rId, surf, u, v, text, col, sz, rot),
-          onAuthoringHint: setAuthoringHint,
+          onAuthoringHint: () => {},
           onCamera: (c) => latest.current.onCamera(c),
           onReady: () => setStatus(''),
           onError: setStatus,

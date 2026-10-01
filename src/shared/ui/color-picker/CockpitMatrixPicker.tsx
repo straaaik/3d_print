@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Pipette, Copy, Check } from 'lucide-react';
 import {
   hexToHsv,
@@ -18,6 +18,7 @@ import {
 import { CustomColorPickerProps } from './types';
 import { ColorPickerTrigger } from './ColorPickerTrigger';
 import { Tooltip } from '../Tooltip';
+import { useIsClient } from '../useIsClient';
 
 export function CockpitMatrixPicker({
   value = '#0CB4E0',
@@ -31,20 +32,18 @@ export function CockpitMatrixPicker({
   const [hexInput, setHexInput] = useState(() => normalizeHex(value));
   const [format, setFormat] = useState<'HEX' | 'RGB' | 'HSL'>('HEX');
   const [copied, setCopied] = useState(false);
-  const [hasDropper, setHasDropper] = useState(false);
+  const hasDropper = useIsClient() && hasEyeDropperSupport();
 
-  useEffect(() => {
-    setHasDropper(hasEyeDropperSupport());
-  }, []);
-
-  // Синхронизация внешнего value с внутренним состоянием
-  useEffect(() => {
+  // React permits guarded state adjustment during render when controlled props change.
+  const [previousValue, setPreviousValue] = useState(value);
+  if (previousValue !== value) {
+    setPreviousValue(value);
     if (isValidHex(value)) {
       const normalized = normalizeHex(value);
       setHexInput(normalized);
       setHsv(hexToHsv(normalized));
     }
-  }, [value]);
+  }
 
   const satValRef = useRef<HTMLDivElement>(null);
   const hueRef = useRef<HTMLDivElement>(null);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Sliders,
@@ -78,29 +78,31 @@ function ConfigSlider({
   onReset,
 }: ConfigSliderProps) {
   const isModified = value !== defaultValue;
-  const [textValue, setTextValue] = useState<string>(String(value));
-
-  useEffect(() => {
-    setTextValue(String(value));
-  }, [value]);
+  const [edit, setEdit] = useState({ sourceValue: value, text: String(value) });
+  const textValue = edit.sourceValue === value ? edit.text : String(value);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
-    setTextValue(raw);
-    if (raw === '' || raw === '-') return;
+    if (raw === '' || raw === '-') {
+      setEdit({ sourceValue: value, text: raw });
+      return;
+    }
     const val = parseFloat(raw);
     if (!isNaN(val)) {
+      setEdit({ sourceValue: val, text: raw });
       onChange(val);
+    } else {
+      setEdit({ sourceValue: value, text: raw });
     }
   };
 
   const handleBlur = () => {
     if (textValue === '' || isNaN(parseFloat(textValue))) {
-      setTextValue(String(value));
+      setEdit({ sourceValue: value, text: String(value) });
     } else {
       const num = parseFloat(textValue);
       const clamped = Math.min(Math.max(num, min), max);
-      setTextValue(String(clamped));
+      setEdit({ sourceValue: clamped, text: String(clamped) });
       if (clamped !== value) {
         onChange(clamped);
       }

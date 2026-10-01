@@ -30,7 +30,7 @@ export function convertPartToSavedCalculation(
     quantity: part.quantity || 1,
     stock_quantity: part.quantity || 1,
     base_cost: part.base_cost || 0,
-    final_price: part.final_price || part.base_cost || 0,
+    final_price: part.final_price ?? 0,
     filament_name: part.filament_name || 'PLA',
     filament_color: part.filament_color || '#06b6d4',
     printer_name: part.printer_name || '',

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { Order } from '../../widgets/Orders/types';
 import { saveOrder, getOrders } from '../../shared/api/db';
@@ -8,6 +8,10 @@ import { useToast } from './ToastProvider';
 import { useData } from './DataProvider';
 import { useAuth } from './AuthProvider';
 import { MinimizedDraftsStack, MinimizedDraft } from '../../widgets/Orders/components/MinimizedDraftsStack';
+import { useInventory } from './InventoryProvider';
+import { buildOrderItem, summarizeOrderItems } from '../../widgets/Orders/orderItems';
+import { createProductionRecipe } from '../../shared/lib/productionRecipe';
+import type { CalculationProjectOrderDraft } from '../../shared/lib/calculationProjects';
 
 const OrderFormModal = dynamic(
   () => import('../../widgets/Orders/components/OrderFormModal').then(module => module.OrderFormModal),
@@ -15,6 +19,10 @@ const OrderFormModal = dynamic(
 );
 
 const MAX_MINIMIZED_DRAFTS = 5;
+const ProjectOrderReviewModal = dynamic(
+  () => import('../../widgets/Orders/components/ProjectOrderReviewModal').then(module => module.ProjectOrderReviewModal),
+  { ssr: false }
+);
 
 interface OrderModalContextType {
   isModalOpen: boolean;
@@ -22,6 +30,7 @@ interface OrderModalContextType {
   setActiveOrder: React.Dispatch<React.SetStateAction<Partial<Order> | null>>;
   minimizedDrafts: MinimizedDraft[];
   openOrder: (order?: Partial<Order> | null) => void;
+  openProjectOrder: (draft: CalculationProjectOrderDraft) => void;
   minimizeCurrentOrder: () => void;
   restoreDraft: (draftId: string) => void;
   discardDraft: (draftId: string) => void;
@@ -32,7 +41,8 @@ interface OrderModalContextType {
 const OrderModalContext = createContext<OrderModalContextType | undefined>(undefined);
 
 export function OrderModalProvider({ children }: { children: React.ReactNode }) {
-  const { savedCalculations } = useData();
+  const { savedCalculations, settings, filaments, printers } = useData();
+  const inventory = useInventory();
   const { currentUser, isLoading: isAuthLoading } = useAuth();
   const { showWarning, showToast, showSuccess } = useToast();
 
@@ -41,6 +51,18 @@ export function OrderModalProvider({ children }: { children: React.ReactNode }) 
   const [minimizedDrafts, setMinimizedDrafts] = useState<MinimizedDraft[]>([]);
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const isSavingRef = useRef(false);
+  const [projectDraft, setProjectDraft] = useState<CalculationProjectOrderDraft | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const activeOwner = useRef(currentUser?.id);
+  useLayoutEffect(() => { activeOwner.current = currentUser?.id; }, [currentUser?.id]);
+  useEffect(() => {
+    queueMicrotask(() => {
+      setActiveOrder(null);
+      setProjectDraft(null);
+      setMinimizedDrafts([]);
+      setIsModalOpen(false);
+    });
+  }, [currentUser?.id]);
 
   // Заказы для автозаполнения загружаются только после авторизации и обновляются по событию.
   useEffect(() => {
@@ -62,8 +84,25 @@ export function OrderModalProvider({ children }: { children: React.ReactNode }) 
 
   // Открытие модалки создания/редактирования
   const openOrder = useCallback((orderToOpen?: Partial<Order> | null) => {
+    setProjectDraft(null);
     if (orderToOpen) {
-      setActiveOrder({ ...orderToOpen });
+      const canonical = orderToOpen.id ? inventory.state?.legacyOrders?.find(row => row.id === orderToOpen.id) : undefined;
+      const items = orderToOpen.id ? inventory.state?.orderItems.filter(row => row.order_id === orderToOpen.id && !row.archived) : undefined;
+      if (!orderToOpen.id && orderToOpen.type !== 'expense' && !orderToOpen.items) {
+        const product = savedCalculations.find(row => row.id === orderToOpen.product_id);
+        if (product) {
+          const sourceFilamentId = product.filament_id ?? product.calculation_snapshot?.inputs.filament?.id
+            ?? filaments.find(row => row.name === product.filament_name && (!product.filament_color || row.color === product.filament_color))?.id;
+          const variantId = inventory.state?.variants.find(row => row.id === sourceFilamentId || row.legacy_filament_id === sourceFilamentId)?.id;
+          const recipe = product.type === 'assembly' && inventory.state
+            ? createProductionRecipe(product, inventory.state, savedCalculations, filaments, printers, settings) : undefined;
+          const item = buildOrderItem(product, orderToOpen.quantity ?? 1, { userId: currentUser?.id ?? 'anonymous',
+            orderId: '', variantId, filaments, printers, settings, recipe });
+          setActiveOrder(summarizeOrderItems({ ...orderToOpen, payments: [], payment: 0,
+            discount_percent: 0, discount_amount: 0, urgency_percent: 0, urgency_amount: 0, agreed_price: null }, [item]));
+        } else setActiveOrder({ ...structuredClone(orderToOpen), items: [], payments: [], payment: 0 });
+      } else setActiveOrder(structuredClone({ ...orderToOpen, ...(canonical ? { cost: canonical.cost, order_revision: canonical.order_revision } : {}),
+        ...(items?.length ? { items } : orderToOpen.items ? { items: orderToOpen.items } : {}) }));
     } else {
       const today = new Date();
       const formattedDate = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
@@ -82,7 +121,9 @@ export function OrderModalProvider({ children }: { children: React.ReactNode }) 
         amount: 0,
         cost: 0,
         cost_items: [],
-        payments: [0],
+        payments: [],
+        items: [],
+        agreed_price: null,
         payment: 0,
         client: 'Авито',
         client_name: '',
@@ -93,6 +134,14 @@ export function OrderModalProvider({ children }: { children: React.ReactNode }) 
         notes: '',
       });
     }
+    setIsModalOpen(true);
+  }, [inventory.state, savedCalculations, filaments, printers, settings, currentUser?.id]);
+
+  const openProjectOrder = useCallback((draft: CalculationProjectOrderDraft) => {
+    const today = new Date().toLocaleDateString('ru-RU');
+    setProjectDraft(structuredClone(draft));
+    setActiveOrder({ ...structuredClone(draft.order), date: today, client: 'Сайт', client_name: '',
+      contact: '', contacts: [], deadline: '', notes: '' });
     setIsModalOpen(true);
   }, []);
 
@@ -156,6 +205,7 @@ export function OrderModalProvider({ children }: { children: React.ReactNode }) 
   const closeActiveModal = useCallback(() => {
     setIsModalOpen(false);
     setActiveOrder(null);
+    setProjectDraft(null);
   }, []);
 
   // Сохранение заказа из активной модалки
@@ -163,10 +213,22 @@ export function OrderModalProvider({ children }: { children: React.ReactNode }) 
     if (e && e.preventDefault) e.preventDefault();
     if (!activeOrder || isSavingRef.current) return null;
     isSavingRef.current = true;
+    setIsSaving(true);
 
     try {
-      const isEdit = Boolean(activeOrder.id);
-      const saved = await saveOrder(activeOrder as Omit<Order, 'id'> & { id?: string });
+      const isEdit = Boolean(activeOrder.id) && !projectDraft;
+      let saved: Order;
+      if (projectDraft) {
+        const id = crypto.randomUUID();
+        const occurredAt = new Date().toISOString();
+        const order = { ...activeOrder, id, user_id: currentUser?.id, created_at: occurredAt } as Order;
+        const view = await inventory.execute({ kind: 'createProjectOrder', id: crypto.randomUUID(), occurredAt,
+          order, draft: projectDraft, itemIds: projectDraft.items.map(() => crypto.randomUUID()) });
+        saved = view.state.legacyOrders!.find(row => row.id === id)!;
+      } else {
+        saved = await saveOrder(activeOrder as Omit<Order, 'id'> & { id?: string });
+      }
+      if (activeOwner.current !== currentUser?.id) return saved;
 
       setAllOrders(prev => {
         if (isEdit) {
@@ -182,6 +244,7 @@ export function OrderModalProvider({ children }: { children: React.ReactNode }) 
 
       setIsModalOpen(false);
       setActiveOrder(null);
+      setProjectDraft(null);
       showSuccess(isEdit ? `Заказ #${saved.order_number} обновлен` : `Создан заказ #${saved.order_number}`);
 
       // Dispatch custom event for pages to update
@@ -196,8 +259,9 @@ export function OrderModalProvider({ children }: { children: React.ReactNode }) 
       return null;
     } finally {
       isSavingRef.current = false;
+      setIsSaving(false);
     }
-  }, [activeOrder, showSuccess, showWarning]);
+  }, [activeOrder, projectDraft, currentUser, inventory, showSuccess, showWarning]);
 
   return (
     <OrderModalContext.Provider
@@ -207,6 +271,7 @@ export function OrderModalProvider({ children }: { children: React.ReactNode }) 
         setActiveOrder,
         minimizedDrafts,
         openOrder,
+        openProjectOrder,
         minimizeCurrentOrder,
         restoreDraft,
         discardDraft,
@@ -217,7 +282,10 @@ export function OrderModalProvider({ children }: { children: React.ReactNode }) 
       {children}
 
       {/* Глобальное модальное окно заказа/расхода */}
-      {isModalOpen && (
+      {isModalOpen && projectDraft?.order.user_id === currentUser?.id && projectDraft && activeOrder && <ProjectOrderReviewModal draft={projectDraft} order={activeOrder}
+        onChange={setActiveOrder} onClose={closeActiveModal} onSave={saveCurrentOrder} isSaving={isSaving}
+        currency={settings?.currency ?? '₽'} />}
+      {isModalOpen && !projectDraft && (
         <OrderFormModal
           isOpen={isModalOpen}
           onClose={closeActiveModal}

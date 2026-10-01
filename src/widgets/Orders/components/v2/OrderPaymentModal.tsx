@@ -1,4 +1,6 @@
 'use client';
+import { NumberInput } from '../../../../shared/ui/NumberInput';
+
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -1020,15 +1022,15 @@ function OrderPaymentModalContent({
                               <span className="text-[8px] text-neutral-600 font-normal">СУММА</span>
                             </div>
                             <div className="flex items-baseline gap-1 mt-1">
-                              <input
-                                type="number"
-                                min="0"
+                              <NumberInput label="Сумма"
+
+                                min={0}
                                 step="any"
-                                value={item.amount === 0 ? '' : item.amount}
-                                onChange={(e) => handleAmountChange(idx, e.target.value)}
+                                value={Number(item.amount === 0 ? '' : item.amount) || 0}
+                                onChange={value => handleAmountChange(idx, String(value ?? ''))}
                                 onFocus={() => setFocusedIndex(idx)}
                                 placeholder="0"
-                                className="w-full bg-transparent border-none outline-none focus:ring-0 p-0 text-[#0a0a0a] font-black font-mono text-2xl tracking-tight placeholder:text-neutral-500/60"
+
                               />
                               <span className="text-base font-extrabold text-[#0a0a0a] font-mono select-none pointer-events-none">
                                 ₽

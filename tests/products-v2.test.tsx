@@ -8,7 +8,11 @@ import {
 } from '../src/widgets/ProductsList/components/v2/ProductsV2Table';
 import { ProductsV2FilterBar } from '../src/widgets/ProductsList/components/v2/ProductsV2FilterBar';
 import { AssemblyExpandedRow } from '../src/widgets/ProductsList/components/v2/AssemblyExpandedRow';
-import { getSalesStats } from '../src/widgets/ProductsList/helpers';
+import { ProductsV2KpiCards } from '../src/widgets/ProductsList/components/v2/ProductsV2KpiCards';
+import { convertPartToSavedCalculation } from '../src/widgets/ProductsList/components/v2/AssemblyPartDrawer';
+import { emptyFoundationState } from '../src/shared/lib/foundationStorage';
+import type { FinishedStockBalance } from '../src/shared/types/foundation';
+import { getSalesStats, getWarehouseMetrics, prepareDraftOrderFromProduct } from '../src/widgets/ProductsList/helpers';
 import { Order, SavedCalculation } from '../src/shared/types';
 
 test('products table grid templates define exact column counts matching orders specification', () => {
@@ -205,7 +209,7 @@ test('assembly expanded row renders specification columns and a negative profit 
   assert.match(html, /Общий вес/);
   assert.match(html, /Сумма/);
   assert.match(html, /Деталь с очень длинным наименованием/);
-  assert.match(html, /Прибыль/);
+  assert.match(html, /Плановая прибыль/);
   assert.match(html, /−300/);
   assert.doesNotMatch(html, /\+−300/);
   assert.match(html, /труд учтён в прибыли/);
@@ -213,22 +217,23 @@ test('assembly expanded row renders specification columns and a negative profit 
 });
 
 // Вспомогательная функция для рекурсивного обхода React VDOM-дерева в тестах
-function findElementsByPredicate(node: any, predicate: (n: any) => boolean): any[] {
-  const matches: any[] = [];
-  function traverse(current: any) {
+type ClickableElement = { props: { children?: unknown; onClick: () => void; title?: string } };
+function findElementsByPredicate(node: unknown, predicate: (n: ClickableElement) => boolean): ClickableElement[] {
+  const matches: ClickableElement[] = [];
+  function traverse(current: unknown) {
     if (!current) return;
     if (Array.isArray(current)) {
       current.forEach(traverse);
       return;
     }
-    if (predicate(current)) matches.push(current);
-    if (current.props && current.props.children) {
-      if (Array.isArray(current.props.children)) {
-        current.props.children.forEach(traverse);
-      } else {
-        traverse(current.props.children);
-      }
+    if (typeof current !== 'object' || !('props' in current) ||
+      !current.props || typeof current.props !== 'object') return;
+    const props = current.props;
+    if ('onClick' in props && typeof props.onClick === 'function') {
+      const clickable = current as ClickableElement;
+      if (predicate(clickable)) matches.push(clickable);
     }
+    if ('children' in props) traverse(props.children);
   }
   traverse(node);
   return matches;
@@ -644,3 +649,116 @@ test('assembly expanded row supports custom currency symbol and owner labor attr
   assert.doesNotMatch(htmlHired, /труд учтён в прибыли/);
 });
 
+
+
+test('stock KPI uses ledger onhand basis and divides frozen batch retail once without rewriting templates', () => {
+ const product: SavedCalculation={id:'batch',name:'Тираж',filament_name:'PLA',printer_name:'',weight_g:100,
+   hours:1,minutes:0,quantity:4,base_cost:200,final_price:400,stock_quantity:9};
+ const balance: FinishedStockBalance={id:'balance',user_id:'owner',created_at:'2026-10-01T00:00:00Z',
+   product_id:'batch',source_product_id:'batch',quantity:3,average_unit_cost:30,revision:2};
+ const frozen=structuredClone(product);
+ assert.deepEqual(getWarehouseMetrics([product],[balance]),{totalUnits:3,inStockPositionsCount:1,
+   totalRetailValue:300,totalCostValue:90,potentialProfit:210,profitMargin:70});
+ assert.deepEqual(product,frozen);
+ const changedCatalog={...product,base_cost:900};
+ assert.equal(getWarehouseMetrics([changedCatalog],[balance]).totalCostValue,90,'catalog recalculation does not revalue finished units');
+ assert.equal(getWarehouseMetrics([product],[{...balance,quantity:0}]).totalUnits,0,'canonical zero stock overrides stale saved stock');
+});
+
+test('stock KPI preserves agreed zero, assembly batch totals, archived balances and orphan basis', () => {
+ const base: SavedCalculation={id:'free',name:'Бесплатно',filament_name:'PLA',printer_name:'',weight_g:10,
+   hours:1,minutes:0,quantity:2,base_cost:100,final_price:0,stock_quantity:3};
+ const balance=(id:string,quantity:number,cost:number):FinishedStockBalance=>({id:'b-'+id,user_id:'owner',
+   created_at:'2026-10-01T00:00:00Z',product_id:id,source_product_id:id,quantity,average_unit_cost:cost,revision:0});
+ const free=getWarehouseMetrics([base],[balance('free',3,20)]);
+ assert.equal(free.totalRetailValue,0);assert.equal(free.totalCostValue,60);assert.equal(free.potentialProfit,-60);
+ const assembly={...base,id:'assembly',type:'assembly' as const,quantity:2,base_cost:500,final_price:1000,
+   assembly_parts:[{name:'Печать',weight_g:10,hours:1,minutes:0,quantity:2,base_cost:50,final_price:150}]};
+ const archived={...base,id:'archived',quantity:2,final_price:120,catalog_archived:true};
+ const stock=getWarehouseMetrics([assembly],[balance('assembly',4,70),balance('archived',2,25),balance('missing',1,13)],[archived]);
+ assert.equal(stock.totalRetailValue,2120,'stored assembly and archived batch prices stay authoritative');
+ assert.equal(stock.totalCostValue,343);assert.equal(stock.totalUnits,7);assert.equal(stock.inStockPositionsCount,3);
+ const legacy=getWarehouseMetrics([base]);
+ assert.equal(legacy.totalRetailValue,0);assert.equal(legacy.totalCostValue,150,'legacy estimate fallback divides saved batch cost once');
+});
+
+test('stock KPI renderer identifies expected potential and shows negative values without a plus prefix', () => {
+ const html=renderToStaticMarkup(<ProductsV2KpiCards totalRetailValue={0} totalCostValue={150}
+   potentialProfit={-150} profitMargin={0} totalUnits={3} inStockCount={1} lowStockCount={0} outOfStockCount={0}
+   singleCount={1} assemblyCount={0} collectionCount={0} stlCount={0} bestsellerCount={0}
+   totalProductsCount={1} isExpanded/>);
+ assert.match(html,/ПЛАН ПРОДАЖИ/);
+ assert.match(html,/УЧЁТНАЯ СТОИМОСТЬ/);
+ assert.match(html,/Фактическая прибыль/);
+ assert.doesNotMatch(html,/\+[-−]/);
+ assert.match(html,/-150/);
+});
+
+
+test('zero retail remains zero in catalog-to-order and assembly-part conversions', () => {
+ const product: SavedCalculation={id:'free',name:'Бесплатно',filament_name:'PLA',printer_name:'',weight_g:10,
+   hours:1,minutes:0,quantity:2,base_cost:100,final_price:0,stock_quantity:0};
+ assert.equal(prepareDraftOrderFromProduct(product).amount,0);
+ const assembly={...product,type:'assembly' as const,base_cost:240,assembly_parts:[{name:'Деталь',weight_g:10,
+   hours:1,minutes:0,quantity:2,base_cost:30,final_price:50}]};
+ assert.equal(prepareDraftOrderFromProduct(assembly).amount,0,'assembly does not rebuild saved free retail from components');
+ assert.equal(prepareDraftOrderFromProduct(assembly).cost,240,'stored assembly batch estimate retained');
+ assert.equal(convertPartToSavedCalculation({name:'Деталь',weight_g:10,hours:1,minutes:0,quantity:1,
+   base_cost:50,final_price:0},product,0).final_price,0);
+});
+
+test('manual finished-stock panel emits trimmed optional reason and displays batch retail per unit', async context => {
+ const {mock}=await import('node:test');
+ const data=await import('../src/entities/model/DataProvider');
+ const inventory=await import('../src/entities/model/InventoryProvider');
+ const controls=await import('../src/shared/ui/CockpitButton');
+ const modal=await import('../src/shared/ui/CockpitModal');
+ const {FinishedStockPanel}=await import('../src/widgets/ProductsList/FinishedStockPanel');
+ const product: SavedCalculation={id:'batch',name:'Тираж',filament_name:'PLA',printer_name:'',weight_g:100,
+   hours:1,minutes:0,quantity:4,base_cost:200,final_price:400,stock_quantity:1};
+ const state=emptyFoundationState('owner');
+ state.finishedBalances=[{id:'balance',user_id:'owner',created_at:'2026-10-01T00:00:00Z',product_id:'batch',
+   source_product_id:'batch',quantity:1,average_unit_cost:30,revision:0}];
+ const commands: {kind:string;reason?:string;quantity:number;unitCost?:number}[]=[];
+ mock.method(modal,'CockpitModal',({children,footer}:{children:React.ReactNode;footer?:React.ReactNode})=><div>{children}{footer}</div>);
+ mock.method(data,'useData',()=>({savedCalculations:[product],filaments:[],printers:[],settings:null}));
+ mock.method(inventory,'useInventory',()=>({state,isLoading:false,execute:async(command: typeof commands[number])=>{
+   commands.push(command); return {state,pendingCount:0};
+ }}));
+ let stateIndex=0;
+ let reason='  Инвентаризация  ';
+ const originalState=React.useState;
+ mock.method(React,'useState',(initial: unknown)=>{
+   const values=[true,'batch',3,20,false,reason,null];
+   const index=stateIndex++;
+   return originalState(index<values.length?values[index]:initial);
+ });
+ type Props=React.ComponentProps<typeof controls.CockpitButton>;
+ type Render=(props:Props,ref:React.ForwardedRef<HTMLButtonElement>)=>React.ReactNode;
+ const runtime=controls.CockpitButton as unknown as {render:Render};
+ const originalRender=runtime.render;
+ let save: Props['onClick'];
+ mock.method(runtime,'render',(props:Props,ref:React.ForwardedRef<HTMLButtonElement>)=>{
+   if(props.children==='Сохранить ручной остаток')save=props.onClick;
+   return originalRender(props,ref);
+ });
+ context.after(()=>mock.restoreAll());
+ const html=renderToStaticMarkup(<FinishedStockPanel/>);
+ assert.match(html,/aria-label="Причина корректировки"/);
+ assert.match(html,/Цена каталога/);
+ assert.match(html,/100,00/);
+ assert.ok(save);
+ save({} as React.MouseEvent<HTMLButtonElement>);
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(commands[0].kind,'adjustFinished');
+ assert.equal(commands[0].quantity,3);assert.equal(commands[0].unitCost,20);
+ assert.equal(commands[0].reason,'Инвентаризация');
+ stateIndex=0;reason='   ';save=undefined;
+ renderToStaticMarkup(<FinishedStockPanel/>);
+ assert.ok(save);
+ (save as NonNullable<Props['onClick']>)({} as React.MouseEvent<HTMLButtonElement>);
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(commands[1].reason,undefined,'empty optional reason omitted');
+ assert.equal(state.finishedBalances[0].quantity,1,'render does not alter ledger');
+ assert.equal(product.final_price,400,'manual adjustment retains stored retail');
+});

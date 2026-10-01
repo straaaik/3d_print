@@ -4,7 +4,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as THREE from 'three';
 import type { WorkshopCanvasProps } from '../src/features/workshop/WorkshopCanvas';
-import { createWorkshop, createFurniture, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, snap, updateFurniture, placeEntity, removeRoom, slotWorld, parseWorkshop, pickWorkshopTarget, syncWorkshopPlacements, calculatePanDelta, calculateOrbitAngles, fillEnclosedTiles, existingRoomsTileBounds, roomOrigin, type Room, createWorkshopHistory, pushWorkshopHistory, undoWorkshopHistory, redoWorkshopHistory, WORKSHOP_HISTORY_MAX_DEPTH, calculateGroupMove, resolvePlacementPosition, findWorkshopSeams, getRoomOccupiedTiles, updateRoomLabel, deleteRoomLabel, defaultRoomLabels, findNearestValidPosition, resolveInvalidFurniture } from '../src/features/workshop/model';
+import { createWorkshop, createFurniture, validFurniture, getFurnitureCollisionReason, snapFurnitureToNeighbors, snap, updateFurniture, placeEntity, removeRoom, slotWorld, parseWorkshop, pickWorkshopTarget, syncWorkshopPlacements, calculatePanDelta, calculateOrbitAngles, fillEnclosedTiles, existingRoomsTileBounds, roomOrigin, type Room, createWorkshopHistory, pushWorkshopHistory, undoWorkshopHistory, redoWorkshopHistory, WORKSHOP_HISTORY_MAX_DEPTH, calculateGroupMove, resolvePlacementPosition, findWorkshopSeams, updateRoomLabel, deleteRoomLabel, defaultRoomLabels, findNearestValidPosition, resolveInvalidFurniture } from '../src/features/workshop/model';
 import { instanceTemplate, disposeInstances } from '../src/features/workshop/instances';
 import { getWorkshopShadowConfig, calculateRoomCameraFocus, calculateWheelShift, calculateZoomTarget, handleWorkshopKeyDown, type WorkshopHotkeyContext, WorkshopScene } from '../src/features/workshop/WorkshopScene';
 import { getOrCreateHudButtonTexture, hudButtonTextureCache, clearHudButtonTextureCache, SpatialAuthoring } from '../src/features/workshop/spatialAuthoring';
@@ -1172,8 +1172,8 @@ test('hotkeys: Space key toggles 2D top view / 3D isometric view and animates ca
     selected: null,
     data: createWorkshop(),
     options: {
-      canvas: {} as any,
-      container: {} as any,
+      canvas: {} as HTMLCanvasElement,
+      container: {} as HTMLElement,
       onSelect: () => {},
       onMove: () => {},
       onCamera: () => {},
@@ -1230,7 +1230,7 @@ test('hotkeys: Space key toggles 2D top view / 3D isometric view and animates ca
 
   // 3. Ignore when focused in input or textarea
   const inputEvent = {
-    target: { tagName: 'INPUT' } as any,
+    target: { tagName: 'INPUT' } as unknown as EventTarget,
     key: ' ',
     cancelable: true,
     preventDefault: () => { assert.fail('Should not preventDefault on input'); },
@@ -1252,8 +1252,8 @@ test('hotkeys: Escape key clears selection and cancels draft', () => {
     selected: 'table-1',
     data: createWorkshop(),
     options: {
-      canvas: {} as any,
-      container: {} as any,
+      canvas: {} as HTMLCanvasElement,
+      container: {} as HTMLElement,
       onSelect: (id, kind) => { onSelectCalledWith = [id, kind]; },
       onMove: () => {},
       onCamera: () => {},
@@ -1300,8 +1300,8 @@ test('hotkeys: R key triggers 90-degree rotation for furniture and placement', (
     selected: f.id,
     data: state,
     options: {
-      canvas: {} as any,
-      container: {} as any,
+      canvas: {} as HTMLCanvasElement,
+      container: {} as HTMLElement,
       onSelect: () => {},
       onMove: () => {},
       onRotate: (id, rotation) => {
@@ -1364,8 +1364,8 @@ test('hotkeys: G/M starts move mode and Delete removes furniture, placement or l
     selected: f.id,
     data: state,
     options: {
-      canvas: { style: {} } as any,
-      container: {} as any,
+      canvas: { style: {} } as unknown as HTMLCanvasElement,
+      container: {} as HTMLElement,
       onSelect: () => {},
       onMove: () => {},
       onDelete: (id, kind) => {
@@ -1425,14 +1425,14 @@ test('hotkeys: G/M starts move mode and Delete removes furniture, placement or l
 });
 
 test('Shift key or right click in Cell-Grid room builder behaves as instant eraser', () => {
-  const container = { clientWidth: 800, clientHeight: 600, style: {} } as any;
+  const container = { clientWidth: 800, clientHeight: 600, style: {} } as unknown as HTMLElement;
   const canvas = {
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }),
     style: {},
     setPointerCapture: () => {},
     releasePointerCapture: () => {},
     hasPointerCapture: () => false,
-  } as any;
+  } as unknown as HTMLCanvasElement;
   const scene = new THREE.Scene();
   const camera = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 100);
   camera.position.set(0, 30, 0.001);
@@ -1466,42 +1466,42 @@ test('Shift key or right click in Cell-Grid room builder behaves as instant eras
   assert.equal(authoring.getDraftTiles().length, 0);
 
   // 2. Normal Left click adds cell at center (400, 300) -> world (0, 0)
-  authoring.pointerDown({ clientX: 400, clientY: 300, button: 0, pointerId: 1 } as any);
-  authoring.pointerUp({ clientX: 400, clientY: 300, button: 0, pointerId: 1 } as any);
+  authoring.pointerDown({ clientX: 400, clientY: 300, button: 0, pointerId: 1 } as unknown as PointerEvent);
+  authoring.pointerUp({ clientX: 400, clientY: 300, button: 0, pointerId: 1 } as unknown as PointerEvent);
   assert.equal(authoring.getDraftTiles().length, 1);
   const firstTile = authoring.getDraftTiles()[0];
   assert.ok(firstTile, 'Cell should be added to draft tiles');
 
   // 3. Shift + click at (400, 300) behaves as eraser even when tool is 'brush'
-  authoring.pointerDown({ clientX: 400, clientY: 300, button: 0, shiftKey: true, pointerId: 1 } as any);
-  authoring.pointerUp({ clientX: 400, clientY: 300, button: 0, shiftKey: true, pointerId: 1 } as any);
+  authoring.pointerDown({ clientX: 400, clientY: 300, button: 0, shiftKey: true, pointerId: 1 } as unknown as PointerEvent);
+  authoring.pointerUp({ clientX: 400, clientY: 300, button: 0, shiftKey: true, pointerId: 1 } as unknown as PointerEvent);
   assert.equal(authoring.getDraftTiles().length, 0, 'Cell must be erased via Shift + click');
 
   // 4. Re-add cell at (400, 300)
-  authoring.pointerDown({ clientX: 400, clientY: 300, button: 0, pointerId: 1 } as any);
-  authoring.pointerUp({ clientX: 400, clientY: 300, button: 0, pointerId: 1 } as any);
+  authoring.pointerDown({ clientX: 400, clientY: 300, button: 0, pointerId: 1 } as unknown as PointerEvent);
+  authoring.pointerUp({ clientX: 400, clientY: 300, button: 0, pointerId: 1 } as unknown as PointerEvent);
   assert.equal(authoring.getDraftTiles().length, 1);
 
   // 5. Right click (button === 2) behaves as eraser
-  authoring.pointerDown({ clientX: 400, clientY: 300, button: 2, pointerId: 1 } as any);
-  authoring.pointerUp({ clientX: 400, clientY: 300, button: 2, pointerId: 1 } as any);
+  authoring.pointerDown({ clientX: 400, clientY: 300, button: 2, pointerId: 1 } as unknown as PointerEvent);
+  authoring.pointerUp({ clientX: 400, clientY: 300, button: 2, pointerId: 1 } as unknown as PointerEvent);
   assert.equal(authoring.getDraftTiles().length, 0, 'Cell must be erased via right click');
 
   // 6. Cell hover visual: Shift key shows red hover fill (#ef4444)
-  authoring.pointerMove({ clientX: 400, clientY: 300, shiftKey: true, buttons: 0 } as any);
+  authoring.pointerMove({ clientX: 400, clientY: 300, shiftKey: true, buttons: 0 } as unknown as PointerEvent);
   assert.equal(authoring.getCellHoverFillColor(), '#ef4444');
 
   // 7. Cell hover visual: right button held ((buttons & 2) !== 0) shows red hover fill (#ef4444)
-  authoring.pointerMove({ clientX: 400, clientY: 300, buttons: 2 } as any);
+  authoring.pointerMove({ clientX: 400, clientY: 300, buttons: 2 } as unknown as PointerEvent);
   assert.equal(authoring.getCellHoverFillColor(), '#ef4444');
 
   // 8. Normal hover without Shift shows standard grid hover color (#94a3b8)
-  authoring.pointerMove({ clientX: 400, clientY: 300, shiftKey: false, buttons: 0 } as any);
+  authoring.pointerMove({ clientX: 400, clientY: 300, shiftKey: false, buttons: 0 } as unknown as PointerEvent);
   assert.equal(authoring.getCellHoverFillColor(), '#94a3b8');
 
   // 9. cancelDraft() method clears active draft and cancels grid room builder
-  authoring.pointerDown({ clientX: 400, clientY: 300, button: 0, pointerId: 1 } as any);
-  authoring.pointerUp({ clientX: 400, clientY: 300, button: 0, pointerId: 1 } as any);
+  authoring.pointerDown({ clientX: 400, clientY: 300, button: 0, pointerId: 1 } as unknown as PointerEvent);
+  authoring.pointerUp({ clientX: 400, clientY: 300, button: 0, pointerId: 1 } as unknown as PointerEvent);
   assert.equal(authoring.getDraftTiles().length, 1);
   authoring.cancelDraft();
   assert.equal(authoring.isGridRoomBuilderActive(), false);
@@ -1564,7 +1564,6 @@ test('workshop history: records layout states, restores via undo, populates redo
   assert.equal(backTo1?.rooms[0].name, 'Room Edit 1');
 
   // Now push a new commit (branching history):
-  const state3 = { ...backTo1!, rooms: [{ ...backTo1!.rooms[0], name: 'Room Edit 3' }] };
   pushWorkshopHistory(history, backTo1!);
   assert.equal(history.redoStack.length, 0, 'New commit must clear redo stack');
   assert.equal(history.undoStack.length, 2);
@@ -1628,7 +1627,7 @@ test('search beacon trigger: sets position, enables visibility, sets cyan emissi
   let movedCameraSpan: number | null = null;
   let invalidatedCount = 0;
 
-  const mockScene: any = {
+  const mockScene = {
     data: placed,
     build: {
       placements: new Map([
@@ -1656,7 +1655,7 @@ test('search beacon trigger: sets position, enables visibility, sets cyan emissi
   mockScene.searchBeaconGroup.visible = false;
 
   // Trigger search beacon
-  WorkshopScene.prototype.triggerSearchBeacon.call(mockScene, placementId);
+  WorkshopScene.prototype.triggerSearchBeacon.call(mockScene as unknown as WorkshopScene, placementId);
 
   // 1. Group is visible and positioned on the floor (y = 0.02)
   assert.equal(mockScene.searchBeaconGroup.visible, true);
@@ -1735,8 +1734,8 @@ test('multi-selection hotkeys: Arrow keys move all selected furniture in group a
     data: state,
     grid: 0.25,
     options: {
-      canvas: { style: {} } as any,
-      container: {} as any,
+      canvas: { style: {} } as unknown as HTMLCanvasElement,
+      container: {} as HTMLElement,
       onSelect: () => {},
       onMove: (id, x, z) => {
         movedCalls.push({ id, x, z });
@@ -1916,7 +1915,7 @@ test('findWorkshopSeams accurately computes doorway geometry and semi-transparen
 test('selected printer strictly suppresses hover jump even when hovering over another printer', () => {
   const hoverStates = new Map<string, { current: number; target: number }>();
   let hoveredPlacementId: string | null = null;
-  let selectedPlacementId: string | null = 'placement-printer-1';
+  const selectedPlacementId: string | null = 'placement-printer-1';
 
   const setHoveredPlacement = (id: string | null) => {
     if (hoveredPlacementId === id) return;
@@ -1978,7 +1977,7 @@ test('camera zooms out to room focus when printer is deselected in overview mode
   let cameraSpan = 1.5; // zoomed in on printer
 
   let selectedId: string | null = 'printer-placement-1';
-  let isEdit = false;
+  const isEdit = false;
 
   const select = (nextId: string | null) => {
     const wasSelected = Boolean(selectedId);
@@ -2030,9 +2029,7 @@ test('printer calibration cube is positioned with clean clearance from printer s
 
   // A1 printer shell extends up to x = 0.282, z = 0.288
   const a1MaxX = 0.282;
-  const a1ScreenZMax = 0.288;
   const cubeMinX = cubeOffset.x - cubeHalf; // 0.35 - 0.03 = 0.320
-  const cubeMaxX = cubeOffset.x + cubeHalf; // 0.35 + 0.03 = 0.380
 
   // Verify cube does not penetrate A1 shell or screen bracket
   assert.ok(cubeMinX > a1MaxX, `Cube inner edge (${cubeMinX}) must be strictly outside A1 shell (${a1MaxX})`);
@@ -2044,7 +2041,7 @@ test('printer calibration cube is positioned with clean clearance from printer s
   assert.ok(cubeMinX - p1MaxX >= 0.07, 'Cube must maintain at least 70mm clearance from P1 model');
 });
 test('setSelectedRoom dynamically updates floor materials without rebuilding scene geometry', () => {
-  const parts = new ReferenceSceneParts({} as any);
+  const parts = new ReferenceSceneParts({});
   const normalPlinth = parts.getFloorPlinthMaterial(false);
   const selectedPlinth = parts.getFloorPlinthMaterial(true);
   assert.notEqual(normalPlinth, selectedPlinth);
@@ -2061,7 +2058,9 @@ test('setSelectedRoom dynamically updates floor materials without rebuilding sce
   assert.equal((selectedTile0 as THREE.MeshStandardMaterial).emissive.getHexString(), '123860');
 
   // Verify getSceneSignature does NOT include active room ID, preventing scene rebuilds on room switch
-  const workshopSceneProto = WorkshopScene.prototype as any;
+  const workshopSceneProto = WorkshopScene.prototype as unknown as {
+    getSceneSignature: (data: ReturnType<typeof createWorkshop>, filaments: [], printers: [], activeIds: Set<string>) => string;
+  };
   const state = createWorkshop();
   const roomA = state.rooms[0];
   const roomB: Room = { id: 'room-b', name: 'Room B', width: 6, depth: 6, labels: [] };
@@ -2090,7 +2089,8 @@ test('updateRoomLabel and deleteRoomLabel allow moving labels across surfaces, c
   });
 
   const updatedRoom = updatedState.rooms.find(r => r.id === room.id)!;
-  const updatedLabel = updatedRoom.labels?.find(l => l.id === targetLabel.id)!;
+  const updatedLabel = updatedRoom.labels?.find(l => l.id === targetLabel.id);
+  assert.ok(updatedLabel);
   assert.equal(updatedLabel.surface, 'north');
   assert.equal(updatedLabel.u, 0.6);
   assert.equal(updatedLabel.v, 0.7);
@@ -2109,11 +2109,11 @@ test('SpatialAuthoring: clicking a label triggers onLabelEditStart, while draggi
   const container = {
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }),
     style: { cursor: 'default' },
-  } as any;
+  } as unknown as HTMLElement;
   const canvas = {
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 600 }),
     style: { cursor: 'default' },
-  } as any;
+  } as unknown as HTMLCanvasElement;
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(45, 800 / 600, 0.1, 100);
@@ -2122,7 +2122,6 @@ test('SpatialAuthoring: clicking a label triggers onLabelEditStart, while draggi
   camera.updateProjectionMatrix();
   camera.updateMatrixWorld();
 
-  let editStarted: { roomId: string; labelId: string } | null = null;
   let movedLabel: { roomId: string; labelId: string; u: number; v: number; surface?: string } | null = null;
 
   const authoring = new SpatialAuthoring(
@@ -2131,7 +2130,7 @@ test('SpatialAuthoring: clicking a label triggers onLabelEditStart, while draggi
     scene,
     camera,
     {
-      onLabelEditStart: (roomId, labelId) => { editStarted = { roomId, labelId }; },
+      onLabelEditStart: () => {},
       onMoveLabel: (roomId, labelId, u, v, surface) => { movedLabel = { roomId, labelId, u, v, surface }; },
     },
     () => {}
@@ -2147,20 +2146,21 @@ test('SpatialAuthoring: clicking a label triggers onLabelEditStart, while draggi
   assert.equal(authoring.getSelectedLabelId(), label.id);
 
   // 2. Simulate dragging label
-  const started = authoring.startDraggingSelectedLabel({ clientX: 400, clientY: 300 } as any);
+  const started = authoring.startDraggingSelectedLabel({ clientX: 400, clientY: 300 } as unknown as PointerEvent);
   assert.equal(started, true);
 
   // Move pointer
-  authoring.pointerMove({ clientX: 450, clientY: 320 } as any);
+  authoring.pointerMove({ clientX: 450, clientY: 320 } as unknown as PointerEvent);
 
   // Release pointer -> onMoveLabel is invoked
-  authoring.pointerUp({ clientX: 450, clientY: 320, button: 0 } as any);
+  authoring.pointerUp({ clientX: 450, clientY: 320, button: 0 } as unknown as PointerEvent);
 
   assert.ok(movedLabel, 'onMoveLabel must be called when dragging label finishes');
-  assert.equal((movedLabel as any).labelId, label.id);
-  assert.equal((movedLabel as any).roomId, room.id);
-  assert.ok(typeof (movedLabel as any).u === 'number');
-  assert.ok(typeof (movedLabel as any).v === 'number');
+  const moved = movedLabel as { roomId: string; labelId: string; u: number; v: number };
+  assert.equal(moved.labelId, label.id);
+  assert.equal(moved.roomId, room.id);
+  assert.ok(typeof moved.u === 'number');
+  assert.ok(typeof moved.v === 'number');
 });
 
 test('WorkshopScene: getSelectedOrDraftLabelTransform calculates screen and HUD coordinates for in-scene graffiti editing', () => {
@@ -2182,7 +2182,7 @@ test('WorkshopScene: getSelectedOrDraftLabelTransform calculates screen and HUD 
     isLabelPreviewVisible: () => false,
   };
 
-  const fakeScene: any = {
+  const fakeScene = {
     edit: true,
     options: {
       canvas: {
@@ -2195,7 +2195,7 @@ test('WorkshopScene: getSelectedOrDraftLabelTransform calculates screen and HUD 
     container: { clientWidth: 800, clientHeight: 600 },
   };
 
-  const transform = WorkshopScene.prototype.getSelectedOrDraftLabelTransform.call(fakeScene);
+  const transform = WorkshopScene.prototype.getSelectedOrDraftLabelTransform.call(fakeScene as unknown as WorkshopScene);
   assert.ok(transform, 'Transform must be calculated for selected label');
   assert.equal(transform.labelId, label.id);
   assert.equal(transform.text, label.text);

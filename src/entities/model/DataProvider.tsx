@@ -1,12 +1,16 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { createContext, useCallback, useContext, useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
+import { InventoryContext } from './inventoryContext';
+import { projectInventoryFilaments, projectInventoryProducts, projectInventoryOrders } from '../../shared/lib/inventoryProjection';
+import { readVersionedJson } from '../../shared/lib/versionedStorage';
 import { Filament, Printer, Settings, SavedCalculation, CustomCostItem, ProductCollection, Order } from '../../shared/types';
 import * as api from '../../shared/api/db';
 import { parseDataBackup, type ParsedDataBackup } from '../../shared/lib/dataBackup';
 import { useToast } from './ToastProvider';
 import { useAuth } from './AuthProvider';
 import { loadInitialData, createInitialDataLoadScope, type InitialLoadSnapshot } from './loadInitialData';
+import { maintenanceStorage } from '../../shared/api/businessMaintenance';
 
 import { usePersistentState } from '../../shared/lib/usePersistentState';
 import { resetPersistentKeys } from '../../shared/lib/persistentStorage';
@@ -88,7 +92,7 @@ interface DataContextType {
   updateSavedCalculation: (calc: SavedCalculation) => Promise<SavedCalculation>;
   deleteSavedCalculation: (id: string) => Promise<void>;
   clearAllSavedCalculations: () => Promise<void>;
-  restoreAllSavedCalculations: (calculations: SavedCalculation[]) => Promise<void>;
+  restoreAllSavedCalculations: (calculations: SavedCalculation[], options?: import('../../shared/lib/catalogCommands').CatalogRestoreOptions) => Promise<void>;
   setSavedCalculations: React.Dispatch<React.SetStateAction<SavedCalculation[]>>;
 
   // Collections actions
@@ -294,9 +298,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    const handleStorage = () => {
-      void handleRefreshOrders();
-      void handleRefreshGoals();
+    const handleStorage = (event: StorageEvent) => {
+      // A storage event already carries a persisted peer-tab update. Do not refetch
+      // and write it back: inventory commits and legacy cloud caches would ping-pong.
+      const storage = maintenanceStorage();
+      if (event.key?.startsWith('3d_business_maintenance_journal::user:')) { handleMaintenance(); return; }
+      if (event.key === api.STORAGE_KEYS.ORDERS) setOrders(readVersionedJson(storage, event.key, []));
+      else if (event.key === api.STORAGE_KEYS.SAVED_CALCULATIONS) setSavedCalculations(readVersionedJson(storage, event.key, []));
+      else if (event.key === api.STORAGE_KEYS.COLLECTIONS) setCollections(readVersionedJson(storage, event.key, []));
+      else if (event.key === api.STORAGE_KEYS.MONTHLY_GOALS) setMonthlyGoals(readVersionedJson(storage, event.key, api.DEFAULT_MONTHLY_GOALS_CONFIG));
+    };
+    const handleMaintenance = () => {
+      try {
+        const backup = api.exportCompleteDataBackup();
+        setFilaments(backup.filaments); setPrinters(backup.printers); setSettings(backup.settings);
+        setSavedCalculations(projectInventoryProducts(backup.business, backup.savedCalculations));
+        setOrders(projectInventoryOrders(backup.business, backup.orders));
+        setCollections(backup.collections); setMonthlyGoals(backup.monthlyGoals);
+      } catch (error) { console.error('Полное обновление локальной базы не завершено:', error); }
     };
 
     window.addEventListener('saved_calculations_updated', handleRefreshCalcs);
@@ -304,12 +323,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener('refresh-orders-data', handleRefreshOrders);
     window.addEventListener('monthly_goals_updated', handleRefreshGoals);
     window.addEventListener('storage', handleStorage);
+    window.addEventListener('business_maintenance_updated', handleMaintenance);
     return () => {
       window.removeEventListener('saved_calculations_updated', handleRefreshCalcs);
       window.removeEventListener('orders_updated', handleRefreshOrders);
       window.removeEventListener('refresh-orders-data', handleRefreshOrders);
       window.removeEventListener('monthly_goals_updated', handleRefreshGoals);
       window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('business_maintenance_updated', handleMaintenance);
     };
   }, [userId, isAuthLoading, loadData]);
 
@@ -441,9 +462,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSavedCalculations([]);
   };
 
-  const restoreAllSavedCalculations = async (calculations: SavedCalculation[]) => {
-    await api.restoreAllSavedCalculations(calculations);
-    setSavedCalculations(calculations);
+  const restoreAllSavedCalculations = async (calculations: SavedCalculation[], options?: import('../../shared/lib/catalogCommands').CatalogRestoreOptions) => {
+    await api.restoreAllSavedCalculations(calculations, options);
+    setSavedCalculations(await api.getSavedCalculations());
   };
 
   // Коллекции
@@ -544,9 +565,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (snapshot.filaments !== undefined) setFilaments(snapshot.filaments);
     if (snapshot.printers !== undefined) setPrinters(snapshot.printers);
     if (snapshot.settings !== undefined) setSettings(snapshot.settings);
-    if (snapshot.savedCalculations !== undefined) setSavedCalculations(snapshot.savedCalculations);
+    if (snapshot.savedCalculations !== undefined) setSavedCalculations(snapshot.business
+      ? projectInventoryProducts(snapshot.business, snapshot.savedCalculations) : snapshot.savedCalculations);
     if (snapshot.collections !== undefined) setCollections(snapshot.collections);
-    if (snapshot.orders !== undefined) setOrders(snapshot.orders);
+    if (snapshot.orders !== undefined) setOrders(snapshot.business ? projectInventoryOrders(snapshot.business, snapshot.orders) : snapshot.orders);
     if (snapshot.monthlyGoals !== undefined) setMonthlyGoals(snapshot.monthlyGoals);
     setIsOnline(await api.checkSupabaseConnection());
 
@@ -642,8 +664,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
 export function useData() {
   const context = useContext(DataContext);
+  const inventory = useContext(InventoryContext);
+  const projected = useMemo(() => inventory?.state && context ? {
+    orders: projectInventoryOrders(inventory.state, context.orders),
+    filaments: projectInventoryFilaments(inventory.state, context.filaments),
+    savedCalculations: projectInventoryProducts(inventory.state, context.savedCalculations),
+  } : null, [inventory, context]);
   if (context === undefined) {
     throw new Error('useData должен использоваться внутри DataProvider');
   }
-  return context;
+  return projected ? { ...context, ...projected } : context;
 }

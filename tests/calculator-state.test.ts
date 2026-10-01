@@ -52,10 +52,26 @@ test('missing selection resolves to an existing default and never retains delete
 });
 
 test('legacy product recalculation uses configured labor defaults when overrides are absent', () => {
-  const item = { id: 'legacy', weight_g: 100, hours: 0, minutes: 0, quantity: 2 } as SavedCalculation;
+  const item: SavedCalculation = { id: 'legacy', name: 'Legacy', filament_name: '', printer_name: '',
+    weight_g: 100, hours: 0, minutes: 0, quantity: 2, base_cost: 0, final_price: 600 };
   const [updated] = recalculateAllProducts([item], [], [], settings);
   assert.equal(updated.final_price, 600);
   assert.equal(updated.base_cost, 0);
+});
+
+test('explicit catalog recalculation retains agreed zero, batch totals, stock and assembly electronics', () => {
+  const material = { id: 'f', name: 'PLA', weight_g: 1000, price: 2000 };
+  const single: SavedCalculation = { id: 'part', name: 'Part', filament_name: 'PLA', printer_name: '',
+    weight_g: 100, hours: 0, minutes: 0, quantity: 2, base_cost: 1, final_price: 50,
+    labor_minutes: 0, markup_percent: 0, defect_percent: 0, filament_id: 'f', agreed_price: 0, stock_quantity: 7 };
+  const assembly: SavedCalculation = { ...single, id: 'assembly', type: 'assembly', agreed_price: null,
+    assembly_parts: [], assembly_labor_minutes: 0,
+    assembly_electronics: [{ id: 'e', name: 'Board', quantity: 2, cost_per_unit: 25, price_per_unit: 50 }] };
+  const [part, kit] = recalculateAllProducts([single, assembly], [material], [], settings);
+  assert.equal(part.base_cost, 200); assert.equal(part.final_price, 0); assert.equal(part.stock_quantity, 7);
+  assert.equal(part.calculation_snapshot?.inputs.agreedPrice, 0);
+  assert.equal(part.calculation_snapshot?.result.totalBaseCost, 200);
+  assert.equal(kit.base_cost, 50); assert.equal(kit.final_price, 100);
 });
 
 test('model reset clears current-user storage and notifies mounted subscribers without clearing another user', () => {

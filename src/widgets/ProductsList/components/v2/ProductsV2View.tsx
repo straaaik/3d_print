@@ -22,6 +22,7 @@ import { ProductsV2KpiCards } from './ProductsV2KpiCards';
 import { ProductsV2FilterBar } from './ProductsV2FilterBar';
 import { ProductsV2Table } from './ProductsV2Table';
 import { formatCurrency } from '@/shared/lib/format';
+import { canCloseProductEditor } from '@/shared/lib/productCalculation';
 import {
   RotateCcw,
   Layers,
@@ -46,6 +47,8 @@ import { ROW_ELEVATION_EASE, SURFACE_FADE_DURATION } from '@/shared/lib/tableScr
 const SURFACE_EASE = ROW_ELEVATION_EASE;
 
 interface ProductsV2ViewProps {
+  /** Дополнительные действия верхней панели консоли (перед кнопкой отмены). */
+  headerActions?: React.ReactNode;
   rows: CatalogTableRow[];
   sortedRows: CatalogTableRow[];
   visibleRows: CatalogTableRow[];
@@ -120,7 +123,7 @@ interface ProductsV2ViewProps {
   canUndo: boolean;
 
   // Инлайн-обновление и действия
-  onInlineUpdateProduct?: (productId: string, updates: Partial<SavedCalculation>) => void;
+  onInlineUpdateProduct?: (productId: string, updates: Partial<SavedCalculation>) => Promise<void> | void;
   onInlineUpdateCollection?: (collectionId: string, updates: Partial<ProductCollection>) => void;
   onSetStock: (item: SavedCalculation, newStock: number) => void;
   onOpenCategoryModal: (item: SavedCalculation) => void;
@@ -214,6 +217,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
   onStartRename,
   onUndo,
   canUndo,
+  headerActions,
   onInlineUpdateProduct,
   onInlineUpdateCollection,
   onSetStock,
@@ -255,7 +259,17 @@ export const ProductsV2View = React.memo(function ProductsV2View({
   const router = useRouter();
   const { navigate: curtainNavigate } = usePixelCurtain();
   const [isSideWingOpen, setIsSideWingOpen] = React.useState(true);
-  const [elevatedRow, setElevatedRow] = React.useState<CatalogTableRow | null>(null);
+  const [elevatedRow, setElevatedRowState] = React.useState<CatalogTableRow | null>(null);
+  const setElevatedRow = React.useCallback((next: CatalogTableRow | null) => {
+    if (elevatedRow?.id !== next?.id && elevatedRow?.rowKind === 'product'
+      && !canCloseProductEditor(elevatedRow.item.id, window)) return false;
+    setElevatedRowState(next);
+    return true;
+  }, [elevatedRow]);
+  const navigateAway = (event: React.MouseEvent, action: () => void) => {
+    event.stopPropagation();
+    if (setElevatedRow(null)) action();
+  };
   const shouldReduceMotion = useReducedMotion();
   const surfaceTransition = shouldReduceMotion
     ? { duration: 0 }
@@ -280,7 +294,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
     if (!exists) {
       setElevatedRow(null);
     }
-  }, [elevatedRow, rows]);
+  }, [elevatedRow, rows, setElevatedRow]);
 
   React.useEffect(() => {
     if (!elevatedRow) return;
@@ -300,7 +314,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('click', handleGlobalClick);
     };
-  }, [elevatedRow]);
+  }, [elevatedRow, setElevatedRow]);
 
   return (
     <div className={`w-full mx-auto select-none font-sans relative ${
@@ -361,7 +375,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
                   {/* Кнопка перехода в Калькулятор (новый товар) */}
                   <div className="relative z-10">
                     <CockpitButton
-                      onClick={() => router.push('/calculator')}
+                      onClick={event => navigateAway(event, () => router.push('/calculator'))}
                       icon={CalculatorIcon}
                       isActive={true}
                       className="w-full justify-center py-2 text-xs font-bold shadow-md shadow-white/5 whitespace-nowrap"
@@ -471,7 +485,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
               <Tooltip content="Закрыть каталог и перейти на главную">
                 <button
                   type="button"
-                  onClick={() => curtainNavigate('/')}
+                  onClick={event => navigateAway(event, () => curtainNavigate('/'))}
                   className="w-3 h-3 rounded-full bg-red-500/80 border border-red-400/40 hover:bg-red-500 cursor-pointer outline-none shadow-sm shadow-red-500/30"
                 />
               </Tooltip>
@@ -519,7 +533,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
           </div>
 
           {/* Правая часть: Бейдж позиций и Кнопка отмены */}
-          <div className="flex items-center gap-2.5 text-xs font-mono shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5 text-xs font-mono max-w-full">
             {/* Бейдж количества позиций в монохромном стиле */}
             <div className="flex items-center gap-1.5 bg-white/[0.03] border border-white/10 px-2.5 py-1 rounded-lg">
               <Package className="w-3.5 h-3.5 text-neutral-400" />
@@ -540,6 +554,8 @@ export const ProductsV2View = React.memo(function ProductsV2View({
                 <HelpCircle className="w-3 h-3 text-neutral-500 hover:text-white ml-0.5 shrink-0 cursor-help" />
               </Tooltip>
             </div>
+
+            {headerActions}
 
             {/* Кнопка отмены */}
             <CockpitButton
@@ -605,7 +621,7 @@ export const ProductsV2View = React.memo(function ProductsV2View({
 
                 <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
                   <CockpitButton
-                    onClick={() => router.push('/calculator')}
+                    onClick={event => navigateAway(event, () => router.push('/calculator'))}
                     icon={CalculatorIcon}
                     isActive={true}
                     className="font-bold shadow-md whitespace-nowrap py-1.5"
@@ -673,7 +689,8 @@ export const ProductsV2View = React.memo(function ProductsV2View({
               opacity: elevatedRow ? 0.35 : 1,
             }}
             transition={surfaceTransition}
-            onClick={() => {
+            onClick={(event) => {
+              event.stopPropagation();
               if (elevatedRow) setElevatedRow(null);
             }}
             className={`relative z-20 ${
@@ -751,7 +768,8 @@ export const ProductsV2View = React.memo(function ProductsV2View({
               setContextMenu={setContextMenu}
               contextMenuRef={contextMenuRef}
               elevatedRow={elevatedRow}
-              setElevatedRow={setElevatedRow}
+              // Table guards changes itself; passing the raw setter avoids a second confirmation.
+              setElevatedRow={setElevatedRowState}
               selectedIds={selectedIds}
               onToggleSelect={onToggleSelect}
               onSelectAll={onSelectAll}

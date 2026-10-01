@@ -3,7 +3,17 @@ import { Filament, Printer, Settings, SavedCalculation, Order, ProductCollection
 import { generateRandomSeedData, SeedDataResult } from '../lib/seedGenerator';
 import { createClient } from '../../lib/supabase/client';
 import { getScopedStorageKey, getStorageScope } from '../lib/storageScope';
-import { parseDataBackup, type ParsedDataBackup } from '../lib/dataBackup';
+import { createDataBackup, parseDataBackup, type ParsedDataBackup, type DataBackupSnapshot } from '../lib/dataBackup';
+import { readVersionedJson, writeVersionedJson } from '../lib/versionedStorage';
+import { emptyFoundationState, foundationStorageKey, loadFoundationState } from '../lib/foundationStorage';
+import { exportBusinessBackup, maintenanceStorage, replaceBusinessSnapshot } from './businessMaintenance';
+import { createInventoryRepository, inventoryBrowserLock, type BusinessCommand } from './inventoryRepository';
+import { createInventoryTransport } from './inventoryTransport';
+import { projectInventoryProducts, projectInventoryOrders } from '../lib/inventoryProjection';
+import { isCatalogCommand, type CatalogRestoreOptions } from '../lib/catalogCommands';
+import { isBusinessOrderCommand } from '../lib/businessOrders';
+import { backfillLegacyOrderItems } from '../lib/orderSnapshots';
+import { createProductionRecipe } from '../lib/productionRecipe';
 
 const STORAGE_BASE_KEYS = {
   FILAMENTS: '3d_calc_filaments',
@@ -47,20 +57,17 @@ export class DatabaseOperationError extends Error {
 
 function readLocalJson<T>(key: string, fallback: T): T {
   if (typeof window === 'undefined') return fallback;
-  const raw = window.localStorage.getItem(key);
-  if (!raw) return fallback;
   try {
-    return JSON.parse(raw) as T;
+    return readVersionedJson(maintenanceStorage(), key, fallback);
   } catch (error) {
     console.warn(`Повреждён локальный кэш «${key}», использовано безопасное значение.`, error);
-    window.localStorage.removeItem(key);
     return fallback;
   }
 }
 
 function writeLocalJson<T>(key: string, value: T): void {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(key, JSON.stringify(value));
+  writeVersionedJson(window.localStorage, key, value);
 }
 
 function upsertLocalItem<T extends { id: string }>(key: string, item: T): T[] {
@@ -570,6 +577,11 @@ export async function saveSettings(settings: Settings): Promise<Settings> {
 // ==========================================
 
 export async function getSavedCalculations(): Promise<SavedCalculation[]> {
+  const inventory = inventoryOrderRepository();
+  if (inventory?.inspect().state.legacyProducts !== undefined) {
+    const state = inventory.inspect().state;
+    return projectInventoryProducts(state, []);
+  }
   const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
@@ -580,7 +592,7 @@ export async function getSavedCalculations(): Promise<SavedCalculation[]> {
         .order('created_at', { ascending: false });
 
       if (error) throwDatabaseError('загрузка расчётов', error);
-      const rawCloudCalculations = (data || []) as SavedCalculation[];
+      const rawCloudCalculations = ((data || []) as SavedCalculation[]).filter(row => !row.catalog_archived);
       const localCached = readLocalJson<SavedCalculation[]>(STORAGE_KEYS.SAVED_CALCULATIONS, []);
       const localMap = new Map(localCached.map(c => [c.id, c]));
       const calculations = rawCloudCalculations.map(cloudItem => {
@@ -599,19 +611,23 @@ export async function getSavedCalculations(): Promise<SavedCalculation[]> {
     }
   }
 
-  return readLocalJson<SavedCalculation[]>(STORAGE_KEYS.SAVED_CALCULATIONS, DEFAULT_SAVED_CALCULATIONS);
+  return readLocalJson<SavedCalculation[]>(STORAGE_KEYS.SAVED_CALCULATIONS, DEFAULT_SAVED_CALCULATIONS).filter(row => !row.catalog_archived);
 }
 
 export async function addSavedCalculation(
   calc: Omit<SavedCalculation, 'id' | 'created_at'>
 ): Promise<SavedCalculation> {
-  const client = await getAuthenticatedSupabaseClient();
   const id = crypto.randomUUID();
   const newCalc: SavedCalculation = {
     ...calc,
     id,
     created_at: new Date().toISOString(),
   };
+  const ownerId = getStorageScope() === 'anonymous' ? undefined : getStorageScope();
+  const inventoryResult = await executeInventoryOrder({ kind: 'saveCatalogProduct', id: crypto.randomUUID(),
+    occurredAt: newCalc.created_at!, product: { ...newCalc, user_id: ownerId }, expectedRevision: 0, isNew: true });
+  if (inventoryResult) return inventoryResult.state.legacyProducts!.find(item => item.id === id)!;
+  const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
     try {
@@ -661,6 +677,11 @@ export async function addSavedCalculation(
 export async function updateSavedCalculation(
   calc: SavedCalculation
 ): Promise<SavedCalculation> {
+  const ownerId = getStorageScope() === 'anonymous' ? undefined : getStorageScope();
+  const inventoryResult = await executeInventoryOrder({ kind: 'saveCatalogProduct', id: crypto.randomUUID(),
+    occurredAt: new Date().toISOString(), product: { ...calc, user_id: calc.user_id ?? ownerId },
+    expectedRevision: calc.catalog_revision ?? 0, isNew: false });
+  if (inventoryResult) return inventoryResult.state.legacyProducts!.find(item => item.id === calc.id)!;
   const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
@@ -709,6 +730,8 @@ export async function updateSavedCalculation(
 }
 
 export async function deleteSavedCalculation(id: string): Promise<boolean> {
+  if (await executeInventoryOrder({ kind: 'archiveCatalogProducts', id: crypto.randomUUID(),
+    occurredAt: new Date().toISOString(), productIds: [id] })) return true;
   const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
@@ -741,7 +764,10 @@ export async function clearAllSavedCalculations(): Promise<boolean> {
  * Атомарно восстанавливает весь список сохранённых расчётов (для Undo).
  * Заменяет clearAll + addOne-by-one на единую операцию.
  */
-export async function restoreAllSavedCalculations(calculations: SavedCalculation[]): Promise<void> {
+export async function restoreAllSavedCalculations(calculations: SavedCalculation[], options: CatalogRestoreOptions = {}): Promise<void> {
+  if (await executeInventoryOrder({ kind: 'restoreCatalog', id: crypto.randomUUID(),
+    occurredAt: new Date().toISOString(), products: calculations, ...options })) return;
+  assertLegacyMaintenanceSafe();
   const client = await getAuthenticatedSupabaseClient();
   const safeList = calculations.map(withoutStlPayload);
 
@@ -862,15 +888,11 @@ export async function updateCollection(col: ProductCollection): Promise<ProductC
 export async function deleteCollection(id: string, deleteContainedProducts = false): Promise<boolean> {
   const client = await getAuthenticatedSupabaseClient();
 
-  if (deleteContainedProducts) {
-    const calculations = await getSavedCalculations();
-    const filteredCalcs = calculations.filter(c => c.collection_id !== id);
-    await restoreAllSavedCalculations(filteredCalcs);
-  } else {
-    const calculations = await getSavedCalculations();
-    const updatedCalcs = calculations.map(c => c.collection_id === id ? { ...c, collection_id: undefined, collection_name: undefined } : c);
-    await restoreAllSavedCalculations(updatedCalcs);
-  }
+  const contained = (await getSavedCalculations()).filter(row => row.collection_id === id);
+  if (contained.length) await restoreAllSavedCalculations(deleteContainedProducts ? [] : contained.map(row => ({
+    ...row, collection_id: undefined, collection_name: undefined,
+  })), { productIds: contained.map(row => row.id),
+    expectedRevisions: Object.fromEntries(contained.map(row => [row.id, row.catalog_revision ?? 0])) });
 
   if (client) {
     try {
@@ -923,11 +945,30 @@ export async function restoreAllCollections(collections: ProductCollection[]): P
   writeLocalJson(STORAGE_KEYS.COLLECTIONS, collections);
 }
 
-/**
- * Атомарно восстанавливает весь список заказов (для Undo).
- * Вместо N последовательных saveOrder вызовов — один batch upsert.
- */
-export async function restoreAllOrders(orders: Order[]): Promise<void> {
+export interface OrderRestoreOptions {
+  orderIds: string[];
+  expectedRevisions: Record<string, number>;
+  activeItemIds?: Record<string, string[]>;
+}
+
+/** Targeted metadata Undo preserves current allocations, production and unrelated orders. */
+export async function restoreAllOrders(orders: Order[], options?: OrderRestoreOptions): Promise<void> {
+  if (options) {
+    const view = await executeInventoryOrder({ kind: 'restoreBusinessOrders', id: crypto.randomUUID(),
+      occurredAt: new Date().toISOString(), orders: orders.map(({ items: _items, ...order }) => order), ...options });
+    if (view) return;
+    throw new Error('Для безопасной отмены загрузите актуальный складской учёт. Изменения сохранены.');
+  }
+  const repository = inventoryOrderRepository();
+  if (repository) {
+    const state = repository.inspect().state;
+    if (state.orderItems.some(item => item.cost_provenance !== 'legacy' || item.archived)
+      || state.legacyOrders?.some(order => order.order_revision !== undefined || order.order_archived)) {
+      throw new Error('Отмена требует списка изменённых заказов и их актуальных ревизий. История производства сохранена.');
+    }
+  }
+  if (await executeInventoryOrder({ kind: 'restoreLegacyOrders', id: crypto.randomUUID(),
+    occurredAt: new Date().toISOString(), orders })) return;
   const client = await getAuthenticatedSupabaseClient();
   if (client) {
     try {
@@ -960,7 +1001,41 @@ export async function restoreAllOrders(orders: Order[]): Promise<void> {
 // ORDERS API
 // ==========================================
 
+function inventoryOrderRepository() {
+  if (typeof window === 'undefined') return null;
+  const ownerId = getStorageScope();
+  const loaded = loadFoundationState(window.localStorage, ownerId);
+  if (loaded.status !== 'ready') throw new Error('Складской кэш недоступен; изменение заказов отменено.');
+  if (loaded.state.legacyOrders === undefined) return null;
+  return createInventoryRepository({ ownerId, storage: window.localStorage, lock: inventoryBrowserLock,
+    transport: isUuid(ownerId) ? createInventoryTransport(ownerId, drainLegacySyncQueue) : undefined });
+}
+
+async function executeInventoryOrder(command: BusinessCommand) {
+  let repository = inventoryOrderRepository();
+  if (!repository && (isCatalogCommand(command) || isBusinessOrderCommand(command)) && typeof window !== 'undefined' && getStorageScope() !== 'anonymous') {
+    const ownerId = getStorageScope();
+    repository = createInventoryRepository({ ownerId, storage: window.localStorage, lock: inventoryBrowserLock,
+      transport: isUuid(ownerId) ? createInventoryTransport(ownerId, drainLegacySyncQueue) : undefined });
+    const view = await repository.load(readLocalJson<Filament[]>(STORAGE_KEYS.FILAMENTS, []),
+      readLocalJson<SavedCalculation[]>(STORAGE_KEYS.SAVED_CALCULATIONS, []), readLocalJson<Order[]>(STORAGE_KEYS.ORDERS, []));
+    window.dispatchEvent(new CustomEvent('business_inventory_updated', { detail: view }));
+  }
+  if (!repository) return null;
+  const view = await repository.execute(command);
+  window.dispatchEvent(new CustomEvent('business_inventory_updated', { detail: view }));
+  if (isCatalogCommand(command) && view.syncError?.includes('BUSINESS_CATALOG_REVISION_CONFLICT')) {
+    throw new Error(view.syncError);
+  }
+  if (isBusinessOrderCommand(command) && view.syncError?.includes('BUSINESS_ORDER_REVISION_CONFLICT')) {
+    throw new Error(view.syncError);
+  }
+  return view;
+}
+
 export async function getOrders(): Promise<Order[]> {
+  const inventory = inventoryOrderRepository();
+  if (inventory) return projectInventoryOrders(inventory.inspect().state, []);
   const client = await getAuthenticatedSupabaseClient();
 
   if (client) {
@@ -973,13 +1048,13 @@ export async function getOrders(): Promise<Order[]> {
       if (error) throwDatabaseError('загрузка заказов', error);
       const orders = (data || []) as Order[];
       writeLocalJson(STORAGE_KEYS.ORDERS, orders);
-      return orders;
+      return orders.filter(order => !order.order_archived);
     } catch (error) {
       if (!isOfflineFailure(error)) throw error;
     }
   }
 
-  return readLocalJson<Order[]>(STORAGE_KEYS.ORDERS, DEFAULT_ORDERS);
+  return readLocalJson<Order[]>(STORAGE_KEYS.ORDERS, DEFAULT_ORDERS).filter(order => !order.order_archived);
 }
 
 function restoreLocalInventorySnapshot(currentOrders: Order[], nextOrders: Order[]): void {
@@ -1030,15 +1105,40 @@ function applyLocalInventoryChange(previous: Order | undefined, next: Order | un
     }
     const required = Math.max(0, next.quantity || 0);
     const available = product.stock_quantity || 0;
-    if (available < required && enforceAvailability) {
-      throw new Error(`На складе только ${available} шт. товара «${product.name}»`);
-    }
     product.stock_quantity = Math.max(0, available - required);
   }
   writeLocalJson(STORAGE_KEYS.SAVED_CALCULATIONS, updated);
 }
 
 export async function saveOrder(order: Omit<Order, 'id'> & { id?: string }): Promise<Order> {
+  const { items: submittedItems, ...head } = order;
+  const ownerId = getStorageScope();
+  const inventoryOrder = { ...head, user_id: head.user_id ?? ownerId, id: order.id || crypto.randomUUID(),
+    created_at: order.created_at || new Date().toISOString() } as Order;
+  const loaded = typeof window === 'undefined' ? null : loadFoundationState(window.localStorage, ownerId);
+  const previous = (loaded?.status === 'ready' ? loaded.state.legacyOrders?.find(row => row.id === inventoryOrder.id) : undefined)
+    ?? readLocalJson<Order[]>(STORAGE_KEYS.ORDERS, []).find(row => row.id === inventoryOrder.id);
+  const occurredAt = new Date().toISOString();
+  let items = submittedItems;
+  if (inventoryOrder.type === 'income' && !items && !previous) {
+    items = backfillLegacyOrderItems([inventoryOrder], [], ownerId);
+    const products = loaded?.status === 'ready' ? loaded.state.legacyProducts
+      ?? readLocalJson<SavedCalculation[]>(STORAGE_KEYS.SAVED_CALCULATIONS, []) : [];
+    const product = products?.find(row => row.id === inventoryOrder.product_id);
+    if (product && loaded?.status === 'ready') {
+      const recipe = createProductionRecipe(product, loaded.state, products ?? [],
+        readLocalJson<Filament[]>(STORAGE_KEYS.FILAMENTS, []), readLocalJson<Printer[]>(STORAGE_KEYS.PRINTERS, []),
+        readLocalJson<Settings | null>(STORAGE_KEYS.SETTINGS, null));
+      items = items.map(item => ({ ...item, snapshot: { ...item.snapshot, recipe } }));
+    }
+  }
+  const normalizedItems = items?.map(item => ({ ...item, user_id: inventoryOrder.user_id!,
+    order_id: inventoryOrder.id, source_order_id: inventoryOrder.id,
+    created_at: item.created_at || occurredAt }));
+  const inventoryResult = await executeInventoryOrder({ kind: 'saveBusinessOrder', id: crypto.randomUUID(),
+    occurredAt, order: inventoryOrder, ...(normalizedItems ? { items: normalizedItems } : {}),
+    expectedRevision: order.order_revision ?? 0, isNew: !previous });
+  if (inventoryResult) return projectInventoryOrders(inventoryResult.state, []).find(item => item.id === inventoryOrder.id)!;
   const client = await getAuthenticatedSupabaseClient();
   const id = order.id || crypto.randomUUID();
   const cachedOrders = readLocalJson<Order[]>(STORAGE_KEYS.ORDERS, []);
@@ -1083,6 +1183,8 @@ export async function deleteOrder(id: string): Promise<boolean> {
 
 export async function deleteOrders(ids: string[]): Promise<boolean> {
   if (ids.length === 0) return true;
+  if (await executeInventoryOrder({ kind: 'archiveBusinessOrders', id: crypto.randomUUID(),
+    occurredAt: new Date().toISOString(), orderIds: ids })) return true;
   const cloudIds = ids.filter(isUuid);
   const client = await getAuthenticatedSupabaseClient();
   const cached = readLocalJson<Order[]>(STORAGE_KEYS.ORDERS, []);
@@ -1152,8 +1254,58 @@ function clearLocalDatabaseTables(): void {
   writeLocalJson(STORAGE_KEYS.SYNC_QUEUE, []);
 }
 
+function maintenanceDefaults(): DataBackupSnapshot {
+  return { filaments: [], printers: [], settings: DEFAULT_SETTINGS, savedCalculations: [], collections: [], orders: [],
+    monthlyGoals: DEFAULT_MONTHLY_GOALS_CONFIG };
+}
+
+export function exportCompleteDataBackup() {
+  return exportBusinessBackup(maintenanceDefaults());
+}
+
+function hasBusinessCache(): boolean {
+  return typeof window !== 'undefined' && window.localStorage.getItem(foundationStorageKey(getStorageScope())) !== null;
+}
+
+function maintenanceRows(snapshot: ParsedDataBackup): Record<string, unknown> {
+  return { printers: (snapshot.printers ?? []).map(item => toPrinterRow(item)),
+    filaments: (snapshot.filaments ?? []).map(item => toFilamentRow(item)),
+    settings: snapshot.settings ? [toSettingsRow(snapshot.settings)] : [],
+    collections: (snapshot.collections ?? []).map(item => toCollectionRow(item)),
+    saved_calculations: (snapshot.savedCalculations ?? []).map(item => ({ ...toSavedCalculationRow(item),
+      catalog_revision: item.catalog_revision ?? 0, catalog_archived: item.catalog_archived ?? false })),
+    orders: (snapshot.orders ?? []).map(item => ({ ...toOrderRow(item),
+      order_revision: item.order_revision ?? 0, order_archived: item.order_archived ?? false })),
+    monthly_goals: toMonthlyGoalRows(snapshot.monthlyGoals ?? DEFAULT_MONTHLY_GOALS_CONFIG) };
+}
+
+async function replaceModernSnapshot(snapshot: ParsedDataBackup, client: DatabaseClient | null): Promise<void> {
+  await inventoryBrowserLock(foundationStorageKey(getStorageScope()), async () => {
+    await replaceBusinessSnapshot(snapshot, maintenanceRows(snapshot), maintenanceDefaults(), client?.rpc ? { rpc: client.rpc.bind(client) } : null);
+  });
+}
+
+/** Legacy snapshots do not carry the inventory ledger. Never silently mix generations. */
+export function assertLegacyMaintenanceSafe(): void {
+  if (typeof window === 'undefined') return;
+  const loaded = loadFoundationState(window.localStorage, getStorageScope());
+  const state = loaded.state;
+  const pending = (state as typeof state & { pendingInventory?: unknown[] }).pendingInventory;
+  if (loaded.status !== 'ready' || state.variants.length || state.finishedBalances.length ||
+    state.projects.length || state.orderItems.length || state.manufacturers.length || state.materialTypes.length || state.materialLines.length
+    || state.legacyOrders?.length || pending?.length) {
+    throw new Error('Эта операция не поддерживает складскую историю. Данные сохранены; требуется полная резервная копия со складом.');
+  }
+}
+
 /** Clears cloud tables first, then makes local caches and the sync queue empty. */
 export async function clearAllDatabaseTablesWithClient(client: DatabaseClient | null): Promise<void> {
+  if (hasBusinessCache()) {
+    const snapshot = parseDataBackup(createDataBackup(maintenanceDefaults(), emptyFoundationState(getStorageScope())), getStorageScope());
+    await replaceModernSnapshot(snapshot, client);
+    return;
+  }
+  assertLegacyMaintenanceSafe();
   if (client) {
     await applyAtomicCloudSnapshot(client, {
       monthly_goals: [],
@@ -1189,6 +1341,13 @@ function writeSeedToLocalStorage(seedData: SeedDataResult): void {
 
 /** Restores generated data without changing local caches until every cloud write has succeeded. */
 export async function resetAndSeedDatabaseWithClient(seedData: SeedDataResult, client: DatabaseClient | null): Promise<SeedDataResult> {
+  if (hasBusinessCache()) {
+    const snapshot = parseDataBackup(createDataBackup({ ...seedData, collections: seedData.collections ?? [],
+      monthlyGoals: DEFAULT_MONTHLY_GOALS_CONFIG }));
+    await replaceModernSnapshot(snapshot, client);
+    return seedData;
+  }
+  assertLegacyMaintenanceSafe();
   if (client) {
     await applyAtomicCloudSnapshot(client, {
       printers: seedData.printers.map(item => toPrinterRow(item)),
@@ -1476,6 +1635,7 @@ function toSavedCalculationRow(item: SavedCalculation, userId?: string): Record<
     'assembly_hardware', 'assembly_electronics', 'assembly_labor_minutes', 'assembly_labor_cost', 'custom_cost_items',
     'discount_percent', 'discount_amount', 'urgency_percent', 'urgency_amount', 'category', 'tags',
     'stock_quantity', 'stl_url', 'stl_file_name', 'stl_file_data',
+    'catalog_revision', 'catalog_archived', 'calculation_snapshot', 'agreed_price',
   ] as const;
   const row = Object.fromEntries(columns.filter(column => item[column] !== undefined).map(column => [column, item[column]]));
   if (userId) row.user_id = userId;
@@ -1487,7 +1647,7 @@ function toOrderRow(item: Order, userId?: string): Record<string, unknown> {
     'id', 'created_at', 'order_number', 'date', 'type', 'title', 'quantity', 'base_amount',
     'urgency_type', 'urgency_percent', 'urgency_amount', 'discount_type', 'discount_percent',
     'discount_amount', 'amount', 'cost', 'cost_items', 'payments', 'payment', 'client', 'client_name',
-    'contact', 'contacts', 'deadline', 'status', 'notes', 'product_id',
+    'contact', 'contacts', 'deadline', 'status', 'notes', 'product_id', 'agreed_price', 'order_revision', 'order_archived',
   ] as const;
   const row = Object.fromEntries(columns.filter(column => item[column] !== undefined).map(column => [column, item[column]]));
   if (userId) row.user_id = userId;
@@ -1527,7 +1687,12 @@ function writeRestoredSnapshotToLocalStorage(snapshot: ParsedDataBackup): void {
 
 /** Validates the complete backup before touching cloud or local storage. */
 export async function restoreDatabaseSnapshotWithClient(input: unknown, client: DatabaseClient | null): Promise<ParsedDataBackup> {
-  const snapshot = parseDataBackup(input);
+  const snapshot = parseDataBackup(input, getStorageScope());
+  if (snapshot.version === 3) {
+    await replaceModernSnapshot(snapshot, client);
+    return snapshot;
+  }
+  assertLegacyMaintenanceSafe();
   if (client) await restoreCloudDatabaseSnapshot(client, snapshot);
   writeRestoredSnapshotToLocalStorage(snapshot);
   return snapshot;
@@ -1556,10 +1721,14 @@ export interface SyncDataResult {
  * Вызывается при восстановлении интернет-соединения.
  */
 export async function syncLocalStorageToSupabase(): Promise<SyncDataResult | null> {
-  const client = await getAuthenticatedSupabaseClient();
-  if (!client || typeof window === 'undefined') return null;
+  if (typeof window === 'undefined') return null;
+  return inventoryBrowserLock(foundationStorageKey(getStorageScope()), syncLegacyDataUnlocked);
+}
 
-  try {
+/** Caller holds the inventory owner lock; never acquire it recursively here. */
+export async function drainLegacySyncQueue(): Promise<void> {
+  const client = await getAuthenticatedSupabaseClient();
+  if (!client || typeof window === 'undefined') throw new Error('Нет соединения для синхронизации прежней очереди.');
     const { data: authData, error: authError } = await client.auth.getUser();
     if (authError || !authData.user) throwDatabaseError('авторизация синхронизации', authError);
 
@@ -1591,7 +1760,7 @@ export async function syncLocalStorageToSupabase(): Promise<SyncDataResult | nul
         const options = operation.entity === 'monthly_goals'
           ? { onConflict: 'user_id,month_key' }
           : undefined;
-        let res = await query.upsert(
+        const res = await query.upsert(
           { ...operation.payload, user_id: authData.user.id },
           options
         );
@@ -1610,6 +1779,11 @@ export async function syncLocalStorageToSupabase(): Promise<SyncDataResult | nul
       if (error) throwDatabaseError(`синхронизация ${operation.entity}/${operation.action}`, error);
       removeSyncOperation(operation.entity, operation.id);
     }
+}
+
+async function syncLegacyDataUnlocked(): Promise<SyncDataResult | null> {
+  try {
+    await drainLegacySyncQueue();
 
     // После подтверждения журнала облако становится источником актуального снимка.
     const [cloudSettings, cloudFilaments, cloudPrinters, cloudCalcs, cloudCollections, cloudOrders, cloudGoals] = await Promise.all([

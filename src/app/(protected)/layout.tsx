@@ -2,6 +2,7 @@
 
 import { AuthProvider } from '../../entities/model/AuthProvider';
 import { DataProvider } from '../../entities/model/DataProvider';
+import { InventoryProvider } from '../../entities/model/InventoryProvider';
 import { OrderModalProvider } from '../../entities/model/OrderModalContext';
 import { ToastProvider } from '../../entities/model/ToastProvider';
 import { AuthGuard } from '../../shared/ui/AuthGuard';
@@ -15,6 +16,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
         <ToastProvider>
           <AuthProvider>
             <DataProvider>
+              <InventoryProvider>
               <ProtectedPageReadiness />
               <OrderModalProvider>
                 <AuthGuard>
@@ -23,6 +25,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
                   </PixelCurtainProvider>
                 </AuthGuard>
               </OrderModalProvider>
+              </InventoryProvider>
             </DataProvider>
           </AuthProvider>
         </ToastProvider>

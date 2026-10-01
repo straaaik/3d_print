@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SavedCalculation, ProductCollection, Filament } from '../../../../shared/types';
+import { SavedCalculation, ProductCollection, Filament, Printer as PrinterResource, Settings } from '../../../../shared/types';
+import { ProductCalculationEditor } from '../../ProductCalculationEditor';
 import { CatalogTableRow, formatProductArticle, SalesStatInfo } from '../../types';
 import { formatCurrency } from '../../../../shared/lib/format';
 import { getCategoryLucideIcon } from '../../../../shared/lib/categories';
@@ -17,7 +18,6 @@ import {
   Flame,
   Wrench,
   Folder,
-  Box,
   X,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -35,7 +35,7 @@ interface ProductRowDrawerProps {
   row: CatalogTableRow;
   collectionColor?: string;
   currencySymbol?: string;
-  onInlineUpdateProduct?: (productId: string, updates: Partial<SavedCalculation>) => void;
+  onInlineUpdateProduct?: (productId: string, updates: Partial<SavedCalculation>) => Promise<void> | void;
   onInlineUpdateCollection?: (collectionId: string, updates: Partial<ProductCollection>) => void;
   onSetStock?: (item: SavedCalculation, newStock: number) => void;
   onOpenEditAssembly?: (item: SavedCalculation) => void;
@@ -48,10 +48,29 @@ interface ProductRowDrawerProps {
   onClose: () => void;
   categoriesList?: { id: string; label: string }[];
   filaments?: Filament[];
+  printers?: PrinterResource[];
+  settings?: Settings | null;
   salesStat?: SalesStatInfo;
 }
 
-export function ProductRowDrawer({
+export function ProductRowDrawer(props: ProductRowDrawerProps) {
+  if (props.row.rowKind === 'collection' || props.row.isPart || props.row.id.toLowerCase().startsWith('prt-')) {
+    return <CollectionRowDrawer {...props} />;
+  }
+  const product = props.row.item;
+  return <div data-row-drawer="true" onClick={event => event.stopPropagation()}
+    className="p-3 sm:p-4 border-t border-white/10 bg-neutral-950/95">
+    <ProductCalculationEditor key={product.id} product={product} filaments={props.filaments}
+      printers={props.printers} settings={props.settings} currencySymbol={props.currencySymbol}
+      onSave={props.onInlineUpdateProduct ? updates => props.onInlineUpdateProduct!(product.id, updates) : undefined}
+      onClose={props.onClose} onLoadIntoCalculator={props.onLoadIntoCalculator}
+      onOpenEditAssembly={props.onOpenEditAssembly ?? props.onOpenQuickEditModal}
+      onCreateOrder={props.onCreateOrder} onOpenStlModal={props.onOpenStlModal} onSetStock={props.onSetStock} />
+  </div>;
+}
+
+// Collections and synthetic assembly parts retain their existing update semantics.
+function CollectionRowDrawer({
   row,
   collectionColor,
   currencySymbol = '₽',
@@ -364,7 +383,7 @@ export function ProductRowDrawer({
                   type="button"
                   onClick={() => handleStockDelta(1)}
                   className="w-3.5 h-3.5 flex items-center justify-center text-xs font-bold cursor-pointer leading-none text-[#71717a] hover:text-white"
-                  title="Увеличить остаток на 1"
+                  title="Ручная корректировка остатка +1"
                 >
                   +
                 </button>
@@ -373,7 +392,7 @@ export function ProductRowDrawer({
                   onClick={() => handleStockDelta(-1)}
                   disabled={stock <= 0}
                   className="w-3.5 h-3.5 flex items-center justify-center text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer leading-none text-[#71717a] hover:text-white"
-                  title="Уменьшить остаток на 1"
+                  title="Ручная корректировка остатка −1"
                 >
                   −
                 </button>
@@ -623,7 +642,7 @@ export function ProductRowDrawer({
                 {/* 1. Чистая прибыль с единицы */}
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-[10px] text-[#71717a] uppercase tracking-wider font-semibold">
-                    <span>ПРИБЫЛЬ С ЕДИНИЦЫ</span>
+                    <span>ПЛАНОВАЯ ПРИБЫЛЬ ТИРАЖА</span>
                     <AnimatedPriceNumber
                       value={profit}
                       currencySymbol={currencySymbol}
@@ -680,7 +699,7 @@ export function ProductRowDrawer({
                   <div className="flex items-center justify-between text-[11px] text-[#71717a] pt-0.5">
                     <span>Сумма в наличии:</span>
                     <span className="text-white font-bold font-mono">
-                      {formatCurrency(stock * numPrice, currencySymbol)}
+                      {formatCurrency(stock * numPrice / Math.max(1, item?.quantity ?? 1), currencySymbol)}
                     </span>
                   </div>
                 </div>

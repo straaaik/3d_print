@@ -6,6 +6,7 @@ import { CockpitTiltCard } from '@/shared/ui/CockpitTiltCard';
 
 interface OrdersV2KpiCardsProps {
   totalIncome: number;
+  receivedPayments?: number;
   totalExpenses: number;
   netProfitTotal: number;
   totalMarginPercent: number;
@@ -24,6 +25,7 @@ interface OrdersV2KpiCardsProps {
 
 export const OrdersV2KpiCards = React.memo(function OrdersV2KpiCards({
   totalIncome,
+  receivedPayments,
   totalExpenses,
   netProfitTotal,
   totalMarginPercent,
@@ -46,7 +48,7 @@ export const OrdersV2KpiCards = React.memo(function OrdersV2KpiCards({
   const averageCheck = incomeOrdersCount > 0 ? Math.round(totalIncome / incomeOrdersCount) : 0;
   const averageProfit = incomeOrdersCount > 0 ? Math.round(netProfitTotal / incomeOrdersCount) : 0;
   const averageCost = incomeOrdersCount > 0 ? Math.round(totalExpenses / incomeOrdersCount) : 0;
-  const totalPaid = Math.max(0, totalIncome - unpaidSum);
+  const totalPaid = receivedPayments ?? Math.max(0, totalIncome - unpaidSum);
   const paidRatio = totalIncome > 0 ? Math.max(0, Math.min(100, (totalPaid / totalIncome) * 100)) : 100;
   const goalRemaining = hasGoal ? Math.max(0, currentMonthGoal - currentProfit) : 0;
   const completedRatio = incomeOrdersCount > 0 ? Math.round((completedCount / incomeOrdersCount) * 100) : 0;
@@ -196,7 +198,7 @@ export const OrdersV2KpiCards = React.memo(function OrdersV2KpiCards({
         )}
       </CockpitTiltCard>
 
-      {/* КАРТОЧКА 3: ЧИСТАЯ ПРИБЫЛЬ С ПОЛОСОЙ ЦЕЛИ */}
+      {/* КАРТОЧКА 3: ФАКТИЧЕСКАЯ ПРИБЫЛЬ С ПОЛОСОЙ ЦЕЛИ */}
       <CockpitTiltCard
         tone="emerald"
         className="p-3 sm:p-3.5 flex flex-col justify-between"
@@ -204,7 +206,7 @@ export const OrdersV2KpiCards = React.memo(function OrdersV2KpiCards({
           <div className="flex h-full flex-col justify-between font-mono text-[10px]">
             <div className="flex items-center justify-between border-b border-white/10 pb-1.5">
               <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
-                ЧИСТАЯ ПРИБЫЛЬ
+                ФАКТИЧЕСКАЯ ПРИБЫЛЬ
               </span>
             </div>
             <div className="my-auto space-y-2 py-1">
@@ -229,7 +231,7 @@ export const OrdersV2KpiCards = React.memo(function OrdersV2KpiCards({
         <div>
           <div className="flex items-center justify-between text-neutral-400 mb-1.5">
             <span className="text-[10px] sm:text-[11px] font-mono uppercase tracking-wider font-semibold text-neutral-400">
-              ЧИСТАЯ ПРИБЫЛЬ
+              ФАКТИЧЕСКАЯ ПРИБЫЛЬ
             </span>
             <div className="p-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               <TrendingUp className="w-3 h-3" />

@@ -36,7 +36,6 @@ export function PixelCurtainProvider({ children }: { children: React.ReactNode }
   const [, startReactTransition] = useTransition();
   const [phase, setPhaseState] = useState<'idle' | 'covering' | 'revealing'>('idle');
   const phaseRef = useRef(phase);
-  phaseRef.current = phase;
   const timersRef = useRef<NodeJS.Timeout[]>([]);
   const reduced = useReducedMotion();
 

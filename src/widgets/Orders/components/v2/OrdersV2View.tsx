@@ -36,6 +36,7 @@ interface OrdersV2ViewProps {
 
   // KPI метрики
   totalIncome: number;
+  receivedPayments?: number;
   totalExpenses: number;
   netProfitTotal: number;
   totalMarginPercent: number;
@@ -114,6 +115,7 @@ export const OrdersV2View = React.memo(function OrdersV2View({
   onShowAll,
   onOpenNewMonthModal,
   totalIncome,
+  receivedPayments,
   totalExpenses,
   netProfitTotal,
   totalMarginPercent,
@@ -388,8 +390,10 @@ export const OrdersV2View = React.memo(function OrdersV2View({
             </div>
           </div>
 
-          {/* Правая часть: Действия (Отменить) */}
+          {/* Правая часть: Действия заказа */}
           <div className="flex items-center gap-2 text-xs font-mono shrink-0">
+            {!isExpanded && <CockpitButton onClick={onOpenAddModal} icon={Plus}
+              title="Создать новый заказ">Новый заказ</CockpitButton>}
             {/* Кнопка отмены */}
             <CockpitButton
               onClick={onUndo}
@@ -420,7 +424,8 @@ export const OrdersV2View = React.memo(function OrdersV2View({
           >
             {/* РЯД ИЗ 5-ТИ КОМПАКТНЫХ KPI КАРТОЧЕК */}
             <OrdersV2KpiCards
-              totalIncome={totalIncome}
+              receivedPayments={receivedPayments}
+          totalIncome={totalIncome}
               totalExpenses={totalExpenses}
               netProfitTotal={netProfitTotal}
               totalMarginPercent={totalMarginPercent}

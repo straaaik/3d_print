@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState } from 'react';
 import { Box, Sparkles } from 'lucide-react';
 import { normalizeHex } from '../lib/colorUtils';
 import { ColorPickerTrigger } from './color-picker/ColorPickerTrigger';
 import { IsometricSpoolPicker } from './color-picker/IsometricSpoolPicker';
 import { CockpitMatrixPicker } from './color-picker/CockpitMatrixPicker';
+import { useIsClient } from './useIsClient';
 
 export interface ColorPickerProps {
   value: string;
@@ -31,22 +31,18 @@ export function ColorPicker({
   defaultVariant,
   align = 'left',
 }: ColorPickerProps) {
-  const [variant, setVariant] = useState<'spool' | 'matrix'>('spool');
-
-  useEffect(() => {
-    if (defaultVariant) {
-      setVariant(defaultVariant);
-      return;
-    }
-    const saved = localStorage.getItem('3d_labs_color_picker_mode');
-    if (saved === 'matrix' || saved === 'spool') {
-      setVariant(saved);
-    }
-  }, [defaultVariant]);
+  const isClient = useIsClient();
+  const [selected, setSelected] = useState<{ variant: 'spool' | 'matrix'; base?: 'spool' | 'matrix' } | null>(null);
+  let saved: string | null = null;
+  try { if (isClient) saved = localStorage.getItem('3d_labs_color_picker_mode'); }
+  catch { /* A browser storage restriction must not prevent choosing a color. */ }
+  const storedVariant = saved === 'matrix' || saved === 'spool' ? saved : 'spool';
+  const variant = selected && selected.base === defaultVariant ? selected.variant : (defaultVariant ?? storedVariant);
 
   const handleVariantChange = (newVariant: 'spool' | 'matrix') => {
-    setVariant(newVariant);
-    localStorage.setItem('3d_labs_color_picker_mode', newVariant);
+    setSelected({ variant: newVariant, base: defaultVariant });
+    try { localStorage.setItem('3d_labs_color_picker_mode', newVariant); }
+    catch { /* The selection remains usable without persisted preferences. */ }
   };
 
   const hex = normalizeHex(value);

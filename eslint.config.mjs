@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Local verification output and isolated checkouts are not application source.
+    ".codex-tmp/**",
+    ".test-dist/**",
+    ".superpowers/worktrees/**",
+    "playwright-report/**",
+    "test-results/**",
   ]),
 ]);
 

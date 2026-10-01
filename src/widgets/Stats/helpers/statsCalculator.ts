@@ -1,5 +1,5 @@
 import { Order, SavedCalculation } from '../../../shared/types';
-import { round2, round1, calcMarginPercent, calcMarkupPercent } from '../../../shared/lib/formulas';
+import { round2, round1, calcMarginPercent, calcMarkupPercent, calculateOrderFinancials } from '../../../shared/lib/formulas';
 import { timeToHours } from '../../../shared/lib/format';
 import type { FinancialLabels, FinancialMode, StatsReport, StatsReportInput, StatsReportKpi } from '../types';
 
@@ -52,8 +52,8 @@ export const MONTH_NAMES_FULL = [
 
 export function getFinancialLabels(mode: FinancialMode): FinancialLabels {
   return mode === 'cash'
-    ? { revenue: 'Получено', result: 'Кассовый результат' }
-    : { revenue: 'Выручка', result: 'Чистая прибыль' };
+    ? { revenue: 'Получено', result: 'Фактическая прибыль' }
+    : { revenue: 'Выручка', result: 'Фактическая прибыль' };
 }
 
 export function getHeatLevel(value: number, max: number): 0 | 1 | 2 | 3 | 4 {
@@ -89,7 +89,8 @@ function getReportOrderFinancials(order: Order, mode: FinancialMode) {
     };
   }
 
-  const ordered = Math.max(0, Number(order.amount) || 0);
+  const result = calculateOrderFinancials(order);
+  const ordered = result.finalAmount;
   const paid = Math.max(0, Number(order.payment) || 0);
 
   return {
@@ -163,12 +164,12 @@ function calculateReportKpi(
     printHours += production.printHours;
   }
 
-  const result = revenue - expenses;
+  const result = paid - expenses;
   const kpi: StatsReportKpi = {
     revenue: round2(revenue),
     expenses: round2(expenses),
     result: round2(result),
-    margin: calcMarginPercent(result, revenue),
+    margin: calcMarginPercent(result, paid),
     averageCheck: incomeOrders > 0 ? round2(revenue / incomeOrders) : 0,
     receivables: round2(receivables),
     unpaidOrders,
@@ -313,30 +314,28 @@ export function buildStatsReport(input: StatsReportInput): StatsReport {
     addRankValue(statusMap, order.status, order.status, 1);
     distributeCostItems(order, financials.expense, costMap, 'Себестоимость заказа');
 
-    const orderResult = financials.revenue - financials.expense;
+    const orderResult = calculateOrderFinancials(order).actualProfit;
     const quantity = Math.max(1, Number(order.quantity) || 1);
     const product = order.product_id ? productsMap.get(order.product_id) : undefined;
-    const productId = product?.id || 'unlinked';
-    const productLabel = product?.name || 'Без привязки';
-    const currentProduct = productMap.get(productId);
-    if (currentProduct) {
-      currentProduct.value += orderResult;
-      currentProduct.secondary += financials.revenue;
-      currentProduct.revenue += financials.revenue;
-      currentProduct.profit += orderResult;
-      currentProduct.quantity += quantity;
-    } else {
-      productMap.set(productId, {
-        id: productId,
-        label: productLabel,
-        value: orderResult,
-        secondary: financials.revenue,
-        revenue: financials.revenue,
-        profit: orderResult,
-        quantity,
-      });
+    const positions = order.items?.length ? order.items.filter(item => !item.archived).map(item => ({
+      id: item.product_id ?? 'unlinked', label: item.name, quantity: item.quantity,
+      price: item.total_price, cost: item.total_cost,
+    })) : [{ id: product?.id ?? 'unlinked', label: product?.name ?? 'Без привязки', quantity,
+      price: financials.ordered, cost: financials.expense }];
+    const positionPrice = positions.reduce((sum, item) => sum + item.price, 0);
+    const positionQuantity = positions.reduce((sum, item) => sum + item.quantity, 0);
+    for (const position of positions) {
+      const share = positionPrice > 0 ? position.price / positionPrice : position.quantity / Math.max(1, positionQuantity);
+      const revenue = financials.revenue * share;
+      const profit = financials.paid * share - position.cost;
+      const current = productMap.get(position.id);
+      if (current) {
+        current.value += profit; current.secondary += revenue; current.revenue += revenue;
+        current.profit += profit; current.quantity += position.quantity;
+      } else productMap.set(position.id, { id: position.id, label: position.label, value: profit,
+        secondary: revenue, revenue, profit, quantity: position.quantity });
     }
-    if (!product) unlinkedOrders += 1;
+    if (positions.some(item => item.id === 'unlinked')) unlinkedOrders += 1;
 
     const orderDate = parseOrderDate(order);
     const activityKey = `${orderDate.getFullYear()}-${String(orderDate.getMonth() + 1).padStart(2, '0')}-${String(orderDate.getDate()).padStart(2, '0')}`;
@@ -355,10 +354,24 @@ export function buildStatsReport(input: StatsReportInput): StatsReport {
       });
     }
 
-    if (!product) continue;
+    if (!product && !order.items?.length) continue;
 
-    const productionParts = product.type === 'assembly' && product.assembly_parts?.length
-      ? product.assembly_parts.map((part) => ({
+    const productionParts = order.items?.length ? order.items.filter(item => !item.archived).flatMap(item => {
+      const assembly = item.snapshot.recipe?.product_snapshot;
+      if (assembly?.type === 'assembly' && assembly.assembly_parts?.length) return assembly.assembly_parts.map(part => ({
+        filamentId: part.filament_id, filamentName: part.filament_name, filamentColor: part.filament_color,
+        printerId: part.printer_id, printerName: part.printer_name,
+        weightG: part.weight_g * part.quantity * item.production_quantity,
+        hours: timeToHours(part.hours, part.minutes) * part.quantity * item.production_quantity,
+      }));
+      const inputs = item.snapshot.calculation?.inputs;
+      const ratio = item.production_quantity / Math.max(1, item.quantity);
+      return [{ filamentId: inputs?.filament?.id, filamentName: inputs?.filament?.name,
+        filamentColor: inputs?.filament?.color, printerId: inputs?.printer?.id, printerName: inputs?.printer?.name,
+        weightG: (inputs?.weightG ?? 0) * ratio,
+        hours: ((inputs?.days ?? 0) * 24 + timeToHours(inputs?.hours ?? 0, inputs?.minutes ?? 0)) * ratio }];
+    }) : product!.type === 'assembly' && product!.assembly_parts?.length
+      ? product!.assembly_parts.map((part) => ({
           filamentId: part.filament_id,
           filamentName: part.filament_name,
           filamentColor: part.filament_color,
@@ -368,13 +381,13 @@ export function buildStatsReport(input: StatsReportInput): StatsReport {
           hours: timeToHours(Number(part.hours) || 0, Number(part.minutes) || 0) * Math.max(1, Number(part.quantity) || 1) * quantity,
         }))
       : [{
-          filamentId: product.filament_id,
-          filamentName: product.filament_name,
-          filamentColor: product.filament_color,
-          printerId: product.printer_id,
-          printerName: product.printer_name,
-          weightG: (Number(product.weight_g) || 0) * quantity,
-          hours: timeToHours(Number(product.hours) || 0, Number(product.minutes) || 0) * quantity,
+          filamentId: product!.filament_id,
+          filamentName: product!.filament_name,
+          filamentColor: product!.filament_color,
+          printerId: product!.printer_id,
+          printerName: product!.printer_name,
+          weightG: (Number(product!.weight_g) || 0) * quantity,
+          hours: timeToHours(Number(product!.hours) || 0, Number(product!.minutes) || 0) * quantity,
         }];
 
     const totalPartHours = productionParts.reduce((sum, part) => sum + part.hours, 0);
@@ -683,6 +696,22 @@ export function filterOrdersByDateRange(orders: Order[], range: DateRange): Orde
  * Расчет веса пластика и часов печати для одного заказа
  */
 export function getOrderProductionMetrics(order: Order, productsMap: Map<string, SavedCalculation>) {
+  if (order.items?.length) {
+    const totals = order.items.filter(item => !item.archived).reduce((total, item) => {
+      const assembly = item.snapshot.recipe?.product_snapshot;
+      if (assembly?.type === 'assembly' && assembly.assembly_parts?.length) {
+        return assembly.assembly_parts.reduce((sum, part) => ({
+          weightG: sum.weightG + part.weight_g * part.quantity * item.production_quantity,
+          printHours: sum.printHours + timeToHours(part.hours, part.minutes) * part.quantity * item.production_quantity,
+        }), total);
+      }
+      const inputs = item.snapshot.calculation?.inputs;
+      return { weightG: total.weightG + (inputs?.weightG ?? 0) * item.production_quantity / Math.max(1, item.quantity),
+        printHours: total.printHours + ((inputs?.days ?? 0) * 24 + timeToHours(inputs?.hours ?? 0, inputs?.minutes ?? 0))
+          * item.production_quantity / Math.max(1, item.quantity) };
+    }, { weightG: 0, printHours: 0 });
+    return { weightG: round2(totals.weightG), printHours: round2(totals.printHours) };
+  }
   const qty = Math.max(1, order.quantity || 1);
   let weightG = 0;
   let printHours = 0;
@@ -714,6 +743,7 @@ export function calculateStatsKPI(
   const productsMap = new Map<string, SavedCalculation>(products.map(p => [p.id, p]));
 
   let totalRevenue = 0;
+  let receivedPayments = 0;
   let totalExpenses = 0;
   let incomeOrdersCount = 0;
   let expenseOrdersCount = 0;
@@ -733,6 +763,7 @@ export function calculateStatsKPI(
     if (isIncome) {
       incomeOrdersCount += 1;
       totalRevenue += amount;
+      receivedPayments += payment;
       totalExpenses += cost;
 
       // Дебиторка (недоплата)
@@ -761,8 +792,8 @@ export function calculateStatsKPI(
 
   totalRevenue = round2(totalRevenue);
   totalExpenses = round2(totalExpenses);
-  const netProfit = round2(totalRevenue - totalExpenses);
-  const marginPercent = calcMarginPercent(netProfit, totalRevenue);
+  const netProfit = round2(receivedPayments - totalExpenses);
+  const marginPercent = calcMarginPercent(netProfit, receivedPayments);
   const markupPercent = calcMarkupPercent(netProfit, totalExpenses);
   const averageCheck = incomeOrdersCount > 0 ? round2(totalRevenue / incomeOrdersCount) : 0;
 
@@ -894,7 +925,7 @@ export function generateDynamicsChartData(
       } else {
         bucket.expense += financials.expense;
       }
-      bucket.profit = round2(bucket.revenue - bucket.expense);
+      bucket.profit = round2(bucket.profit + (isIncome ? calculateOrderFinancials(order).actualProfit : -financials.expense));
     }
   } else {
     // Группировка по месяцам
@@ -961,7 +992,7 @@ export function generateDynamicsChartData(
       } else {
         bucket.expense += financials.expense;
       }
-      bucket.profit = round2(bucket.revenue - bucket.expense);
+      bucket.profit = round2(bucket.profit + (isIncome ? calculateOrderFinancials(order).actualProfit : -financials.expense));
     }
   }
 

@@ -11,6 +11,7 @@ import ProtectedLayout from '../src/app/(protected)/layout';
 import { loadInitialData, type InitialDataApi } from '../src/entities/model/loadInitialData';
 import { AuthProvider } from '../src/entities/model/AuthProvider';
 import { DataProvider } from '../src/entities/model/DataProvider';
+import { InventoryProvider } from '../src/entities/model/InventoryProvider';
 import { OrderModalProvider } from '../src/entities/model/OrderModalContext';
 import { ToastProvider } from '../src/entities/model/ToastProvider';
 import { AuthGuard } from '../src/shared/ui/AuthGuard';
@@ -85,7 +86,9 @@ test('real route layouts own only their required provider trees', async () => {
   assert.equal(auth.type, AuthProvider);
   const data = child(auth);
   assert.equal(data.type, DataProvider);
-  const dataChildren = React.Children.toArray(data.props.children) as ElementWithChildren[];
+  const inventory = child(data);
+  assert.equal(inventory.type, InventoryProvider);
+  const dataChildren = React.Children.toArray(inventory.props.children) as ElementWithChildren[];
   assert.equal(dataChildren[0].type, ProtectedPageReadiness);
   assert.equal(dataChildren[1].type, OrderModalProvider);
   const guard = child(dataChildren[1]);
